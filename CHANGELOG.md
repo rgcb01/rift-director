@@ -4,6 +4,15 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### M1.2 · KDA y participación individual (2026-11-07)
+- Módulo `src/core/match-stats.js` para kills, muertes, asistencias, pentakills y participación en objetivos por jugador a partir de hechos registrados.
+- Snapshots independientes de estadísticas individuales por minuto y resumen final en el Match Center.
+- RiftCast acredita asistentes y compañeros que realmente participaron en objetivos; se impide que los eliminados reciban participación.
+- Las cartas muestran K/D/A acumulado de **mapas narrados**, diferenciándolo de estadísticas de carrera completa.
+- Auditoría que reconstruye desde eventos el KDA y verifica cada frame, el total de kills/muertes, pentakills y participantes.
+- Compatibilidad con partidas `v2` históricas: no se inventa KDA para partidas sin esos datos.
+
+
 ### Match Center: evidencias y auditoría (M1.2, 2026-11-07)
 - Eventos nuevos de partido almacenan evidencia estructurada de autores, víctimas, carriles y objetivos para alinear retransmisión y marcador.
 - Auditoría independiente en `src/core/match-events.js`, con tests para cientos de partidos y casos manipulados (Smite en MID, objetivos inválidos, kills duplicadas).

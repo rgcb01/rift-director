@@ -12,6 +12,7 @@ src/core/state.js          Estado inicial v2 y roles
 src/core/calendar.js       Calendario round-robin, jornadas, tablas iniciales y fechas
 src/core/finance.js        Cotización mensual, salarios, transferencias de caja, precios
 src/core/match-events.js   Auditoría de eventos: kills, objetivos, roles y marcador
+src/core/match-stats.js    Estadísticas K/D/A y participación individual reconstruibles
 src/core/persistence.js    Parseo, validación, almacenamiento local v2
 game.js                    IIFE con mundo, motor de partidos, finanzas, rendering y eventos DOM
 scripts/check-static.mjs   Validación ligera de archivos/recursos
@@ -131,3 +132,11 @@ Los mapas nuevos generan eventos con un objeto opcional `facts` que registra el 
 Los eventos heredados de Alpha 0.2 carecen de `facts` y no se reescriben al importar guardados `v2`. No podemos demostrar todas las reglas de los mapas antiguos con la misma auditoría estructural. **Smite solo lo atribuye el código al jungla en los robos de Barón**; un futuro modelo explícito de campeones/hechizos requerirá más validación.
 
 **Regresión deliberada M1.2:** la huella del partido de referencia cambió al corregir eventos de torres/Barón inválidos. Se conserva un checkpoint del mundo inicial y del cálculo financiero; el partido y el RNG posterior tienen una nueva referencia determinista verificada. No se garantiza que repetir un mapa antiguo con la misma semilla produzca idéntico resultado tras esta corrección.
+
+## M1.2 fase 2 — Estadísticas individuales, fuente de verdad y compatibilidad
+
+`RiftCore.applyPlayerEvent` proyecta estadísticas de jugadores **exclusivamente** desde la evidencia del evento, sin consumir RNG ni modificar `world.players`. La retransmisión registra `playerStats` en cada frame y al final del mapa; la auditoría reconstruye los datos a partir de los mismos eventos y los contrasta con los totales por equipo. Cada objetivo guarda `participantIds` válidos, vivos y del mismo club. El `KDA` es `(kills + assists) / max(1, deaths)`, mostrando «Perfecto» cuando hubo participación sin muertes.
+
+`finishMatch()` conserva `outcome.playerStats` para mapas nuevos y suma los resultados opcionales a `player.broadcastStats` solo una vez. **No son estadísticas de carrera global:** las partidas rápidas entre IA no tienen simulación individual, de modo que se etiqueta «mapas narrados». Los reportes existentes y guardados antiguos `v:2` carecen de este campo y no necesitan migración; no se sintetizan eliminaciones inexistentes.
+
+En la Alpha actual, pentakill significa cinco bajas válidas atribuidas al mismo profesional en **un evento de pelea**; la validación de cadenas entre eventos y ventanas de segundos, así como posiciones exactas, campeones, Summoner Spells y asistencias detalladas por víctima, quedan para fases posteriores. No afirmar que se reproduce todo LoL.

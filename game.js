@@ -111,10 +111,17 @@ function notify(t){let d=document.getElementById('toast');if(d)d.remove();d=docu
 function simulateMatch(f){const a=club(f.a),b=club(f.b),aP=teamPlayers(a),bP=teamPlayers(b);
  const m={minute:0,kills:{[a.id]:0,[b.id]:0},gold:{[a.id]:500,[b.id]:500},towers:{[a.id]:0,[b.id]:0},lanes:{[a.id]:{TOP:0,MID:0,BOT:0},[b.id]:{TOP:0,MID:0,BOT:0}},dragons:{[a.id]:0,[b.id]:0},barons:{[a.id]:0,[b.id]:0},dead:{},winner:null,events:[],frames:[],nextDragon:5,nextBaron:20,baronBuff:{[a.id]:0,[b.id]:0}};
  const all=[a,b],teams={[a.id]:aP,[b.id]:bP};
+ const playerStats=RiftCore.createPlayerStats([...aP,...bP]);
  const living=(c,t)=>teams[c.id].filter(p=>(m.dead[p.id]||0)<=t);
  const enemy=c=>c.id===a.id?b:a;
  const byRole=(c,r,t)=>living(c,t).find(p=>p.role===r);
- const makeEv=(minute,title,body,kind='normal',team=null,facts=null)=>{const prior=m.events[m.events.length-1];const sec=minute===0?0:prior?.minute===minute?Math.min(59,Number(prior.time.slice(3))+ri(1,8)):ri(0,29);const event={minute,time:`${String(minute).padStart(2,'0')}:${String(sec).padStart(2,'0')}`,title,body,kind,teamId:team?.id||null};if(facts)event.facts=facts;m.events.push(event)};
+ // Only living, same-team professionals are considered present at the objective.
+ // Pick helpers deterministically from role/vision/teamplay, without consuming RNG.
+ const presentWith=(c,t,actor,preferred=[])=>[actor.id,...living(c,t).filter(p=>p.id!==actor.id)
+   .sort((x,y)=>((preferred.includes(y.role)?20:0)+y.a.vision*.1+y.beh.team*.08+y.a.comm*.05)-
+                ((preferred.includes(x.role)?20:0)+x.a.vision*.1+x.beh.team*.08+x.a.comm*.05)||x.id.localeCompare(y.id))
+   .slice(0,2).map(p=>p.id)];
+ const makeEv=(minute,title,body,kind='normal',team=null,facts=null)=>{const prior=m.events[m.events.length-1];const sec=minute===0?0:prior?.minute===minute?Math.min(59,Number(prior.time.slice(3))+ri(1,8)):ri(0,29);const event={minute,time:`${String(minute).padStart(2,'0')}:${String(sec).padStart(2,'0')}`,title,body,kind,teamId:team?.id||null};if(facts){event.facts=facts;RiftCore.applyPlayerEvent(playerStats,event)}m.events.push(event)};
  const balance=(c,t)=>{let stage=t<12?'early':t<25?'mid':'late';let z=teamPower(c,stage)+(m.gold[c.id]-m.gold[enemy(c).id])/2800+m.barons[c.id]*1.3;
  let pref=c.id===s.userClub?s.style:(c.id.charCodeAt(c.id.length-1)%3===0?'aggressive':c.id.charCodeAt(c.id.length-1)%3===1?'objectives':'scaling');
  if(pref==='aggressive'&&t<=15)z+=4;if(pref==='scaling'&&t>=25)z+=4;if(pref==='objectives')z+=m.dragons[c.id]*.7;
@@ -126,8 +133,8 @@ function simulateMatch(f){const a=club(f.a),b=club(f.b),aP=teamPlayers(a),bP=tea
  let lane=requestedLane&&avail.includes(requestedLane)?requestedLane:pick(avail);lanes[lane]++;m.towers[c.id]++;m.gold[c.id]+=690;
  let who=byRole(c,lane==='BOT'?'ADC':lane,t)||pick(alive);
  const place=lane==='BOT'?'inferior':lane==='TOP'?'superior':'central';
- makeEv(t,`¡Cae una torre ${place}!`,`${c.name} derriba la ${['exterior','interior','de base'][lanes[lane]-1]} del carril ${place}. ${who.name} participa en la presión y su equipo recibe oro adicional.`, 'goal',c,{action:'tower',actorId:who.id,lane,stage:lanes[lane]});return true};
- const nextSnapshot=t=>m.frames.push({minute:t,kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length});
+ makeEv(t,`¡Cae una torre ${place}!`,`${c.name} derriba la ${['exterior','interior','de base'][lanes[lane]-1]} del carril ${place}. ${who.name} participa en la presión y su equipo recibe oro adicional.`, 'goal',c,{action:'tower',actorId:who.id,participantIds:presentWith(c,t,who,lane==='BOT'?['ADC','SUP']:['TOP','MID']),lane,stage:lanes[lane]});return true};
+ const nextSnapshot=t=>m.frames.push({minute:t,kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,playerStats:RiftCore.clonePlayerStats(playerStats)});
  makeEv(0,'Comienza el mapa',`${a.name} y ${b.name} entran a la Grieta. Ambos equipos buscan imponer su plan de juego.`, 'normal');nextSnapshot(0);
  for(let t=1;t<=56&&!m.winner;t++){
   m.minute=t;
@@ -139,7 +146,7 @@ function simulateMatch(f){const a=club(f.a),b=club(f.b),aP=teamPlayers(a),bP=tea
     const found=chance(pSuccess),killer=found?(chance(.66)?j:(support||j)):null;
     if(found&&addKill(killer,v,t)){
      const actor=chance(.68)?j:(support||j); // preserves legacy RNG, identifies the accompanying playmaker.
-     makeEv(t,`Gank en ${lanerRole==='ADC'?'bot':lanerRole==='TOP'?'top':'medio'}`,`${j.name} encuentra una ruta hacia ${v.name}. ${attacker.name} consigue un asesinato y presión en el mapa.`, 'fight',attacker,{action:'gank',actorId:killer.id,initiatorId:j.id,supportId:actor.id,victimIds:[v.id]})
+     makeEv(t,`Gank en ${lanerRole==='ADC'?'bot':lanerRole==='TOP'?'top':'medio'}`,`${j.name} encuentra una ruta hacia ${v.name}. ${attacker.name} consigue un asesinato y presión en el mapa.`, 'fight',attacker,{action:'gank',actorId:killer.id,initiatorId:j.id,supportId:actor.id,victimIds:[v.id],assistIds:[...new Set([j,support].filter(p=>p&&p.id!==killer.id).map(p=>p.id))]})
     }else if(chance(.35))makeEv(t,'Emboscada neutralizada',`${v.name} evita la visita de ${j.name} y mantiene su posición sin ceder un asesinato.`)
    }
   }
@@ -150,7 +157,7 @@ function simulateMatch(f){const a=club(f.a),b=club(f.b),aP=teamPlayers(a),bP=tea
   // Dragons have spawn and respawn constraints. A jungler can smite only if alive.
   if(t>=m.nextDragon&&chance(.73)){
     let owner=decide(a,b,t),other=enemy(owner),j=byRole(owner,'JUN',t);if(living(owner,t).length>=2){m.dragons[owner.id]++;m.gold[owner.id]+=230;m.nextDragon=t+5;
-    let actor=j||pick(living(owner,t));makeEv(t,'Dragón asegurado',`${owner.name} controla el río. ${actor.name} ayuda a asegurar el dragón número ${m.dragons[owner.id]} de su equipo.`, 'goal',owner,{action:'dragon',actorId:actor.id,ordinal:m.dragons[owner.id]})}
+    let actor=j||pick(living(owner,t));makeEv(t,'Dragón asegurado',`${owner.name} controla el río. ${actor.name} ayuda a asegurar el dragón número ${m.dragons[owner.id]} de su equipo.`, 'goal',owner,{action:'dragon',actorId:actor.id,participantIds:presentWith(owner,t,actor,['JUN','SUP']),ordinal:m.dragons[owner.id]})}
   }
   // Teamfights resolve multiple real kills; a wipe checks all five enemy respawn states.
   if(t>=12&&chance(t<22?.16:.26)){
@@ -160,7 +167,7 @@ function simulateMatch(f){const a=club(f.a),b=club(f.b),aP=teamPlayers(a),bP=tea
     for(let i=0;i<k;i++){const v=defenders.splice(ri(0,defenders.length-1),1)[0];if(addKill(carry,v,t)){slain.push(v.name);slainIds.push(v.id)}}
     if(slain.length){let ace=living(loser,t).length===0;const multi=slain.length>=3?`${slain.length===5?'¡PENTAKILL!':slain.length===4?'¡CUÁDRUPLE!':'¡TRIPLE KILL!'} `:'';
      let text=`${carry.name} lidera una pelea decisiva para ${winner.name} y consigue ${slain.length} eliminación${slain.length!==1?'es':''}.`;if(ace)text+=' ¡Exterminio! Todo el equipo rival está fuera de combate.';
-     makeEv(t,multi+(ace?'¡Exterminio en la Grieta!':'Pelea de equipos'),text,'fight',winner,{action:'teamfight',actorId:carry.id,victimIds:slainIds,ace})
+     makeEv(t,multi+(ace?'¡Exterminio en la Grieta!':'Pelea de equipos'),text,'fight',winner,{action:'teamfight',actorId:carry.id,victimIds:slainIds,assistIds:attackers.filter(p=>p.id!==carry.id).sort((x,y)=>(y.beh.team+y.a.comm+y.a.vision)-(x.beh.team+x.a.comm+x.a.vision)||x.id.localeCompare(y.id)).slice(0,2).map(p=>p.id),multiKill:slainIds.length,ace})
     }
    }
   }
@@ -172,7 +179,7 @@ function simulateMatch(f){const a=club(f.a),b=club(f.b),aP=teamPlayers(a),bP=tea
    if(actor){m.barons[owner.id]++;m.gold[owner.id]+=450;m.baronBuff[owner.id]=5;m.nextBaron=t+7;
     let headline=steal?'¡ROBO DE BARÓN!':'Barón asegurado';
     let text=steal?`${initiator.name} inicia el Barón, pero ${actor.name}, jungla de ${challenger.name}, entra en el momento justo y lo roba con Smite.`:`${owner.name} asegura el Barón tras ganar espacio en el río. ${actor.name} participa en la toma del objetivo.`;
-    makeEv(t,headline,text,'goal',owner,{action:'baron',actorId:actor.id,stolen:!!steal,smite:!!steal,initiatorTeamId:initiator.id})
+    makeEv(t,headline,text,'goal',owner,{action:'baron',actorId:actor.id,participantIds:presentWith(owner,t,actor,['JUN','SUP']),stolen:!!steal,smite:!!steal,initiatorTeamId:initiator.id})
    }}
   }
   if([6,14,24,33].includes(t)){
@@ -192,7 +199,7 @@ function simulateMatch(f){const a=club(f.a),b=club(f.b),aP=teamPlayers(a),bP=tea
   if(t>=52&&!m.winner){let active=all.filter(c=>living(c,t).length>=2);if(active.length){let eligible=active.filter(c=>Object.values(m.lanes[enemy(c).id]).some(n=>n===3));let w=eligible[0]||(active.length===2?decide(active[0],active[1],t):active[0]);if(!eligible.length){let target=enemy(w);let lane='MID';while(m.lanes[target.id][lane]<3)takeTower(w,t,lane)}const closer=living(w,t).find(p=>p.role==='ADC')||living(w,t)[0];m.winner=w.id;makeEv(t,'¡NEXO DESTRUIDO!',`${w.name} rompe la última defensa y asegura la victoria en una partida larguísima.`, 'end',w,{action:'nexus',actorId:closer.id})}}
   nextSnapshot(t)
  }
- return {fixture:{a:f.a,b:f.b,round:f.round,playoff:!!f.playoff},frames:m.frames,events:m.events,elapsed:0,speed:2,running:true,committed:false,winner:m.winner,finished:false}
+ return {fixture:{a:f.a,b:f.b,round:f.round,playoff:!!f.playoff},frames:m.frames,events:m.events,playerStats:RiftCore.clonePlayerStats(playerStats),elapsed:0,speed:2,running:true,committed:false,winner:m.winner,finished:false}
 }
 function quickGame(a,b){let pa=teamPower(club(a)),pb=teamPower(club(b));return chance(clamp(.5+(pa-pb)*.022,.12,.88))?a:b}
 function award(a,b,winner,kind='league'){
@@ -216,6 +223,13 @@ function finishMatch(){const live=s.live;if(!live||live.committed)return;live.ru
  for(let p of teamPlayers(c)){p.games++;p.observed=clamp(p.observed+1,0,30);p.fatigue=clamp(p.fatigue+ri(3,7)-s.plan.rest*2,0,100);p.morale=clamp(p.morale+(won?ri(1,5):-ri(1,4)),5,100)}
  let frame=live.frames[live.frames.length-1],kills=frame.kills;
  let outcome={year:s.year,month:s.month,against:opp.name,win:won,killsFor:kills[c.id],killsAgainst:kills[opp.id],length:frame.minute,playoff:!!f.playoff,events:live.events.filter(e=>e.kind!=='normal').slice(-6)};
+ // v2 legacy matches lack individual data, and remain playable without migration.
+ if(live.playerStats){
+  outcome.playerStats=RiftCore.clonePlayerStats(live.playerStats);
+  for(const teamId of [f.a,f.b])for(const q of teamPlayers(club(teamId))){
+   if(live.playerStats[q.id])RiftCore.addBroadcastGame(q,live.playerStats[q.id]);
+  }
+ }
  s.matchReports.unshift(outcome);s.matchReports=s.matchReports.slice(0,40);
  if(f.playoff){if(scheduled&&scheduled.phase==='semi'){let semis=s.playoffs.filter(x=>x.phase==='semi');for(const semifinal of semis.filter(x=>!x.played))quickPlayoffGame(semifinal);if(semis.every(x=>x.played))makeFinalAfterSemis()}
   else if(scheduled&&scheduled.phase==='final'){s.champion=w;addNews('¡Nuevo campeón de la Liga Aurora!',`${club(w).name} conquista el campeonato de ${s.year} tras superar a ${club(w===f.a?f.b:f.a).name} en la gran final.`, 'league',w,3);club(w).prestige+=4;club(w).fans+=22000}}
@@ -405,7 +419,9 @@ function renderHome(){const c=currentClub(),remaining=nextFixtures().length;retu
  ${matchupPanel()}${strategyPanel()}${planPanel()}</div><div>${rosterSmall()}<section class="panel"><div class="panel-head"><h2>RiftWire · Últimas noticias</h2><button class="btn ghost small" data-nav="world">Todas</button></div><div class="news">${miniNews(4)}</div></section>
  <section class="panel"><div class="panel-head"><h2>Tabla de liga</h2><span class="chip">${s.leagueName}</span></div>${standingsHTML('Aurora',8)}</section></div></div>`}
 function playerCard(p){let c=p.teamId?club(p.teamId):null,own=p.teamId===s.userClub,main=own&&currentClub().lineup[p.role]===p.id;let rating=playerRating(p);
- return `<button class="player-card" data-action="profile" data-id="${p.id}"><div class="card-art">${avatar(p,c)}<span class="over">${p.role}${main?' · TITULAR':''}</span><span class="rate">${own||p.observed>=4?'':'≈'}${own||p.observed>=4?rating:Math.round(rating/5)*5}</span></div><div class="card-name"><span>${esc(p.name)}</span><span class="muted" style="font-size:10px">${p.age}a</span></div><div class="helper">${c?esc(c.name):'Agente libre'} · ${fmt(p.wage)}/mes</div><div class="tags">${tagHtml(p)}</div></button>`}
+ const observed=p.broadcastStats?.games>0?
+  `<div class="helper" style="margin-top:6px">K/D/A ${p.broadcastStats.kills}/${p.broadcastStats.deaths}/${p.broadcastStats.assists} · KDA ${RiftCore.playerKda(p.broadcastStats)} <small>(${p.broadcastStats.games} mapas narrados)</small></div>`:'';
+ return `<button class="player-card" data-action="profile" data-id="${p.id}"><div class="card-art">${avatar(p,c)}<span class="over">${p.role}${main?' · TITULAR':''}</span><span class="rate">${own||p.observed>=4?'':'≈'}${own||p.observed>=4?rating:Math.round(rating/5)*5}</span></div><div class="card-name"><span>${esc(p.name)}</span><span class="muted" style="font-size:10px">${p.age}a</span></div><div class="helper">${c?esc(c.name):'Agente libre'} · ${fmt(p.wage)}/mes</div>${observed}<div class="tags">${tagHtml(p)}</div></button>`}
 function renderRoster(){let c=currentClub(),players=c.roster.map(player);let starters=ROLES.map(role=>player(c.lineup[role]));let bench=players.filter(p=>!starters.some(x=>x.id===p.id));let focus=player(s.focus);
  return `${pageTitle('Plantilla y desarrollo','Descubre cartas, estudia sus rasgos y construye una alineación con identidad propia.',`<span class="chip green">Química ${Math.round(c.chemistry)}/100</span>`)}
  <section class="panel"><div class="panel-head"><h2>Quinteto titular</h2><span class="chip">${fmt(totalWages(c))}/mes en salarios totales</span></div><div class="card-grid">${starters.map(playerCard).join('')}</div></section>
@@ -429,7 +445,22 @@ function matchEventDetail(e){
  else if(f.action==='dragon')detail=`Objetivo: ${who(f.actorId)} · Dragón ${f.ordinal}`;
  else if(f.action==='tower')detail=`Presión: ${who(f.actorId)} · Torre ${f.stage} de ${f.lane}`;
  else if(f.action==='nexus')detail=`Último avance: ${who(f.actorId)}`;
+ if(Array.isArray(f.assistIds)&&f.assistIds.length)detail+=` · Asistencias: ${f.assistIds.map(who).join(', ')}`;
+ if(Array.isArray(f.participantIds)&&f.participantIds.length>1)
+  detail+=` · Apoyaron: ${f.participantIds.filter(id=>id!==f.actorId).map(who).join(', ')}`;
  return detail?`<div class="helper" style="margin-top:5px">RiftCast · ${esc(detail)}</div>`:'';
+}
+function renderPlayerScoreboard(match,frame){
+ if(!frame?.playerStats)return '<p class="helper">Mapa anterior a las estadísticas K/D/A individuales: conserva su marcador y retransmisión original.</p>';
+ return [match.fixture.a,match.fixture.b].map(teamId=>{
+  const team=club(teamId);
+  return `<div class="eyebrow" style="margin:12px 0 6px">${esc(team.name)}</div>`+
+   ROLES.map(role=>{
+    const q=player(team.lineup[role]),st=frame.playerStats[q.id];
+    if(!st)return '';
+    return `<div class="activity" style="gap:8px"><div style="min-width:0;flex:1"><b>${role} · ${esc(q.name)}</b><div class="helper">Torres ${st.towers} · Dragones ${st.dragons} · Barones ${st.barons}${st.pentakills?' · Pentakills '+st.pentakills:''}</div></div><div style="text-align:right"><strong class="num">${st.kills}/${st.deaths}/${st.assists}</strong><div class="helper">KDA ${RiftCore.playerKda(st)}</div></div></div>`;
+   }).join('');
+ }).join('');
 }
 function renderMatch(){const c=currentClub(),l=s.live;
  if(!l)return `${pageTitle('Match Center','Escoge tu quinteto y estrategia; los jugadores compiten autónomamente mientras tú disfrutas del encuentro.')}
@@ -446,6 +477,7 @@ function renderMatch(){const c=currentClub(),l=s.live;
  ${ended?`<div class="banner ${l.winner===s.userClub?'':'warn'}" style="margin-top:13px"><strong>${l.winner===s.userClub?'¡VICTORIA!':'Derrota'}</strong> · ${esc(win.name)} destruyó el nexo. Duración: ${frame.minute} minutos. Los resultados quedaron registrados en las estadísticas y finanzas.</div>`:''}</section>
  <section class="panel"><div class="panel-head"><h2>Comentaristas · RiftCast</h2><span class="chip">${events.length} acontecimientos</span></div><div class="eventlog" id="eventlog">${events.map(e=>`<div class="event ${e.kind==='goal'?'goal':e.kind==='fight'||e.kind==='end'?'major':''}"><time>${e.time}</time><div class="body"><b>${esc(e.title)}</b><p>${esc(e.body)}</p>${matchEventDetail(e)}</div></div>`).join('')}</div></section></div>
  <div><section class="panel"><h2>Plan deportivo</h2><p class="helper" style="margin-top:9px">${strategyName(s.style)} · Sin órdenes directas durante este mapa.</p><div class="banner">Los traits alteran el comportamiento, pero ninguna jugada está garantizada. Tu equipo puede equivocarse o sorprenderte.</div></section>
+ <section class="panel"><h2>Estadísticas individuales</h2><p class="helper">K / D / A · Objetivos: solo se cuentan los profesionales participantes.</p>${renderPlayerScoreboard(l,frame)}</section>
  <section class="panel"><h2>La alineación</h2>${[a,b].map(tc=>`<div class="eyebrow" style="margin-top:12px">${esc(tc.name)}</div>${ROLES.map(role=>{let p=player(tc.lineup[role]);return `<div class="activity"><span>${role} · ${esc(p.name)}</span><span class="muted">${playerRating(p)}</span></div>`}).join('')}`).join('')}</section></div></div>`
 }
 function renderFinance(){const c=currentClub(),last=s.monthlyReports[0];let projectedSponsor=Math.round((c.sponsor?.monthly||0)*(.76+s.leagueHype/250));let projected=c.cash+(projectedSponsor+c.fans*(.17+.028*s.plan.content)*(1+(s.merchTier||0)*.17)+40000+s.leagueHype*105+s.plan.content*6200+s.plan.community*1200)-(userContractExpense()+monthPlanCost()+(s.merchTier||0)*6800);
