@@ -363,7 +363,8 @@ function auditNavigation(match,world){
        errs.push('Atacante de escaramuza demasiado lejos: '+e.minute);
      if(positions[id]&&target&&combatRange(positions[id].node,target.node,3))direct=true;
     }
-    if(!direct)errs.push('Escaramuza sin atacante cercano: '+e.minute);
+    if(!direct||!actor||!target||!combatRange(actor.node,target.node,3))
+     errs.push('Autor de escaramuza fuera de rango de golpe: '+e.minute);
    }else if(f.action==='teamfight'){
     for(const id of f.victimIds)if(!together(f.actorId,id,2))
       errs.push('Teamfight desde otra zona: '+e.minute+' / '+id);
