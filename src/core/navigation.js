@@ -55,8 +55,10 @@ function combatRange(a,b,maxHops=2){
 function isLaneNode(node,lane){
  if(!['TOP','MID','BOT'].includes(lane)||!adjacency[node])return false;
  const l=lane.toLowerCase();
- return node===l+'_center'||node===l+'_corner'||
-        new RegExp('^(blue|red)_'+l+'_(base|inner|outer|front);
+ if(node===l+'_center'||node===l+'_corner')return true;
+ // An ambush staging point is in the jungle even when its name has top/bot.
+ return ['blue','red'].some(side=>['base','inner','outer','front']
+   .some(part=>node===side+'_'+l+'_'+part));
 }
 function gankApproach(node,lane){
  if(!adjacency[node])throw Error('Nodo desconocido para gank: '+node);
