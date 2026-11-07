@@ -203,3 +203,14 @@ Antes de una release:
 - Manipulación negativa: falsificar `damage`, `hpAfter`, historial de vida, actor, víctima o participantes debe producir errores de auditoría.
 - Replays `v2` anteriores no reciben impactos ni cambios de navegación; finanzas mensuales reproducibles.
 - Manual QA pendiente en desktop y móvil para las barras de vida, historial seleccionable, legibilidad del 2v2 y ritmo general de partidas.
+
+## Alpha 0.7.6 — Pruebas de reacción táctica
+
+- Cualquier rol con vida crítica debe pedir recuperación y conservar la orden hasta superar el umbral superior; JUN jamás debe abandonar sus corredores.
+- SUP no abandona a un ADC herido para cumplir un roaming marcado por reloj; vuelve a su rutina si el ADC está sano.
+- JUN cancela gank de línea bien protegida o con HP insuficiente y puede redirigirse a otra línea vulnerable sin teletransportarse.
+- 1v1 igualado no activa una retirada por inferioridad; un 2v1 detectado sí puede activar retroceso, respetando ubicación física y visión.
+- Al reducir la visión, la detección de enemigos exteriores puede fallar; aumentarla **no debe disminuir** lo detectado para una misma seed.
+- El asedio de minuto 36+ sigue teniendo prioridad sobre los desvíos tácticos.
+- Simular muchas semillas y auditar `Navigation`, `Encounters`, marcador, minimapa, historial y RiftCast; revisar razones `decisionVersion` por profesión.
+- QA manual pendiente: comparar selección de eventos y Plan deportivo en escritorio/móvil; comprobar que el espectador comprende por qué una cabeza retrocede.

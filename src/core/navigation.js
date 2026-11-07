@@ -147,13 +147,17 @@ function jungleAllowed(side,node){
   side+'_fountain',side+'_nexus',side+'_jungle_upper',side+'_jungle_lower'
  ].includes(node);
 }
-function gankPlan(nav,agent,slot){
+function gankPlanForLane(nav,agent,lane){
  const side=getSide(nav,agent.teamId);
- const lane=LANES[seedHash(nav.seed,agent.teamId,slot+'-lane')%LANES.length];
+ if(!LANES.includes(lane))throw Error('Invalid gank lane');
  const goal=lane==='MID'?(side==='blue'?'upper_river':'lower_river'):
    lane==='TOP'?(side==='blue'?'red_top_ambush':'blue_top_ambush'):
    (side==='blue'?'red_bot_ambush':'blue_bot_ambush');
  return {goal,intent:'gank_setup',lane};
+}
+function gankPlan(nav,agent,slot){
+ const lane=LANES[seedHash(nav.seed,agent.teamId,slot+'-lane')%LANES.length];
+ return gankPlanForLane(nav,agent,lane);
 }
 function jungleGoal(nav,agent,t){
  const side=getSide(nav,agent.teamId);
@@ -243,9 +247,14 @@ function forceRetreat(nav,id,minute,goal){
  agent.goal=goal;agent.intent='retreat';
  return true;
 }
-function advance(nav,t,dead,worldState){
+function advance(nav,t,dead,worldState,context=null){
  if(t<=nav.minute)throw Error('Navigation minutes must advance');
  nav.minute=t;
+ // All tactics inspect the same initial positions (no turn-order advantage).
+ const positions=Object.fromEntries(Object.entries(nav.agents).map(([id,a])=>
+  [id,{id:a.id,node:a.node,teamId:a.teamId,role:a.role,
+   alive:(dead[id]||0)<=t,intent:a.intent}]));
+ const tacticalContext=context?{...context,positions}:null;
  for(const agent of Object.values(nav.agents)){
   const side=getSide(nav,agent.teamId),fountain=side+'_fountain';
   const wasDead=!agent.alive;
@@ -258,10 +267,14 @@ function advance(nav,t,dead,worldState){
   if(wasDead){agent.node=fountain;agent.retreatUntil=0;agent.retreatGoal=null;}
   const escaping=agent.retreatGoal&&agent.node!==agent.retreatGoal&&
     (agent.retreatUntil||0)>=t;
-  const plan=escaping?{goal:agent.retreatGoal,intent:'retreat'}:
-    chooseGoal(nav,agent,t,worldState);
+  const baseline=escaping?null:chooseGoal(nav,agent,t,worldState);
+  const plan=escaping?{goal:agent.retreatGoal,intent:'retreat',reason:'damage_retreat'}:
+    core.TacticalAI?.choose({nav,agent,minute:t,worldState,
+      context:tacticalContext,baseline})||baseline;
   if(!escaping){agent.retreatUntil=0;agent.retreatGoal=null;}
   agent.goal=plan.goal;agent.intent=plan.intent;agent.lane=plan.lane||null;
+  agent.tacticReason=plan.reason||null;
+  agent.decisionVersion=plan.decisionVersion||null;
   const safe=agent.role==='JUN'&&t<36 ?node=>jungleAllowed(side,node):null;
   agent.route=path(agent.node,agent.goal,safe);
   // One edge a minute; no position jumps to satisfy an event later.
@@ -275,7 +288,9 @@ function snapshot(nav,dead,t){
   const node=alive?agent.node:getSide(nav,agent.teamId)+'_fountain';
   out[agent.id]={node,alive,goal:agent.goal,intent:alive?agent.intent:'dead',
     from:agent.movedFrom,role:agent.role,teamId:agent.teamId,
-    ...(agent.lane?{lane:agent.lane}:{})};
+    ...(agent.lane?{lane:agent.lane}:{}),
+    ...(agent.tacticReason?{reason:agent.tacticReason}:{}),
+    ...(agent.decisionVersion?{decisionVersion:agent.decisionVersion}:{})};
  }
  return out;
 }
@@ -415,5 +430,6 @@ function auditNavigation(match,world){
 core.Navigation=Object.freeze({links,adjacency,path,hops,adjacent,nearby,combatRange,isLaneNode,gankApproach,
  jungleAllowed,gankPlan,jungleGoal,
  towerNode,createNavigation,teamAgents,getAgent,at,participants,engagement,forceRetreat,
+ gankPlanForLane,
  advance,snapshot,auditNavigation});
 })(globalThis);

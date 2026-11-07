@@ -219,7 +219,7 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
  for(let t=1;t<=76&&!m.winner;t++){
   m.minute=t;
   for(const c of all){m.gold[c.id]+=ri(790,1080)+Math.round((balance(c,t)-65)*2);if(m.baronBuff[c.id]>0)m.baronBuff[c.id]--}
-  nav.advance(navigation,t,m.dead,m);
+  nav.advance(navigation,t,m.dead,m,{health,map:m.map});
   RiftCore.Encounters.recover(health,navigation,m.dead,t);
   movementBefore=nav.snapshot(navigation,m.dead,t);
   m.map=updateMap(t);
@@ -840,7 +840,17 @@ function renderMatch(){const c=currentClub(),l=s.live;
  ${scene?.legacyLocationWarning?
   '<div class="banner warn" style="margin-top:9px">Esta jugada fue generada con reglas anteriores: la ubicación del jungla no coincide con el carril narrado. Se muestran las posiciones registradas sin mover jugadores artificialmente. Inicia una nueva exhibición para probar las reglas corregidas.</div>':''}
  <p class="helper" style="margin-top:9px">Selecciona cualquier jugada del historial para revisar las posiciones, torres y objetivos de ese momento. Sin wards ni niebla de guerra todavía.</p></section>
- <section class="panel"><h2>Plan deportivo</h2><p class="helper" style="margin-top:9px">${strategyName(s.style)} · Sin órdenes directas durante este mapa.</p><div class="banner">Los traits alteran el comportamiento, pero ninguna jugada está garantizada. Tu equipo puede equivocarse o sorprenderte.</div></section>
+ <section class="panel"><h2>Plan deportivo</h2><p class="helper" style="margin-top:9px">${strategyName(s.style)} · IA reactiva, sin órdenes directas.</p>
+ ${Object.values(frame.navigation?.before||{}).filter(q=>q.teamId===s.userClub&&q.reason&&
+ ['low_health','outnumbered_visible','protect_injured_adc','avoid_bad_gank',
+ 'opportunity_gank','unsafe_objective','local_advantage','damage_retreat'].includes(q.reason))
+ .map(q=>`<div class="activity"><span><b>${esc(q.role)}</b> · ${esc(player(Object.keys(frame.navigation.before).find(id=>frame.navigation.before[id]===q))?.name||q.role)}</span><span class="muted">${esc({
+ low_health:'Recupera vida',outnumbered_visible:'Evita inferioridad visible',
+ protect_injured_adc:'Protege al ADC herido',avoid_bad_gank:'Cancela gank inseguro',
+ opportunity_gank:'Busca carril vulnerable',unsafe_objective:'Evita objetivo arriesgado',
+ local_advantage:'Presiona con ventaja',damage_retreat:'Se retira herido'}[q.reason])}</span></div>`).join('')||
+ '<div class="banner">El equipo mantiene sus funciones; ninguna decisión excepcional registrada en este instante.</div>'}
+ <p class="helper">Decisiones basadas en vida, aliados cercanos y visión estimada. Se muestran las órdenes registradas en esta jugada, no acciones garantizadas.</p></section>
  <section class="panel"><h2>Control del mapa</h2>${renderMapTactics(l,frame)}</section>
  <section class="panel"><h2>Estadísticas individuales</h2><p class="helper">K / D / A · Objetivos: solo se cuentan los profesionales participantes.</p>${renderPlayerScoreboard(l,frame)}</section>
  <section class="panel"><h2>La alineación</h2>${[a,b].map(tc=>`<div class="eyebrow" style="margin-top:12px">${esc(tc.name)}</div>${ROLES.map(role=>{let p=player(tc.lineup[role]);return `<div class="activity"><span>${role} · ${esc(p.name)}</span><span class="muted">${playerRating(p)}</span></div>`}).join('')}`).join('')}</section></div></div>`
@@ -891,11 +901,11 @@ function renderModal(){if(!s&&modal?.type!=='welcome')modal={type:'welcome'};if(
 function navButton(id,ic,label){return `<button data-nav="${id}" class="${view===id?'active':''}">${icon(ic)} <span>${label}</span></button>`}
 function render(){if(!s){document.getElementById('app').innerHTML=renderModal();return}
  const c=currentClub();let body=view==='home'?renderHome():view==='roster'?renderRoster():view==='market'?renderMarket():view==='match'?renderMatch():view==='finance'?renderFinance():view==='world'?renderWorld():renderSettings();
- document.getElementById('app').innerHTML=`<div class="layout"><aside class="sidebar"><div class="brand"><div class="brand-icon" style="color:var(--teal);font-size:22px;font-weight:900">R</div><div><strong>Rift Director</strong><small>ALFA 0.7.5 · SANDBOX</small></div></div>
+ document.getElementById('app').innerHTML=`<div class="layout"><aside class="sidebar"><div class="brand"><div class="brand-icon" style="color:var(--teal);font-size:22px;font-weight:900">R</div><div><strong>Rift Director</strong><small>ALFA 0.7.6 · SANDBOX</small></div></div>
  <nav class="nav" aria-label="Navegación">${demoBackup?navButton('match','match','Exhibición'):`${navButton('home','home','Inicio')}${navButton('roster','users','Plantilla')}${navButton('market','market','Mercado')}${navButton('match','match','Partidos')}${navButton('finance','money','Finanzas')}${navButton('world','world','Mundo')}${navButton('settings','settings','Partida')}`}</nav>
  <div class="sidebar-foot"><div class="eyebrow">TEMPORADA ${s.season}</div><div style="margin-top:5px;font-weight:800">${MONTHS[s.month-1]} ${s.year}</div><div class="chip">${s.clubs.length} clubes · ${s.players.filter(p=>!p.retired).length} profesionales</div></div></aside>
  <main class="main"><header class="topbar"><div class="clubhead">${crest(c,46)}<div><div class="clubtitle">${esc(c.name)}</div><div class="helper">${esc(s.leagueName)} · Club ${c.kind==='user'?'bajo tu dirección':'autónomo'}</div></div></div><div class="top-actions">${demoBackup?`<span class="chip">MODO PRUEBA</span><button class="btn small secondary" data-action="demo-exit">Volver</button>`:`<span class="chip">${icon('calendar',14)} ${MONTHS[s.month-1]} ${s.year}</span><span class="chip ${c.cash<250000?'red':'green'}">${icon('money',14)} ${fmt(c.cash)}</span><button class="btn small" data-action="close-month" ${s.over?'disabled':''}>Siguiente mes</button>`}</div></header>${body}
- <div class="footer">Rift Director Alpha 0.7.5 · Universo y retratos ficticios · Guardado local · Simulador independiente no afiliado a Riot Games</div></main></div>${renderModal()}${s.over?`<div class="modal-layer"><div class="modal end-screen"><div class="eyebrow">FIN DE PARTIDA</div><h1>Insolvencia.</h1><p>Tu club se quedó sin efectivo. El mundo sigue su historia, pero esta gestión termina aquí. Recuerda: ganar torneos nunca fue la única forma de triunfar.</p><div class="buttons" style="justify-content:center"><button class="btn" data-action="export">Exportar historia</button><button class="btn danger" data-action="reset">Nueva organización</button></div></div></div>`:''}`;
+ <div class="footer">Rift Director Alpha 0.7.6 · Universo y retratos ficticios · Guardado local · Simulador independiente no afiliado a Riot Games</div></main></div>${renderModal()}${s.over?`<div class="modal-layer"><div class="modal end-screen"><div class="eyebrow">FIN DE PARTIDA</div><h1>Insolvencia.</h1><p>Tu club se quedó sin efectivo. El mundo sigue su historia, pero esta gestión termina aquí. Recuerda: ganar torneos nunca fue la única forma de triunfar.</p><div class="buttons" style="justify-content:center"><button class="btn" data-action="export">Exportar historia</button><button class="btn danger" data-action="reset">Nueva organización</button></div></div></div>`:''}`;
  if(view==='match'&&s.live){const log=document.getElementById('eventlog');const selected=log?.querySelector('.is-selected');if(selected&&typeof selected.scrollIntoView==='function')selected.scrollIntoView({block:'nearest'})}
 }
 function updatePlan(id,delta){if(s.live&&!s.live.finished)return notify('Finaliza el partido para modificar la agenda.');if(!Object.hasOwn(s.plan,id))return;let x=s.plan[id]+delta;if(x<0||x>4||delta>0&&sumPlan()>=8)return;s.plan[id]=x;save();render()}

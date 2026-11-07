@@ -4,7 +4,7 @@
 
 [**Jugar en el navegador**](https://rgcb01.github.io/rift-director/) · [Roadmap](ROADMAP.md) · [Cambios](CHANGELOG.md) · [Cómo contribuir](CONTRIBUTING.md)
 
-> **Alpha 0.7.5 — prototipo jugable.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
+> **Alpha 0.7.6 — prototipo jugable.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
 
 ## La idea
 
@@ -179,3 +179,13 @@ Los diez profesionales ahora comparten un **registro continuo de vida** durante 
 En los carriles el alcance abstracto permite intercambios a distancia dentro de la misma línea, sin fingir que están cuerpo a cuerpo; ganks y teamfights siguen exigiendo proximidad física de combate. La superioridad numérica ayuda, pero **un 2v2 igualado no se considera automáticamente un 2v1**. No hay bajas sin vida a cero y una retirada debe mover realmente al profesional en el siguiente minuto. El relato y el minimapa se derivan de los mismos hechos.
 
 El formato de guardado continúa en `v2`; los replays previos no se reescriben ni reciben daño ficticio. Esta fase sigue siendo una simulación táctica simplificada: los atributos, alcance, ventaja numérica y recuperación de HP están modelados, pero todavía no existen campeones individuales, habilidades con cooldown, estadísticas de minions ni niebla de guerra.
+
+### Alpha 0.7.6 — Decisiones tácticas con vida y visión
+
+La simulación ya no depende exclusivamente de la fase/minuto para desplazarse: **`TacticalAI`** evalúa cada minuto la vida del profesional, aliados y enemigos físicamente cercanos, ventajas numéricas y visión de línea/río antes de seguir el plan por rol. Si está herido puede recuperar vida hasta un umbral de seguridad (sin oscilar de ida/vuelta); si ve una inferioridad local puede retroceder; SUP protege a un ADC herido; JUN cancela un gank de alto riesgo, busca un carril vulnerable o evita iniciar objetivos sin salud.
+
+Las decisiones se basan en posiciones congeladas **al inicio del minuto** para que el orden de actualización de los agentes no otorgue ventajas. La presencia rival no equivale a información perfecta: usa detección determinista dependiente de la distancia y la visión estimada de cada equipo. Los desplazamientos reales siguen limitados a una arista del grafo por minuto y los JUN conservan sus corredores propios. El asedio tardío y los guardados antiguos `v2` siguen intactos.
+
+Durante las exhibiciones, el panel **Plan deportivo** muestra los motivos de las decisiones extraordinarias en el instante seleccionado del historial: recuperación, protección, retirada ante rivales visibles, gank cambiado/cancelado, etc. No permite controlar directamente a los jugadores.
+
+**Alcance:** primera capa reactiva sobre las rutas y la visión **abstracta** existentes. No hay wards, niebla de guerra por área, campeones ni cooldowns reales; eso sigue en el roadmap.

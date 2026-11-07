@@ -56,8 +56,16 @@ test('minuto 8: los dos JUN siguen fuera de MID, aunque el historial hable de du
    // but never while they merely travel between camps.
    const blue=frame.navigation.after[roles(world,fixture.a).JUN];
    const red=frame.navigation.after[roles(world,fixture.b).JUN];
-   assert.equal(blue.intent,'gank_setup','Rivales coinciden sin preparación táctica');
-   assert.equal(red.intent,'gank_setup','Rivales coinciden sin preparación táctica');
+   const recentDamage=match.events.some(e=>e.minute<=8&&e.minute>=4&&(
+    (e.facts?.action==='skirmish'&&e.facts?.outcome==='retreat'&&
+      [roles(world,fixture.a).JUN,roles(world,fixture.b).JUN].includes(e.facts.targetId))||
+    (e.facts?.combatVersion===1&&e.facts?.impacts?.some(hit=>
+      hit.retreat&&[roles(world,fixture.a).JUN,roles(world,fixture.b).JUN].includes(hit.id)))
+   ));
+   const duel=blue.intent==='gank_setup'&&red.intent==='gank_setup';
+   const retreat=(blue.intent==='retreat'||red.intent==='retreat')&&recentDamage;
+   assert.ok(duel||retreat,
+    'Junglas no deben coincidir sin duelo ni retirada causada: '+seed);
   }
  }
 });

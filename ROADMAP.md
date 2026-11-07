@@ -193,3 +193,15 @@ El plan Alpha 0.5 de reproducción a velocidad variable queda **histórico**: se
 - [ ] Fase siguiente: IA reactiva al riesgo por HP y control de visión; duelos bidireccionales y daño en ambos equipos, oleadas y presencia de torres.
 - [ ] Fase posterior: campeones, habilidades, enfriamientos, items y builds, objetivos con resistencia y niebla de guerra.
 - [ ] QA visual en ordenador y móvil y métricas de equilibrio (minutos/partida, bajas, frecuencia de retiradas, duración de encuentros).
+
+### Alpha 0.7.6 — IA táctica reactiva
+- [x] Política de supervivencia por HP y recuperación con histéresis; movimiento legal por rol.
+- [x] Detectar inferioridad numérica visible y optar por retroceder en vez de seguir el horario.
+- [x] SUP acompaña a ADC herido; JUN cancela ganks de alto riesgo o cambia a un carril vulnerable.
+- [x] Detección por visión estimada, sin información perfecta a larga distancia.
+- [x] Snapshot simultáneo de posiciones, evitando que el orden de agentes altere lo que cada uno ve.
+- [x] Motivos auditables en el replay y visibles en Plan deportivo; tests de decisiones y partidos completos.
+- [ ] Fase siguiente: niebla de guerra y wards reales, conocimiento por equipo, líneas de visión verificables y tiempos de memoria.
+- [ ] Oleadas, distancia y daño de torres, regresos a base más profundos, experiencia y niveles.
+- [ ] Campeones, habilidades, builds, cooldowns, sinergias/traits de combate.
+- [ ] Balance visual en móvil y tasas de kills/daño/retirada antes de ampliar la IA.
