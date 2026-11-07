@@ -1,0 +1,26 @@
+name: Validación de Rift Director
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Sintaxis, recursos y simulación
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obtener repositorio
+        uses: actions/checkout@v4
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Comprobar sintaxis JavaScript
+        run: node --check game.js
+      - name: Comprobar archivos y recursos de Pages
+        run: node scripts/check-static.mjs
+      - name: Pruebas de simulación y guardado
+        run: node --test tests/*.test.mjs
