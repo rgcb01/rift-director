@@ -7,7 +7,7 @@ const hash = value => createHash('sha256').update(JSON.stringify(value)).digest(
 
 // Fingerprints captured from the unmodified Alpha 0.2 (commit 4893edb).
 // Changing one requires deliberate discussion and a migration / balance note.
-test('semilla fija: coherencia espacial Alpha 0.7.2 reproducible y contabilidad estable', () => {
+test('semilla fija: coherencia espacial Alpha 0.7.3 reproducible y contabilidad estable', () => {
   const { sim } = boot({ now: 1731111111000 });
   const world = sim.newGame('balanced', 'QA Esports');
   assert.equal(hash(world), 'b3fb6a59ae4ad7748ef4889deec8cc722902340da330beaf6868b557a9ee0330');
@@ -25,7 +25,7 @@ test('semilla fija: coherencia espacial Alpha 0.7.2 reproducible y contabilidad 
   delete legacyMatch.playerStats; // Additive M1.2 individual stats do not change match RNG/outcomes.
   // M1.3B changes match outcomes intentionally: movement and proximity now govern all objectives.
   // Snapshot after stripping the additive facts field; future changes require an explanation.
-  assert.equal(hash(legacyMatch), '5cfa7753d0e0737ad4393f25df3b3b3c1457d458f06120fe149336a57650e19c');
+  assert.equal(hash(legacyMatch), '220de035fb87cc8186a4600fee39e2e49222c7907741640a43be953f893e3c72');
   assert.equal(hash(world), '47b996a248b5cff93256c670a62c3b4999978423431544f7f7d03a8dc933af6a');
   const report = sim.applyMonth();
   assert.equal(hash(report), '63f62558933347e5947cc1b476f9056c23d59aa9e79fce65edd0c7d58372dbd9');

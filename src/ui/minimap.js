@@ -99,7 +99,7 @@
     let loc=null;
     if(f){
       if(f.action==='tower')loc=graph.towerPoint(event.teamId===match.fixture.a?'red':'blue',f.lane,f.stage);
-      else if(f.action==='gank'&&graph.nodes[f.victimNode])loc=graph.pointAt(f.victimNode);
+      else if((f.action==='gank'||f.action==='gank_avoided')&&graph.nodes[f.action==='gank'?f.victimNode:f.targetNode])loc=graph.pointAt(f.action==='gank'?f.victimNode:f.targetNode);
       else if(f.action==='teamfight'&&graph.nodes[f.node])loc=graph.pointAt(f.node);
       else if(f.action==='dragon'||f.action==='baron')loc=graph.pointAt(f.action==='dragon'?'dragon_pit':'baron_pit');
       else if(f.action==='nexus')loc=graph.pointAt(event.teamId===match.fixture.a?'red_nexus':'blue_nexus');
@@ -152,7 +152,7 @@
       '<div class="rift-mini-foot">Foco: <b>'+safe(focus)+'</b> · '+Object.values(map.players).filter(p=>p.alive).length+'/10 visibles como vivos</div>'+
       (scene?.participants?.length ? '<div class="rift-mini-scene">'+scene.participants.map(id=>{
         const p=map.players[id],entry=world.players.find(q=>q.id===id);
-        const label={jungla:'Jungla',asesino:'Eliminó',victima:'Víctima',apoyo:'Apoyo'}[p?.sceneRole]||'Participó';
+        const label={jungla:'Jungla',asesino:'Eliminó',victima:'Víctima',objetivo:'Rival',apoyo:'Apoyo'}[p?.sceneRole]||'Participó';
         return '<span><b>'+safe(label)+':</b> '+safe(entry?.name||id)+
           (p?.fallen?' · cayó aquí':'')+'</span>';
        }).join('')+'</div>':'')+

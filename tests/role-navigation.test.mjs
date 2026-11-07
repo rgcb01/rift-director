@@ -39,39 +39,44 @@ test('fase de líneas minuto 10: ADC y SUP permanecen en su mitad y no en el mis
  assert.ok(normal>100,'Pocas botlanes estables para evaluar');
 });
 
-test('JUN alterna campamentos, visitas cortas y vuelta a su jungla, sin quedarse ocho minutos en esquina',()=>{
- const {sim,world,fixture}=prepare();
- let visitedGank=0,returned=0;
- for(let seed=1;seed<=100;seed++){
+test('JUN sigue corredores de jungla y ventanas de gank sin transitar por MID',()=>{
+ const {sim,core,world,fixture}=prepare();
+ const nav=core.Navigation;
+ let gankSetup=0,farm=0,objective=0,planned=new Set();
+ for(let seed=1;seed<=120;seed++){
   world.rng=seed*9137;
   const match=sim.simulateMatch(fixture);
-  for(const teamId of [fixture.a,fixture.b]){
+  for(const [side,teamId] of [['blue',fixture.a],['red',fixture.b]]){
    const id=byRole(world,teamId,'JUN'),all=match.frames.map(f=>f.navigation.after[id]);
-   const at=t=>all[t];
-   // While alive, the intended action changes over time.
-   for(const t of [2,4,7,11,14,18,22,26,31,34]){
-    if(!at(t).alive)continue;
-    const expected=t===2||t===4||t===11||t===22||t===31?'farm_jungle':
-     t===7||t===14?'gank_setup':t===18||t===26?'objective_setup':'rotation';
-    assert.equal(at(t).intent,expected,'JUN sin rotación seed '+seed+' t'+t);
-    if(expected==='gank_setup')visitedGank++;
-    if(expected==='farm_jungle')returned++;
+   assert.ok(all.length>=37);
+   for(const f of match.frames.filter(f=>f.minute<=35)){
+    const p=f.navigation.after[id];
+    if(!p.alive)continue;
+    assert.equal(nav.jungleAllowed(side,p.node),true,
+      'JUN salió del corredor en '+p.node+' seed '+seed+' minuto '+f.minute);
+    for(const lane of ['TOP','MID','BOT'])
+     assert.equal(nav.isLaneNode(p.node,lane),false,'JUN ocupa carril '+lane);
+    if(p.intent==='farm_jungle')farm++;
+    if(p.intent==='objective_setup')objective++;
+    if(p.intent==='gank_setup'){
+     gankSetup++;assert.ok(['TOP','MID','BOT'].includes(p.lane));
+     planned.add(side+':'+p.lane);
+     assert.equal(nav.jungleAllowed(side,p.goal),true);
+    }
    }
-   let stuck=0;
-   for(let t=1;t<=24;t++){
-    const p=at(t),before=at(t-1);
-    const inLane=['top_corner','bot_corner','mid_center'].includes(p.node);
-    stuck=p.alive&&before.alive&&inLane&&p.node===before.node?stuck+1:0;
-    assert.ok(stuck<5,'JUN quedó parado demasiado tiempo en '+p.node+' seed '+seed);
-   }
+   if(all[7].alive)assert.equal(all[7].intent,'gank_setup','Primera ventana sigue activa al minuto 7');
+   if(all[22].alive)assert.equal(all[22].intent,'objective_setup','Preparación de Dragón');
+   if(all[26].alive)assert.equal(all[26].intent,'objective_setup','Preparación de Barón');
+   if(all[31].alive)assert.equal(all[31].intent,'farm_jungle','Vuelta a campamentos');
   }
  }
- assert.ok(visitedGank>20&&returned>50);
+ assert.ok(gankSetup>200 && farm>300 && objective>100);
+ assert.equal(planned.size,6,'Las seis combinaciones bando/carril deben ser alcanzables');
 });
 
 test('SUP tiene roaming breve después de líneas y regresa junto a su ADC',()=>{
  const {sim,world,fixture}=prepare();
- let seenRoam=0,seenReturn=0;
+ let seenRoam=0,seenReturn=0,seenBaron=0;
  for(let seed=1;seed<=100;seed++){
   world.rng=seed*6767;
   const match=sim.simulateMatch(fixture);
@@ -84,9 +89,13 @@ test('SUP tiene roaming breve después de líneas y regresa junto a su ADC',()=>
      assert.equal(p.intent,'ward_roam','Roaming debe tener una ventana temporal');
      seenRoam++;
     }
-    if(t>=18&&t<=23){
+    if(t>=18&&t<=21){
      assert.equal(p.intent,'protect_adc','El SUP debe regresar con el carry');
      seenReturn++;
+    }
+    if(t>=22&&t<=27){
+     assert.equal(p.intent,'objective_setup','SUP debe preparar el Barón con tiempo');
+     seenBaron++;
     }
     if(t>=1&&t<=13&&carry.alive){
      assert.equal(p.intent,'protect_adc','En early el SUP protege al ADC');
@@ -94,7 +103,7 @@ test('SUP tiene roaming breve después de líneas y regresa junto a su ADC',()=>
    }
   }
  }
- assert.ok(seenRoam>50&&seenReturn>50);
+ assert.ok(seenRoam>50&&seenReturn>50&&seenBaron>50);
 });
 
 test('150 partidas completas mantienen movimientos legales, torres, nexo y replay coherente',()=>{

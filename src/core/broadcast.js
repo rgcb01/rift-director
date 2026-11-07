@@ -41,6 +41,16 @@ function createBroadcast(match,world,seed) {
     ['Castigan el carril '+lane,victim+' cae ante '+actor+'. La entrada de '+who(f.initiatorId)+' convierte la oportunidad en una eliminación.'],
     ['¡Gank decisivo en '+lane+'!',who(f.initiatorId)+' encuentra el acceso al carril; '+actor+' firma el asesinato sobre '+victim+'.']
    ];
+  }else if(f.action==='gank_avoided'){
+   const lane=laneLabel[f.lane],target=who(f.targetId);
+   entries=[
+    ['El gank no consigue baja en '+lane,actor+' se aproxima por '+({rio:'el río',jungla:'la jungla',flanco:'un flanco',tribush:'el acceso inferior'}[f.route]||'la jungla')+
+       ', pero '+target+' evita la eliminación. No cambia el marcador.'],
+    ['La visita del jungla no prospera',target+' reacciona a la presencia de '+actor+
+       ' en '+lane+'. La emboscada termina sin asesinatos.'],
+    ['Una rotación sin recompensa',actor+' abandona sus campamentos para acercarse a '+lane+
+       ', pero '+target+' sobrevive y no se registra ninguna baja.']
+   ];
   }else if(f.action==='tower'){
    const layer=['','exterior','interior','de base'][f.stage],lane=laneLabel[f.lane];
    entries=[

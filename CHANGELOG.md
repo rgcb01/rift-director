@@ -4,6 +4,19 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+## [0.7.3-alpha] — 2026-11-07
+
+### Corredores de jungla y consistencia de toda la tabla de eventos
+- JUN deja de atravesar MID como atajo entre campamentos; se unen directamente los dos campamentos de cada lado y se añaden cuatro posiciones de emboscada en la jungla exterior, accesibles desde el río.
+- Nueva selección semántica de rutas: el BFS restringe los nodos permitidos para JUN hasta minuto 35. Solo durante el asedio tardío puede recorrer libremente las líneas junto al equipo.
+- Ganks únicamente si existe un plan de jungla hacia el carril declarado y la víctima está viva y a distancia física real. Los intentos sin asesinato quedan registrados como `gank_avoided` con ruta, objetivo y posiciones auditables.
+- Peleas de equipo y colaboradores comprueban distancia física entre combatientes, en lugar de aceptar enlaces del mapa demasiado largos.
+- Historial clicable y minimapa muestran la ubicación de jungla y rival cuando un gank no prospera; el objetivo no se marca como muerto.
+- Nueva cobertura automatizada exhaustiva: cada minuto, carril, ruta, objetivo, combate y replay en cientos de semillas. Los guardados históricos `v2` no se reescriben.
+- Cambios deportivos intencionales: la nueva red de rutas y el filtro de combate pueden alterar ganadores y estadísticas para seeds antiguas. Contabilidad histórica del mundo preservada.
+
+
+
 ## [0.7.2-alpha] — 2026-11-07
 
 ### Roles y fase de líneas — corrección del minimapa

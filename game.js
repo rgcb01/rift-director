@@ -119,7 +119,7 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
    .filter(a=>(m.dead[a.id]||0)<=m.minute);
  const aliveAt=(id,t)=>nav.getAgent(navigation,id)?.alive&&(m.dead[id]||0)<=t;
  const near=(x,y,depth=2)=>aliveAt(x.id,m.minute)&&aliveAt(y.id,m.minute)&&
-   nav.nearby(nav.getAgent(navigation,x.id).node,nav.getAgent(navigation,y.id).node,depth);
+   nav.combatRange(nav.getAgent(navigation,x.id).node,nav.getAgent(navigation,y.id).node,depth);
  const updateMap=t=>RiftCore.computeMapState({clubs:all,teams,gold:m.gold,lanes:m.lanes,minute:t,userClub:s.userClub,style:s.style});
  m.map=updateMap(0);
  const playerStats=RiftCore.createPlayerStats([...aP,...bP]);
@@ -182,44 +182,60 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
   playerStats:RiftCore.clonePlayerStats(playerStats),map:RiftCore.cloneMapState(m.map),
   navigation:{before:movementBefore,after:nav.snapshot(navigation,m.dead,t)}});
  makeEv(0,'Comienza el mapa',`${a.name} y ${b.name} entran a la Grieta. Ambos equipos buscan imponer su plan de juego.`, 'normal');nextSnapshot(0);
+ const lastGankAttempt=Object.create(null);
  for(let t=1;t<=76&&!m.winner;t++){
   m.minute=t;
   for(const c of all){m.gold[c.id]+=ri(790,1080)+Math.round((balance(c,t)-65)*2);if(m.baronBuff[c.id]>0)m.baronBuff[c.id]--}
   nav.advance(navigation,t,m.dead,m);
   movementBefore=nav.snapshot(navigation,m.dead,t);
   m.map=updateMap(t);
-  // Early ganks: JUN initiates; victim and killer must actually be alive.
-  if(t>=3&&t<=22&&chance(t<13?.48:.32)){
-   const attacker=decide(a,b,t),victimTeam=enemy(attacker),j=byRole(attacker,'JUN',t),
-    lanerRole=pick(['TOP','MID','ADC']),v=byRole(victimTeam,lanerRole,t);
-   const lane=lanerRole==='ADC'?'BOT':lanerRole;
-   const nodeJ=j&&nav.getAgent(navigation,j.id)?.node;
-   const nodeV=v&&nav.getAgent(navigation,v.id)?.node;
-   const closeGank=(x,y)=>Boolean(x&&y&&
-     nav.combatRange(nav.getAgent(navigation,x.id)?.node,nav.getAgent(navigation,y.id)?.node,2));
-   // Both players must physically be in the same stretch of the stated lane.
-   // Graph hops alone previously allowed a jungler still in BOT to kill in MID.
-   if(j&&v&&nav.isLaneNode(nodeV,lane)&&closeGank(j,v)){
+  // Only stage ganks for a JUN who actually has a planned lane and is
+  // physically close to that opponent. A random unrelated lane cannot fire.
+  if(t>=4&&t<=22){
+   const eligible=all.map(attacker=>{
+    const j=byRole(attacker,'JUN',t),agent=j&&nav.getAgent(navigation,j.id);
+    if(!j||!agent?.alive||agent.intent!=='gank_setup'||!agent.lane||
+       (lastGankAttempt[attacker.id]??-10)>=t-3)return null;
+    const lane=agent.lane,lanerRole=lane==='BOT'?'ADC':lane;
+    const victimTeam=enemy(attacker),v=byRole(victimTeam,lanerRole,t);
+    if(!v||!nav.isLaneNode(nav.getAgent(navigation,v.id)?.node,lane)||
+       !nav.combatRange(agent.node,nav.getAgent(navigation,v.id)?.node,2))return null;
+    return {attacker,j,agent,lane,lanerRole,v,victimTeam};
+   }).filter(Boolean);
+   if(eligible.length&&chance(t<13?.65:.55)){
+    const {attacker,j,agent,lane,lanerRole,v,victimTeam}=pick(eligible);
+    lastGankAttempt[attacker.id]=t;
     const context=m.map.lanes[lane];
+    const closeGank=(x,y)=>Boolean(x&&y&&
+      nav.combatRange(nav.getAgent(navigation,x.id)?.node,
+                      nav.getAgent(navigation,y.id)?.node,2));
     const support=byRole(attacker,lanerRole,t);
     const helper=support&&closeGank(support,v)?support:null;
     const pSuccess=RiftCore.gankChance(.44+(balance(attacker,t)-balance(victimTeam,t))*.014+
-      j.beh.agg*.002+(j.beh.risk-50)*.0015,context,attacker.id,victimTeam.id);
+       j.beh.agg*.002+(j.beh.risk-50)*.0015,context,attacker.id,victimTeam.id);
     const found=chance(pSuccess),killer=found?(chance(.66)?j:(helper||j)):null;
+    const approach=nav.gankApproach(agent.node,lane),nameLane={TOP:'superior',MID:'central',BOT:'inferior'}[lane];
     if(found&&killer&&closeGank(killer,v)&&addKill(killer,v,t)){
      const actor=chance(.68)?j:(helper||j);
      const assists=[...new Set([j,helper].filter(p=>p&&p.id!==killer.id&&
        closeGank(p,v)).map(p=>p.id))];
-     makeEv(t,`Gank en ${lane==='BOT'?'bot':lane==='TOP'?'top':'medio'}`,
-      `${j.name} llega a la zona de ${v.name}. ${attacker.name} consigue la eliminación tras una rotación válida.`,
+     makeEv(t,'¡Gank en '+nameLane+'!',
+      j.name+' llega desde '+({rio:'el río',jungla:'la jungla',flanco:'un flanco',tribush:'el acceso inferior'}[approach]||'la jungla')+
+      ' y presiona a '+v.name+'. '+killer.name+' consigue la eliminación.',
       'fight',attacker,{action:'gank',actorId:killer.id,initiatorId:j.id,supportId:actor.id,
-       initiatorNode:nav.getAgent(navigation,j.id).node,victimNode:nav.getAgent(navigation,v.id).node,
-       lane,route:nav.gankApproach(nodeJ,lane),spatialVersion:2,
+       initiatorNode:agent.node,victimNode:nav.getAgent(navigation,v.id).node,
+       lane,route:approach,spatialVersion:2,plannedGankVersion:1,
        attackerPressure:context.pressure[attacker.id],defenderVision:context.vision[victimTeam.id],
        victimIds:[v.id],assistIds:assists});
-    }else if(chance(.35)){
-     makeEv(t,'Emboscada neutralizada',
-      `${v.name} detecta la aproximación de ${j.name} y evita entregar un asesinato.`);
+    }else{
+     makeEv(t,'Gank evitado en '+nameLane,
+       v.name+' mantiene la distancia ante '+j.name+', que aparece desde '+
+       ({rio:'el río',jungla:'la jungla',flanco:'un flanco',tribush:'el acceso inferior'}[approach]||'la jungla')+
+       '. No hay eliminación.', 'normal',attacker,{
+        action:'gank_avoided',actorId:j.id,initiatorId:j.id,targetId:v.id,
+        initiatorNode:agent.node,targetNode:nav.getAgent(navigation,v.id).node,
+        lane,route:approach,spatialVersion:2,plannedGankVersion:1
+       });
     }
    }
   }
@@ -247,14 +263,14 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
    let winner=decide(a,b,t),loser=enemy(winner),engagements=nav.engagement(navigation,winner.id,2);
    const options=engagements.map(e=>{
     const comrades=living(winner,t).filter(p=>
-      nav.nearby(nav.getAgent(navigation,p.id).node,e.actor.node,1));
+      nav.combatRange(nav.getAgent(navigation,p.id).node,e.actor.node,1));
     const targets=e.foes.filter(p=>(m.dead[p.id]||0)<=t);
     return {comrades,targets};
    }).filter(x=>x.comrades.length>=2&&x.targets.length);
    if(!options.length){
     const other=nav.engagement(navigation,loser.id,2);
     const counter=other.map(e=>({
-      comrades:living(loser,t).filter(p=>nav.nearby(nav.getAgent(navigation,p.id).node,e.actor.node,1)),
+      comrades:living(loser,t).filter(p=>nav.combatRange(nav.getAgent(navigation,p.id).node,e.actor.node,1)),
       targets:e.foes.filter(p=>(m.dead[p.id]||0)<=t)
     })).filter(x=>x.comrades.length>=2&&x.targets.length);
     if(counter.length){[winner,loser]=[loser,winner];options.push(...counter)}
@@ -774,11 +790,11 @@ function renderModal(){if(!s&&modal?.type!=='welcome')modal={type:'welcome'};if(
 function navButton(id,ic,label){return `<button data-nav="${id}" class="${view===id?'active':''}">${icon(ic)} <span>${label}</span></button>`}
 function render(){if(!s){document.getElementById('app').innerHTML=renderModal();return}
  const c=currentClub();let body=view==='home'?renderHome():view==='roster'?renderRoster():view==='market'?renderMarket():view==='match'?renderMatch():view==='finance'?renderFinance():view==='world'?renderWorld():renderSettings();
- document.getElementById('app').innerHTML=`<div class="layout"><aside class="sidebar"><div class="brand"><div class="brand-icon" style="color:var(--teal);font-size:22px;font-weight:900">R</div><div><strong>Rift Director</strong><small>ALFA 0.7.2 · SANDBOX</small></div></div>
+ document.getElementById('app').innerHTML=`<div class="layout"><aside class="sidebar"><div class="brand"><div class="brand-icon" style="color:var(--teal);font-size:22px;font-weight:900">R</div><div><strong>Rift Director</strong><small>ALFA 0.7.3 · SANDBOX</small></div></div>
  <nav class="nav" aria-label="Navegación">${demoBackup?navButton('match','match','Exhibición'):`${navButton('home','home','Inicio')}${navButton('roster','users','Plantilla')}${navButton('market','market','Mercado')}${navButton('match','match','Partidos')}${navButton('finance','money','Finanzas')}${navButton('world','world','Mundo')}${navButton('settings','settings','Partida')}`}</nav>
  <div class="sidebar-foot"><div class="eyebrow">TEMPORADA ${s.season}</div><div style="margin-top:5px;font-weight:800">${MONTHS[s.month-1]} ${s.year}</div><div class="chip">${s.clubs.length} clubes · ${s.players.filter(p=>!p.retired).length} profesionales</div></div></aside>
  <main class="main"><header class="topbar"><div class="clubhead">${crest(c,46)}<div><div class="clubtitle">${esc(c.name)}</div><div class="helper">${esc(s.leagueName)} · Club ${c.kind==='user'?'bajo tu dirección':'autónomo'}</div></div></div><div class="top-actions">${demoBackup?`<span class="chip">MODO PRUEBA</span><button class="btn small secondary" data-action="demo-exit">Volver</button>`:`<span class="chip">${icon('calendar',14)} ${MONTHS[s.month-1]} ${s.year}</span><span class="chip ${c.cash<250000?'red':'green'}">${icon('money',14)} ${fmt(c.cash)}</span><button class="btn small" data-action="close-month" ${s.over?'disabled':''}>Siguiente mes</button>`}</div></header>${body}
- <div class="footer">Rift Director Alpha 0.7.2 · Universo y retratos ficticios · Guardado local · Simulador independiente no afiliado a Riot Games</div></main></div>${renderModal()}${s.over?`<div class="modal-layer"><div class="modal end-screen"><div class="eyebrow">FIN DE PARTIDA</div><h1>Insolvencia.</h1><p>Tu club se quedó sin efectivo. El mundo sigue su historia, pero esta gestión termina aquí. Recuerda: ganar torneos nunca fue la única forma de triunfar.</p><div class="buttons" style="justify-content:center"><button class="btn" data-action="export">Exportar historia</button><button class="btn danger" data-action="reset">Nueva organización</button></div></div></div>`:''}`;
+ <div class="footer">Rift Director Alpha 0.7.3 · Universo y retratos ficticios · Guardado local · Simulador independiente no afiliado a Riot Games</div></main></div>${renderModal()}${s.over?`<div class="modal-layer"><div class="modal end-screen"><div class="eyebrow">FIN DE PARTIDA</div><h1>Insolvencia.</h1><p>Tu club se quedó sin efectivo. El mundo sigue su historia, pero esta gestión termina aquí. Recuerda: ganar torneos nunca fue la única forma de triunfar.</p><div class="buttons" style="justify-content:center"><button class="btn" data-action="export">Exportar historia</button><button class="btn danger" data-action="reset">Nueva organización</button></div></div></div>`:''}`;
  if(view==='match'&&s.live){const log=document.getElementById('eventlog');const selected=log?.querySelector('.is-selected');if(selected&&typeof selected.scrollIntoView==='function')selected.scrollIntoView({block:'nearest'})}
 }
 function updatePlan(id,delta){if(s.live&&!s.live.finished)return notify('Finaliza el partido para modificar la agenda.');if(!Object.hasOwn(s.plan,id))return;let x=s.plan[id]+delta;if(x<0||x>4||delta>0&&sumPlan()>=8)return;s.plan[id]=x;save();render()}
