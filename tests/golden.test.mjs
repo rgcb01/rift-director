@@ -16,6 +16,12 @@ test('semilla fija: mismo mundo, partida y finanzas que Alpha 0.2', () => {
   // The structured "facts" field is additive. Confirm the legacy event envelope
   // remains identical for the reference seed, unless a documented bugfix changes it.
   const legacyMatch = {...match, events:match.events.map(({facts,...event})=>event)};
+  // Intentional M1.2 behavior fix diagnostic (one-time before updating the baseline).
+  const diagnostic = {match:hash(legacyMatch), worldAfterMatch:hash(world)};
+  const testReport = sim.applyMonth();
+  diagnostic.report = hash(testReport);
+  diagnostic.worldAfterMonth = hash(world);
+  console.log('M1.2 actual golden fingerprints', JSON.stringify(diagnostic));
   assert.equal(hash(legacyMatch), 'bb59a991074616a93efe8898eb384593387cc6a8a607958636ecfc428e13bb3c');
   assert.equal(hash(world), '0ee3ee27809829f0da5d3ad375efd8689d9dd946f0486e887a4159d566a82d34');
   const report = sim.applyMonth();
