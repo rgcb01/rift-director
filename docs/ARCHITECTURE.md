@@ -1,4 +1,4 @@
-# Arquitectura actual — Alpha 0.3 / M1.2
+# Arquitectura actual — Alpha 0.4 / M1.3A
 
 Este documento describe la **implementación comprobada** del repositorio a fecha 2026-11-07, no su arquitectura ideal.
 
@@ -14,6 +14,9 @@ src/core/finance.js        Cotización mensual, salarios, transferencias de caja
 src/core/match-events.js   Auditoría de eventos: kills, objetivos, roles y marcador
 src/core/match-stats.js    Estadísticas K/D/A y participación individual reconstruibles
 src/core/map-state.js      Visión/presión y rutas abstractas de gank
+src/core/minimap-graph.js  Nodos, carriles y coordenadas de torres
+src/core/minimap-simulation.js  Proyección visual de frames/eventos
+src/ui/minimap.js         SVG de jugadores, estructuras y territorio
 src/core/persistence.js    Parseo, validación, almacenamiento local v2
 game.js                    IIFE con mundo, motor de partidos, finanzas, rendering y eventos DOM
 scripts/check-static.mjs   Validación ligera de archivos/recursos
@@ -147,3 +150,15 @@ En la Alpha actual, pentakill significa cinco bajas válidas atribuidas al mismo
 `startDemoMatch()` preserva el estado de partida anterior, vista y modal en `demoBackup` (solo RAM), genera un universo provisional y reproduce un fixture sin cambiar el calendario del usuario. `save()` es **no-op durante la demo**; `finishMatch()` solo marca el fin de la retransmisión demo y no entrega premios, histórico o progreso. `exitDemoMatch()` recupera la referencia original de mundo/vista/modal y reanuda el timer si el partido real estaba activo. La demo no se exporta ni persiste: recargar restablece el save normal. `tests/demo-map.test.mjs` valida aislamiento con y sin partida y restauración de un partido pausado.
 
 `RiftCore.computeMapState` calcula de forma **determinista** estimaciones de visión del río y control/visión por carril a partir de atributos, cansancio, oro y torres actuales. No hay RNG adicional, coordenadas, wards ni fog of war; los valores afectan la probabilidad de éxito del gank vía `gankChance`. Cada `frame.map` es una instantánea independiente, y el gank registra los parámetros de visión/presión y ruta usados para auditar la narración. Los guardados anteriores no tienen este campo y se leen sin conversión.
+
+## M1.3A — Proyección visual de minimapa
+
+Al finalizar `simulateMatch()`, la función `RiftCore.attachMinimap(report, world)` recorre el **historial existente** `event.facts` y `frame.eventsCount` y añade opcionalmente `frame.minimap` a los frames. Se trata de una proyección pura desde los hechos y el estado táctico previo: **no consume RNG, no crea eliminaciones, no cambia el ganador**. Estructuras por carril se reconstruyen desde `tower` y se comparan con `frame.towers`.
+
+`frame.minimap.players` contiene diez posiciones SVG con rol, equipo, nodo visual y `alive`. Las bajas siguen la misma duración de reaparición que usa el motor de encuentros. Los participantes vivos de una pelea u objetivo se muestran cerca del punto implicado; los muertos se marcan inactivos en la fuente. Si el encuentro acaba, los atacantes vivos se muestran alrededor del nexo enemigo; los caídos **no** reaparecen ficticiamente. `frame.minimap.territory` refleja presión por carril y visión del río calculadas en `frame.map`.
+
+`src/ui/minimap.js` produce SVG sin dependencias ni imágenes. Los diez avatares son retratos geométricos mínimos y las estructuras tienen estados intacto/ruina. Es compatible con preferencia de movimiento reducido, además de contar con etiquetas accesibles para los actores y estructuras.
+
+**Límite deliberado de M1.3A:** el movimiento está reconstruido *después* de simular, por lo que todavía no restringe ganks según distancia o rutas físicas. No llamar a esto una simulación espacial causal; M1.3B introducirá navegación entre nodos y decisiones dependientes de presencia.
+
+El formato de save sigue siendo `v2`. Las partidas antiguas sin `frame.minimap` no se alteran al importar: la UI presenta un fallback. `RiftCore.auditMinimap` recrea la proyección y la compara frame por frame en pruebas, sin alterar el estado guardado.

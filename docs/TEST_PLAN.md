@@ -114,3 +114,14 @@ Antes de una release:
 - Auditar ganks por semilla: rol JUN, carril TOP/MID/BOT, ruta válida, presión y visión coincidentes con frame.
 - Atributos de visión defensiva deben **reducir** probabilidad de gank, manteniendo clamps de balance.
 - Probar botón demo/volver en Safari iOS y Chrome Android reales antes de cerrar hito. La UI es HTML estático y no precisa backend.
+
+## M1.3A — Minimap visual
+
+- Grafo top/mid/bot con extremos correctos y 18 torres originales dentro del viewBox.
+- Diez profesionales visibles desde minuto 0, cada cual en un rol correcto; JUN en jungla, TOP en línea superior, ADC/SUP en inferior.
+- Secuencias de eventos de muchas semillas: torre pasa a ruina sólo cuando aparece el evento correspondiente, el total coincide con marcador, víctimas no se mueven como vivas y sólo los atacantes vivos rodean el nexo final.
+- Auditoría determinista de proyección: regenerar minimapa no consume RNG ni altera resultados y detectar manualmente una posición falsificada.
+- Render SVG: 10 retratos, 18 torres, 2 nexos, Barón y Dragón, sin descargar assets ni reproducir el mapa oficial de LoL.
+- Guardado `v2` antiguo sin minimapa: puede reanudarse y finalizar sin migración ni datos inventados.
+- La exhibición sigue aislada del guardado original.
+- **Manual pendiente:** verificar tamaño/legibilidad, fluidez y botones del Match Center en Safari iOS y Chrome Android. M1.3B validará rutas y movimiento físico, que M1.3A aún no simula.

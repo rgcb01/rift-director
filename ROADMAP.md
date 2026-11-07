@@ -6,10 +6,12 @@ Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prome
 
 ## Estado
 
-- **Alpha 0.3 — [jugable]:** dos regiones ficticias, club y plantilla, finanzas mensuales, mercado sencillo, partidos narrados, noticias, offseason, SVG y guardado JSON.
+- **Alpha 0.4 — [jugable]:** dos regiones ficticias, club y plantilla, finanzas mensuales, mercado sencillo, partidos narrados, noticias, offseason, SVG y guardado JSON.
 - **Base del repositorio — [implementada]:** documentación, flujos de incidencias y comprobaciones de regresión.
 - **M1.1 — [base implementada; validación manual pendiente]:** RNG, estado inicial, calendario, finanzas, validación v2 y pruebas de regresión. Faltan un guardado histórico real y validación manual en móvil.
-- **M1.2 — [fase 3 integrada]:** auditoría de narración y K/D/A, simulación táctica de presión/visión/rutas de gank y **partida de prueba aislada del guardado**. Quedan posiciones exactas, visión por wards, campeones y multikills entre eventos.
+- **M1.2 — [base integrada]:** auditoría, K/D/A, presión/visión y prueba aislada sin guardado; faltan posiciones causales, wards y hechizos.
+- **M1.3A — [en validación]:** minimapa SVG y proyección por frame de los diez profesionales, torres y territorio sin cambiar el motor.
+- **M1.3B/C — [pendientes]:** movimiento por rutas que condicione eventos, después visión, wards y splitpush.
 
 ## Hitos
 
@@ -102,3 +104,13 @@ Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prome
 ## Próxima tarea concreta
 
 **M1.1 restante:** probar un guardado histórico exportado del navegador y verificar la reanudación en móvil. El motor de contratos seguirá necesitando reglas de negociación y caducidad más detalladas (M3). Después avanzar a M1.2 (eventos y narración).
+
+### M1.3 · Minimap dinámico y navegación espacial
+
+**M1.3A — Visualización (Alpha 0.4):** grafo original de nodos, SVG responsive, 10 jugadores, 18 torres, objetivos, presión territorial por líneas, bajas y asedio final. Proyección por minuto determinista y auditable sin alterar resultados de los mapas.
+
+**M1.3B — Navegación causal (pendiente):** cada jugador se desplaza por aristas con tiempos y restricciones; un gank, teamfight o toma de objetivo sólo puede ejecutarse si sus participantes están realmente allí. Los muertos reaparecen en la fuente, sin teletransporte.
+
+**M1.3C — Visión avanzada (pendiente):** colocación/expiración de wards abstractos, niebla, detección de emboscadas, empujes laterales y transiciones de territorio razonadas por presencia real. Mantener rendimiento en móviles modestos.
+
+**Criterio de cierre:** una secuencia de eventos se corresponde exactamente con el mapa, las posiciones afectan al juego desde M1.3B y los controles 1×/2×/5×/instantáneo sólo modifican la reproducción.

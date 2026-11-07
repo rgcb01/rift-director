@@ -4,6 +4,18 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+## [0.4.0-alpha] — 2026-11-07
+
+### M1.3A · Minimap visual de partidos
+- Minimap SVG original, adaptable a PC/móvil, con 10 retratos vectoriales por rol, 18 torres, dos nexos y fosos de Dragón y Barón.
+- Visualización de la presión territorial de TOP/MID/BOT y la influencia del río, derivada del estado táctico existente.
+- Torre marcada como destruida **solo tras** el evento estructurado correspondiente; pequeña animación de caída y estado persistente de ruinas.
+- Las cabezas se distribuyen inicialmente por TOP/JUN/MID/ADC/SUP, rotan visualmente según las fases y se reúnen en el nexo enemigo al finalizar si están vivas. Los muertos aparecen inactivos en fuente hasta reaparecer.
+- Nuevo grafo del mapa y proyección determinista por minuto: `src/core/minimap-graph.js`, `src/core/minimap-simulation.js` y `src/ui/minimap.js`.
+- Auditoría del minimapa y pruebas de regresión con numerosas semillas. Sin nuevos recursos pesados ni cambios en la lógica deportiva o la secuencia RNG.
+- El minimapa **no determina todavía eventos mediante posiciones**; esa restricción será M1.3B. Los guardados `v2` sin proyección siguen siendo compatibles.
+
+
 ## [0.3.0-alpha] — 2026-11-07
 
 ### Laboratorio de partidas y mapa táctico

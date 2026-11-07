@@ -26,6 +26,9 @@ jobs:
           node --check src/core/persistence.js
           node --check src/core/finance.js
           node --check src/core/map-state.js
+          node --check src/core/minimap-graph.js
+          node --check src/core/minimap-simulation.js
+          node --check src/ui/minimap.js
           node --check src/core/match-stats.js
           node --check src/core/match-events.js
           node --check game.js

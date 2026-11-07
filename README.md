@@ -4,7 +4,7 @@
 
 [**Jugar en el navegador**](https://rgcb01.github.io/rift-director/) · [Roadmap](ROADMAP.md) · [Cambios](CHANGELOG.md) · [Cómo contribuir](CONTRIBUTING.md)
 
-> **Alpha 0.3 — prototipo jugable.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
+> **Alpha 0.4 — prototipo jugable.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
 
 ## La idea
 
@@ -20,7 +20,7 @@ Los meses impulsan las finanzas y el mundo. Las noticias y los rumores reflejan 
 - No hay instalación de paquetes, cuenta ni backend para jugar.
 - **Guardados:** automáticos en `localStorage` de ese navegador. En **Partida** puedes **exportar/importar JSON**. Los guardados no se sincronizan entre dispositivos; expórtalos antes de borrar datos del navegador.
 
-## Qué existe hoy (Alpha 0.3)
+## Qué existe hoy (Alpha 0.4)
 
 | Área | Implementado | Límites actuales |
 |---|---|---|
@@ -28,7 +28,7 @@ Los meses impulsan las finanzas y el mundo. Las noticias y los rumores reflejan 
 | Economía | Ingresos de sponsors/merch/liga/contenido, salarios, staff, gastos, crisis comerciales y saldo de cierre | Valores todavía no calibrados para muchas temporadas |
 | Calendario | Plan mensual, partidos, liga y playoffs | Una región jugable y una segunda simulada |
 | Jugadores | Cinco roles, cartas, atributos, comportamiento, traits observables, entrenamiento, scouting, fichajes y ventas | IA y progresión iniciales |
-| Partidos | Simulación de eventos con marcadores, torres, dragones, Barón, jugadas y narración; velocidades y salto al resultado | Sin draft completo de campeones ni sistemas MOBA exhaustivos |
+| Partidos | Eventos narrados, KDA individual, minimapa SVG con diez jugadores, 18 torres y control territorial; velocidad y salto al final | Posiciones representativas, no movimientos que condicionen los eventos todavía |
 | Mundo vivo | Rumores, noticias vinculadas a eventos, IA de otros clubes, rookies, retiro, cambios de meta y expansión ocasional | Ecosistema regional y causalidad todavía básicos |
 | Presentación | Interfaz web responsive, retratos y escudos SVG generados | Accesibilidad y experiencia móvil por mejorar |
 
@@ -41,7 +41,8 @@ El juego actual es **estático y sin dependencias**:
 ```text
 index.html     Entrada de GitHub Pages
 styles.css     Interfaz adaptable
-src/core/      RNG, estado, calendario, finanzas, mapa, estadísticas y guardados
+src/core/      RNG, calendario, economía, proyección del minimapa y guardados
+src/ui/        Render SVG del minimapa de partidos
 game.js        Mundo, partidos, economía y UI (aún pendiente de modularizar)
 scripts/       Comprobaciones automatizadas
 docs/          Diseño, arquitectura y plan de pruebas
@@ -56,6 +57,9 @@ node --check src/core/state.js
 node --check src/core/calendar.js
 node --check src/core/finance.js
 node --check src/core/map-state.js
+node --check src/core/minimap-graph.js
+node --check src/core/minimap-simulation.js
+node --check src/ui/minimap.js
 node --check src/core/match-stats.js
 node --check src/core/match-events.js
 node --check src/core/persistence.js
@@ -104,3 +108,7 @@ Los partidos narrados registran `K/D/A`, pentakills y participación en torres, 
 ### M1.2 · Modelo táctico del mapa (Alpha 0.3)
 
 `src/core/map-state.js` calcula para cada minuto una **estimación abstracta** de presión y visión de TOP/MID/BOT y visión del río. Los ganks ahora consideran esa presión, visión rival y rutas simplificadas (río, flanco o tribush); RiftCast puede mostrar estos datos. No es un mapa 2D con coordenadas ni conoce aún campeones individuales, wards o fog of war exacto. Los datos de mapa son opcionales en guardados anteriores `v2`.
+
+### M1.3A — Minimap SVG (Alpha 0.4)
+
+En la retransmisión y en la **exhibición de prueba** aparece un minimapa ligero, sin imágenes ni librerías. Muestra diez cabezas por rol, posiciones aproximadas por fase, estructuras intactas/destruidas, Dragón, Barón, presión por líneas y agrupación de supervivientes al nexo contrario. Usa `event.facts` y `frame.map`, **sin nueva tirada aleatoria**; los mismos datos que validan RiftCast pintan las ruinas y los iconos. Las partidas antiguas sin `frame.minimap` conservan el Match Center y muestran un mensaje compatible. **No es navegación física real**: hasta M1.3B las posiciones son una reconstrucción visual que no bloquea ni autoriza ganks o peleas.
