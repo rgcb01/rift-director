@@ -76,7 +76,11 @@ function teamAgents(nav,id){return Object.values(nav.agents).filter(x=>x.teamId=
 function getAgent(nav,id){return nav.agents[id]||null}
 function at(nav,id,node,maxHops=1){
  const agent=nav.agents[id];
- return Boolean(agent?.alive && nearby(agent.node,node,maxHops));
+ if(!agent?.alive||!nearby(agent.node,node,maxHops))return false;
+ const source=graph.pointAt(agent.node),target=graph.pointAt(node);
+ // A path edge alone may span 100+ SVG units. Being one graph hop away
+ // does not mean you are physically standing next to a structure.
+ return Math.hypot(source.x-target.x,source.y-target.y)<=64;
 }
 function participants(nav,teamId,node,maxHops=1){
  return teamAgents(nav,teamId).filter(a=>at(nav,a.id,node,maxHops)).sort((a,b)=>{
@@ -150,7 +154,7 @@ function chooseGoal(nav,agent,t,worldState){
  if(t<36){
   const objective=t%11<5?'baron_pit':null;
   if(objective&&['JUN','SUP','MID'].includes(role))return {goal:objective,intent:'objective'};
-  if(role==='TOP'&&seedHash(nav.seed,team,'side')%2===0)
+  if(t<29&&role==='TOP'&&seedHash(nav.seed,team,'side')%2===0)
    return {goal:'top_center',intent:'splitpush'};
   return {goal:'mid_center',intent:'group'};
  }
@@ -215,7 +219,11 @@ function auditNavigation(match,world){
    const team=e.teamId,other=team===match.fixture.a?match.fixture.b:match.fixture.a;
    const positions=nav.before;
    const active=id=>Boolean(positions[id]?.alive&&(deadUntil[id]||0)<=e.minute);
-   const near=(id,node,d=1)=>active(id)&&nearby(positions[id].node,node,d);
+   const near=(id,node,d=1)=>{
+     if(!active(id)||!nearby(positions[id].node,node,d))return false;
+     const source=graph.pointAt(positions[id].node),target=graph.pointAt(node);
+     return Math.hypot(source.x-target.x,source.y-target.y)<=64;
+   };
    const together=(x,y,d=1)=>active(x)&&active(y)&&nearby(positions[x].node,positions[y].node,d);
    if(!active(f.actorId))errs.push('Actor muerto en evento: '+f.action);
    if(f.action==='gank'){
