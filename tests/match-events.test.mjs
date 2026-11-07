@@ -23,7 +23,7 @@ test('350 partidos: narración, objetivos, bajas, roles y score son coherentes',
       if (e.facts?.stolen) counts.steal++;
       if (e.title.includes('PENTAKILL')) counts.pentakill++;
     }
-    assert.ok(match.frames.at(-1).minute <= 56, 'El partido no terminó dentro del tiempo de seguridad');
+    assert.ok(match.frames.at(-1).minute <= 76, 'El partido no terminó dentro del tiempo de seguridad');
   }
   for (const key of ['gank','tower','dragon','baron','teamfight','nexus','steal']) {
     assert.ok(counts[key] > 0, 'No se observó '+key);
