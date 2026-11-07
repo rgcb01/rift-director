@@ -86,13 +86,20 @@ function choose({nav,agent,minute,worldState,context,baseline}){
   // especially when the opponent has strong abstract vision.
   if(baseline.intent==='gank_setup'){
    const options=LANES.map(l=>{
-    const enemy=Object.values(context.positions).filter(p=>
-      p.teamId!==agent.teamId&&p.alive&&core.Navigation.isLaneNode(p.node,l));
+    const ourVision=context.map.lanes[l].vision[agent.teamId];
+    const enemyVision=context.map.lanes[l].vision[agent.teamId===nav.a?nav.b:nav.a];
     const ally=Object.values(context.positions).filter(p=>
       p.teamId===agent.teamId&&p.alive&&core.Navigation.isLaneNode(p.node,l));
+    // Scouting does not reveal an enemy's HP merely because they exist in
+    // the world state. A high-vision lane is readable; lower vision requires
+    // an actual local sighting or a deterministic (not guaranteed) report.
+    const discovered=p=>ourVision>=90||dist(agent.node,p.node)<=42||
+      hash(nav.seed,minute,agent.teamId,p.id,l,'scout')%1000<
+      clamp(.08+ourVision*.008,0.1,.87)*1000;
+    const enemy=Object.values(context.positions).filter(p=>
+      p.teamId!==agent.teamId&&p.alive&&
+      core.Navigation.isLaneNode(p.node,l)&&discovered(p));
     const weak=enemy.filter(p=>(context.health?.[p.id]??100)<=66).length;
-    const enemyVision=context.map.lanes[l].vision[agent.teamId===nav.a?nav.b:nav.a];
-    const ourVision=context.map.lanes[l].vision[agent.teamId];
     const best=clamp(weak*32+(ally.length-enemy.length)*13+
       (ourVision-enemyVision)*.45+(enemyVision<68?9:-8),-100,100);
     return {lane:l,score:best,enemyVision,weak,enemyCount:enemy.length};
