@@ -72,6 +72,51 @@ function complete(match){
  match.replayCursor=list.length-1;
  return true;
 }
+// Event-centric scene: use the original pre-combat navigation nodes, NEVER
+// move a player to the narration's claimed location. A kill's victim is
+// pictured fallen at the fight, even though the post-event state is fountain.
+function eventView(match,eventIndex){
+ const event=match?.events?.[eventIndex],moment=match?.moments?.[eventIndex];
+ const f=event?.facts,pre=moment?.navigation?.before,map=moment?.minimap;
+ if(!f||!pre||!map?.players)return null; // old v2 replay: no invented coordinates
+ const ids=[...new Set([f.initiatorId,f.actorId,f.supportId,
+   ...(f.assistIds||[]),...(f.participantIds||[]),...(f.victimIds||[])]
+   .filter(Boolean))];
+ const participants=ids.filter(id=>pre[id]&&map.players[id]);
+ if(!participants.length)return null;
+ const offsets=[[0,-10],[13,7],[-13,7],[14,-11],[-14,-11],[0,17]];
+ const perNode=new Map(),players={...map.players};
+ for(const id of participants){
+  const node=pre[id].node;
+  if(!core.MiniGraph.nodes[node])return null;
+  const slot=perNode.get(node)||0;
+  perNode.set(node,slot+1);
+  const [dx,dy]=offsets[slot%offsets.length],p=core.MiniGraph.pointAt(node);
+  const fallen=Boolean(f.victimIds?.includes(id));
+  players[id]={...map.players[id],
+    x:Math.min(328,Math.max(12,p.x+dx)),
+    y:Math.min(328,Math.max(12,p.y+dy)),
+    node,fallen,alive:fallen?false:pre[id].alive,sceneRole:
+       fallen?'victima':id===f.initiatorId?'jungla':
+       id===f.actorId?'asesino': 'apoyo'};
+ }
+ const i=pre[f.initiatorId],v=pre[f.victimIds?.[0]];
+ const consistent=f.action!=='gank'||Boolean(i&&v&&
+   core.Navigation?.combatRange?.(i.node,v.node,2)&&
+   core.Navigation?.isLaneNode?.(v.node,f.lane)&&
+   (f.initiatorNode===undefined||f.initiatorNode===i.node)&&
+   (f.victimNode===undefined||f.victimNode===v.node));
+ return {
+  frame:{...moment,minimap:{...map,players}},
+  participants,
+  consistent,
+  action:f.action,
+  focusNode:f.action==='gank'?v?.node:f.node||null,
+  // For old sports histories with inconsistent locations, show a warning
+  // instead of teleporting the jungler into a place he never occupied.
+  legacyLocationWarning:f.action==='gank'&&!consistent
+ };
+}
 function auditMoments(match,world){
  if(!match?.moments)return [];
  const faults=[];
@@ -92,5 +137,5 @@ function auditMoments(match,world){
  }catch(error){faults.push('Error al auditar la jugada: '+error.message);}
  return faults;
 }
-core.MatchReplay=Object.freeze({attachReplay,timeline,ensure,seek,next,complete,auditMoments});
+core.MatchReplay=Object.freeze({attachReplay,timeline,ensure,seek,next,complete,eventView,auditMoments});
 })(globalThis);

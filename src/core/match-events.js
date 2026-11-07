@@ -92,9 +92,13 @@
         if (!j || j.role !== 'JUN' || j.teamId !== event.teamId || !alive(j, minute)) fail('Gank sin jungla vivo.');
         if (victims.length !== 1) fail('Gank con múltiples victimas no modeladas.');
         const lane=frame.map?.lanes?.[facts.lane];
+        const physical= facts.spatialVersion===2;
+        const expectedRoute=physical
+          ? (core.Navigation?.adjacency?.[facts.initiatorNode] ? core.Navigation.gankApproach(facts.initiatorNode,facts.lane) : null)
+          : core.gankRoute(facts.lane,lane,event.teamId,event.teamId===a?b:a);
         if (!['TOP','MID','BOT'].includes(facts.lane) || !lane ||
-            !['rio','tribush','flanco'].includes(facts.route) ||
-            facts.route!==core.gankRoute(facts.lane,lane,event.teamId,event.teamId===a?b:a) ||
+            !(physical?['rio','tribush','flanco','jungla']:['rio','tribush','flanco']).includes(facts.route) ||
+            facts.route!==expectedRoute ||
             facts.attackerPressure!==lane.pressure[event.teamId] ||
             facts.defenderVision!==lane.vision[event.teamId===a?b:a])
           fail('Gank con ruta, presión o visión que no corresponde al mapa.');

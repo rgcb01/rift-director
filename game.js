@@ -192,22 +192,29 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
   if(t>=3&&t<=22&&chance(t<13?.48:.32)){
    const attacker=decide(a,b,t),victimTeam=enemy(attacker),j=byRole(attacker,'JUN',t),
     lanerRole=pick(['TOP','MID','ADC']),v=byRole(victimTeam,lanerRole,t);
-   if(j&&v&&near(j,v,2)){
-    const lane=lanerRole==='ADC'?'BOT':lanerRole,context=m.map.lanes[lane];
+   const lane=lanerRole==='ADC'?'BOT':lanerRole;
+   const nodeJ=j&&nav.getAgent(navigation,j.id)?.node;
+   const nodeV=v&&nav.getAgent(navigation,v.id)?.node;
+   const closeGank=(x,y)=>Boolean(x&&y&&
+     nav.combatRange(nav.getAgent(navigation,x.id)?.node,nav.getAgent(navigation,y.id)?.node,2));
+   // Both players must physically be in the same stretch of the stated lane.
+   // Graph hops alone previously allowed a jungler still in BOT to kill in MID.
+   if(j&&v&&nav.isLaneNode(nodeV,lane)&&closeGank(j,v)){
+    const context=m.map.lanes[lane];
     const support=byRole(attacker,lanerRole,t);
-    const helper=support&&near(support,v,2)?support:null;
+    const helper=support&&closeGank(support,v)?support:null;
     const pSuccess=RiftCore.gankChance(.44+(balance(attacker,t)-balance(victimTeam,t))*.014+
       j.beh.agg*.002+(j.beh.risk-50)*.0015,context,attacker.id,victimTeam.id);
     const found=chance(pSuccess),killer=found?(chance(.66)?j:(helper||j)):null;
-    if(found&&killer&&near(killer,v,2)&&addKill(killer,v,t)){
+    if(found&&killer&&closeGank(killer,v)&&addKill(killer,v,t)){
      const actor=chance(.68)?j:(helper||j);
      const assists=[...new Set([j,helper].filter(p=>p&&p.id!==killer.id&&
-       nav.nearby(nav.getAgent(navigation,p.id).node,nav.getAgent(navigation,v.id).node,2)).map(p=>p.id))];
+       closeGank(p,v)).map(p=>p.id))];
      makeEv(t,`Gank en ${lane==='BOT'?'bot':lane==='TOP'?'top':'medio'}`,
       `${j.name} llega a la zona de ${v.name}. ${attacker.name} consigue la eliminación tras una rotación válida.`,
       'fight',attacker,{action:'gank',actorId:killer.id,initiatorId:j.id,supportId:actor.id,
        initiatorNode:nav.getAgent(navigation,j.id).node,victimNode:nav.getAgent(navigation,v.id).node,
-       lane,route:RiftCore.gankRoute(lane,context,attacker.id,victimTeam.id),
+       lane,route:nav.gankApproach(nodeJ,lane),spatialVersion:2,
        attackerPressure:context.pressure[attacker.id],defenderVision:context.vision[victimTeam.id],
        victimIds:[v.id],assistIds:assists});
     }else if(chance(.35)){
@@ -689,7 +696,10 @@ function renderMatch(){const c=currentClub(),l=s.live;
  frame=current?.frame||l.frames[Math.min(l.elapsed,l.frames.length-1)],
  selectedEvent=current?.event||null,ended=l.finished,
  viewingFinal=ended&&replay.cursor===timeline.length-1,
- events=timeline.slice(0,replay.progress+1),win=club(l.winner);
+ events=timeline.slice(0,replay.progress+1),win=club(l.winner),
+ scene=selectedEvent?.source==='match'
+  ?RiftCore.MatchReplay.eventView(l,selectedEvent.eventIndex):null,
+ sceneFrame=scene?.frame||frame;
  return `${demoBackup?'<div class="banner" style="margin-bottom:14px"><b>PARTIDO DE PRUEBA · NO SE GUARDA</b><p class="helper" style="margin:6px 0">Ninguna jugada, premio ni estadística afectará a tu temporada.</p><button class="btn secondary small" data-action="demo-exit">Volver sin guardar</button></div>':''}${pageTitle('Reproductor de jugadas','Avanza por jugadas sin temporizador. Pulsa cualquier momento del historial para regresar a su marcador y minimapa.',`<span class="chip ${ended?'gold':'green'}">${ended?'PARTIDO TERMINADO':'EN REVISIÓN'}</span>`)}
  <div class="cols"><div><section class="panel"><div class="scoreboard"><div class="split"><span class="eyebrow">${demoBackup?'Exhibición de prueba':f.playoff?'Playoffs':'Liga regular'} · ${MONTHS[s.month-1]} ${s.year}</span><span class="chip ${ended?'gold':'green'}">${esc(selectedEvent?.time||String(frame.minute).padStart(2,'0')+':00')}</span></div>
  <div class="split" style="margin-top:12px;gap:6px"><div class="flex">${crest(a,41)}<div class="scoreteam">${esc(a.name)}</div></div><div class="scoreline num">${frame.kills[a.id]} : ${frame.kills[b.id]}</div><div class="flex"><div class="scoreteam">${esc(b.name)}</div>${crest(b,41)}</div></div>
@@ -709,7 +719,9 @@ function renderMatch(){const c=currentClub(),l=s.live;
  <time>${esc(e.time)}</time><span class="body"><b>${esc(e.title)}</b><span class="replay-description">${esc(e.body)}</span>${matchEventDetail(e)}</span></button>`}).join('')}
  </div></section></div>
  <div><section class="panel"><div class="panel-head"><h2>Minimapa táctico</h2><span class="chip">10 profesionales</span></div>
- ${RiftMinimap.render(l,frame,s,previous?.frame,selectedEvent)}
+ ${RiftMinimap.render(l,sceneFrame,s,previous?.frame,selectedEvent,scene)}
+ ${scene?.legacyLocationWarning?
+  '<div class="banner warn" style="margin-top:9px">Esta jugada fue generada con reglas anteriores: la ubicación del jungla no coincide con el carril narrado. Se muestran las posiciones registradas sin mover jugadores artificialmente. Inicia una nueva exhibición para probar las reglas corregidas.</div>':''}
  <p class="helper" style="margin-top:9px">Selecciona cualquier jugada del historial para revisar las posiciones, torres y objetivos de ese momento. Sin wards ni niebla de guerra todavía.</p></section>
  <section class="panel"><h2>Plan deportivo</h2><p class="helper" style="margin-top:9px">${strategyName(s.style)} · Sin órdenes directas durante este mapa.</p><div class="banner">Los traits alteran el comportamiento, pero ninguna jugada está garantizada. Tu equipo puede equivocarse o sorprenderte.</div></section>
  <section class="panel"><h2>Control del mapa</h2>${renderMapTactics(l,frame)}</section>
@@ -762,11 +774,11 @@ function renderModal(){if(!s&&modal?.type!=='welcome')modal={type:'welcome'};if(
 function navButton(id,ic,label){return `<button data-nav="${id}" class="${view===id?'active':''}">${icon(ic)} <span>${label}</span></button>`}
 function render(){if(!s){document.getElementById('app').innerHTML=renderModal();return}
  const c=currentClub();let body=view==='home'?renderHome():view==='roster'?renderRoster():view==='market'?renderMarket():view==='match'?renderMatch():view==='finance'?renderFinance():view==='world'?renderWorld():renderSettings();
- document.getElementById('app').innerHTML=`<div class="layout"><aside class="sidebar"><div class="brand"><div class="brand-icon" style="color:var(--teal);font-size:22px;font-weight:900">R</div><div><strong>Rift Director</strong><small>ALFA 0.7 · SANDBOX</small></div></div>
+ document.getElementById('app').innerHTML=`<div class="layout"><aside class="sidebar"><div class="brand"><div class="brand-icon" style="color:var(--teal);font-size:22px;font-weight:900">R</div><div><strong>Rift Director</strong><small>ALFA 0.7.1 · SANDBOX</small></div></div>
  <nav class="nav" aria-label="Navegación">${demoBackup?navButton('match','match','Exhibición'):`${navButton('home','home','Inicio')}${navButton('roster','users','Plantilla')}${navButton('market','market','Mercado')}${navButton('match','match','Partidos')}${navButton('finance','money','Finanzas')}${navButton('world','world','Mundo')}${navButton('settings','settings','Partida')}`}</nav>
  <div class="sidebar-foot"><div class="eyebrow">TEMPORADA ${s.season}</div><div style="margin-top:5px;font-weight:800">${MONTHS[s.month-1]} ${s.year}</div><div class="chip">${s.clubs.length} clubes · ${s.players.filter(p=>!p.retired).length} profesionales</div></div></aside>
  <main class="main"><header class="topbar"><div class="clubhead">${crest(c,46)}<div><div class="clubtitle">${esc(c.name)}</div><div class="helper">${esc(s.leagueName)} · Club ${c.kind==='user'?'bajo tu dirección':'autónomo'}</div></div></div><div class="top-actions">${demoBackup?`<span class="chip">MODO PRUEBA</span><button class="btn small secondary" data-action="demo-exit">Volver</button>`:`<span class="chip">${icon('calendar',14)} ${MONTHS[s.month-1]} ${s.year}</span><span class="chip ${c.cash<250000?'red':'green'}">${icon('money',14)} ${fmt(c.cash)}</span><button class="btn small" data-action="close-month" ${s.over?'disabled':''}>Siguiente mes</button>`}</div></header>${body}
- <div class="footer">Rift Director Alpha 0.7 · Universo y retratos ficticios · Guardado local · Simulador independiente no afiliado a Riot Games</div></main></div>${renderModal()}${s.over?`<div class="modal-layer"><div class="modal end-screen"><div class="eyebrow">FIN DE PARTIDA</div><h1>Insolvencia.</h1><p>Tu club se quedó sin efectivo. El mundo sigue su historia, pero esta gestión termina aquí. Recuerda: ganar torneos nunca fue la única forma de triunfar.</p><div class="buttons" style="justify-content:center"><button class="btn" data-action="export">Exportar historia</button><button class="btn danger" data-action="reset">Nueva organización</button></div></div></div>`:''}`;
+ <div class="footer">Rift Director Alpha 0.7.1 · Universo y retratos ficticios · Guardado local · Simulador independiente no afiliado a Riot Games</div></main></div>${renderModal()}${s.over?`<div class="modal-layer"><div class="modal end-screen"><div class="eyebrow">FIN DE PARTIDA</div><h1>Insolvencia.</h1><p>Tu club se quedó sin efectivo. El mundo sigue su historia, pero esta gestión termina aquí. Recuerda: ganar torneos nunca fue la única forma de triunfar.</p><div class="buttons" style="justify-content:center"><button class="btn" data-action="export">Exportar historia</button><button class="btn danger" data-action="reset">Nueva organización</button></div></div></div>`:''}`;
  if(view==='match'&&s.live){const log=document.getElementById('eventlog');const selected=log?.querySelector('.is-selected');if(selected&&typeof selected.scrollIntoView==='function')selected.scrollIntoView({block:'nearest'})}
 }
 function updatePlan(id,delta){if(s.live&&!s.live.finished)return notify('Finaliza el partido para modificar la agenda.');if(!Object.hasOwn(s.plan,id))return;let x=s.plan[id]+delta;if(x<0||x>4||delta>0&&sumPlan()>=8)return;s.plan[id]=x;save();render()}
