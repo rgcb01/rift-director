@@ -74,3 +74,11 @@ Antes de una release:
 3. Se prueba un guardado de la versión publicada anterior.
 4. Se actualizan [CHANGELOG](../CHANGELOG.md) y [ROADMAP](../ROADMAP.md).
 5. Se verifica el sitio de GitHub Pages después del despliegue.
+
+## Cobertura automatizada añadida en M1.1
+
+- `tests/calendar.test.mjs`: todos contra todos a ida/vuelta con 8, 9 y 10 clubes; descansos y ausencia de duplicados por ronda.
+- Validación de clubes fuera de región, fixtures corruptos, contratos negativos, jugadores asignados a un equipo inexistente y balances incoherentes.
+- Simulación rápida de 24 meses con avance real de mes y offseason, cambios de liga y guardado tras cada cierre.
+- Simulación sintética avanzada: guardar un mapa pausado, restaurar su estado y comprobar que su recompensa no se abone dos veces.
+- Continúa pendiente probar un **archivo exportado desde una Alpha 0.2 real** y repetir los recorridos en Safari iOS y Chrome Android.

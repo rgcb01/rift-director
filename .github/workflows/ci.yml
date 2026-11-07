@@ -22,6 +22,7 @@ jobs:
         run: |
           node --check src/core/rng.js
           node --check src/core/state.js
+          node --check src/core/calendar.js
           node --check src/core/persistence.js
           node --check game.js
       - name: Comprobar archivos y recursos de Pages

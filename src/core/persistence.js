@@ -24,7 +24,7 @@
     if (errors.length) return errors;
     const clubs = new Map();
     for (const club of world.clubs) {
-      if (!isRecord(club) || !validId(club.id) || clubs.has(club.id) || !Array.isArray(club.roster) || !isRecord(club.lineup) || !Number.isFinite(club.cash)) {
+      if (!isRecord(club) || !validId(club.id) || clubs.has(club.id) || !['Aurora','Boreal'].includes(club.region) || !Array.isArray(club.roster) || !isRecord(club.lineup) || !Number.isFinite(club.cash) || !isInt(club.staff) || club.staff < 0) {
         errors.push('Club inválido o duplicado.'); break;
       }
       clubs.set(club.id, club);
@@ -32,23 +32,50 @@
     if (!clubs.has(world.userClub)) errors.push('La organización del jugador no existe.');
     const players = new Map();
     for (const p of world.players) {
-      if (!isRecord(p) || !validId(p.id) || players.has(p.id) || !core.ROLES.includes(p.role) || !isRecord(p.a) || !isRecord(p.beh) || !Number.isFinite(p.wage)) {
+      if (!isRecord(p) || !validId(p.id) || players.has(p.id) || !core.ROLES.includes(p.role) || !isRecord(p.a) || !isRecord(p.beh) || !Number.isFinite(p.wage) || p.wage < 0 || !isInt(p.age) || p.age < 0 || !isInt(p.contract) || p.contract < 0 || (p.teamId != null && !validId(p.teamId))) {
         errors.push('Profesional inválido o duplicado.'); break;
       }
       players.set(p.id, p);
     }
     if (errors.length) return errors;
+    const registered = new Set();
     for (const c of world.clubs) {
       const inRoster = new Set();
       for (const id of c.roster) {
         const p = players.get(id);
         if (!p || inRoster.has(id) || p.teamId !== c.id) { errors.push('Plantilla inconsistente: ' + c.id + '.'); break; }
         inRoster.add(id);
+        if (registered.has(id)) errors.push('Jugador registrado en más de un club: ' + id);
+        registered.add(id);
       }
       for (const role of core.ROLES) {
         const id = c.lineup[role];
         const p = players.get(id);
         if (!p || !inRoster.has(id) || p.role !== role) { errors.push('Alineación inválida: ' + c.id + ' / ' + role + '.'); break; }
+      }
+    }
+    for (const p of world.players) {
+      if (p.teamId != null && (!clubs.has(p.teamId) || !registered.has(p.id))) {
+        errors.push('Profesional afiliado sin plantilla: ' + p.id);
+      }
+      if (p.teamId == null && registered.has(p.id)) {
+        errors.push('Agente libre registrado en plantilla: ' + p.id);
+      }
+      if (p.retired === true && p.teamId != null) {
+        errors.push('Jugador retirado aún afiliado: ' + p.id);
+      }
+    }
+    if (errors.length) return errors;
+    errors.push(...core.validateCalendar(world, clubs));
+    for (const report of world.monthlyReports) {
+      if (!isRecord(report) || !Number.isFinite(report.income) || !Number.isFinite(report.expenses) || !Number.isFinite(report.net) || !Number.isFinite(report.cashBefore) || !Number.isFinite(report.cashAfter) || Math.abs((report.income - report.expenses) - report.net) > .01 || Math.abs((report.cashAfter - report.cashBefore) - report.net) > .01) {
+        errors.push('Reporte financiero mensual inconsistente.'); break;
+      }
+    }
+    if (world.live != null) {
+      const l = world.live, f = l.fixture;
+      if (!isRecord(f) || !clubs.has(f.a) || !clubs.has(f.b) || f.a === f.b || !Array.isArray(l.frames) || l.frames.length < 1 || !Array.isArray(l.events) || !Number.isSafeInteger(l.elapsed) || l.elapsed < 0 || l.elapsed >= l.frames.length || ![1,2,5].includes(l.speed) || typeof l.running !== 'boolean' || typeof l.finished !== 'boolean' || (l.winner !== f.a && l.winner !== f.b)) {
+        errors.push('Partido en directo inconsistente.');
       }
     }
     return errors;

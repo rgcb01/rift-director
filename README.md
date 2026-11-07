@@ -40,7 +40,7 @@ El juego actual es **estático y sin dependencias**:
 ```text
 index.html     Entrada de GitHub Pages
 styles.css     Interfaz adaptable
-src/core/      RNG, estado inicial y validación/guardados v2
+src/core/      RNG, estado inicial, calendario y validación/guardados v2
 game.js        Mundo, partidos, economía y UI (aún pendiente de modularizar)
 scripts/       Comprobaciones automatizadas
 docs/          Diseño, arquitectura y plan de pruebas
@@ -52,6 +52,7 @@ Requisitos para desarrollo: **Node.js 22+** para ejecutar comprobaciones. El nav
 ```bash
 node --check src/core/rng.js
 node --check src/core/state.js
+node --check src/core/calendar.js
 node --check src/core/persistence.js
 node --check game.js
 node scripts/check-static.mjs
@@ -78,3 +79,7 @@ El universo oficial del juego usa contenido **original y ficticio**. No se deben
 ### M1.1: núcleo aislado sin romper Alpha 0.2
 
 La inicialización del estado, la secuencia de RNG y la validación de guardados ahora viven en `src/core/`. **La clave y el formato de guardado siguen siendo v2.** La suite incorpora una huella SHA-256 de un universo, partido y mes generados con la Alpha 0.2 original; no acepta cambios accidentales en los resultados. El motor deportivo, calendario y UI siguen en `game.js` para su extracción incremental.
+
+### M1.1 — Calendario y validaciones
+
+`src/core/calendar.js` contiene el calendario de enfrentamientos, las tablas iniciales, las jornadas pendientes y la fecha siguiente. La importación v2 valida además fixtures, clasificaciones, afiliaciones, contratos, libros mensuales y retransmisiones pausadas. No se modifica el generador del calendario ni la semilla de RNG. Ejecuta `node --test` para verificar calendarios de 8 a 10 clubes, 24 meses simulados y una partida avanzada con retransmisión interrumpida. El estado del juego sigue siendo v2.

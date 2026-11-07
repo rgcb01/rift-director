@@ -9,6 +9,7 @@ index.html                 Entrada estática con #app
 styles.css                 Estilos responsive
 src/core/rng.js            Secuencia pseudoaleatoria v2 (sin cambios)
 src/core/state.js          Estado inicial v2 y roles
+src/core/calendar.js       Calendario round-robin, jornadas, tablas iniciales y fechas
 src/core/persistence.js    Parseo, validación, almacenamiento local v2
 game.js                    IIFE con mundo, motor de partidos, finanzas, rendering y eventos DOM
 scripts/check-static.mjs   Validación ligera de archivos/recursos
@@ -73,7 +74,7 @@ Campos centrales del objeto de estado (resumen, no esquema exhaustivo):
 
 - Clave actual: `rift_director_v02_save` en `localStorage`.
 - Formato: JSON que incluye el estado completo y `v: 2`.
-- `load()` e `importGame()` usan `RiftCore.parseWorld()`, que valida versión, fecha, IDs, estructura básica de clubes, roster, roles y pertenencia de jugadores. **Aún no comprueba todas las reglas de calendario, contratos o historial**.
+- `load()` e `importGame()` usan `RiftCore.parseWorld()`, que valida versión, fecha, IDs, clubes, afiliaciones, roles, contratos no negativos, calendario por región, clasificaciones, balances mensuales y transmisiones en curso. **Aún no comprueba todas las obligaciones contractuales ni la historia completa**.
 - No existen migraciones desde otras versiones, sincronización en la nube ni garantía de capacidad ilimitada de almacenamiento.
 
 **Contrato de compatibilidad para próximos hitos:**
@@ -106,3 +107,9 @@ El siguiente paso debe ser extraer primero funciones puras y pruebas, evitando u
 ## Regresión de compatibilidad M1.1
 
 El juego carga `rng.js`, `state.js`, `persistence.js` y `game.js` en ese orden desde `index.html`. No hay bundler ni dependencia externa. La clave de `localStorage` es la misma y `v: 2` continúa intacto. `tests/golden.test.mjs` compara huellas SHA-256 de estados y resultados deterministas capturados en la Alpha 0.2 original; `tests/core.test.mjs` verifica secuencia de RNG, validación, roundtrip y transición anual. Las pruebas no implican una garantía absoluta de compatibilidad de todos los guardados históricos posibles.
+
+## Extracción de calendario M1.1
+
+`generateFixtures`, `standingsFor` y `nextFixtures` de `game.js` son adaptadores de las funciones puras `RiftCore.generateFixtures`, `RiftCore.standingsFor` y `RiftCore.pendingUserFixtures`. `closeMonth` usa `RiftCore.nextDate` para identificar diciembre, sin cambiar el orden de llamadas a `nextYear`, `applyMonth` o `simulateWorld`. El calendario conserva meses con listas vacías, jornadas ida/vuelta y descansos cuando hay un número impar de equipos. El validador comprueba que los cruces pertenezcan a su región y que un club no dispute dos encuentros dentro de una misma jornada.
+
+`tests/calendar.test.mjs` recorre ligas de 8, 9 y 10 equipos, realiza 24 cierres mensuales con partidos rápidos en una partida **sintética** y restaura un partido pausado de una simulación avanzada. Esto cubre regresiones funcionales, pero **no** sustituye probar un archivo JSON exportado por un usuario real en Alpha 0.2 ni una auditoría de 20 temporadas y transferencias complejas.

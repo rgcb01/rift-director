@@ -4,6 +4,12 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Refactor y pruebas de calendario (M1.1, 2026-11-07)
+- Calendarios, clasificación inicial, partidos pendientes y transición de fecha extraídos a `src/core/calendar.js` sin cambiar el orden deportivo anterior.
+- Validación adicional de contratos, pertenencia de jugadores, jornadas y cruces, reportes financieros y partidas pausadas antes de aceptar un JSON importado.
+- Pruebas de round-robin de 8/9/10 equipos, 24 meses de progresión y restauración de un partido pausado en una partida de prueba avanzada.
+- No se cambia la clave ni el formato de guardado v2. La prueba avanzada es sintética; queda probar una exportación histórica real del navegador.
+
 ### Refactor (M1.1, 2026-11-07)
 - RNG xorshift32 movido a `src/core/rng.js` sin cambiar la secuencia original.
 - Factory del estado v2 extraída a `src/core/state.js` con roles compartidos.

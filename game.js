@@ -35,16 +35,13 @@ function makeClub(name,region,color,kind='rival',cash=null){const club={id:uid('
  for(const role of ROLES){let p=generatePlayer(role,club.id,ri(-4,6));s.players.push(p);club.roster.push(p.id);club.lineup[role]=p.id}
  if(kind==='user'){for(const role of ['JUN','MID']){let p=generatePlayer(role,club.id,ri(-7,2));s.players.push(p);club.roster.push(p.id)}}
  return club}
-function generateFixtures(clubs){let ids=clubs.slice(),r=[];if(ids.length%2)ids.push(null);const n=ids.length;
- for(let j=0;j<n-1;j++){let games=[];for(let k=0;k<n/2;k++){const a=ids[k],b=ids[n-1-k];if(a&&b)games.push({a:j%2?a:b,b:j%2?b:a,round:j,played:false})}r.push(games);ids=[ids[0],ids[n-1],...ids.slice(1,n-1)]}
- let rounds=[...r,...r.map((g,j)=>g.map(x=>({a:x.b,b:x.a,round:j+n-1,played:false})))];let byMonth={};for(let m=1;m<=12;m++)byMonth[m]=[];
- rounds.forEach((games,j)=>{let m=2+Math.floor(j*7/rounds.length);byMonth[m].push(...games)});return byMonth}
-function standingsFor(ids){let d={};ids.forEach(id=>d[id]={w:0,l:0,points:0});return d}
+function generateFixtures(ids){return RiftCore.generateFixtures(ids)}
+function standingsFor(ids){return RiftCore.standingsFor(ids)}
 function club(id){return s.clubs.find(c=>c.id===id)}
 function player(id){return s.players.find(p=>p.id===id)}
 function teamPlayers(c){return ROLES.map(r=>player(c.lineup[r])).filter(Boolean)}
 function currentClub(){return club(s.userClub)}
-function nextFixtures(){if(s.month===9)return s.playoffs.filter(f=>!f.played&&(f.a===s.userClub||f.b===s.userClub));return (s.fixtures[s.month]||[]).filter(f=>!f.played&&(f.a===s.userClub||f.b===s.userClub))}
+function nextFixtures(){return RiftCore.pendingUserFixtures(s)}
 function opponentOf(f){return club(f.a===s.userClub?f.b:f.a)}
 function totalWages(c){return c.roster.reduce((sum,id)=>sum+(player(id)?.wage||0),0)}
 function userContractExpense(){return totalWages(currentClub())+currentClub().staff*9000+34000}
@@ -355,7 +352,7 @@ function closeMonth(){if(s.over)return;if(s.crisis){notify('Resuelve la crisis c
  if(s.month===9&&s.playoffs.some(f=>!f.played)){notify('Los playoffs todavía tienen partidos pendientes.');return}
  simulateOtherMonth();if(s.month===9)simulateOtherPlayoffs();
  const previous=s.month;const report=applyMonth();if(s.over){view='finance';save();render();return}
- if(previous===12){nextYear()}else s.month++;
+ const next=RiftCore.nextDate(s.year,previous);if(next.year!==s.year){nextYear()}else s.month=next.month;
  s.plan=defaultPlan();s.live=null;
  if(previous===8)beginPlayoffs();
  if([1,4,7,10].includes(s.month))s.offers=generateOffers();

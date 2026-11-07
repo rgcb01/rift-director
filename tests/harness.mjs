@@ -14,16 +14,20 @@ export function boot(options = {}) {
   const env = {
     document: {
       addEventListener() {},
-      getElementById() { return app; },
+      getElementById(id) { return id === 'app' ? app : null; },
+      createElement() { return { remove() {} }; },
+      body: { appendChild() {} },
     },
     localStorage: {
       getItem(k) { return store.get(k) ?? null; },
       setItem(k, v) { store.set(k, v); },
       removeItem(k) { store.delete(k); },
     },
-    Date: FixedDate, console, setInterval, clearInterval, setTimeout, clearTimeout,
+    Date: FixedDate, console,
+    setInterval: () => 1, clearInterval: () => {},
+    setTimeout: () => 1, clearTimeout: () => {},
   };
-  for (const path of ['src/core/rng.js', 'src/core/state.js', 'src/core/persistence.js']) {
+  for (const path of ['src/core/rng.js', 'src/core/state.js', 'src/core/calendar.js', 'src/core/persistence.js']) {
     vm.runInNewContext(read(path), env, { timeout: 10000, filename: path });
   }
   // Test-only API injection; game.js remains unmodified in production.
@@ -31,6 +35,8 @@ export function boot(options = {}) {
   const injection = [
     'globalThis.__test = { newGame, simulateMatch, teamPlayers, currentClub,',
     '  save, load, applyMonth, annualProgress, nextYear, simulateWorld,',
+    '  quickSeasonGame, quickPlayoffGame, makeFinalAfterSemis,',
+    '  closeMonth, resolveCrisis, startMatch, finishMatch,',
     '  getState: () => s };',
     '})();'
   ].join('\n');
