@@ -1,0 +1,49 @@
+name: Propuesta de mecánica
+description: Proponer una función o ajuste de balance para Rift Director.
+title: "[Idea] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: why
+    attributes:
+      label: Problema o necesidad
+      description: ¿Qué decisión interesante debería poder tomar el usuario o la IA?
+      placeholder: "Como CEO/coach quiero... porque actualmente..."
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Mecánica propuesta
+      description: Describe reglas, recursos consumidos, consecuencias y cómo se relaciona con el mundo.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      options:
+        - Partidos / comentaristas
+        - Jugadores / traits / entrenamiento
+        - Club / dinero / sponsor / merch
+        - Offseason / noticias / mundo procedural
+        - Ligas / torneos
+        - Visual / móvil / accesibilidad
+        - Arquitectura / pruebas / herramientas
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: ¿Cómo sabremos que funciona?
+      placeholder: "Escenario comprobable, reglas de coherencia y casos límite."
+    validations:
+      required: true
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Principios de diseño
+      options:
+        - label: Respeta el sandbox sin victoria definitiva y con supervivencia financiera.
+        - label: Respeta la autonomía de los jugadores y el mundo, si aplica.
+        - label: No requiere material protegido de terceros sin permiso.
