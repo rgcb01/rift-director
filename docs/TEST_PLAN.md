@@ -136,3 +136,14 @@ Antes de una release:
 - Falsificar datos editoriales debe hacer fallar `auditBroadcast`, sin necesidad de modificar datos de deporte.
 - Guardado viejo `v2` sin `broadcast` debe seguir reproduciéndose y finalizando.
 - **Manual pendiente:** evaluar legibilidad del feed a 1× en móvil y escritorio, y comprobar que el marcador por minuto no actúe como adelanto excesivo de acontecimientos que aún no se revelan.
+
+## Alpha 0.6 — Navegación causal, pruebas de integridad
+
+- `tests/navigation.test.mjs`: nodos conectados y rutas válidas por BFS; ningún desplazamiento entre minutos excede una conexión, excepto muerte a fuente documentada.
+- Las diez posiciones iniciales concuerdan con TOP/MID/ADC/SUP y junglas; el movimiento influye en qué acciones son elegibles.
+- Cientos de seeds: `Navigation.auditNavigation`, `auditMatch` y `auditMinimap` deben pasar a la vez; juego con un vencedor y sin teleportación de autor ni pentakills falsos.
+- Al falsificar la ubicación de un agresor en el frame previo, el auditor detecta ausencia de presencia en torre/nexo.
+- Muerte devuelve a la fuente y el profesional no avanza hasta reaparecer; luego su viaje vuelve a requerir conexiones.
+- Reproducción 1×/5×/instantáneo y demo aislada no modifican el historial de navegación ni los guardados ajenos.
+- El golden test mantiene una referencia de resultado distinta a Alpha 0.5 porque la regla deportiva cambió, pero verifica que la contabilidad mensual y el universo inicial permanecen correctos.
+- **Pendientes:** estadísticas de frecuencia de eventos tras inmersión espacial, escala de partidas durante 1000 seeds, experiencia táctil y rendimiento en Safari iOS/Chrome Android, recuperación de JSON real exportado de versiones anteriores.
