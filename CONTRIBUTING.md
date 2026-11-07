@@ -8,7 +8,7 @@ Gracias por ayudar a construir un sandbox de esports centrado en dirección depo
 2. Para cambios grandes, discute primero comportamiento esperado, reglas y coste de mantenimiento.
 3. Trabaja en una rama descriptiva (`fix/saves-v2`, `feat/match-events`, `docs/roster-guide`).
 4. Limita cada PR a un cambio coherente; evita reescrituras masivas sin pruebas.
-5. Ejecuta `node --check game.js`, `node scripts/check-static.mjs` y `node --test tests/*.test.mjs`.
+5. Ejecuta `node --check game.js`, `node scripts/check-static.mjs` y `node --test`.
 6. Describe pasos para reproducir, riesgos de guardado, comportamiento antes/después y capturas en cambios visuales.
 7. Actualiza `CHANGELOG.md` en **Unreleased** y el roadmap cuando un hito cambie de estado.
 
