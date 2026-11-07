@@ -67,7 +67,7 @@ function candidate(nav,health,players,side,enemy,zone){
   const defenderPower=power(players[defender.id]);
   const edge=attackers.length-nearbyAllies.length-1;
   if(edge<=0)continue;
-  candidates.push({defender,attackers,nearbyAllies,
+  candidates.push({defender,attackers,striking,nearbyAllies,
    score:edge*100+groupPower/attackers.length-defenderPower+ (100-health[defender.id])*.2});
  }
  return candidates.sort((a,b)=>b.score-a.score||a.defender.id.localeCompare(b.defender.id))[0]||null;
@@ -82,11 +82,14 @@ function resolve({nav,dead,minute,zone,players,health,seed,previous={}}){
    first.score===second.score?(hash(seed,zone,minute)%2?first:second):
    first.score>second.score?first:second;
  if(!chosen)return null;
- const {defender,attackers,nearbyAllies}=chosen;
+ const {defender,attackers,striking,nearbyAllies}=chosen;
  const lead=attackers[0].teamId,player=players[defender.id];
- const attackersBySkill=attackers.slice().sort((a,b)=>
+ const attackBySkill=members=>members.slice().sort((a,b)=>
     power(players[b.id])-power(players[a.id])||a.id.localeCompare(b.id));
- const killer=attackersBySkill[0];
+ // Damage can benefit from nearby support; the finisher MUST be close enough
+ // to strike personally, not merely the highest-rated player in the zone.
+ const killer=attackBySkill(striking)[0];
+ const attackersBySkill=[killer,...attackBySkill(attackers.filter(a=>a.id!==killer.id))];
  const quality=attackers.reduce((n,p)=>n+power(players[p.id]),0)/attackers.length;
  const defence=power(player);
  const before=health[defender.id]??100;
@@ -134,7 +137,8 @@ function audit(match,world){
       !threat(core.Navigation,p,defender))errs.push('Atacante fuera de alcance: '+index);
    if(p&&defender&&reachable(core.Navigation,p,defender))direct=true;
   }
-  if(!direct)errs.push('Sin ningún atacante en rango de golpe: '+index);
+  if(!direct||!attacker||!defender||!reachable(core.Navigation,attacker,defender))
+   errs.push('El autor de la escaramuza no estaba a distancia de golpe: '+index);
   if(!defender||!nearZone(defender,f.zone))errs.push('Objetivo no estaba en el foso: '+index);
   if(!Number.isSafeInteger(f.damage)||f.damage<18||f.damage>120||
      !Number.isSafeInteger(f.hpBefore)||f.hpBefore<1||f.hpBefore>100||
