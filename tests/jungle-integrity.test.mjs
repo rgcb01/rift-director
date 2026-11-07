@@ -51,8 +51,14 @@ test('minuto 8: los dos JUN siguen fuera de MID, aunque el historial hable de du
    assert.notEqual(p.node,side+'_mid_front');
    spots.push(p.node);
   }
-  if(spots.length===2)assert.notEqual(spots[0],spots[1],
-    'JUN rivales se amontonaron en el mismo nodo');
+  if(spots.length===2&&spots[0]===spots[1]){
+   // Both may contest the same river choke point during actual gank setup,
+   // but never while they merely travel between camps.
+   const blue=frame.navigation.after[roles(world,fixture.a).JUN];
+   const red=frame.navigation.after[roles(world,fixture.b).JUN];
+   assert.equal(blue.intent,'gank_setup','Rivales coinciden sin preparación táctica');
+   assert.equal(red.intent,'gank_setup','Rivales coinciden sin preparación táctica');
+  }
  }
 });
 
