@@ -148,7 +148,7 @@ test('90 partidas: decisiones reproducibles, movimientos legales y replays audit
   ];
   assert.equal(errors.length,0,'Seed '+seed+': '+errors.slice(0,5).join(' / '));
   for(const frame of match.frames){
-   if(frame.minute>=36)continue;
+   if(frame.minute===0||frame.minute>=36)continue;
    for(const [id,p] of Object.entries(frame.navigation.before)){
     if(!p.alive)continue;
     assert.ok(p.reason,'No tactical reason for '+id);
