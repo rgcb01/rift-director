@@ -4,6 +4,19 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+## [0.7.6-alpha] — 2026-11-07
+
+### IA táctica reactiva por vida, visión y oportunidad
+- Nuevo módulo determinista `src/core/tactical-ai.js` con decisiones por rol antes de cada movimiento, sin consumir RNG deportivo ni reescribir combates previos.
+- Vida crítica provoca retirada para recuperarse con histéresis; los profesionales no vuelven inmediatamente a pelear al cruzar un umbral de HP.
+- Un profesional en desventaja numérica **detectada** puede replegarse; SUP protege a ADC herido en vez de irse a un roaming programado.
+- JUN evalúa salud, visión y objetivos vulnerables: puede cancelar un gank inseguro, desviarlo hacia una línea débil o evitar un objetivo arriesgado sin transitar por carriles como atajo.
+- La presión por ventaja solo se concede cuando existe soporte local, visión y presión suficientes; se mantiene el asedio final que permite terminar la partida.
+- Detección de amenazas por distancia + visión estimada + seed, sin información perfecta del enemigo; las decisiones de los diez profesionales usan la misma instantánea inicial de posiciones.
+- Replay de decisiones: `reason`, `decisionVersion` y destino registrados en snapshots; panel Plan deportivo explica cada orden reactiva. Archivos `v2` anteriores permanecen compatibles.
+- Pruebas unitarias para salud crítica, escolta, gank seguro, visión incompleta, inferioridad 2v1 y asedio; múltiples partidos auditados.
+
+
 ## [0.7.5-alpha] — 2026-11-07
 
 ### Combate unificado en todos los carriles
