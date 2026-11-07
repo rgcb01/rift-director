@@ -6,12 +6,13 @@ Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prome
 
 ## Estado
 
-- **Alpha 0.6 — [jugable]:** dos regiones ficticias, club y plantilla, finanzas mensuales, mercado sencillo, partidos narrados, noticias, offseason, SVG y guardado JSON.
+- **Alpha 0.7 — [jugable]:** dos regiones ficticias, club y plantilla, finanzas mensuales, mercado sencillo, partidos narrados, noticias, offseason, SVG y guardado JSON.
 - **Base del repositorio — [implementada]:** documentación, flujos de incidencias y comprobaciones de regresión.
 - **M1.1 — [base implementada; validación manual pendiente]:** RNG, estado inicial, calendario, finanzas, validación v2 y pruebas de regresión. Faltan un guardado histórico real y validación manual en móvil.
 - **M1.2 — [base integrada]:** auditoría, K/D/A, presión/visión y prueba aislada sin guardado; faltan posiciones causales, wards y hechizos.
 - **M1.3A — [integrada, QA móvil pendiente]:** minimapa SVG por frame, diez profesionales, torres y control territorial sin alterar resultados.
-- **M1.4A — [en validación]:** velocidades narradas verdaderamente legibles y cobertura contextual variada, derivada de evidencias y no de historias inventadas.
+- **M1.4A — [base narrativa integrada]:** cobertura contextual basada en hechos; velocidades 1×/2×/5× retiradas de la interfaz en Alpha 0.7.
+- **M1.5 — [integrado, QA móvil pendiente]:** siguiente evento y final instantáneo, historial clicable, marcador/minimapa sincronizados y último replay guardado.
 - **M1.3B — [primer corte integrado]:** agentes por nodo, desplazamiento previo a eventos, ganks/torres/objetivos/asedio con presencia real y auditoría. Falta ampliar intención autónoma, interpolación y contraestrategias.
 - **M1.3C — [pendiente]:** visión por wards, niebla parcial, rutas de invasión y splitpush avanzado.
 
@@ -133,3 +134,16 @@ Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prome
 - Asedio de final de partida: preparación de ruta con torre exterior→interior→base, defensores reagruparse, nexo solamente con todos los atacantes vivos cerca y dos como mínimo. Sin forzar una victoria por reloj mediante destrucciones inventadas.
 - Proyección del minimapa desde las posiciones **simuladas**, ya no ubicando avatares a posteriori para justificar la narración.
 - Pendiente: lógica económica del tiempo de viaje, counterganks, defensa de torres, wards, peleas de visión y frecuencia equilibrada de pentakills.
+
+### M1.5 — Reproductor manual por eventos (Alpha 0.7)
+
+- [x] Sustituir temporizador y controles 1×/2×/5× por **Siguiente evento** y **Terminar partida**.
+- [x] Capturar `match.moments[i]` inmediatamente después de cada `event[i]`, con stats, oro, torres, dragones, Barón y posiciones antes/después del combate.
+- [x] Reproyectar el minimapa para cada instante real; un evento del mismo minuto no revela las consecuencias de los siguientes.
+- [x] Marcar lugar de la acción seleccionada y permitir regresar a cualquier entrada del historial ya desbloqueada.
+- [x] Finalizar, retroceder y reabrir la última repetición sin simular de nuevo, pagar dos veces ni sobrescribir el save.
+- [x] Compatibilidad v2 con reproducción aproximada por minuto cuando no hay instantáneas nuevas.
+- [x] Adelantar los nodos iniciales de los profesionales de línea sin colocar a los junglas en un carril.
+- [ ] Validación manual de uso táctil, accesibilidad del historial y almacenamiento en teléfonos modestos.
+
+El plan Alpha 0.5 de reproducción a velocidad variable queda **histórico**: se sustituyó por navegación de eventos a solicitud del usuario. El objetivo de M1.4B sigue siendo agregar acciones deportivas causales, no líneas narrativas inventadas.

@@ -1,4 +1,4 @@
-# Arquitectura actual — Alpha 0.6 / M1.3B
+# Arquitectura actual — Alpha 0.7 / M1.5
 
 Este documento describe la **implementación comprobada** del repositorio a fecha 2026-11-07, no su arquitectura ideal.
 
@@ -18,7 +18,8 @@ src/core/minimap-graph.js  Nodos, carriles y coordenadas de torres
 src/core/navigation.js     Agentes, BFS, intención, desplazamiento y auditoría causal
 src/core/minimap-simulation.js  Proyección visual de frames/eventos
 src/ui/minimap.js         SVG de jugadores, estructuras y territorio
-src/core/broadcast.js     Variantes de narración, análisis contextual y tiempos de reproducción
+src/core/broadcast.js     Variantes de relato y análisis contextual verificable
+src/core/replay.js        Timeline, controles manuales y auditoría de instantáneas
 src/core/persistence.js    Parseo, validación, almacenamiento local v2
 game.js                    IIFE con mundo, motor de partidos, finanzas, rendering y eventos DOM
 scripts/check-static.mjs   Validación ligera de archivos/recursos
@@ -169,7 +170,7 @@ El formato de save sigue siendo `v2`. Las partidas antiguas sin `frame.minimap` 
 
 `simulateMatch` sigue generando las mismas acciones, stats y frames. Al final de la simulación, `RiftCore.attachBroadcast(report,world,commentarySeed)` crea **sin consumir el RNG del juego** un campo opcional `report.broadcast` con variantes de las noticias existentes y observaciones estratégicas basadas en `frame.map`, `frame.playerStats`, `frame.gold`, `frame.minimap` y el historial real. `RiftCore.broadcastFeed` compone un timeline ordenado, `feedCountAt` da el límite de novedades disponibles hasta cada frame y `auditBroadcast` lo recompone para verificar su exactitud. Los eventos deportivos originales y `event.facts` no se modifican.
 
-En `tick()`, la velocidad `1×` revela una novedad por paso de **5000 ms** y usa el frame precomputado para mostrar el mapa; `2×` y `5×` avanzan los frames a **2500 ms** y **950 ms**. El reloj deportivo y el feed se basan en el mismo encuentro precalculado; **algunas cifras del minuto pueden adelantarse a la última línea de comentario cuando hay varias novedades dentro de ese minuto**. Se trata de una limitación de snapshots por minuto que se resolverá con subframes de evento.
+**Nota histórica Alpha 0.5, reemplazada en Alpha 0.7:** En `tick()`, la velocidad `1×` revelaba una novedad por paso de **5000 ms** y usa el frame precomputado para mostrar el mapa; `2×` y `5×` avanzan los frames a **2500 ms** y **950 ms**. El reloj deportivo y el feed se basan en el mismo encuentro precalculado; **algunas cifras del minuto pueden adelantarse a la última línea de comentario cuando hay varias novedades dentro de ese minuto**. Se trata de una limitación de snapshots por minuto que se resolverá con subframes de evento.
 
 Los save `v2` sin `broadcast` presentan el registro original completo y se pueden reproducir con el nuevo ritmo. La nueva capa editorial explica jugadas y señales pero no crea acciones deportivas ni modifica el ganador; las acciones tácticas causales se proponen para M1.3B/M1.4B.
 
@@ -182,3 +183,13 @@ La simulación exige participantes vivos y cercanos a un nodo para ganks, dragon
 `attachMinimap` consume `frame.navigation.after` y nunca reubica retroactivamente a un autor para hacer creíble un evento. Los reportes anteriores carecen de navegación y mantienen su proyección anterior; no se migra el schema `v2`. `Navigation.auditNavigation` valida cada viaje entre frames, muerte/respawn, actor y víctima próximos, presencia efectiva ante torre, foso y nexo, y diferencia entre nodo conectado y distancia física razonable.
 
 **Límites deliberados:** la decisión de destino no modela todavía un árbol táctico profundo; un salto por minuto ignora el tiempo exacto entre segundos, las decisiones de asedio dependen de recursos simplificados y la fog of war no bloquea información. La retrocompatibilidad está automatizada pero pendiente de prueba manual con JSON histórico real en Safari/Chrome móvil.
+
+## Alpha 0.7 — Estado de evento y navegación histórica
+
+Durante `simulateMatch`, `makeEv` guarda `m.moments[i]` **inmediatamente después** de aplicar el hecho deportivo `m.events[i]`. Cada momento incluye marcador, oro, torres, dragones, Barón, KDA, mapa táctico, posiciones de agentes y `eventsCount=i+1`. No consume RNG adicional ni recalcula quién ganó. Al finalizar el simulador, `RiftCore.MatchReplay.attachReplay` proyecta el minimapa sobre estas instantáneas mediante `attachMinimap`, cuyo auditor ya reconstruye torres y muertos desde la misma secuencia de hechos.
+
+`RiftCore.MatchReplay.timeline(match)` mezcla los eventos originales con los comentarios derivados de `broadcastFeed`, preservando `eventIndex` para enlazar a la instantánea precisa. Una observación táctica con hora `:59` usa el frame de cierre del minuto, por ser una lectura agregada del estado y no una jugada de combate. En saves `v2` sin `moments`, la UI usa el frame por minuto y muestra explícitamente la resolución reducida.
+
+`replayProgress` es el último evento desbloqueado; `replayCursor` es el seleccionado en la interfaz. Un clic histórico cambia **solo el cursor** y renderiza de nuevo. Pulsar Siguiente evento avanza el cursor, desbloquea un paso si era necesario y llama a `finishMatch()` exclusivamente cuando llega al evento final. Terminar partida desbloquea todo y finaliza en un solo paso; el método `finishMatch` mantiene su protección `committed` contra premios duplicados. Los timers históricos permanecen inactivos. La pantalla conserva la última retransmisión oficial en `world.lastReplay` cuando el usuario vuelve al club, pudiendo reabrirla sin volver a simular.
+
+`RiftMinimap.render` recibe opcionalmente el evento seleccionado y destaca la ubicación física registrada por `facts`, incluso si la víctima ya está muerta y su cabeza aparece en la fuente. Se añadieron nodos `*_front` a los tres carriles, conectados con el mismo grafo usado para la navegación causal. Los guardados anteriores no requieren migración de esquema ni reconstrucción ficticia de sucesos pasados.
