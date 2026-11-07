@@ -30,8 +30,8 @@ test('mÃ¡s de 150 mapas: noticias contextuales diversas sin alterar ni una acciÃ
       dragons:f.dragons,barons:f.barons,winner:f.winner
     })),winner:match.winner
   });
-  assert.deepEqual(core.auditBroadcast(match,world),[],'Narrative mismatched at seed '+seed);
-  assert.deepEqual(core.auditMatch(match,world),[],'Sports mismatched at seed '+seed);
+  assert.equal(core.auditBroadcast(match,world).length,0,'Narrative mismatched at seed '+seed);
+  assert.equal(core.auditMatch(match,world).length,0,'Sports mismatched at seed '+seed);
   const feed=core.broadcastFeed(match);
   assert.ok(feed.length>match.events.length);
   let lastMinute=-1,lastTime='';
