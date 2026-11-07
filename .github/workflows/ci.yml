@@ -24,6 +24,7 @@ jobs:
           node --check src/core/state.js
           node --check src/core/calendar.js
           node --check src/core/persistence.js
+          node --check src/core/finance.js
           node --check game.js
       - name: Comprobar archivos y recursos de Pages
         run: node scripts/check-static.mjs

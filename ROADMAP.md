@@ -8,7 +8,7 @@ Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prome
 
 - **Alpha 0.2 — [jugable]:** dos regiones ficticias, club y plantilla, finanzas mensuales, mercado sencillo, partidos narrados, noticias, offseason, SVG y guardado JSON.
 - **Base del repositorio — [implementada]:** documentación, flujos de incidencias y comprobaciones de regresión.
-- **M1.1 — [segunda fase implementada]:** RNG, estado inicial, calendario, validaciones de persistencia v2 y pruebas de 24 meses. Aún faltan pruebas con partidas históricas reales y reglas económicas/contratos independientes.
+- **M1.1 — [tercera fase implementada]:** RNG, estado inicial, calendario, finanzas, validación v2 y pruebas de regresión. Faltan una prueba con un guardado histórico real y validación manual en móvil.
 
 ## Hitos
 
@@ -100,4 +100,4 @@ Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prome
 
 ## Próxima tarea concreta
 
-**M1.1 restante:** probar un guardado histórico real de Alpha 0.2, evaluar la reanudación en móvil y extraer el sistema de contratos/transacciones sin modificar los resultados del simulador. Después seguir con M1.2 (eventos y narración).
+**M1.1 restante:** probar un guardado histórico exportado del navegador y verificar la reanudación en móvil. El motor de contratos seguirá necesitando reglas de negociación y caducidad más detalladas (M3). Después avanzar a M1.2 (eventos y narración).

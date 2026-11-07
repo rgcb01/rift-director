@@ -82,3 +82,10 @@ Antes de una release:
 - Simulación rápida de 24 meses con avance real de mes y offseason, cambios de liga y guardado tras cada cierre.
 - Simulación sintética avanzada: guardar un mapa pausado, restaurar su estado y comprobar que su recompensa no se abone dos veces.
 - Continúa pendiente probar un **archivo exportado desde una Alpha 0.2 real** y repetir los recorridos en Safari iOS y Chrome Android.
+
+## Finanzas (M1.1)
+
+- `tests/finance.test.mjs` compara desglose mensual con el cálculo original y verifica que una cotización no mute el universo.
+- Valida transferencia con y sin fondos: ningún pago incompleto cambia saldos.
+- Verifica firma de agente libre, venta de suplente, reintento duplicado, rescisión de sponsor, inversión en staff, scouting y crisis que lleva a insolvencia.
+- Sigue pendiente un test estadístico del equilibrio de sponsors/merch durante 10–20 temporadas y en dispositivos de gama baja.

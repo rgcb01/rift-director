@@ -4,6 +4,12 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Refactor financiero (M1.1, 2026-11-07)
+- Motor económico aislado en `src/core/finance.js`: salarios, cotización mensual, costes, precio de mercado, transferencias de caja y scouting.
+- Ventas de profesionales protegidas ante ofertas cuyo comprador no puede pagar; sin mover plantillas ni saldos en ese caso.
+- Pruebas económicas de fichajes repetidos, sponsors, infraestructura, scouting, crisis e insolvencia; sin cambiar el formato de guardado `v2`.
+- Cálculo mensual preservado y cubierto por el golden test de Alpha 0.2.
+
 ### Refactor y pruebas de calendario (M1.1, 2026-11-07)
 - Calendarios, clasificación inicial, partidos pendientes y transición de fecha extraídos a `src/core/calendar.js` sin cambiar el orden deportivo anterior.
 - Validación adicional de contratos, pertenencia de jugadores, jornadas y cruces, reportes financieros y partidas pausadas antes de aceptar un JSON importado.

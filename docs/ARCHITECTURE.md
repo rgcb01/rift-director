@@ -10,6 +10,7 @@ styles.css                 Estilos responsive
 src/core/rng.js            Secuencia pseudoaleatoria v2 (sin cambios)
 src/core/state.js          Estado inicial v2 y roles
 src/core/calendar.js       Calendario round-robin, jornadas, tablas iniciales y fechas
+src/core/finance.js        Cotización mensual, salarios, transferencias de caja, precios
 src/core/persistence.js    Parseo, validación, almacenamiento local v2
 game.js                    IIFE con mundo, motor de partidos, finanzas, rendering y eventos DOM
 scripts/check-static.mjs   Validación ligera de archivos/recursos
@@ -51,7 +52,7 @@ Campos centrales del objeto de estado (resumen, no esquema exhaustivo):
 |---|---|
 | Generación | `newGame`, `makeClub`, `generatePlayer`, `generateFixtures` |
 | Competición | `teamPower`, `simulateMatch`, `quickGame`, `finishMatch`, `beginPlayoffs` |
-| Finanzas | `applyMonth`, `totalWages`, `monthPlanCost`, `resolveCrisis` |
+| Finanzas | `RiftCore.quoteMonth`, `RiftCore.adjustCash`, `RiftCore.transferCash`, `applyMonth`, `resolveCrisis` |
 | Mundo y offseason | `simulateWorld`, `annualProgress`, `nextYear`, `addNews` |
 | Plantilla | `signFreeAgent`, `sellPlayer`, `scoutPlayer`, `setLineup` |
 | UI y persistencia | `render`, `renderMatch`, `handleClick`, `save`, `load`, `exportGame`, `importGame` |
@@ -113,3 +114,11 @@ El juego carga `rng.js`, `state.js`, `persistence.js` y `game.js` en ese orden d
 `generateFixtures`, `standingsFor` y `nextFixtures` de `game.js` son adaptadores de las funciones puras `RiftCore.generateFixtures`, `RiftCore.standingsFor` y `RiftCore.pendingUserFixtures`. `closeMonth` usa `RiftCore.nextDate` para identificar diciembre, sin cambiar el orden de llamadas a `nextYear`, `applyMonth` o `simulateWorld`. El calendario conserva meses con listas vacías, jornadas ida/vuelta y descansos cuando hay un número impar de equipos. El validador comprueba que los cruces pertenezcan a su región y que un club no dispute dos encuentros dentro de una misma jornada.
 
 `tests/calendar.test.mjs` recorre ligas de 8, 9 y 10 equipos, realiza 24 cierres mensuales con partidos rápidos en una partida **sintética** y restaura un partido pausado de una simulación avanzada. Esto cubre regresiones funcionales, pero **no** sustituye probar un archivo JSON exportado por un usuario real en Alpha 0.2 ni una auditoría de 20 temporadas y transferencias complejas.
+
+## Extracción financiera M1.1
+
+El módulo puro `RiftCore.quoteMonth(world, club, getPlayer)` calcula ingresos, gastos y cumplimiento comercial **sin mutar estado** ni consumir RNG. `applyMonth()` conserva el orden de operaciones: primero calcula, luego ajusta caja, desarrolla jugadores y escribe un reporte con las mismas claves y cifras de Alpha 0.2.
+
+`RiftCore.adjustCash` centraliza los movimientos individuales; `RiftCore.transferCash` aplica pagos de comprador a vendedor como una operación atómica que retorna `false` sin modificar estado cuando faltan fondos. `sellPlayer` filtra compradores con dinero suficiente antes de transferir a un profesional. Este cambio corrige un caso futuro de valores de mercado altos que antes podía dejar a un comprador con saldo negativo inesperado.
+
+**Limitaciones:** no existe todavía un libro contable de doble entrada para todos los clubes; el historial de usuario sigue en `record()` dentro de `game.js`. No se agregó un esquema de guardado nuevo ni una propiedad obligatoria adicional. Los contratos más detallados y la inflación pertenecen a hitos futuros.
