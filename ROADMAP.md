@@ -182,3 +182,14 @@ El plan Alpha 0.5 de reproducción a velocidad variable queda **histórico**: se
 - [x] Capturas por evento auditables y compatibilidad con replays `v2`.
 - [ ] Fase siguiente: extender vida/daño a ganks, duelos de línea y teamfights; incorporar niveles, oleadas, habilidades, enfriamientos y visión real.
 - [ ] Equilibrar las tasas de kills/retiradas, sincronizar captura del objetivo y reproducir manualmente partidos en navegadores móviles.
+
+### Alpha 0.7.5 — Salud y daño persistentes en toda la partida
+- [x] Intercambios de daño entre profesionales de TOP/MID/BOT a una distancia verificable.
+- [x] Ganks: resolver daño, posible baja y retirada según HP real, no probabilidad de asesinato aislada.
+- [x] Teamfights: daño persistente contra los objetivos alcanzables, `clash` no letal o eliminaciones legítimas con KDA.
+- [x] Las bajas requieren vida 0, los supervivientes heridos pueden retirarse físicamente y los participantes ajenos no obtienen asistencias.
+- [x] Narración, minimapa y saltos del replay usan las mismas instantáneas de daño y posiciones.
+- [x] Tests de 1v1, 2v1, peleas grupales, HP, scoreboard, múltiples semillas y falsificación de eventos.
+- [ ] Fase siguiente: IA reactiva al riesgo por HP y control de visión; duelos bidireccionales y daño en ambos equipos, oleadas y presencia de torres.
+- [ ] Fase posterior: campeones, habilidades, enfriamientos, items y builds, objetivos con resistencia y niebla de guerra.
+- [ ] QA visual en ordenador y móvil y métricas de equilibrio (minutos/partida, bajas, frecuencia de retiradas, duración de encuentros).

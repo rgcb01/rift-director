@@ -6,7 +6,7 @@
   const graph=root.RiftCore.MiniGraph;
   const LANES=['TOP','MID','BOT'];
   const labels={TOP:'Superior',MID:'Central',BOT:'Inferior',
-    gank:'Gank',tower:'Torre',dragon:'Dragón',baron:'Barón',teamfight:'Teamfight',skirmish:'Escaramuza',nexus:'Asedio al nexo'};
+    gank:'Gank',lane_trade:'Intercambio de línea',clash:'Pelea sin bajas',tower:'Torre',dragon:'Dragón',baron:'Barón',teamfight:'Teamfight',skirmish:'Escaramuza',nexus:'Asedio al nexo'};
   const color=['#45c7f4','#f27e91'];
   const safe=text=>String(text??'').replace(/[&<>"']/g,ch=>({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
@@ -102,6 +102,7 @@
     if(f){
       if(f.action==='tower')loc=graph.towerPoint(event.teamId===match.fixture.a?'red':'blue',f.lane,f.stage);
       else if((f.action==='gank'||f.action==='gank_avoided')&&graph.nodes[f.action==='gank'?f.victimNode:f.targetNode])loc=graph.pointAt(f.action==='gank'?f.victimNode:f.targetNode);
+      else if((f.action==='lane_trade'||f.action==='clash'||(f.combatVersion===1&&f.action==='teamfight'))&&graph.nodes[f.targetNode])loc=graph.pointAt(f.targetNode);
       else if((f.action==='teamfight'||f.action==='skirmish')&&graph.nodes[f.node])loc=graph.pointAt(f.node);
       else if(f.action==='dragon'||f.action==='baron')loc=graph.pointAt(f.action==='dragon'?'dragon_pit':'baron_pit');
       else if(f.action==='nexus')loc=graph.pointAt(event.teamId===match.fixture.a?'red_nexus':'blue_nexus');

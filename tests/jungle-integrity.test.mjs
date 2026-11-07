@@ -159,5 +159,6 @@ test('gank fallido no mata ni suma oro y puede verse en el historial',()=>{
  const scene=core.MatchReplay.eventView(match,i);
  const svg=minimapUI.render(match,scene.frame,world,previous,event,scene);
  assert.match(svg,/data-focus-action="gank_avoided"/);
- assert.match(svg,/data-event-role="objetivo"/);
+ const isRetreat=facts.impacts?.some(hit=>hit.id===targetId&&hit.retreat);
+ assert.match(svg,new RegExp('data-event-role="'+(isRetreat?'retirada':'objetivo')+'"'));
 });

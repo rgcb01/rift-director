@@ -123,6 +123,19 @@
       if (![a,b].includes(event.teamId)) { fail('Equipo del evento inexistente.'); return; }
       if (facts.action === 'gank' || facts.action === 'teamfight') {
         recordKills(event, facts, t,frame);
+      } else if(facts.action==='lane_trade'||facts.action==='clash'){
+        if(facts.combatVersion!==1||!['lane','teamfight'].includes(facts.mode))
+          fail('Intercambio sin daño verificable.');
+        if(facts.action==='lane_trade'&&facts.mode!=='lane'||
+           facts.action==='clash'&&facts.mode!=='teamfight')
+          fail('Tipo de combate distinto de su zona.');
+        if(facts.outcome==='kill'){
+          if(facts.action!=='lane_trade')fail('Clash sin etiqueta de kill.');
+          recordKills(event,facts,t,frame);
+        }else {
+          if(facts.victimIds?.length)fail('Daño no letal convertido en baja.');
+          actor(facts,event,t);
+        }
       } else if (facts.action === 'skirmish') {
         if (facts.healthVersion!==1||!['dragon_pit','baron_pit'].includes(facts.zone)||
             facts.node!==facts.zone||!['kill','retreat'].includes(facts.outcome)||
@@ -257,6 +270,9 @@
         if(!moment?.health||moment.health[f.targetId]!==f.hpAfter)
           fail('Vida de escaramuza no coincide con instantánea: '+i);
       }
+    }
+    if(match.moments&&core.Encounters?.audit){
+      for(const err of core.Encounters.audit(match,world))fail(err);
     }
     validateRows(match.playerStats,'final');
     const teamTotal = { [a]:0,[b]:0 }, deaths = { [a]:0,[b]:0 };

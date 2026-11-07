@@ -114,11 +114,132 @@ function resolve({nav,dead,minute,zone,players,health,seed,previous={}}){
   damage,hpBefore:before,hpAfter:after,retreatGoal,
   healthVersion:1};
 }
+// Alpha 0.7.5 — One damage and retreat contract for lanes, ganks and fights.
+function laneRange(a,b,lane){
+ if(!a?.alive||!b?.alive||!core.Navigation.isLaneNode(a.node,lane)||
+   !core.Navigation.isLaneNode(b.node,lane))return false;
+ return core.Navigation.hops(a.node,b.node)<=3&&distance(a.node,b.node)<=112;
+}
+function hitRange(a,b,mode,lane){
+ return mode==='lane'?laneRange(a,b,lane):
+   core.Navigation.combatRange(a.node,b.node,2);
+}
+function retreatDestination(nav,agent,minute){
+ const side=agent.teamId===nav.a?'blue':'red';
+ if(agent.role==='JUN')return minute<36?side+'_jungle_lower':side+'_nexus';
+ if(minute>=36)return side+'_nexus';
+ const lane=agent.role==='ADC'||agent.role==='SUP'?'bot':agent.role.toLowerCase();
+ return side+'_'+lane+'_inner';
+}
+function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attackerIds,targetIds,lane=null}){
+ if(!['lane','gank','teamfight'].includes(mode)||![nav.a,nav.b].includes(teamId))
+  throw Error('Invalid combat mode/team');
+ const get=id=>nav.agents[id],alive=id=>get(id)?.alive&&
+   (dead[id]||0)<=minute&&get(id).intent!=='retreat';
+ const attackers=[...new Set(attackerIds||[])].filter(id=>alive(id)&&get(id).teamId===teamId)
+   .map(get);
+ const defenders=[...new Set(targetIds||[])].filter(id=>alive(id)&&get(id).teamId!==teamId)
+   .map(get);
+ if(!attackers.length||!defenders.length)return null;
+ const targets=defenders.filter(d=>attackers.some(a=>hitRange(a,d,mode,lane)));
+ if(!targets.length)return null;
+ const viable=attackers.filter(a=>targets.some(d=>hitRange(a,d,mode,lane)));
+ const rank=(a,b)=>power(players[b.id])-power(players[a.id])||a.id.localeCompare(b.id);
+ const leader=mode==='gank'&&viable.some(a=>a.id===attackerIds[0])?
+   viable.find(a=>a.id===attackerIds[0]):viable.sort(rank)[0];
+ // In teamfight mode one author can deal damage to several nearby targets.
+ // Nonlethal damage is retained and replayed, not turned into fake kills.
+ const chosen=(mode==='teamfight'?targets.filter(d=>hitRange(leader,d,mode,lane))
+   .sort((a,b)=>(health[a.id]??100)-(health[b.id]??100)||a.id.localeCompare(b.id)).slice(0,3)
+   :targets.sort((a,b)=>(health[a.id]??100)-(health[b.id]??100)||a.id.localeCompare(b.id)).slice(0,1));
+ if(!chosen.length)return null;
+ const comrades=attackers.filter(a=>chosen.some(d=>
+   threat(null,a,d)||hitRange(a,d,mode,lane))).sort(rank);
+ const participants=[leader.id,...comrades.filter(a=>a.id!==leader.id).map(a=>a.id)];
+ const impacts=[];
+ for(const target of chosen){
+  if(!hitRange(leader,target,mode,lane))continue;
+  const allies=attackers.filter(a=>threat(null,a,target)||hitRange(a,target,mode,lane));
+  const before=health[target.id]??100;
+  const variance=(hash(seed,minute,mode,leader.id,target.id)%1000)/1000;
+  const base={lane:21,gank:52,teamfight:42}[mode];
+  const outnumber=clamp(allies.length-1,0,3);
+  const delta=power(players[leader.id])-power(players[target.id]);
+  const burst=variance>.88?(mode==='lane'?12:26):0;
+  const damage=clamp(Math.round(base+outnumber*(mode==='lane'?8:19)+
+    delta*.28+variance*16+burst),12,120);
+  const after=Math.max(0,before-damage);
+  const retreat=after>0&&(after<48||(allies.length>defenders.length&&after<72));
+  impacts.push({id:target.id,node:target.node,hpBefore:before,hpAfter:after,
+   damage,retreat,retreatGoal:retreat?retreatDestination(nav,target,minute):null});
+ }
+ if(!impacts.length)return null;
+ const victims=impacts.filter(p=>p.hpAfter===0).map(p=>p.id);
+ const outcome=victims.length?'kill':impacts.some(p=>p.retreat)?'retreat':'trade';
+ return {
+  combatVersion:1,mode,outcome,actorId:leader.id,actorNode:leader.node,
+  teamId,participantIds:participants,assistIds:victims.length?
+   participants.filter(id=>id!==leader.id).slice(0,2):[],
+  victimIds:victims,impacts,targetId:impacts[0].id,targetNode:impacts[0].node,
+  attackerCount:participants.length,defenderCount:defenders.length,
+  ...(lane?{lane}:{}),
+ };
+}
 function audit(match,world){
  const errs=[],players=Object.fromEntries(world.players.map(x=>[x.id,x]));
  if(!match.moments?.length)return errs; // v2 pre-0.7 replay fallback
  for(let index=0;index<match.events.length;index++){
   const event=match.events[index],f=event.facts;
+  if(f?.combatVersion===1){
+   const moment=match.moments[index],positions=moment?.navigation?.before,after=moment?.navigation?.after;
+   if(!positions||!after||!moment?.health){errs.push('Combate sin fotograma: '+index);continue;}
+   const actor=positions[f.actorId],mode=f.mode;
+   if(!['lane','gank','teamfight'].includes(mode)||!actor?.alive||
+      actor.node!==f.actorNode||event.teamId!==actor.teamId)
+     errs.push('Iniciador del combate falso: '+index);
+   if(!Array.isArray(f.participantIds)||!f.participantIds.includes(f.actorId)||
+      new Set(f.participantIds).size!==f.participantIds.length||
+      !Array.isArray(f.impacts)||!f.impacts.length||f.combatVersion!==1)
+     errs.push('Participantes o impactos de combate incompletos: '+index);
+   const impacts=f.impacts||[],kills=[];
+   for(const p of impacts){
+    const target=positions[p.id];
+    if(!target?.alive||target.node!==p.node||target.teamId===event.teamId||
+       !actor||!hitRange(actor,target,mode,f.lane))
+      errs.push('Impacto sin rival en alcance: '+index+' / '+p.id);
+    if(!Number.isSafeInteger(p.hpBefore)||p.hpBefore<1||p.hpBefore>100||
+       !Number.isSafeInteger(p.damage)||p.damage<12||p.damage>120||
+       p.hpAfter!==Math.max(0,p.hpBefore-p.damage))
+      errs.push('Daño incompatible con HP: '+index+' / '+p.id);
+    if(moment.health[p.id]!==p.hpAfter||
+       moment.minimap?.players?.[p.id]?.hp!==p.hpAfter)
+      errs.push('Vida histórica no coincide con el daño: '+index+' / '+p.id);
+    if(p.hpAfter===0){
+     kills.push(p.id);
+     if(after[p.id]?.alive!==false)errs.push('Muerto aún aparece vivo: '+index);
+    }else if(p.retreat){
+     if(!p.retreatGoal||after[p.id]?.intent!=='retreat'||
+        !core.Navigation.adjacency[p.retreatGoal])
+      errs.push('Herido no recibió ruta de retirada: '+index);
+    }else if(p.retreatGoal)errs.push('Retirada sin necesidad: '+index);
+   }
+   const predicted=kills.length?'kill':impacts.some(x=>x.retreat)?'retreat':'trade';
+   if(f.outcome!==predicted||JSON.stringify(kills)!==JSON.stringify(f.victimIds)||
+      f.targetId!==impacts[0]?.id||f.targetNode!==impacts[0]?.node)
+    errs.push('Eliminación o resultado sin fundamento: '+index);
+   for(const id of f.participantIds||[]){
+    const agent=positions[id];
+    if(!agent?.alive||agent.teamId!==event.teamId||
+       !impacts.some(hit=>threat(core.Navigation,agent,positions[hit.id])||
+           hitRange(agent,positions[hit.id],mode,f.lane)))
+     errs.push('Ayudante fuera de alcance: '+index+' / '+id);
+   }
+   if(new Set(f.assistIds||[]).size!==(f.assistIds||[]).length||
+      (f.assistIds||[]).some(id=>id===f.actorId||!f.participantIds.includes(id))||
+      (!kills.length&&(f.assistIds||[]).length))
+     errs.push('Asistencia inventada en combate: '+index);
+   continue;
+  }
   if(f?.action!=='skirmish')continue;
   const moment=match.moments[index],pre=moment?.navigation?.before;
   if(!pre||!moment.health){errs.push('Escaramuza sin instantánea: '+index);continue;}
@@ -157,5 +278,5 @@ function audit(match,world){
  }
  return errs;
 }
-core.Encounters=Object.freeze({create,recover,locate,resolve,power,distance,nearZone,threat,audit});
+core.Encounters=Object.freeze({create,recover,locate,resolve,resolveCombat,laneRange,hitRange,retreatDestination,power,distance,nearZone,threat,audit});
 })(globalThis);

@@ -193,3 +193,13 @@ Antes de una release:
 - Cientos de partidas completas: cada frame de vida 0–100, cero para muertos, retiras visibles, mapa y crónica congruentes; auditores de navegación, scoreboard, minimapa, broadcast y salud en verde.
 - Datos manipulados: cambiar vida posterior o resultado de escaramuza debe provocar error del auditor.
 - Manual pendiente: visualizar en navegador una escaramuza 2v1 cerca de Dragón alrededor de 15:59 y confirmar texto, barra de vida y retirada.
+
+## Alpha 0.7.5 — Cobertura integral de combate
+
+- Escenarios de TOP/MID/BOT: ambos jugadores en su carril; intercambio real incluso cuando están separados en posiciones de línea; nunca muerte instantánea por un poke a HP 100.
+- Gank 2v1: jungla y laner presentes; supervivencia con HP restante, retirada o kill si la vida cae a 0; ningún ataque remoto entre MID y BOT.
+- Teamfight: varios objetivos si están dentro del alcance del autor; `impacts` concordantes con HP, `victimIds` exclusivamente para HP 0 y asistencias de aliados presentes.
+- Auditoría masiva de partidas completas: navegación por roles, marcador, KDA, estado del minimapa, replay, RiftCast, muertes, HP y retiros para cada evento.
+- Manipulación negativa: falsificar `damage`, `hpAfter`, historial de vida, actor, víctima o participantes debe producir errores de auditoría.
+- Replays `v2` anteriores no reciben impactos ni cambios de navegación; finanzas mensuales reproducibles.
+- Manual QA pendiente en desktop y móvil para las barras de vida, historial seleccionable, legibilidad del 2v2 y ritmo general de partidas.
