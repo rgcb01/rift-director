@@ -27,13 +27,13 @@ for(const [left,right] of links){
 }
 const getSide=(nav,id)=>id===nav.a?'blue':id===nav.b?'red':null;
 const enemy=(nav,id)=>id===nav.a?nav.b:nav.a;
-function path(from,to){
+function path(from,to,allowed=null){
  if(!adjacency[from]||!adjacency[to])throw Error('Unknown navigation node: '+from+' / '+to);
  if(from===to)return [from];
  const previous=new Map([[from,null]]),queue=[from];
  for(let i=0;i<queue.length;i++){
   for(const neighbor of adjacency[queue[i]]){
-   if(previous.has(neighbor))continue;
+   if(previous.has(neighbor)||(allowed&&!allowed(neighbor)))continue;
    previous.set(neighbor,queue[i]);queue.push(neighbor);
    if(neighbor===to){
     const answer=[to];let cur=to;
@@ -111,7 +111,7 @@ function engagement(nav,teamId,maxHops=1) {
  const their=teamAgents(nav,enemy(nav,teamId)).filter(a=>a.alive);
  const candidates=[];
  for(const p of our){
-  const foes=their.filter(x=>nearby(p.node,x.node,maxHops));
+  const foes=their.filter(x=>combatRange(p.node,x.node,maxHops));
   if(foes.length) candidates.push({actor:p,foes});
  }
  return candidates.sort((x,y)=>y.foes.length-x.foes.length||x.actor.id.localeCompare(y.actor.id));
@@ -133,6 +133,43 @@ function determineSiege(nav,worldState){
    seedHash(nav.seed,'siege')%2?nav.a:nav.b):(delta>0?nav.a:nav.b);
  nav.siegeLane=siegeLane(nav,worldState);
 }
+// Only these regions belong to the JUN's travel network before teamfights.
+// Gank staging nodes are off-lane; simply being in a node adjacent to a lane
+// never permits the pathfinder to wander into the lane en route to camps.
+const JUNGLE_COMMON=new Set([
+ 'upper_river','lower_river','baron_pit','dragon_pit',
+ 'blue_top_ambush','red_top_ambush','blue_bot_ambush','red_bot_ambush'
+]);
+function jungleAllowed(side,node){
+ return JUNGLE_COMMON.has(node)||[
+  side+'_fountain',side+'_nexus',side+'_jungle_upper',side+'_jungle_lower'
+ ].includes(node);
+}
+function gankPlan(nav,agent,slot){
+ const side=getSide(nav,agent.teamId);
+ const lane=LANES[seedHash(nav.seed,agent.teamId,slot+'-lane')%LANES.length];
+ const goal=lane==='MID'?(side==='blue'?'upper_river':'lower_river'):
+   lane==='TOP'?(side==='blue'?'red_top_ambush':'blue_top_ambush'):
+   (side==='blue'?'red_bot_ambush':'blue_bot_ambush');
+ return {goal,intent:'gank_setup',lane};
+}
+function jungleGoal(nav,agent,t){
+ const side=getSide(nav,agent.teamId);
+ const first=5+seedHash(nav.seed,agent.teamId,'opening-window')%3;
+ const second=14+seedHash(nav.seed,agent.teamId,'second-window')%3;
+ const own=node=>side+'_jungle_'+node;
+ if(t<=2)return {goal:own('upper'),intent:'farm_jungle'};
+ if(t<=4)return {goal:own('lower'),intent:'farm_jungle'};
+ if(t>=first&&t<=first+3)return gankPlan(nav,agent,'opening');
+ if(t<second)return {goal:own(t%4<2?'upper':'lower'),intent:'farm_jungle'};
+ if(t<=second+3)return gankPlan(nav,agent,'second');
+ if(t<=19)return {goal:own('lower'),intent:'farm_jungle'};
+ if(t<=22)return {goal:'dragon_pit',intent:'objective_setup'};
+ if(t<=24)return {goal:own('upper'),intent:'farm_jungle'};
+ if(t<=28)return {goal:'baron_pit',intent:'objective_setup'};
+ if(t<=32)return {goal:own('lower'),intent:'farm_jungle'};
+ return {goal:own(t%4<2?'upper':'lower'),intent:'farm_jungle'};
+}
 function chooseGoal(nav,agent,t,worldState){
  const side=getSide(nav,agent.teamId),team=agent.teamId;
  const foe=enemy(nav,team),role=agent.role;
@@ -153,30 +190,7 @@ function chooseGoal(nav,agent,t,worldState){
   return {goal:stage<=3?towerNode(side,lane,stage):side+'_nexus',intent:'defend'};
  }
 
- if(role==='JUN'){
-  // A jungler does not camp in a lane from minute 6 to 13: a gank is
-  // a short planned rotation between jungle clears, followed by a reset.
-  // All destinations are existing reachable nodes; advance() still permits
-  // only one edge per minute.
-  if(t<=2)return {goal:side+'_jungle_upper',intent:'farm_jungle'};
-  if(t<=4)return {goal:side+'_jungle_lower',intent:'farm_jungle'};
-  if(t<=8){
-   const lane=['TOP','MID','BOT'][seedHash(nav.seed,team,'opening-gank')%3];
-   return {goal:lane==='TOP'?'top_corner':lane==='BOT'?'bot_corner':anchor('MID'),
-     intent:'gank_setup'};
-  }
-  if(t<=12)return {goal:side+'_jungle_lower',intent:'farm_jungle'};
-  if(t<=15){
-   const lane=['MID','BOT','TOP'][seedHash(nav.seed,team,'second-gank')%3];
-   return {goal:lane==='TOP'?'top_corner':lane==='BOT'?'bot_corner':anchor('MID'),
-     intent:'gank_setup'};
-  }
-  if(t<=19)return {goal:'dragon_pit',intent:'objective_setup'};
-  if(t<=23)return {goal:side+'_jungle_upper',intent:'farm_jungle'};
-  if(t<=27)return {goal:'baron_pit',intent:'objective_setup'};
-  if(t<=32)return {goal:side+'_jungle_lower',intent:'farm_jungle'};
-  return {goal:anchor('MID'),intent:'rotation'};
- }
+ if(role==='JUN')return jungleGoal(nav,agent,t);
 
  if(role==='SUP'){
   // During early laning the support must protect the allied ADC.
@@ -228,8 +242,9 @@ function advance(nav,t,dead,worldState){
   }
   if(wasDead)agent.node=fountain;
   const plan=chooseGoal(nav,agent,t,worldState);
-  agent.goal=plan.goal;agent.intent=plan.intent;
-  agent.route=path(agent.node,agent.goal);
+  agent.goal=plan.goal;agent.intent=plan.intent;agent.lane=plan.lane||null;
+  const safe=agent.role==='JUN'&&t<36 ?node=>jungleAllowed(side,node):null;
+  agent.route=path(agent.node,agent.goal,safe);
   // One edge a minute; no position jumps to satisfy an event later.
   if(agent.route.length>1)agent.node=agent.route[1];
  }
@@ -240,7 +255,8 @@ function snapshot(nav,dead,t){
   const alive=(dead[agent.id]||0)<=t;
   const node=alive?agent.node:getSide(nav,agent.teamId)+'_fountain';
   out[agent.id]={node,alive,goal:agent.goal,intent:alive?agent.intent:'dead',
-    from:agent.movedFrom,role:agent.role,teamId:agent.teamId};
+    from:agent.movedFrom,role:agent.role,teamId:agent.teamId,
+    ...(agent.lane?{lane:agent.lane}:{})};
  }
  return out;
 }
@@ -265,6 +281,13 @@ function auditNavigation(match,world){
     errs.push('Respawn con salto ilegal: '+id+' minuto '+frame.minute);
    const shouldLive=(deadUntil[id]||0)<=frame.minute;
    if(before.alive!==shouldLive)errs.push('Estado vivo/muerto incoherente: '+id+' minuto '+frame.minute);
+   if(before.role==='JUN'&&before.alive&&frame.minute<36){
+    const side=before.teamId===match.fixture.a?'blue':'red';
+    if(!jungleAllowed(side,before.node))
+      errs.push('JUN invadió un carril sin ser evento: '+id+' minuto '+frame.minute);
+    if(before.intent==='gank_setup'&&!LANES.includes(before.lane))
+      errs.push('JUN prepara gank sin carril válido: '+id+' minuto '+frame.minute);
+   }
    if(!before.alive&&before.node!== (before.teamId===match.fixture.a?'blue':'red')+'_fountain')
     errs.push('Muerto fuera de la fuente: '+id);
   }
@@ -278,10 +301,15 @@ function auditNavigation(match,world){
      const source=graph.pointAt(positions[id].node),target=graph.pointAt(node);
      return Math.hypot(source.x-target.x,source.y-target.y)<=64;
    };
-   const together=(x,y,d=1)=>active(x)&&active(y)&&nearby(positions[x].node,positions[y].node,d);
+   const together=(x,y,d=1)=>active(x)&&active(y)&&combatRange(positions[x].node,positions[y].node,d);
    const inGankRange=(x,y)=>active(x)&&active(y)&&
      combatRange(positions[x].node,positions[y].node,2);
    if(!active(f.actorId))errs.push('Actor muerto en evento: '+f.action);
+   if((f.action==='gank'||f.action==='gank_avoided')&&f.plannedGankVersion===1){
+    const starter=positions[f.initiatorId];
+    if(!starter||starter.intent!=='gank_setup'||starter.lane!==f.lane)
+      errs.push('Gank sin plan de jungla correspondiente: '+e.minute);
+   }
    if(f.action==='gank'){
     const victim=f.victimIds[0];
     const iNode=positions[f.initiatorId]?.node,vNode=positions[victim]?.node;
@@ -291,6 +319,13 @@ function auditNavigation(match,world){
     if(f.initiatorNode!==iNode||f.victimNode!==vNode||
        !iNode||f.route!==gankApproach(iNode,f.lane))
      errs.push('Ruta de gank falsificada: '+e.minute);
+   }else if(f.action==='gank_avoided'){
+    const iNode=positions[f.initiatorId]?.node,vNode=positions[f.targetId]?.node;
+    if(!inGankRange(f.initiatorId,f.targetId)||!isLaneNode(vNode,f.lane))
+     errs.push('Gank fallido desde posición imposible: '+e.minute);
+    if(f.actorId!==f.initiatorId||f.initiatorNode!==iNode||
+       f.targetNode!==vNode||!iNode||f.route!==gankApproach(iNode,f.lane))
+     errs.push('Datos de emboscada fallida falsificados: '+e.minute);
    }else if(f.action==='teamfight'){
     for(const id of f.victimIds)if(!together(f.actorId,id,2))
       errs.push('Teamfight desde otra zona: '+e.minute+' / '+id);
@@ -325,6 +360,7 @@ function auditNavigation(match,world){
  return errs;
 }
 core.Navigation=Object.freeze({links,adjacency,path,hops,adjacent,nearby,combatRange,isLaneNode,gankApproach,
+ jungleAllowed,gankPlan,jungleGoal,
  towerNode,createNavigation,teamAgents,getAgent,at,participants,engagement,
  advance,snapshot,auditNavigation});
 })(globalThis);

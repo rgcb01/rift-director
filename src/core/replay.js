@@ -79,7 +79,7 @@ function eventView(match,eventIndex){
  const event=match?.events?.[eventIndex],moment=match?.moments?.[eventIndex];
  const f=event?.facts,pre=moment?.navigation?.before,map=moment?.minimap;
  if(!f||!pre||!map?.players)return null; // old v2 replay: no invented coordinates
- const ids=[...new Set([f.initiatorId,f.actorId,f.supportId,
+ const ids=[...new Set([f.initiatorId,f.actorId,f.supportId,f.targetId,
    ...(f.assistIds||[]),...(f.participantIds||[]),...(f.victimIds||[])]
    .filter(Boolean))];
  const participants=ids.filter(id=>pre[id]&&map.players[id]);
@@ -98,23 +98,26 @@ function eventView(match,eventIndex){
     y:Math.min(328,Math.max(12,p.y+dy)),
     node,fallen,alive:fallen?false:pre[id].alive,sceneRole:
        fallen?'victima':id===f.initiatorId?'jungla':
-       id===f.actorId?'asesino': 'apoyo'};
+       id===f.targetId?'objetivo':id===f.actorId?'asesino': 'apoyo'};
  }
- const i=pre[f.initiatorId],v=pre[f.victimIds?.[0]];
- const consistent=f.action!=='gank'||Boolean(i&&v&&
+ const attempted=f.action==='gank'||f.action==='gank_avoided';
+ const targetId=f.action==='gank_avoided'?f.targetId:f.victimIds?.[0];
+ const i=pre[f.initiatorId],v=pre[targetId];
+ const consistent=!attempted||Boolean(i&&v&&
    core.Navigation?.combatRange?.(i.node,v.node,2)&&
    core.Navigation?.isLaneNode?.(v.node,f.lane)&&
    (f.initiatorNode===undefined||f.initiatorNode===i.node)&&
-   (f.victimNode===undefined||f.victimNode===v.node));
+   ((f.action==='gank_avoided'?f.targetNode:f.victimNode)===undefined||
+    (f.action==='gank_avoided'?f.targetNode:f.victimNode)===v.node));
  return {
   frame:{...moment,minimap:{...map,players}},
   participants,
   consistent,
   action:f.action,
-  focusNode:f.action==='gank'?v?.node:f.node||null,
+  focusNode:attempted?v?.node:f.node||null,
   // For old sports histories with inconsistent locations, show a warning
   // instead of teleporting the jungler into a place he never occupied.
-  legacyLocationWarning:f.action==='gank'&&!consistent
+  legacyLocationWarning:attempted&&!consistent
  };
 }
 function auditMoments(match,world){

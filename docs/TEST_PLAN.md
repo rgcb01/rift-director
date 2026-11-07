@@ -175,3 +175,12 @@ Antes de una release:
 - SUP permanece protegiendo ADC al inicio, recorre el río inferior por un tiempo limitado y vuelve después; el plan se ve en `navigation.after.intent`.
 - 150 partidas completas: victoria, eventos, navegación y minimapa auditados sin perder coherencia del replay.
 - Revisión manual pendiente en móvil y escritorio, especialmente minuto 8–13 y distancias visuales entre campeones de botlane.
+
+## Alpha 0.7.3 — Auditoría de todas las combinaciones
+- Comprobar BFS restringido entre todos los nodos habilitados para JUN y que ningún itinerario use carril.
+- Repetir 160 seeds con una captura en minuto 08:59: ambos JUN fuera de MID, sin ocupar la misma posición, aun si RiftCast muestra un duelo central.
+- Inspeccionar cientos de partidos, **cada frame** de minuto 0–35: JUN vivo en corredor permitido y plan/objetivo legales; auditar las distancias y roles de todo gank, teamfight, torre, Dragón, Barón y nexo.
+- Incluir ganks sin baja: verificar `gank_avoided` desde el nodo correcto, rival presente, marcador inalterado y representación de ambos jugadores en el historial.
+- Inyectar coordenadas falsas de un JUN en MID y exigir fallo explícito de auditoría.
+- Controlar diversidad de intenciones, las seis combinaciones bando/carril, la finalización de partidas y compatibilidad con partidas antiguas.
+- Pruebas móviles/visuales reales pendientes: confirmar separación entre JUN y MID y animación clara de los accesos de emboscada.

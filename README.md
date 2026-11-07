@@ -4,7 +4,7 @@
 
 [**Jugar en el navegador**](https://rgcb01.github.io/rift-director/) · [Roadmap](ROADMAP.md) · [Cambios](CHANGELOG.md) · [Cómo contribuir](CONTRIBUTING.md)
 
-> **Alpha 0.7.2 — prototipo jugable.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
+> **Alpha 0.7.3 — prototipo jugable.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
 
 ## La idea
 
@@ -154,3 +154,9 @@ Al seleccionar una jugada, el minimapa muestra una **escena de ese evento** desd
 Corrección de los movimientos observados alrededor del minuto 10: ya no se ordena a ambos equipos ocupar `bot_corner`, `top_corner` o `mid_center` durante la fase de líneas, pues eso amontonaba las cabezas. **TOP, MID y ADC conservan su frente de carril** hasta que una ventaja deportiva justifica avanzar. **SUP sigue al ADC durante los primeros 13 minutos** y solo abandona bot para una ventana corta de visión/objetivos antes de regresar. **JUN alterna campamentos, rutas de gank limitadas y retorno a jungla**, en lugar de perseguir un carril fijo durante siete minutos. Las rotaciones de Barón/Dragón y el asedio tardío siguen teniendo movimientos físicos de un nodo por minuto.
 
 No se cambian posiciones en el SVG a posteriori: se modifica `Navigation.chooseGoal`, que escribe intenciones y nodos usados en `frame.navigation` y las auditorías. Las partidas `v2` anteriores conservan sus rutas y replays históricos; las nuevas semillas pueden generar resultados distintos por cambios reales de posicionamiento.
+
+### Alpha 0.7.3 — Jungla con corredores propios y auditoría de eventos
+
+**Problema corregido:** los JUN aparecían a menudo en MID porque se les ordenaba gankear durante varios minutos aun sin una jugada confirmada y porque el BFS atravesaba MID como ruta corta entre campamentos. La nueva navegación usa conexiones **directas entre campamentos** por cada equipo, accesos de emboscada fuera de carriles y **rutas restringidas por rol**. Antes del asedio tardío (minuto 36), JUN solo puede transitar por sus campamentos, su fuente, corredores del río, fosos y puntos de emboscada, nunca por TOP/MID/BOT como atajo. Un gank se prepara en ventanas breves, con lane objetivo definido; si encuentra a un rival cercano puede haber eliminación o un intento evitado. Ambos casos se registran con datos verificables (`facts`), sin inventar bajas.
+
+**La tabla de eventos también se auditó:** teamfights y asistencias ahora requieren proximidad física, no simplemente pocos enlaces de grafo; los ganks efectivos y evitados tienen actor, destino, ruta y objetivo coherentes con las posiciones guardadas. El replay de una emboscada evitada identifica al jungla y al rival en sus ubicaciones originales. Las partidas antiguas mantienen sus posiciones históricas sin reescribirlas. El formato de guardado sigue siendo `v2`; la misma seed puede producir resultados nuevos tras cambiar legalmente las rutas.

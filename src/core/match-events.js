@@ -123,6 +123,19 @@
       if (![a,b].includes(event.teamId)) { fail('Equipo del evento inexistente.'); return; }
       if (facts.action === 'gank' || facts.action === 'teamfight') {
         recordKills(event, facts, t,frame);
+      } else if (facts.action === 'gank_avoided') {
+        const j = actor(facts,event,t), target=players.get(facts.targetId);
+        if (!j || j.role!=='JUN' || facts.initiatorId!==facts.actorId)
+          fail('Gank fallido sin jungla válido.');
+        if (!target || target.teamId===(event.teamId)||!alive(target,t) ||
+            clubs.get(target.teamId)?.lineup[target.role]!==target.id)
+          fail('Gank fallido sin rival vivo.');
+        const route=facts.initiatorNode&&core.Navigation?.adjacency?.[facts.initiatorNode]?
+           core.Navigation.gankApproach(facts.initiatorNode,facts.lane):null;
+        if (!['TOP','MID','BOT'].includes(facts.lane) || facts.spatialVersion!==2 ||
+            facts.plannedGankVersion!==1 || facts.route!==route)
+          fail('Gank fallido sin ruta y carril verificables.');
+        // No elimination, structures, gold or player statistics are awarded.
       } else if (facts.action === 'tower') {
         actor(facts, event, t);verifyParticipants(event,facts,t);
         const target = event.teamId === a ? b : a;

@@ -163,3 +163,13 @@ El plan Alpha 0.5 de reproducción a velocidad variable queda **histórico**: se
 - [x] TOP/MID adelantan solo con ventaja, sin encuentros obligatorios en nodo neutral por reloj.
 - [x] Pruebas de rutas por rol, posición al minuto 10, legalidad de acciones y replay.
 - [ ] Siguientes refinamientos: seleccionar ganks por oportunidades detectadas, respetar tiempos de campamento/oleadas, y aprendizaje según estilo de jugador. Esta actualización es un comportamiento abstracto por fases, no una IA MOBA de nivel competitivo.
+
+### Alpha 0.7.3 — Revisión integral de navegación / eventos
+- [x] Corredor de jungla entre los campamentos propios y caminos de emboscada exteriores.
+- [x] Políticas de tránsito por rol y fase: JUN no cruza carriles antes del asedio.
+- [x] Ventanas cortas de gank con objetivo de carril explícito y sin cambiar de línea arbitrariamente al elegir una víctima.
+- [x] Registrar ganks evitados como hechos verificables sin modificar bajas, objetivos ni oro.
+- [x] Teamfights con comprobación de distancia física de los participantes.
+- [x] Auditoría de todas las posiciones tempranas JUN y de la tabla de eventos durante numerosos partidos.
+- [ ] Próxima mejora: ritmo de desplazamiento por longitud real de cada arista, campamentos/visión causal y lógica de respuesta enemiga; evitar horarios de gank rígidos.
+- [ ] QA visual y táctil en navegadores reales, especialmente minutos 5–16.
