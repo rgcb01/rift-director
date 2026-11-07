@@ -40,7 +40,7 @@ El juego actual es **estático y sin dependencias**:
 ```text
 index.html     Entrada de GitHub Pages
 styles.css     Interfaz adaptable
-src/core/      RNG, estado inicial, calendario y validación/guardados v2
+src/core/      RNG, estado inicial, calendario, finanzas y guardados v2
 game.js        Mundo, partidos, economía y UI (aún pendiente de modularizar)
 scripts/       Comprobaciones automatizadas
 docs/          Diseño, arquitectura y plan de pruebas
@@ -53,6 +53,7 @@ Requisitos para desarrollo: **Node.js 22+** para ejecutar comprobaciones. El nav
 node --check src/core/rng.js
 node --check src/core/state.js
 node --check src/core/calendar.js
+node --check src/core/finance.js
 node --check src/core/persistence.js
 node --check game.js
 node scripts/check-static.mjs
@@ -83,3 +84,7 @@ La inicialización del estado, la secuencia de RNG y la validación de guardados
 ### M1.1 — Calendario y validaciones
 
 `src/core/calendar.js` contiene el calendario de enfrentamientos, las tablas iniciales, las jornadas pendientes y la fecha siguiente. La importación v2 valida además fixtures, clasificaciones, afiliaciones, contratos, libros mensuales y retransmisiones pausadas. No se modifica el generador del calendario ni la semilla de RNG. Ejecuta `node --test` para verificar calendarios de 8 a 10 clubes, 24 meses simulados y una partida avanzada con retransmisión interrumpida. El estado del juego sigue siendo v2.
+
+### M1.1 — Motor financiero extraído
+
+`src/core/finance.js` contiene cotizaciones de cierres mensuales, salarios, costes de agenda, precios de mercado y movimientos de caja. La venta de un profesional ahora verifica que el comprador puede pagar la transferencia **antes** de modificar plantillas. Los cálculos numéricos originales y el formato de guardado `v2` no cambian; hay pruebas que cubren penalizaciones, fichajes, crisis y operaciones repetidas.

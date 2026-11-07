@@ -43,11 +43,11 @@ function teamPlayers(c){return ROLES.map(r=>player(c.lineup[r])).filter(Boolean)
 function currentClub(){return club(s.userClub)}
 function nextFixtures(){return RiftCore.pendingUserFixtures(s)}
 function opponentOf(f){return club(f.a===s.userClub?f.b:f.a)}
-function totalWages(c){return c.roster.reduce((sum,id)=>sum+(player(id)?.wage||0),0)}
+function totalWages(c){return RiftCore.totalWages(c,player)}
 function userContractExpense(){return totalWages(currentClub())+currentClub().staff*9000+34000}
-function monthPlanCost(){return(s.plan.community||0)*9000+(s.plan.content||0)*5000+(s.plan.scout||0)*4500}
+function monthPlanCost(){return RiftCore.monthPlanCost(s.plan)}
 function sumPlan(){return Object.values(s.plan).reduce((a,b)=>a+b,0)}
-function marketPrice(p){return Math.round(p.value*(p.teamId?1:0.32))}
+function marketPrice(p){return RiftCore.marketPrice(p)}
 function computeTraits(p){const b=p.beh,res=[];if(b.risk>=75)res.push(['Arriesgado','neg']);else if(b.risk<=31)res.push(['Metódico','pos']);
  if(b.agg>=72)res.push(['Agresivo','mix']);else if(b.agg<=31)res.push(['Conservador','mix']);
  if(b.lead>=73&&p.a.comm>=60)res.push(['Shotcaller','pos']);else if(b.lead<=30)res.push(['Liderazgo discreto','mix']);
@@ -208,7 +208,7 @@ function finishMatch(){const live=s.live;if(!live||live.committed)return;live.ru
  if(scheduled){scheduled.played=true;scheduled.winner=w;if(!f.playoff)resolveOtherRound(scheduled)}
  if(!f.playoff)award(f.a,f.b,w,'league');else award(f.a,f.b,w,'playoff');
  let prize=f.playoff?(won?68000:14000):(won?24000:7000);
- c.cash+=prize;record('premio',prize,won?'Victoria ante '+opp.name:'Participación ante '+opp.name);
+ RiftCore.adjustCash(c,prize);record('premio',prize,won?'Victoria ante '+opp.name:'Participación ante '+opp.name);
  c.fans=clamp(c.fans+(won?ri(2700,6500):-ri(600,2300)),10000,1200000);
  c.chemistry=clamp(c.chemistry+(won?1.5:.4),20,98);
  for(let p of teamPlayers(c)){p.games++;p.observed=clamp(p.observed+1,0,30);p.fatigue=clamp(p.fatigue+ri(3,7)-s.plan.rest*2,0,100);p.morale=clamp(p.morale+(won?ri(1,5):-ri(1,4)),5,100)}
@@ -241,7 +241,7 @@ function simulateWorld(){let rivals=s.clubs.filter(c=>c.id!==s.userClub);s.leagu
  // Existing rumors either become real contract moves or fail; neither is invented as fact.
  for(const rumor of s.rumors.filter(r=>!r.resolved&&r.year===s.year&&r.month<s.month)){
   rumor.resolved=true;let target=club(rumor.clubId),p=player(rumor.playerId);
-  if(target&&p&&p.teamId===null&&chance(.57)&&target.cash>p.value*.4+250000){let price=marketPrice(p);target.cash-=price;let old=replaceOnClub(target,p);
+  if(target&&p&&p.teamId===null&&chance(.57)&&target.cash>p.value*.4+250000){let price=marketPrice(p);RiftCore.adjustCash(target,-price);let old=replaceOnClub(target,p);
    addNews('Rumor confirmado: llega un refuerzo',`${target.name} ficha a ${p.name} (${ROLE_NAME[p.role]}) por ${fmt(price)}. ${old?.name||'Un titular'} abandona la plantilla.`,'transfer',target.id,2)
   }else addNews('La negociación se enfría',`Las conversaciones relacionadas con ${p?.name||'un jugador'} no prosperan. El mercado continúa abierto.`,'rumor',target?.id||null)
  }
@@ -249,13 +249,13 @@ function simulateWorld(){let rivals=s.clubs.filter(c=>c.id!==s.userClub);s.leagu
  if(chance(.42)){
   let target=pick(rivals);let agents=s.players.filter(p=>!p.teamId&&!p.retired&&p.age<34&&playerRating(p)>=60);
   let role=pick(ROLES),free=agents.filter(p=>p.role===role&&p.wage<target.sponsor.monthly*.5);
-  if(free.length&&target.cash>400000){let incoming=pick(free),fee=marketPrice(incoming);target.cash-=fee;let old=replaceOnClub(target,incoming);
+  if(free.length&&target.cash>400000){let incoming=pick(free),fee=marketPrice(incoming);RiftCore.adjustCash(target,-fee);let old=replaceOnClub(target,incoming);
    let change=playerRating(incoming)-playerRating(old);if(change>=5)target.prestige=clamp(target.prestige+2,0,100);
    addNews('Movimiento oficial de mercado',`${target.name} incorpora al ${ROLE_NAME[role]} ${incoming.name} por ${fmt(fee)}. ${old.name} queda libre.`, 'transfer',target.id,2)
   }
  }
  if(chance(.3)){
-  let target=pick(rivals),boost=ri(7000,26000),name=pick(sponsors);target.sponsor={name,monthly:target.sponsor.monthly+ri(5000,16000),obligation:target.sponsor.obligation,remaining:12};target.cash+=boost;
+  let target=pick(rivals),boost=ri(7000,26000),name=pick(sponsors);target.sponsor={name,monthly:target.sponsor.monthly+ri(5000,16000),obligation:target.sponsor.obligation,remaining:12};RiftCore.adjustCash(target,boost);
   addNews('Nuevo patrocinio regional',`${name} firma un acuerdo con ${target.name}. El club refuerza sus ingresos comerciales y recibe un adelanto de ${fmt(boost)}.`, 'sponsor',target.id,2)
  }
  if(chance(.27)){
@@ -263,13 +263,13 @@ function simulateWorld(){let rivals=s.clubs.filter(c=>c.id!==s.userClub);s.leagu
   if(p){s.rumors.push({clubId:target.id,playerId:p.id,month:s.month,year:s.year,resolved:false});addNews('Filtración del mercado',`Fuentes cercanas a la negociación aseguran que ${target.name} estudia fichar a ${p.name}. No hay acuerdo confirmado.`, 'rumor',target.id,1)}
  }
  if(chance(.11)){let target=pick(s.clubs.filter(c=>c.region==='Aurora'&&c.id!==s.userClub));let source=pick(s.clubs.filter(c=>c.region==='Boreal'));let star=player(source.lineup.MID),old=player(target.lineup.MID);
-  if(star&&old&&target.cash>650000){let fee=Math.round(star.value*1.08);target.cash-=fee;source.cash+=fee;source.roster=source.roster.filter(id=>id!==star.id);let filler=s.players.find(p=>!p.teamId&&!p.retired&&p.role==='MID');if(!filler){filler=generatePlayer('MID',null,-5);s.players.push(filler)}filler.teamId=source.id;source.roster.push(filler.id);source.lineup.MID=filler.id;
+  if(star&&old&&target.cash>650000&&target.cash>=Math.round(star.value*1.08)){let fee=Math.round(star.value*1.08);RiftCore.transferCash(target,source,fee);source.roster=source.roster.filter(id=>id!==star.id);let filler=s.players.find(p=>!p.teamId&&!p.retired&&p.role==='MID');if(!filler){filler=generatePlayer('MID',null,-5);s.players.push(filler)}filler.teamId=source.id;source.roster.push(filler.id);source.lineup.MID=filler.id;
    replaceOnClub(target,star);target.fans+=35000;s.leagueHype=clamp(s.leagueHype+ri(7,15),20,100);
    s.clubs.filter(c=>c.region==='Aurora').forEach(c=>c.fans+=ri(1500,5000));
    addNews('¡FICHAJE QUE SACUDE LA LIGA!',`${target.name} contrata al midlaner ${star.name}, una figura del Circuito Boreal, por ${fmt(fee)}. La audiencia de la Liga Aurora crece, pero la competencia se endurece.`, 'transfer',target.id,3)
   }
  }
- if(chance(.1)){let target=pick(rivals),lost=ri(80000,300000);target.cash-=lost;target.fans=Math.max(8000,target.fans-ri(4000,18000));
+ if(chance(.1)){let target=pick(rivals),lost=ri(80000,300000);RiftCore.adjustCash(target,-lost);target.fans=Math.max(8000,target.fans-ri(4000,18000));
   addNews('Crisis corporativa en la escena',`${target.name} pierde un acuerdo comercial tras un conflicto contractual ficticio. La organización estima un impacto de ${fmt(lost)} y anuncia una revisión de sus operaciones.`, 'crisis',target.id,2)
  }
  // League-wide financial changes affect everyone, not just the player.
@@ -282,21 +282,14 @@ function simulateWorld(){let rivals=s.clubs.filter(c=>c.id!==s.userClub);s.leagu
  }
  // AI clubs are subject to ordinary payroll and revenues, too.
  for(const c of rivals){let income=(c.sponsor?.monthly||0)+c.fans*.18+40000+(c.region==='Aurora'?s.leagueHype*180:8000),spent=totalWages(c)+c.staff*9000+34000;
-  c.cash+=Math.round(income-spent);if(c.sponsor?.remaining>0)c.sponsor.remaining--;
+  RiftCore.adjustCash(c,Math.round(income-spent));if(c.sponsor?.remaining>0)c.sponsor.remaining--;
   if(c.cash<180000&&c.roster.length>5){const spare=c.roster.map(player).filter(p=>!Object.values(c.lineup).includes(p.id));if(spare.length){let released=spare.sort((a,b)=>b.wage-a.wage)[0];c.roster=c.roster.filter(id=>id!==released.id);released.teamId=null;addNews('Ajustes por presión financiera',`${c.name} libera a ${released.name} para reducir su masa salarial.`, 'finance',c.id,1)}}
  }
 }
 function applyMonth(){const c=currentClub(),p=s.plan;
  const oldCash=c.cash;
- const sponsorBase=c.sponsor?.monthly||0;let sponsor=Math.round(sponsorBase*(.76+s.leagueHype/250));let fulfilled=!(c.sponsor?.obligation==='content'&&p.content<1||c.sponsor?.obligation==='community'&&p.community<1);
- if(!fulfilled)sponsor=Math.round(sponsor*.76);
- const merch=Math.round(c.fans*(.17+.028*p.content)*(1+(s.merchTier||0)*.17));
- const league=40000+Math.round(s.leagueHype*105);
- const media=p.content*6200+p.community*1200;
- const income=sponsor+merch+league+media;
- const salaries=totalWages(c),staff=c.staff*9000,ops=34000+(s.merchTier||0)*6800;
- const program=monthPlanCost(),expenses=salaries+staff+ops+program;
- c.cash+=income-expenses;
+ const {sponsor,merch,league,media,income,salaries,staff,ops,program,expenses,fulfilled}=RiftCore.quoteMonth(s,c,player);
+ RiftCore.adjustCash(c,income-expenses);
  c.fans=clamp(c.fans+Math.round(p.content*1450+p.community*1950+ri(-2300,800))+(fulfilled?400:-1500),7000,2000000);
  c.chemistry=clamp(c.chemistry+p.scrims*.42+p.community*.18-((p.content>=3)?1:0),20,99);
  for(const id of c.roster){const q=player(id);q.fatigue=clamp(q.fatigue+p.scrims*2+p.content+ri(0,3)-p.rest*7,0,100);q.morale=clamp(q.morale+(p.community>0?1:0)+ri(-1,1),10,100)}
@@ -362,20 +355,22 @@ function closeMonth(){if(s.over)return;if(s.crisis){notify('Resuelve la crisis c
 }
 function resolveCrisis(action){if(!s.crisis)return;let c=currentClub(),amount=s.crisis.amount,loss=action==='audit'?Math.round(amount*.44):action==='negotiate'?Math.round(amount*.7):amount;
  if(action==='audit'){c.fans+=4500;c.prestige=clamp(c.prestige+1,0,100)}else if(action==='negotiate'){c.fans=Math.max(10000,c.fans-3500)}else{c.fans=Math.max(10000,c.fans-9000);c.prestige=clamp(c.prestige-3,0,100)}
- c.cash-=loss;record('crisis',-loss,'Resolución de disputa comercial');addNews('Se resuelve la disputa comercial',`${c.name} ${action==='audit'?'realiza una auditoría y logra recuperar parte del dinero':action==='negotiate'?'negocia una salida y limita los daños':'asume la pérdida completa'}: impacto ${fmt(loss)}.`, 'finance',c.id,2);s.crisis=null;modal=null;if(c.cash<=0){c.cash=0;s.over=true}save();render();notify('Crisis resuelta: '+fmt(-loss))
+ RiftCore.adjustCash(c,-loss);record('crisis',-loss,'Resolución de disputa comercial');addNews('Se resuelve la disputa comercial',`${c.name} ${action==='audit'?'realiza una auditoría y logra recuperar parte del dinero':action==='negotiate'?'negocia una salida y limita los daños':'asume la pérdida completa'}: impacto ${fmt(loss)}.`, 'finance',c.id,2);s.crisis=null;modal=null;if(c.cash<=0){c.cash=0;s.over=true}save();render();notify('Crisis resuelta: '+fmt(-loss))
 }
-function signFreeAgent(id){if(s.live&&!s.live.finished)return notify('Termina el partido para realizar fichajes.');const p=player(id),c=currentClub();if(!p||p.retired||p.teamId||c.roster.length>=10)return notify('No puedes realizar este fichaje.');const fee=marketPrice(p);if(c.cash<=fee)return notify('No tienes dinero suficiente para la prima de firma.');c.cash-=fee;p.teamId=c.id;p.contract=ri(8,24);p.observed=1;p.signedAt=s.year*12+s.month;c.roster.push(p.id);c.chemistry=clamp(c.chemistry-3,20,99);record('fichaje',-fee,p.name);addNews('Tu organización anuncia fichaje',`${c.name} incorpora al ${ROLE_NAME[p.role]} ${p.name} por ${fmt(fee)} de prima de firma.`, 'transfer',c.id,2);save();render();notify(`${p.name} fichado por ${fmt(fee)}. Ya puedes ponerlo como titular.`)}
+function signFreeAgent(id){if(s.live&&!s.live.finished)return notify('Termina el partido para realizar fichajes.');const p=player(id),c=currentClub();if(!p||p.retired||p.teamId||c.roster.length>=10)return notify('No puedes realizar este fichaje.');const fee=marketPrice(p);if(c.cash<=fee)return notify('No tienes dinero suficiente para la prima de firma.');RiftCore.adjustCash(c,-fee);p.teamId=c.id;p.contract=ri(8,24);p.observed=1;p.signedAt=s.year*12+s.month;c.roster.push(p.id);c.chemistry=clamp(c.chemistry-3,20,99);record('fichaje',-fee,p.name);addNews('Tu organización anuncia fichaje',`${c.name} incorpora al ${ROLE_NAME[p.role]} ${p.name} por ${fmt(fee)} de prima de firma.`, 'transfer',c.id,2);save();render();notify(`${p.name} fichado por ${fmt(fee)}. Ya puedes ponerlo como titular.`)}
 function sellPlayer(id){if(s.live&&!s.live.finished)return notify('Termina el partido antes de negociar ventas.');let p=player(id),c=currentClub();if(!p||p.teamId!==c.id||c.roster.length<=5)return notify('La plantilla debe conservar al menos cinco jugadores.');if(c.lineup[p.role]===p.id&&!c.roster.some(x=>x!==p.id&&player(x).role===p.role))return notify('Necesitas un reemplazo del mismo rol antes de transferir a tu titular.');
- let buyers=s.clubs.filter(x=>x.id!==c.id&&x.cash>650000&&x.region===c.region);if(!buyers.length)return notify('No hay clubes con capacidad para presentar una oferta ahora.');let buyer=pick(buyers);
- const age=s.year*12+s.month,fee=Math.round(p.value*(p.signedAt&&age-p.signedAt<=6?.17:.57));
+ const age=s.year*12+s.month,fee=RiftCore.salePrice(p,age);
+ let buyers=s.clubs.filter(x=>x.id!==c.id&&x.cash>650000&&x.cash>=fee&&x.region===c.region);
+ if(!buyers.length)return notify('No hay clubes con capacidad para presentar una oferta ahora.');let buyer=pick(buyers);
+ if(!RiftCore.transferCash(buyer,c,fee))return notify('El comprador no dispone de fondos suficientes.');
  c.roster=c.roster.filter(x=>x!==p.id);if(c.lineup[p.role]===p.id)c.lineup[p.role]=c.roster.find(x=>player(x).role===p.role);
- let outgoing=replaceOnClub(buyer,p);buyer.cash-=fee;c.cash+=fee;c.chemistry=clamp(c.chemistry-ri(1,5),20,99);
+ let outgoing=replaceOnClub(buyer,p);c.chemistry=clamp(c.chemistry-ri(1,5),20,99);
  record('venta',fee,p.name);addNews('Transferencia de tu club',`${buyer.name} contrata a ${p.name} procedente de ${c.name} por ${fmt(fee)}. ${outgoing?.name||'Un jugador'} queda libre.`, 'transfer',c.id,2);modal=null;save();render();notify(`${p.name} transferido. Ingreso: ${fmt(fee)}.`)
 }
 function setLineup(id){if(s.live&&!s.live.finished)return notify('La alineación está cerrada durante el encuentro.');const p=player(id),c=currentClub();if(!p||p.teamId!==c.id)return;const old=player(c.lineup[p.role]);if(old?.id===p.id)return;c.lineup[p.role]=p.id;c.chemistry=clamp(c.chemistry-1,20,99);save();render();notify(`${p.name} será titular como ${ROLE_NAME[p.role]}.`)}
-function scoutPlayer(id){const p=player(id),c=currentClub();if(!p)return;if(c.cash<=8500)return notify('No hay presupuesto disponible para scouting.');c.cash-=8500;p.observed=clamp(p.observed+3+s.plan.scout,0,30);record('scouting',-8500,p.name);save();render();notify(`Reporte ampliado sobre ${p.name}.`)}
-function chooseSponsor(id){let c=currentClub(),offer=s.offers.find(o=>o.id===id);if(!offer)return;let fee=c.sponsor?.remaining>0?Math.round(c.sponsor.monthly*.65):0;if(c.cash<=fee)return notify('No tienes suficiente liquidez para terminar tu contrato vigente.');c.cash-=fee;c.sponsor={name:offer.name,monthly:offer.monthly,obligation:offer.obligation,remaining:offer.length};s.offers=generateOffers();record('sponsor',-fee,'Cambio comercial');addNews('Nuevo acuerdo comercial',`${offer.name} patrocinará a ${c.name} durante ${offer.length} meses. Retainer mensual: ${fmt(offer.monthly)}.`, 'sponsor',c.id,2);save();render();notify('Patrocinio firmado con '+offer.name)}
-function upgrade(type){const c=currentClub(),cost=type==='staff'?170000:220000;if(c.cash<=cost)return notify('Necesitas más liquidez para esta inversión.');if(type==='staff'){if(c.staff>=7)return notify('Tu staff ya tiene el nivel máximo.');c.staff++}else{if((s.merchTier||0)>=3)return notify('La tienda ya está desarrollada al máximo.');s.merchTier=(s.merchTier||0)+1}c.cash-=cost;record('inversion',-cost,type==='staff'?'Mejora staff':'Ampliación merchandising');save();render();notify('Inversión completada: '+fmt(-cost))}
+function scoutPlayer(id){const p=player(id),c=currentClub();if(!p)return;if(c.cash<=8500)return notify('No hay presupuesto disponible para scouting.');RiftCore.adjustCash(c,-8500);p.observed=clamp(p.observed+3+s.plan.scout,0,30);record('scouting',-8500,p.name);save();render();notify(`Reporte ampliado sobre ${p.name}.`)}
+function chooseSponsor(id){let c=currentClub(),offer=s.offers.find(o=>o.id===id);if(!offer)return;let fee=c.sponsor?.remaining>0?Math.round(c.sponsor.monthly*.65):0;if(c.cash<=fee)return notify('No tienes suficiente liquidez para terminar tu contrato vigente.');RiftCore.adjustCash(c,-fee);c.sponsor={name:offer.name,monthly:offer.monthly,obligation:offer.obligation,remaining:offer.length};s.offers=generateOffers();record('sponsor',-fee,'Cambio comercial');addNews('Nuevo acuerdo comercial',`${offer.name} patrocinará a ${c.name} durante ${offer.length} meses. Retainer mensual: ${fmt(offer.monthly)}.`, 'sponsor',c.id,2);save();render();notify('Patrocinio firmado con '+offer.name)}
+function upgrade(type){const c=currentClub(),cost=type==='staff'?170000:220000;if(c.cash<=cost)return notify('Necesitas más liquidez para esta inversión.');if(type==='staff'){if(c.staff>=7)return notify('Tu staff ya tiene el nivel máximo.');c.staff++}else{if((s.merchTier||0)>=3)return notify('La tienda ya está desarrollada al máximo.');s.merchTier=(s.merchTier||0)+1}RiftCore.adjustCash(c,-cost);record('inversion',-cost,type==='staff'?'Mejora staff':'Ampliación merchandising');save();render();notify('Inversión completada: '+fmt(-cost))}
 // USER INTERFACE
 function pageTitle(title,sub,right=''){return `<div class="pagehead"><div><div class="eyebrow">${MONTHS[s.month-1]} ${s.year} · Temporada ${s.season}</div><h1 style="margin:5px 0">${title}</h1><p>${sub}</p></div>${right}</div>`}
 function kpis(){const c=currentClub(),last=s.monthlyReports[0],tab=s.standings[c.id];return `<div class="kpis">
