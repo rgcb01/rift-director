@@ -40,8 +40,8 @@ test('300 seeds: K/D/A, participaciones y pentas concuerdan con eventos en cada 
     const totalPentas=Object.values(finish).reduce((n,p)=>n+p.pentakills,0);
     assert.equal(totalPentas,match.events.filter(e=>e.title.includes('PENTAKILL')).length);
   }
-  console.log('M1.3B event totals',JSON.stringify({assisted,objectives,pentakills}));
   assert.ok(assisted>0 && objectives>0, 'Faltan asistencias y objetivos');
+  // Spatial play makes pentakills much rarer; never manufacture a kill to meet a quota.
 });
 
 test('auditor rechaza asistentes muertos, KDA inventados y participantes ajenos',()=>{
