@@ -4,7 +4,7 @@
 
 [**Jugar en el navegador**](https://rgcb01.github.io/rift-director/) · [Roadmap](ROADMAP.md) · [Cambios](CHANGELOG.md) · [Cómo contribuir](CONTRIBUTING.md)
 
-> **Alpha 0.7.1 — prototipo jugable.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
+> **Alpha 0.7.2 — prototipo jugable.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
 
 ## La idea
 
@@ -148,3 +148,9 @@ Cada profesional es ahora un agente con **nodo actual, destino, intención, vida
 Los ganks nuevos **exigen proximidad física en unidades SVG** además de distancia de grafo; la víctima tiene que encontrarse realmente en el carril narrado. La ruta narrada (río, jungla, flanco o acceso inferior) se obtiene del nodo real del jungla y se audita. Un jungla en BOT no puede hacer una eliminación en MID solo por estar a dos enlaces topológicos.
 
 Al seleccionar una jugada, el minimapa muestra una **escena de ese evento** desde `moment.navigation.before`, no solo las posiciones de los supervivientes después de la muerte: los autores y asistentes permanecen en sus ubicaciones reales y la víctima aparece marcada como caída en el lugar del combate. El mapa global y las estadísticas después del evento no se modifican. Los participantes reciben un halo y una pequeña leyenda de roles. Las retransmisiones `v2` antiguas sin posiciones precisas mantienen su visualización histórica; una jugada antigua espacialmente inconsistente se marca con advertencia, sin teletransportar personajes para disimular el problema.
+
+### Alpha 0.7.2 — Rutas coherentes de JUN, SUP y fase de líneas
+
+Corrección de los movimientos observados alrededor del minuto 10: ya no se ordena a ambos equipos ocupar `bot_corner`, `top_corner` o `mid_center` durante la fase de líneas, pues eso amontonaba las cabezas. **TOP, MID y ADC conservan su frente de carril** hasta que una ventaja deportiva justifica avanzar. **SUP sigue al ADC durante los primeros 13 minutos** y solo abandona bot para una ventana corta de visión/objetivos antes de regresar. **JUN alterna campamentos, rutas de gank limitadas y retorno a jungla**, en lugar de perseguir un carril fijo durante siete minutos. Las rotaciones de Barón/Dragón y el asedio tardío siguen teniendo movimientos físicos de un nodo por minuto.
+
+No se cambian posiciones en el SVG a posteriori: se modifica `Navigation.chooseGoal`, que escribe intenciones y nodos usados en `frame.navigation` y las auditorías. Las partidas `v2` anteriores conservan sus rutas y replays históricos; las nuevas semillas pueden generar resultados distintos por cambios reales de posicionamiento.

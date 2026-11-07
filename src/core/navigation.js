@@ -136,47 +136,83 @@ function determineSiege(nav,worldState){
 function chooseGoal(nav,agent,t,worldState){
  const side=getSide(nav,agent.teamId),team=agent.teamId;
  const foe=enemy(nav,team),role=agent.role;
- const laneRole=role==='ADC'||role==='SUP'?'BOT':role;
+ const anchor=lane=>side+'_'+lane.toLowerCase()+'_front';
+ const lead=worldState.gold[team]-worldState.gold[foe];
+ const partner=role==='SUP'?teamAgents(nav,team).find(p=>p.role==='ADC'&&p.alive):null;
+ const followADC=()=>partner?.goal&&adjacency[partner.goal]?partner.goal:anchor('BOT');
+
+ // Late game: everyone joins a *reachable* siege or base defense.
+ // This remains after the lane phase so the game can still finish legally.
  if(t>=36){
   determineSiege(nav,worldState);
   if(team===nav.siegeTeam){
-   const lane=nav.siegeLane;
-   const stage=worldState.lanes[foe][lane]+1;
+   const lane=nav.siegeLane,stage=worldState.lanes[foe][lane]+1;
    return {goal:stage<=3?towerNode(getSide(nav,foe),lane,stage):getSide(nav,foe)+'_nexus',intent:'siege'};
   }
-  const target=nav.siegeLane,stage=worldState.lanes[team][target]+1;
-  return {goal:stage<=3?towerNode(side,target,stage):side+'_nexus',intent:'defend'};
+  const lane=nav.siegeLane,stage=worldState.lanes[team][lane]+1;
+  return {goal:stage<=3?towerNode(side,lane,stage):side+'_nexus',intent:'defend'};
  }
- if(t<6){
-  if(role==='JUN')return {goal:side+(t<3?'_jungle_upper':'_jungle_lower'),intent:'farm_jungle'};
-  return {goal:side+'_'+laneRole.toLowerCase()+'_front',intent:'lane'};
- }
- if(t<13){
-  if(role==='JUN'){
-   const route=seedHash(nav.seed,team,'first-gank')%3;
-   const lane=route===0?'TOP':route===1?'BOT':'MID';
-   return {goal:side+'_'+lane.toLowerCase()+'_outer',intent:'gank_setup'};
+
+ if(role==='JUN'){
+  // A jungler does not camp in a lane from minute 6 to 13: a gank is
+  // a short planned rotation between jungle clears, followed by a reset.
+  // All destinations are existing reachable nodes; advance() still permits
+  // only one edge per minute.
+  if(t<=2)return {goal:side+'_jungle_upper',intent:'farm_jungle'};
+  if(t<=4)return {goal:side+'_jungle_lower',intent:'farm_jungle'};
+  if(t<=8){
+   const lane=['TOP','MID','BOT'][seedHash(nav.seed,team,'opening-gank')%3];
+   return {goal:lane==='TOP'?'top_corner':lane==='BOT'?'bot_corner':anchor('MID'),
+     intent:'gank_setup'};
   }
-  if(role==='SUP'&&t>=10)return {goal:'dragon_pit',intent:'objective'};
-  if(role==='ADC'||role==='SUP')return {goal:'bot_corner',intent:'push'};
-  if(role==='TOP')return {goal:'top_corner',intent:'push'};
-  return {goal:'mid_center',intent:'push'};
+  if(t<=12)return {goal:side+'_jungle_lower',intent:'farm_jungle'};
+  if(t<=15){
+   const lane=['MID','BOT','TOP'][seedHash(nav.seed,team,'second-gank')%3];
+   return {goal:lane==='TOP'?'top_corner':lane==='BOT'?'bot_corner':anchor('MID'),
+     intent:'gank_setup'};
+  }
+  if(t<=19)return {goal:'dragon_pit',intent:'objective_setup'};
+  if(t<=23)return {goal:side+'_jungle_upper',intent:'farm_jungle'};
+  if(t<=27)return {goal:'baron_pit',intent:'objective_setup'};
+  if(t<=32)return {goal:side+'_jungle_lower',intent:'farm_jungle'};
+  return {goal:anchor('MID'),intent:'rotation'};
  }
- if(t<25){
-  const objective=t>=20&&t%9<5?'baron_pit':t%10<5?'dragon_pit':null;
-  if(objective&&['JUN','SUP','MID'].includes(role))return {goal:objective,intent:'objective'};
-  if(role==='TOP')return {goal:'top_center',intent:'splitpush'};
-  if(role==='ADC'||role==='SUP')return {goal:'bot_center',intent:'push'};
-  return {goal:'mid_center',intent:'rotation'};
+
+ if(role==='SUP'){
+  // During early laning the support must protect the allied ADC.
+  // The first roam is a bounded river/dragon window, *not* a permanent
+  // march to the objective or to the shared bot corner.
+  if(t<=13)return {goal:followADC(),intent:'protect_adc'};
+  if(t<=17)return {goal:'lower_river',intent:'ward_roam'};
+  if(t<=23)return {goal:followADC(),intent:'protect_adc'};
+  if(t<=27)return {goal:anchor('MID'),intent:'rotation'};
+  if(t<=30)return {goal:'lower_river',intent:'ward_roam'};
+  return {goal:anchor('MID'),intent:'group'};
  }
- if(t<36){
-  const objective=t%11<5?'baron_pit':null;
-  if(objective&&['JUN','SUP','MID'].includes(role))return {goal:objective,intent:'objective'};
-  if(t<29&&role==='TOP'&&seedHash(nav.seed,team,'side')%2===0)
-   return {goal:'top_center',intent:'splitpush'};
-  return {goal:'mid_center',intent:'group'};
+
+ if(role==='ADC'){
+  // Blue and red cannot both stand at bot_corner during lane phase.
+  // Only the side with a meaningful advantage may take the central bend.
+  if(t<=14)return {goal:anchor('BOT'),intent:'lane'};
+  if(t<=25)return {goal:lead>1900?'bot_corner':anchor('BOT'),intent:lead>1900?'push':'lane'};
+  if(t<=29)return {goal:anchor('MID'),intent:'rotation'};
+  return {goal:lead>1000?'mid_center':anchor('MID'),intent:'group'};
  }
- return {goal:'mid_center',intent:'group'};
+
+ if(role==='TOP'){
+  if(t<=13)return {goal:anchor('TOP'),intent:'lane'};
+  if(t<=28)return {goal:lead>1400?'top_corner':anchor('TOP'),
+    intent:lead>1400?'splitpush':'lane'};
+  if(t<=32)return {goal:anchor('TOP'),intent:'reset'};
+  return {goal:anchor('MID'),intent:'group'};
+ }
+
+ // MID holds their own half instead of both midlaners sharing mid_center
+ // from minute six. Pressure can move the winning side forward later.
+ if(t<=13)return {goal:anchor('MID'),intent:'lane'};
+ if(t<=25)return {goal:lead>1600?'mid_center':anchor('MID'),
+   intent:lead>1600?'push':'lane'};
+ return {goal:lead>900?'mid_center':anchor('MID'),intent:'group'};
 }
 function advance(nav,t,dead,worldState){
  if(t<=nav.minute)throw Error('Navigation minutes must advance');
