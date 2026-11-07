@@ -167,3 +167,11 @@ Antes de una release:
 - En una retransmisión antigua manipulada o incoherente, mostrar advertencia explícita sin teletransportar al jungla.
 - Falsificar posición del jungla en navegación debe producir errores de auditoría.
 - Mantener compatibilidad v2, modo exhibición sin persistencia y ausencia de premios duplicados.
+
+## Alpha 0.7.2 — Verificación de rutas por profesión
+
+- Minuto 10, 110 semillas: ADC y SUP sin muertes tempranas están en `*_bot_front` de su propio equipo, y SUP no se queda en la esquina TOP.
+- Ventanas de JUN en 100 semillas: `farm_jungle`/ `gank_setup`/ `objective_setup`/ `rotation` corresponden a la fase; ningún JUN se queda en esquina neutral más de 5 minutos seguidos.
+- SUP permanece protegiendo ADC al inicio, recorre el río inferior por un tiempo limitado y vuelve después; el plan se ve en `navigation.after.intent`.
+- 150 partidas completas: victoria, eventos, navegación y minimapa auditados sin perder coherencia del replay.
+- Revisión manual pendiente en móvil y escritorio, especialmente minuto 8–13 y distancias visuales entre campeones de botlane.

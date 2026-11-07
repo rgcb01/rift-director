@@ -4,6 +4,19 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+## [0.7.2-alpha] — 2026-11-07
+
+### Roles y fase de líneas — corrección del minimapa
+- Las dos botlanes ya no convergen en `bot_corner`, ni TOP/MID ocupan ambos el mismo nodo neutral al minuto seis.
+- **SUP protege al ADC** durante el inicio, hace un roaming breve para visión alrededor del río y luego vuelve con su compañero; ya no se queda permanentemente en objetivo o en una esquina.
+- **JUN alterna farmeo, gank, limpieza de campamentos y ventanas de objetivos**, con un segundo intento de gank y retorno explícito a jungla.
+- El avance de laners hacia el centro depende de ventaja de oro; ambos equipos no empujan a la misma posición por un reloj fijo.
+- Sigue existiendo navegación causal con hasta una arista por minuto y verificaciones de ganks, torres y nexos. Sin cambio de formato de guardado.
+- Nueva prueba de 110–150 semillas para separación de botlane al minuto 10, rutas de JUN, protección y roaming de SUP, auditorías y resultados.
+- Cambian las huellas deportivas del golden test cuando la ruta modifica eventos; la economía mensual no tiene cambios deliberados.
+
+
+
 ## [0.7.1-alpha] — 2026-11-07
 
 ### Corrección: ganks coherentes con el minimapa

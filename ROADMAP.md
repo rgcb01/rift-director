@@ -155,3 +155,11 @@ El plan Alpha 0.5 de reproducción a velocidad variable queda **histórico**: se
 - [x] Proyectar una escena de evento seleccionable a partir de las posiciones previas del combate y señalar a la víctima caída sin teletransportarla a otro carril.
 - [x] Advertencia explícita para replays con ganks históricos imposibles; los guardados `v2` permanecen compatibles.
 - [ ] Validación manual del cambio con la reproducción visual de la captura original en escritorio y celular.
+
+### Alpha 0.7.2 — Primer refinamiento de IA por roles
+- [x] Mantener ADC/SUP juntos durante fase de líneas, sin amontonar ambos equipos en el mismo nodo neutral.
+- [x] Rutas de jungla: campamentos, ganks cortos, regreso, objetivos; ninguna persecución de una misma esquina durante toda la apertura.
+- [x] Ventanas de roaming de support y regreso al ADC, sin abandonar bot durante los primeros minutos.
+- [x] TOP/MID adelantan solo con ventaja, sin encuentros obligatorios en nodo neutral por reloj.
+- [x] Pruebas de rutas por rol, posición al minuto 10, legalidad de acciones y replay.
+- [ ] Siguientes refinamientos: seleccionar ganks por oportunidades detectadas, respetar tiempos de campamento/oleadas, y aprendizaje según estilo de jugador. Esta actualización es un comportamiento abstracto por fases, no una IA MOBA de nivel competitivo.
