@@ -59,7 +59,9 @@ function choose({nav,agent,minute,worldState,context,baseline}){
  const recovering=agent.recovering===true;
  // Emergency health is a commitment with hysteresis. Do not oscillate at
  // exactly the same threshold or give up recovery while travelling.
- if(hp<=36||recovering&&hp<76){
+ const objectiveWindow=minute>=22&&minute<=29;
+ const readyThreshold=objectiveWindow&&['JUN','SUP'].includes(agent.role)?62:76;
+ if(hp<=36||recovering&&hp<readyThreshold){
   agent.recovering=true;
   return withReason({goal:safe,intent:'recover'},'low_health');
  }
@@ -75,7 +77,7 @@ function choose({nav,agent,minute,worldState,context,baseline}){
   const partner=Object.values(context.positions).find(p=>
     p.teamId===agent.teamId&&p.role==='ADC'&&p.alive);
   const adcHP=partner?(context.health?.[partner.id]??100):100;
-  if(partner&&adcHP<=58&&minute<=32){
+  if(partner&&adcHP<=58&&minute<=21){
    return withReason({goal:partner.node,intent:'escort'},'protect_injured_adc');
   }
  }
@@ -111,7 +113,7 @@ function choose({nav,agent,minute,worldState,context,baseline}){
     return withReason(changed,'opportunity_gank');
    }
   }
-  if(baseline.intent==='objective_setup'&&hp<63)
+  if(baseline.intent==='objective_setup'&&hp<52)
    return withReason({goal:ownJungle,intent:'farm_jungle'},'unsafe_objective');
   return withReason(baseline,'scheduled_jungle');
  }
