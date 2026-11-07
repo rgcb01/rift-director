@@ -1,6 +1,6 @@
 # Plan de pruebas — Rift Director
 
-**Alcance actual:** Alpha 0.2. La suite automática es de **smoke**, no una cobertura integral. Cada nueva mecánica debe incorporar pruebas de invariantes y recorridos manuales.
+**Alcance actual:** Alpha 0.7. La suite automática combina smoke, golden tests, auditorías causales y reproducción por evento; no sustituye pruebas manuales. Cada nueva mecánica debe incorporar pruebas de invariantes y recorridos manuales.
 
 ## Comprobaciones automáticas
 
@@ -22,8 +22,8 @@ La CI ejecuta estos comandos en pushes y pull requests. Si un check falla, no se
 | 4 | Cambiar entrenamientos | Capacidad limitada; coste reflejado en finanzas |
 | 5 | Abrir Mercado y fichar agente libre con saldo suficiente | Se descuenta dinero y jugador aparece en roster |
 | 6 | Probar una venta válida | El club recibe dinero y mantiene una alineación válida |
-| 7 | Preparar un partido y pulsar Jugar | Marcador y retransmisión avanzan sin bloquearse |
-| 8 | Cambiar velocidades, pausa y resultado instantáneo | Una misma simulación no cambia de ganador por velocidad |
+| 7 | Preparar un partido y pulsar Jugar | Se abre el replay en su primer evento, sin avanzar automáticamente |
+| 8 | Pulsar Siguiente evento, elegir jugada pasada y Terminar partida | El minimapa/marcador cambian al evento seleccionado y el resultado no se altera al retroceder |
 | 9 | Revisar resultado | Nexo destruido, ganador, estadísticas y eventos coherentes |
 | 10 | Terminar partidos del mes y cerrar mes | Se cobran/pagan importes correctos; calendario y noticias avanzan |
 | 11 | Renovar sponsor / incumplir compromiso | Ingresos y penalizaciones reflejan obligaciones |
@@ -147,3 +147,14 @@ Antes de una release:
 - Reproducción 1×/5×/instantáneo y demo aislada no modifican el historial de navegación ni los guardados ajenos.
 - El golden test mantiene una referencia de resultado distinta a Alpha 0.5 porque la regla deportiva cambió, pero verifica que la contabilidad mensual y el universo inicial permanecen correctos.
 - **Pendientes:** estadísticas de frecuencia de eventos tras inmersión espacial, escala de partidas durante 1000 seeds, experiencia táctil y rendimiento en Safari iOS/Chrome Android, recuperación de JSON real exportado de versiones anteriores.
+
+## Alpha 0.7 — Verificación del historial por eventos
+
+- `tests/replay.test.mjs`: diez profesionales adelantados al inicio; grafo y roles coherentes.
+- Auditar `match.moments[i]` para cientos de seeds: coincide el índice, tiempo, score y estado del minimapa con `events[i]` sin presentar anticipadamente torres futuras.
+- Abrir exhibición sin partida, avanzar dos eventos, regresar al inicio y verificar que el progreso desbloqueado sigue intacto y sin save.
+- Terminar un encuentro, retroceder a 00:00, avanzar manualmente por el historial y comprobar que no se vuelvan a aplicar premios, estadísticas o resultados.
+- Seleccionar torre y pelea: se muestra ubicación real de la jugada y caída estructural correspondiente.
+- Salir de un partido oficial, reabrir el último replay, serializarlo en `v2` y verificar que las instantáneas se conservan.
+- Cargar partida histórica sin `moments`: historial navegable con precisión por minuto, sin fabricar interacciones no registradas.
+- **Pendiente en navegador real:** respuesta táctil del historial, scroll al evento seleccionado, diseño compacto y uso de almacenamiento al retener un replay entero; probar Safari iOS y Chrome Android.
