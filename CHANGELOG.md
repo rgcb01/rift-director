@@ -4,6 +4,17 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+## [0.3.0-alpha] — 2026-11-07
+
+### Laboratorio de partidas y mapa táctico
+- **Simular partida de prueba** accesible desde bienvenida, Partidos y Partida, sin crear ni avanzar un club.
+- Los partidos demo usan un universo temporal y no modifican guardados, contratos, premios ni estadísticas reales; incluyen repetir, velocidad y salto al final.
+- Visualización en vivo de presión de TOP/MID/BOT y visión por carril/río, con modelo táctico abstracto de bajo coste.
+- La probabilidad de los ganks utiliza visión defensiva y presión por carril; RiftCast registra ruta/visión, con auditoría de coherencia.
+- Nuevo módulo `src/core/map-state.js` y pruebas de aislamiento del modo demo, determinismo del mapa y validación de rutas.
+- La semilla de un partido nuevo puede producir otra historia deportiva respecto de Alpha 0.2, por los ajustes intencionales del motor. Se preserva el formato de guardado `v2`.
+
+
 ### M1.2 · KDA y participación individual (2026-11-07)
 - Módulo `src/core/match-stats.js` para kills, muertes, asistencias, pentakills y participación en objetivos por jugador a partir de hechos registrados.
 - Snapshots independientes de estadísticas individuales por minuto y resumen final en el Match Center.
