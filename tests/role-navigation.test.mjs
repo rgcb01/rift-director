@@ -76,7 +76,7 @@ test('JUN sigue corredores de jungla y ventanas de gank sin transitar por MID',(
 
 test('SUP tiene roaming breve después de líneas y regresa junto a su ADC',()=>{
  const {sim,world,fixture}=prepare();
- let seenRoam=0,seenReturn=0;
+ let seenRoam=0,seenReturn=0,seenBaron=0;
  for(let seed=1;seed<=100;seed++){
   world.rng=seed*6767;
   const match=sim.simulateMatch(fixture);
@@ -89,9 +89,13 @@ test('SUP tiene roaming breve después de líneas y regresa junto a su ADC',()=>
      assert.equal(p.intent,'ward_roam','Roaming debe tener una ventana temporal');
      seenRoam++;
     }
-    if(t>=18&&t<=23){
+    if(t>=18&&t<=21){
      assert.equal(p.intent,'protect_adc','El SUP debe regresar con el carry');
      seenReturn++;
+    }
+    if(t>=22&&t<=27){
+     assert.equal(p.intent,'objective_setup','SUP debe preparar el Barón con tiempo');
+     seenBaron++;
     }
     if(t>=1&&t<=13&&carry.alive){
      assert.equal(p.intent,'protect_adc','En early el SUP protege al ADC');
@@ -99,7 +103,7 @@ test('SUP tiene roaming breve después de líneas y regresa junto a su ADC',()=>
    }
   }
  }
- assert.ok(seenRoam>50&&seenReturn>50);
+ assert.ok(seenRoam>50&&seenReturn>50&&seenBaron>50);
 });
 
 test('150 partidas completas mantienen movimientos legales, torres, nexo y replay coherente',()=>{
