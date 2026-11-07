@@ -114,31 +114,32 @@ function simulateMatch(f){const a=club(f.a),b=club(f.b),aP=teamPlayers(a),bP=tea
  const living=(c,t)=>teams[c.id].filter(p=>(m.dead[p.id]||0)<=t);
  const enemy=c=>c.id===a.id?b:a;
  const byRole=(c,r,t)=>living(c,t).find(p=>p.role===r);
- const makeEv=(minute,title,body,kind='normal',team=null)=>{const prior=m.events[m.events.length-1];const sec=minute===0?0:prior?.minute===minute?Math.min(59,Number(prior.time.slice(3))+ri(1,8)):ri(0,29);m.events.push({minute,time:`${String(minute).padStart(2,'0')}:${String(sec).padStart(2,'0')}`,title,body,kind,teamId:team?.id||null})};
+ const makeEv=(minute,title,body,kind='normal',team=null,facts=null)=>{const prior=m.events[m.events.length-1];const sec=minute===0?0:prior?.minute===minute?Math.min(59,Number(prior.time.slice(3))+ri(1,8)):ri(0,29);const event={minute,time:`${String(minute).padStart(2,'0')}:${String(sec).padStart(2,'0')}`,title,body,kind,teamId:team?.id||null};if(facts)event.facts=facts;m.events.push(event)};
  const balance=(c,t)=>{let stage=t<12?'early':t<25?'mid':'late';let z=teamPower(c,stage)+(m.gold[c.id]-m.gold[enemy(c).id])/2800+m.barons[c.id]*1.3;
  let pref=c.id===s.userClub?s.style:(c.id.charCodeAt(c.id.length-1)%3===0?'aggressive':c.id.charCodeAt(c.id.length-1)%3===1?'objectives':'scaling');
  if(pref==='aggressive'&&t<=15)z+=4;if(pref==='scaling'&&t>=25)z+=4;if(pref==='objectives')z+=m.dragons[c.id]*.7;
  z+=(s.meta===pref?2:0);
  return z};
  const decide=(ca,cb,t,bonus=0)=>chance(clamp(.5+(balance(ca,t)-balance(cb,t)+bonus)*.018,.13,.87))?ca:cb;
- const addKill=(killer,victim,t)=>{if(!killer||!victim||(m.dead[victim.id]||0)>t)return false;const c=club(killer.teamId);m.kills[c.id]++;m.gold[c.id]+=320;m.dead[victim.id]=t+(t<16?2:t<29?3:4);return true};
- const takeTower=(c,t,requestedLane=null)=>{const lanes=m.lanes[enemy(c).id];let avail=['TOP','MID','BOT'].filter(l=>lanes[l]<3);if(!avail.length)return false;
+ const addKill=(killer,victim,t)=>{if(!killer||!victim||(m.dead[killer.id]||0)>t||(m.dead[victim.id]||0)>t)return false;const c=club(killer.teamId);m.kills[c.id]++;m.gold[c.id]+=320;m.dead[victim.id]=t+(t<16?2:t<29?3:4);return true};
+ const takeTower=(c,t,requestedLane=null)=>{const alive=living(c,t);if(!alive.length)return false;const lanes=m.lanes[enemy(c).id];let avail=['TOP','MID','BOT'].filter(l=>lanes[l]<3);if(!avail.length)return false;
  let lane=requestedLane&&avail.includes(requestedLane)?requestedLane:pick(avail);lanes[lane]++;m.towers[c.id]++;m.gold[c.id]+=690;
- let who=byRole(c,lane==='BOT'?'ADC':lane,t)||pick(living(c,t))||teamPlayers(c)[0];
+ let who=byRole(c,lane==='BOT'?'ADC':lane,t)||pick(alive);
  const place=lane==='BOT'?'inferior':lane==='TOP'?'superior':'central';
- makeEv(t,`¡Cae una torre ${place}!`,`${c.name} derriba la ${['exterior','interior','de base'][lanes[lane]-1]} del carril ${place}. ${who.name} participa en la presión y su equipo recibe oro adicional.`, 'goal',c);return true};
+ makeEv(t,`¡Cae una torre ${place}!`,`${c.name} derriba la ${['exterior','interior','de base'][lanes[lane]-1]} del carril ${place}. ${who.name} participa en la presión y su equipo recibe oro adicional.`, 'goal',c,{action:'tower',actorId:who.id,lane,stage:lanes[lane]});return true};
  const nextSnapshot=t=>m.frames.push({minute:t,kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length});
  makeEv(0,'Comienza el mapa',`${a.name} y ${b.name} entran a la Grieta. Ambos equipos buscan imponer su plan de juego.`, 'normal');nextSnapshot(0);
- for(let t=1;t<=52&&!m.winner;t++){
+ for(let t=1;t<=56&&!m.winner;t++){
   m.minute=t;
   for(const c of all){m.gold[c.id]+=ri(790,1080)+Math.round((balance(c,t)-65)*2);if(m.baronBuff[c.id]>0)m.baronBuff[c.id]--}
   // Early ganks: JUN initiates; victim and killer must actually be alive.
   if(t>=3&&t<=17&&chance(t<10?.27:.16)){
    const attacker=decide(a,b,t),victimTeam=enemy(attacker),j=byRole(attacker,'JUN',t),lanerRole=pick(['TOP','MID','ADC']),v=byRole(victimTeam,lanerRole,t);
    if(j&&v){let support=byRole(attacker,lanerRole,t);const pSuccess=clamp(.44+(balance(attacker,t)-balance(victimTeam,t))*.014+j.beh.agg*.002+(j.beh.risk-50)*.0015,.15,.81);
-    if(chance(pSuccess)&&addKill(chance(.66)?j:(support||j),v,t)){
-     let actor=chance(.68)?j:(support||j); // narrative describes involvement; credit is in kill already.
-     makeEv(t,`Gank en ${lanerRole==='ADC'?'bot':lanerRole==='TOP'?'top':'medio'}`,`${j.name} encuentra una ruta hacia ${v.name}. ${attacker.name} consigue un asesinato y presión en el mapa.`, 'fight',attacker)
+    const found=chance(pSuccess),killer=found?(chance(.66)?j:(support||j)):null;
+    if(found&&addKill(killer,v,t)){
+     const actor=chance(.68)?j:(support||j); // preserves legacy RNG, identifies the accompanying playmaker.
+     makeEv(t,`Gank en ${lanerRole==='ADC'?'bot':lanerRole==='TOP'?'top':'medio'}`,`${j.name} encuentra una ruta hacia ${v.name}. ${attacker.name} consigue un asesinato y presión en el mapa.`, 'fight',attacker,{action:'gank',actorId:killer.id,initiatorId:j.id,supportId:actor.id,victimIds:[v.id]})
     }else if(chance(.35))makeEv(t,'Emboscada neutralizada',`${v.name} evita la visita de ${j.name} y mantiene su posición sin ceder un asesinato.`)
    }
   }
@@ -149,29 +150,30 @@ function simulateMatch(f){const a=club(f.a),b=club(f.b),aP=teamPlayers(a),bP=tea
   // Dragons have spawn and respawn constraints. A jungler can smite only if alive.
   if(t>=m.nextDragon&&chance(.73)){
     let owner=decide(a,b,t),other=enemy(owner),j=byRole(owner,'JUN',t);if(living(owner,t).length>=2){m.dragons[owner.id]++;m.gold[owner.id]+=230;m.nextDragon=t+5;
-    let actor=j||pick(living(owner,t));makeEv(t,'Dragón asegurado',`${owner.name} controla el río. ${actor.name} ayuda a asegurar el dragón número ${m.dragons[owner.id]} de su equipo.`, 'goal',owner)}
+    let actor=j||pick(living(owner,t));makeEv(t,'Dragón asegurado',`${owner.name} controla el río. ${actor.name} ayuda a asegurar el dragón número ${m.dragons[owner.id]} de su equipo.`, 'goal',owner,{action:'dragon',actorId:actor.id,ordinal:m.dragons[owner.id]})}
   }
   // Teamfights resolve multiple real kills; a wipe checks all five enemy respawn states.
   if(t>=12&&chance(t<22?.16:.26)){
    let winner=decide(a,b,t),loser=enemy(winner);let attackers=living(winner,t),defenders=living(loser,t);
    if(attackers.length>=2&&defenders.length){let k=clamp(ri(1,t>28?5:4),1,defenders.length);if(chance(.25))k=Math.min(5,defenders.length);
-    let carry=attackers.find(p=>p.role==='ADC')||attackers.find(p=>p.role==='MID')||pick(attackers);let slain=[];
-    for(let i=0;i<k;i++){const v=defenders.splice(ri(0,defenders.length-1),1)[0];if(addKill(carry,v,t))slain.push(v.name)}
+    let carry=attackers.find(p=>p.role==='ADC')||attackers.find(p=>p.role==='MID')||pick(attackers);let slain=[],slainIds=[];
+    for(let i=0;i<k;i++){const v=defenders.splice(ri(0,defenders.length-1),1)[0];if(addKill(carry,v,t)){slain.push(v.name);slainIds.push(v.id)}}
     if(slain.length){let ace=living(loser,t).length===0;const multi=slain.length>=3?`${slain.length===5?'¡PENTAKILL!':slain.length===4?'¡CUÁDRUPLE!':'¡TRIPLE KILL!'} `:'';
      let text=`${carry.name} lidera una pelea decisiva para ${winner.name} y consigue ${slain.length} eliminación${slain.length!==1?'es':''}.`;if(ace)text+=' ¡Exterminio! Todo el equipo rival está fuera de combate.';
-     makeEv(t,multi+(ace?'¡Exterminio en la Grieta!':'Pelea de equipos'),text,'fight',winner)
+     makeEv(t,multi+(ace?'¡Exterminio en la Grieta!':'Pelea de equipos'),text,'fight',winner,{action:'teamfight',actorId:carry.id,victimIds:slainIds,ace})
     }
    }
   }
   if(t>=m.nextBaron&&chance(.64)){
-   const initiator=decide(a,b,t),challenger=enemy(initiator),j1=byRole(initiator,'JUN',t),j2=byRole(challenger,'JUN',t);
+   const proposed=decide(a,b,t),initiator=living(proposed,t).length>=2?proposed:(living(enemy(proposed),t).length>=2?enemy(proposed):null);
+   if(initiator){const challenger=enemy(initiator),j1=byRole(initiator,'JUN',t),j2=byRole(challenger,'JUN',t);
    const steal=j2&&living(challenger,t).length>=2&&chance(clamp(.11+(j2.beh.risk-50)*.0018,.055,.22));
    let owner=steal?challenger:initiator,actor=steal?j2:j1||pick(living(initiator,t));
    if(actor){m.barons[owner.id]++;m.gold[owner.id]+=450;m.baronBuff[owner.id]=5;m.nextBaron=t+7;
     let headline=steal?'¡ROBO DE BARÓN!':'Barón asegurado';
     let text=steal?`${initiator.name} inicia el Barón, pero ${actor.name}, jungla de ${challenger.name}, entra en el momento justo y lo roba con Smite.`:`${owner.name} asegura el Barón tras ganar espacio en el río. ${actor.name} participa en la toma del objetivo.`;
-    makeEv(t,headline,text,'goal',owner)
-   }
+    makeEv(t,headline,text,'goal',owner,{action:'baron',actorId:actor.id,stolen:!!steal,smite:!!steal,initiatorTeamId:initiator.id})
+   }}
   }
   if([6,14,24,33].includes(t)){
    const leader=m.gold[a.id]>m.gold[b.id]?a:b;const dif=Math.abs(m.gold[a.id]-m.gold[b.id]);
@@ -182,12 +184,12 @@ function simulateMatch(f){const a=club(f.a),b=club(f.b),aP=teamPlayers(a),bP=tea
    if(candidates.length&&chance(t>=43?.92:.11+(t-29)*.012)){
     let valid=candidates.filter(c=>living(c,t).length>=2);let w=valid.length===1?valid[0]:valid.length===2?decide(valid[0],valid[1],t):null;if(w)m.winner=w.id;
     if(w){let closer=living(w,t).find(p=>p.role==='ADC')||living(w,t)[0];
-    makeEv(t,'¡NEXO DESTRUIDO!',`${w.name} aprovecha la apertura de la base. ${closer.name} y sus compañeros cierran la partida tras ${t} minutos.`, 'end',w)}
+    makeEv(t,'¡NEXO DESTRUIDO!',`${w.name} aprovecha la apertura de la base. ${closer.name} y sus compañeros cierran la partida tras ${t} minutos.`, 'end',w,{action:'nexus',actorId:closer.id})}
    }
   }
   // If a long stalemate develops, close the map by establishing a legal lane route.
   if(t>=37&&!m.winner){const ahead=decide(a,b,t,0);let target=enemy(ahead),lane=Object.entries(m.lanes[target.id]).sort((x,y)=>y[1]-x[1])[0][0];if(m.lanes[target.id][lane]<3)takeTower(ahead,t,lane)}
-  if(t===52&&!m.winner){let eligible=all.filter(c=>Object.values(m.lanes[enemy(c).id]).some(n=>n===3));let w=eligible[0]||decide(a,b,t);if(!eligible.length){let target=enemy(w);let lane='MID';while(m.lanes[target.id][lane]<3)takeTower(w,t,lane)}m.winner=w.id;makeEv(t,'¡NEXO DESTRUIDO!',`${w.name} rompe la última defensa y asegura la victoria en una partida larguísima.`, 'end',w)}
+  if(t>=52&&!m.winner){let active=all.filter(c=>living(c,t).length>=2);if(active.length){let eligible=active.filter(c=>Object.values(m.lanes[enemy(c).id]).some(n=>n===3));let w=eligible[0]||(active.length===2?decide(active[0],active[1],t):active[0]);if(!eligible.length){let target=enemy(w);let lane='MID';while(m.lanes[target.id][lane]<3)takeTower(w,t,lane)}const closer=living(w,t).find(p=>p.role==='ADC')||living(w,t)[0];m.winner=w.id;makeEv(t,'¡NEXO DESTRUIDO!',`${w.name} rompe la última defensa y asegura la victoria en una partida larguísima.`, 'end',w,{action:'nexus',actorId:closer.id})}}
   nextSnapshot(t)
  }
  return {fixture:{a:f.a,b:f.b,round:f.round,playoff:!!f.playoff},frames:m.frames,events:m.events,elapsed:0,speed:2,running:true,committed:false,winner:m.winner,finished:false}
@@ -416,6 +418,19 @@ function renderMarket(){let free=s.players.filter(p=>!p.teamId&&!p.retired&&p.ag
  <div class="cols"><div><section class="panel"><div class="panel-head"><h2>Agentes libres</h2><span class="helper">Haz clic en una carta para investigar, contratar o ver sus traits.</span></div><div class="card-grid">${free.map(playerCard).join('')}</div></section></div>
  <div><section class="panel"><h2>Tu situación contractual</h2><div class="ledger" style="margin-top:12px"><div><span>Dinero disponible</span><b>${fmt(currentClub().cash)}</b></div><div><span>Salarios mensuales</span><b>${fmt(totalWages(currentClub()))}</b></div><div><span>Plazas ocupadas</span><b>${currentClub().roster.length} / 10</b></div><div><span>Química del club</span><b>${Math.round(currentClub().chemistry)} / 100</b></div></div><p class="helper" style="margin-top:12px">Las primas de firma se pagan al instante. Los salarios se descuentan cada mes. Puedes transferir un jugador que tenga reemplazo.</p></section>
  <section class="panel"><h2>Filtraciones del mercado</h2><div class="news" style="margin-top:12px">${s.news.filter(n=>n.type==='rumor'||n.type==='transfer').slice(0,5).map(n=>`<div class="activity"><span>${esc(n.title)}</span><small>${MONTHS[n.month-1]} ${n.year}</small></div>`).join('')||'<p class="helper">Todavía no hay movimientos relevantes.</p>'}</div></section></div></div>`}
+function matchEventDetail(e){
+ const f=e.facts;
+ if(!f)return '';
+ const who=id=>player(id)?.name||'Profesional desconocido';
+ let detail='';
+ if(f.action==='gank')detail=`Jungla: ${who(f.initiatorId)} · Kill: ${who(f.actorId)}`;
+ else if(f.action==='teamfight')detail=`${who(f.actorId)} · ${f.victimIds.length} eliminaciones${f.ace?' · Exterminio confirmado':''}`;
+ else if(f.action==='baron')detail=f.stolen?`Robo con Smite: ${who(f.actorId)} (JUN)`:`Barón asegurado: ${who(f.actorId)}`;
+ else if(f.action==='dragon')detail=`Objetivo: ${who(f.actorId)} · Dragón ${f.ordinal}`;
+ else if(f.action==='tower')detail=`Presión: ${who(f.actorId)} · Torre ${f.stage} de ${f.lane}`;
+ else if(f.action==='nexus')detail=`Último avance: ${who(f.actorId)}`;
+ return detail?`<div class="helper" style="margin-top:5px">RiftCast · ${esc(detail)}</div>`:'';
+}
 function renderMatch(){const c=currentClub(),l=s.live;
  if(!l)return `${pageTitle('Match Center','Escoge tu quinteto y estrategia; los jugadores compiten autónomamente mientras tú disfrutas del encuentro.')}
  <div class="cols"><div>${matchupPanel()}${strategyPanel()}
@@ -429,7 +444,7 @@ function renderMatch(){const c=currentClub(),l=s.live;
  </div><div class="buttons" style="margin-top:13px">${ended?`<button class="btn" data-action="leave-match">Volver al club</button>`:`<button class="btn secondary" data-action="${l.running?'pause':'resume'}">${icon(l.running?'pause':'play',14)} ${l.running?'Pausar':'Continuar'}</button>`}
  ${[1,2,5].map(n=>`<button class="btn ${l.speed===n?'':'ghost'} small" data-action="speed-${n}" ${ended?'disabled':''}>${n}×</button>`).join('')}<button class="btn ghost small" data-action="instant" ${ended?'disabled':''}>Ir al final</button></div>
  ${ended?`<div class="banner ${l.winner===s.userClub?'':'warn'}" style="margin-top:13px"><strong>${l.winner===s.userClub?'¡VICTORIA!':'Derrota'}</strong> · ${esc(win.name)} destruyó el nexo. Duración: ${frame.minute} minutos. Los resultados quedaron registrados en las estadísticas y finanzas.</div>`:''}</section>
- <section class="panel"><div class="panel-head"><h2>Comentaristas · RiftCast</h2><span class="chip">${events.length} acontecimientos</span></div><div class="eventlog" id="eventlog">${events.map(e=>`<div class="event ${e.kind==='goal'?'goal':e.kind==='fight'||e.kind==='end'?'major':''}"><time>${e.time}</time><div class="body"><b>${esc(e.title)}</b><p>${esc(e.body)}</p></div></div>`).join('')}</div></section></div>
+ <section class="panel"><div class="panel-head"><h2>Comentaristas · RiftCast</h2><span class="chip">${events.length} acontecimientos</span></div><div class="eventlog" id="eventlog">${events.map(e=>`<div class="event ${e.kind==='goal'?'goal':e.kind==='fight'||e.kind==='end'?'major':''}"><time>${e.time}</time><div class="body"><b>${esc(e.title)}</b><p>${esc(e.body)}</p>${matchEventDetail(e)}</div></div>`).join('')}</div></section></div>
  <div><section class="panel"><h2>Plan deportivo</h2><p class="helper" style="margin-top:9px">${strategyName(s.style)} · Sin órdenes directas durante este mapa.</p><div class="banner">Los traits alteran el comportamiento, pero ninguna jugada está garantizada. Tu equipo puede equivocarse o sorprenderte.</div></section>
  <section class="panel"><h2>La alineación</h2>${[a,b].map(tc=>`<div class="eyebrow" style="margin-top:12px">${esc(tc.name)}</div>${ROLES.map(role=>{let p=player(tc.lineup[role]);return `<div class="activity"><span>${role} · ${esc(p.name)}</span><span class="muted">${playerRating(p)}</span></div>`}).join('')}`).join('')}</section></div></div>`
 }

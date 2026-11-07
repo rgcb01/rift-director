@@ -4,6 +4,16 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Match Center: evidencias y auditoría (M1.2, 2026-11-07)
+- Eventos nuevos de partido almacenan evidencia estructurada de autores, víctimas, carriles y objetivos para alinear retransmisión y marcador.
+- Auditoría independiente en `src/core/match-events.js`, con tests para cientos de partidos y casos manipulados (Smite en MID, objetivos inválidos, kills duplicadas).
+- Corregidas las torres atribuidas a jugadores muertos y las tomas de Barón iniciadas por equipos incapaces de disputarlas.
+- **Cambio intencional de simulación:** algunas partidas con la misma semilla pueden tener resultados y secuencias diferentes después de corregir estas acciones; la referencia determinista quedó actualizada y la economía base conserva su cálculo.
+- RiftCast presenta datos de autor y participación según el evento simulado.
+- Guardados `v2` anteriores siguen cargando: `facts` es opcional en los archivos existentes.
+- El simulador es todavía abstracto y no dispone de inventario real de summoner spells ni draft de campeones.
+
+
 ### Refactor financiero (M1.1, 2026-11-07)
 - Motor económico aislado en `src/core/finance.js`: salarios, cotización mensual, costes, precio de mercado, transferencias de caja y scouting.
 - Ventas de profesionales protegidas ante ofertas cuyo comprador no puede pagar; sin mover plantillas ni saldos en ese caso.
