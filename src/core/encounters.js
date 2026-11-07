@@ -35,9 +35,9 @@ const distance=(a,b)=>Math.hypot(point(a).x-point(b).x,point(a).y-point(b).y);
 const nearZone=(agent,zone)=>distance(agent.node,zone)<=99;
 const threat=(nav,a,b)=>{
  if(!a?.alive||!b?.alive)return false;
- return nav.hops(a.node,b.node)<=3&&distance(a.node,b.node)<=112;
+ return core.Navigation.hops(a.node,b.node)<=3&&distance(a.node,b.node)<=112;
 };
-const reachable=(nav,a,b)=>nav.combatRange(a.node,b.node,3);
+const reachable=(nav,a,b)=>core.Navigation.combatRange(a.node,b.node,3);
 function locate(nav,dead,minute,zone){
  const result={[nav.a]:[],[nav.b]:[]};
  for(const p of Object.values(nav.agents)){
