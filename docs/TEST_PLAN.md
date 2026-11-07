@@ -125,3 +125,14 @@ Antes de una release:
 - Guardado `v2` antiguo sin minimapa: puede reanudarse y finalizar sin migración ni datos inventados.
 - La exhibición sigue aislada del guardado original.
 - **Manual pendiente:** verificar tamaño/legibilidad, fluidez y botones del Match Center en Safari iOS y Chrome Android. M1.3B validará rutas y movimiento físico, que M1.3A aún no simula.
+
+## M1.4A — Ritmo y variedad narrativa
+
+- El temporizador debe marcar 1× = 5000 ms, 2× = 2500 ms, 5× = 950 ms, sin depender del número de FPS del navegador.
+- Con varios acontecimientos en el mismo minuto, 1× revela **solo uno por paso**; no omite otros antes de mostrar el siguiente minuto.
+- La velocidad 5×, pausa/reanudación y salto instantáneo usan el mismo ganador, eventos y premios; `finishMatch()` no debe ejecutarse dos veces.
+- Comprobar en cientos de semillas variedad de asuntos, títulos, cambios reales de oro, superioridad de visión/carriles y análisis de objetivos sin inventar estadísticas deportivas.
+- La creación del broadcast no consume RNG ni altera `event.facts`, frames o ganador. Debe ser reproducible con la misma seed.
+- Falsificar datos editoriales debe hacer fallar `auditBroadcast`, sin necesidad de modificar datos de deporte.
+- Guardado viejo `v2` sin `broadcast` debe seguir reproduciéndose y finalizando.
+- **Manual pendiente:** evaluar legibilidad del feed a 1× en móvil y escritorio, y comprobar que el marcador por minuto no actúe como adelanto excesivo de acontecimientos que aún no se revelan.

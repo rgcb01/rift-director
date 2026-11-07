@@ -4,7 +4,7 @@
 
 [**Jugar en el navegador**](https://rgcb01.github.io/rift-director/) · [Roadmap](ROADMAP.md) · [Cambios](CHANGELOG.md) · [Cómo contribuir](CONTRIBUTING.md)
 
-> **Alpha 0.4 — prototipo jugable.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
+> **Alpha 0.5 — prototipo jugable.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
 
 ## La idea
 
@@ -20,7 +20,7 @@ Los meses impulsan las finanzas y el mundo. Las noticias y los rumores reflejan 
 - No hay instalación de paquetes, cuenta ni backend para jugar.
 - **Guardados:** automáticos en `localStorage` de ese navegador. En **Partida** puedes **exportar/importar JSON**. Los guardados no se sincronizan entre dispositivos; expórtalos antes de borrar datos del navegador.
 
-## Qué existe hoy (Alpha 0.4)
+## Qué existe hoy (Alpha 0.5)
 
 | Área | Implementado | Límites actuales |
 |---|---|---|
@@ -43,6 +43,7 @@ index.html     Entrada de GitHub Pages
 styles.css     Interfaz adaptable
 src/core/      RNG, calendario, economía, proyección del minimapa y guardados
 src/ui/        Render SVG del minimapa de partidos
+src/core/broadcast.js   Ritmo narrado y comentarios tácticos verificables
 game.js        Mundo, partidos, economía y UI (aún pendiente de modularizar)
 scripts/       Comprobaciones automatizadas
 docs/          Diseño, arquitectura y plan de pruebas
@@ -60,6 +61,7 @@ node --check src/core/map-state.js
 node --check src/core/minimap-graph.js
 node --check src/core/minimap-simulation.js
 node --check src/ui/minimap.js
+node --check src/core/broadcast.js
 node --check src/core/match-stats.js
 node --check src/core/match-events.js
 node --check src/core/persistence.js
@@ -112,3 +114,11 @@ Los partidos narrados registran `K/D/A`, pentakills y participación en torres, 
 ### M1.3A — Minimap SVG (Alpha 0.4)
 
 En la retransmisión y en la **exhibición de prueba** aparece un minimapa ligero, sin imágenes ni librerías. Muestra diez cabezas por rol, posiciones aproximadas por fase, estructuras intactas/destruidas, Dragón, Barón, presión por líneas y agrupación de supervivientes al nexo contrario. Usa `event.facts` y `frame.map`, **sin nueva tirada aleatoria**; los mismos datos que validan RiftCast pintan las ruinas y los iconos. Las partidas antiguas sin `frame.minimap` conservan el Match Center y muestran un mensaje compatible. **No es navegación física real**: hasta M1.3B las posiciones son una reconstrucción visual que no bloquea ni autoriza ganks o peleas.
+
+### M1.4 — Ritmo y narración contextual (Alpha 0.5)
+
+En **1×** la retransmisión avanza un paso cada **5 segundos**, y si un minuto contiene varias novedades, se muestran una por una. En **2×** cada minuto dura aproximadamente **2.5 segundos**; en **5×** tarda **950 ms por minuto**. Pausar, acelerar, saltar al final y repetir no modifica la simulación.
+
+`src/core/broadcast.js` incorpora temas de cobertura derivados de la partida: presión de carriles, visión, ventaja de oro, remontadas reales, ventanas de objetivos, ventajas de torres, bajas y rendimiento del ADC. También elige variantes de títulos y comentarios para asesinatos, ganks, peleas, Barón, Dragón, torres y nexo. **No inventa asesinatos, wards, movimientos ni resultados**: las observaciones son una capa editorial separada de `event.facts`. La elección es determinista sin consumir RNG del juego; `auditBroadcast` verifica la correspondencia con los datos fuente. Los guardados `v2` históricos sin cobertura ampliada siguen funcionando; la velocidad 1× se actualizará igualmente a un ritmo más legible.
+
+**Siguiente paso de profundidad:** M1.3B introducirá desplazamiento espacial causal y M1.4B podrá registrar eventos jugables adicionales (intercambios de oleadas, trampas, peleas de visión, retirada estratégica) con consecuencias medibles. Los nuevos comentarios actuales **no son nuevas acciones deportivas**.

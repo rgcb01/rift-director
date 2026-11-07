@@ -1,4 +1,4 @@
-# Arquitectura actual — Alpha 0.4 / M1.3A
+# Arquitectura actual — Alpha 0.5 / M1.4A
 
 Este documento describe la **implementación comprobada** del repositorio a fecha 2026-11-07, no su arquitectura ideal.
 
@@ -17,6 +17,7 @@ src/core/map-state.js      Visión/presión y rutas abstractas de gank
 src/core/minimap-graph.js  Nodos, carriles y coordenadas de torres
 src/core/minimap-simulation.js  Proyección visual de frames/eventos
 src/ui/minimap.js         SVG de jugadores, estructuras y territorio
+src/core/broadcast.js     Variantes de narración, análisis contextual y tiempos de reproducción
 src/core/persistence.js    Parseo, validación, almacenamiento local v2
 game.js                    IIFE con mundo, motor de partidos, finanzas, rendering y eventos DOM
 scripts/check-static.mjs   Validación ligera de archivos/recursos
@@ -162,3 +163,11 @@ Al finalizar `simulateMatch()`, la función `RiftCore.attachMinimap(report, worl
 **Límite deliberado de M1.3A:** el movimiento está reconstruido *después* de simular, por lo que todavía no restringe ganks según distancia o rutas físicas. No llamar a esto una simulación espacial causal; M1.3B introducirá navegación entre nodos y decisiones dependientes de presencia.
 
 El formato de save sigue siendo `v2`. Las partidas antiguas sin `frame.minimap` no se alteran al importar: la UI presenta un fallback. `RiftCore.auditMinimap` recrea la proyección y la compara frame por frame en pruebas, sin alterar el estado guardado.
+
+## M1.4A — Retransmisión frente a simulación
+
+`simulateMatch` sigue generando las mismas acciones, stats y frames. Al final de la simulación, `RiftCore.attachBroadcast(report,world,commentarySeed)` crea **sin consumir el RNG del juego** un campo opcional `report.broadcast` con variantes de las noticias existentes y observaciones estratégicas basadas en `frame.map`, `frame.playerStats`, `frame.gold`, `frame.minimap` y el historial real. `RiftCore.broadcastFeed` compone un timeline ordenado, `feedCountAt` da el límite de novedades disponibles hasta cada frame y `auditBroadcast` lo recompone para verificar su exactitud. Los eventos deportivos originales y `event.facts` no se modifican.
+
+En `tick()`, la velocidad `1×` revela una novedad por paso de **5000 ms** y usa el frame precomputado para mostrar el mapa; `2×` y `5×` avanzan los frames a **2500 ms** y **950 ms**. El reloj deportivo y el feed se basan en el mismo encuentro precalculado; **algunas cifras del minuto pueden adelantarse a la última línea de comentario cuando hay varias novedades dentro de ese minuto**. Se trata de una limitación de snapshots por minuto que se resolverá con subframes de evento.
+
+Los save `v2` sin `broadcast` presentan el registro original completo y se pueden reproducir con el nuevo ritmo. La nueva capa editorial explica jugadas y señales pero no crea acciones deportivas ni modifica el ganador; las acciones tácticas causales se proponen para M1.3B/M1.4B.

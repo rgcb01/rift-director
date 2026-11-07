@@ -4,6 +4,18 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+## [0.5.0-alpha] — 2026-11-07
+
+### Ritmo narrativo y variedad de RiftCast
+- La velocidad **1×** pasa de 750 ms/minuto a **5 s por paso**. Si hay varios momentos en el mismo minuto, se revelan por separado. Velocidad **2×: 2.5 s/min**; **5×: 950 ms/min**.
+- Inicio de partidos y demo en 1× para que nuevos jugadores puedan seguir las jugadas; mantiene pausa, cambio de velocidad y salto instantáneo.
+- Comentarios estratégicos adicionales basados en estadísticas reales del partido: presión por carriles, visión, oro, cambios de liderato, igualdad, muertes y preparación de objetivos.
+- Variantes contextuales en títulos/cobertura de peleas, asesinatos, torres, Dragón, Barón y nexo; se evitan repeticiones mediante selección determinista y enfriamiento por tema.
+- Nuevo `src/core/broadcast.js`: crea un relato separado del motor deportivo, sin consumir RNG ni añadir bajas o cambios de marcador. Auditoría de fidelidad de comentarios y pruebas de reproducción a distintas velocidades.
+- Guardados `v2` anteriores compatibles; `broadcast` es opcional y los resultados calculados antes de la retransmisión no cambian.
+- **Limitación:** las observaciones tácticas no alteran el mundo físico; los eventos de juego nuevos requerirán estado causal en fases posteriores.
+
+
 ## [0.4.0-alpha] — 2026-11-07
 
 ### M1.3A · Minimap visual de partidos
