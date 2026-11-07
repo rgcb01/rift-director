@@ -1,6 +1,6 @@
 (()=>{'use strict';
-const KEY='rift_director_v02_save';
-const ROLES=['TOP','JUN','MID','ADC','SUP'];
+const KEY=RiftCore.SAVE_KEY;
+const ROLES=RiftCore.ROLES;
 const ROLE_NAME={TOP:'Top',JUN:'Jungla',MID:'Mid',ADC:'Tirador',SUP:'Support'};
 const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const ICONS={home:'<path d="m3 10 9-7 9 7v10H3z"/><path d="M9 20v-7h6v7"/>',users:'<circle cx="9" cy="7" r="3"/><path d="M2 20v-2a7 7 0 0 1 14 0v2"/><path d="M17 5a3 3 0 0 1 0 6m1 3a5 5 0 0 1 4 5"/>',market:'<path d="M3 9h18l-2-6H5zM5 9v12h14V9M9 21v-7h6v7"/>',match:'<path d="M4 20 20 4M5 4l15 16"/><path d="M2 5l5-3m10 20 5-3"/>',money:'<rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/>',world:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c-5 5-5 13 0 18M12 3c5 5 5 13 0 18"/>',play:'<path d="m8 5 12 7-12 7z"/>',pause:'<path d="M8 5v14M16 5v14"/>',calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 2v6M17 2v6M3 10h18"/>',spark:'<path d="m12 2 2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z"/>',settings:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3M5 5l2 2m10 10 2 2M19 5l-2 2M7 17l-2 2"/>',news:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h10M7 11h4M7 15h10M7 18h10M14 11h3v3h-3z"/>'};
@@ -10,7 +10,7 @@ const fmt=n=>{const sign=n<0?'-':'';let x=Math.abs(Math.round(n));return sign+'$
 const clamp=(a,min,max)=>Math.max(min,Math.min(max,a));
 const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
 let s=null,view='home',modal=null,timer=null,toastTimer=null,theme='balanced',draftName='Aurora Esports';
-const rnd=()=>{let x=s.rng|0;x^=x<<13;x^=x>>>17;x^=x<<5;s.rng=x|0;return ((x>>>0)/4294967296)};
+const rnd=()=>RiftCore.nextRandom(s);
 const ri=(a,b)=>Math.floor(rnd()*(b-a+1))+a;
 const chance=p=>rnd()<p;
 const pick=arr=>arr[Math.floor(rnd()*arr.length)];
@@ -75,7 +75,7 @@ function teamPower(c,stage='mid'){const ps=teamPlayers(c);let skill=avg(ps.map(p
  return val}
 function addNews(title,body,type='world',teamId=null,importance=1){let n={id:uid('n'),year:s.year,month:s.month,title,body,type,teamId,importance};s.news.unshift(n);s.news=s.news.slice(0,130);return n}
 function newGame(chosen='balanced',orgName='Aurora Esports'){
- s={v:2,rng:((Date.now()>>>0)^0x6a1d92eb)||1,nextId:0,usedNames:[],year:2027,month:1,clubs:[],players:[],userClub:null,fixtures:{},otherFixtures:{},standings:{},otherStandings:{},news:[],history:[],season:1,monthlyReports:[],matchReports:[],meta:'balanced',style:'balanced',plan:{scrims:2,development:1,rest:1,content:1,community:1,scout:1},focus:null,offers:[],playoffs:[],playoffsSetup:false,live:null,over:false,leagueHype:60,leagueName:'Liga Aurora',otherName:'Circuito Boreal',rumors:[],scoutLevel:1,challenge:chosen};
+ s=RiftCore.createInitialState(chosen);
  s.meta=pick(['aggressive','objectives','scaling']);
  const yourClub=makeClub(orgName,'Aurora',colours[0],'user',chosen==='rich'?2600000:chosen==='academy'?1050000:1600000);
  yourClub.fans=chosen==='rich'?195000:chosen==='academy'?88000:148000;
@@ -102,8 +102,8 @@ function newGame(chosen='balanced',orgName='Aurora Esports'){
 }
 function generateOffers(){return [0,1,2].map((i)=>({id:uid('offer'),name:pick(sponsors),monthly:Math.round((79000+i*23000+ri(-7000,18000))*(.75+currentClub().fans/480000)),obligation:i===0?'none':i===1?'community':'content',length:ri(5,11)}))}
 const defaultPlan=()=>({scrims:2,development:1,rest:1,content:1,community:1,scout:1});
-function save(){try{localStorage.setItem(KEY,JSON.stringify(s))}catch(e){console.warn('Guardado no disponible',e)}}
-function load(){try{let data=JSON.parse(localStorage.getItem(KEY)||'null');if(data&&data.v===2&&Array.isArray(data.clubs)&&data.players&&data.userClub){s=data;return true}}catch(e){console.warn(e)}return false}
+function save(){try{RiftCore.saveWorld(localStorage,s)}catch(e){console.warn('Guardado no disponible',e)}}
+function load(){try{const data=RiftCore.loadWorld(localStorage);if(data){s=data;return true}}catch(e){console.warn('Guardado inválido',e)}return false}
 function crest(c,size=46){if(!c)return'';let shape='';const fill=esc(c.color);switch(c.logo%6){case 0:shape='<path d="M25 3 43 12 40 33 25 48 10 33 7 12z"/><path d="M25 13 33 32 25 28 17 32z" fill="none" stroke="#fff" stroke-width="2"/>';break;case 1:shape='<path d="M25 4 46 24 25 47 4 24z"/><path d="M15 25h20M25 13v24" stroke="#fff" stroke-width="3"/>';break;case 2:shape='<path d="M25 4 45 13v23L25 48 5 36V13z"/><path d="M12 29 25 12 38 29 25 39z" fill="#081421"/>';break;case 3:shape='<circle cx="25" cy="25" r="22"/><path d="m12 30 13-20 13 20-13 9z" fill="#071523"/>';break;case 4:shape='<path d="M10 5h30v25L25 47 10 30z"/><path d="M15 23h20M25 13v20" stroke="#071523" stroke-width="4"/>';break;default:shape='<path d="M25 3 44 18 37 42 13 42 6 18z"/><circle cx="25" cy="24" r="10" fill="#081421"/>'}
  return `<svg class="crest" width="${size}" height="${size}" viewBox="0 0 50 52" aria-label="Escudo de ${esc(c.name)}"><defs><linearGradient id="lg${esc(c.id)}" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${fill}"/><stop offset="1" stop-color="#2f5068"/></linearGradient></defs><g fill="url(#lg${esc(c.id)})" stroke="#cce7ee" stroke-width="1.3">${shape}</g></svg>`}
 function avatar(p,c){let q=(Number(p.id.replace(/\D/g,''))||12)*137;const skin=['#e9b68d','#b9876a','#d6a17f','#f0cbac','#ad7859','#d59c77'][q%6];const hair=['#151b25','#3a2826','#51372b','#252b30','#775847','#1b1b24'][(q>>2)%6];const eyex=q%2?`<rect x="43" y="43" width="33" height="10" rx="5" fill="none" stroke="#a9d2dc" stroke-width="3"/><path d="M59 46h-2" stroke="#a9d2dc" stroke-width="2"/>`:'';const tint=c?.color||'#7395ab';const hairStyle=q%4;let hairPath=['M35 40Q31 15 58 18Q89 13 83 43Q66 28 44 36z','M34 42Q28 10 61 16Q87 17 84 40L69 27 52 32 39 37z','M35 42Q40 18 60 18Q86 17 82 39L73 30 46 32z','M33 43Q29 18 54 17Q79 11 84 36L77 34Q62 16 41 37z'][hairStyle];return `<svg viewBox="0 0 120 140" role="img" aria-label="Retrato vectorial de ${esc(p.name)}"><path d="M6 140Q10 104 37 95L84 95Q113 104 116 140Z" fill="${esc(tint)}"/><path d="M23 140 31 104 46 99 59 120 76 99 89 104 98 140Z" fill="#111f30" opacity=".58"/><path d="M53 91h16v21l-8 8-8-8z" fill="${skin}"/><ellipse cx="60" cy="56" rx="26" ry="35" fill="${skin}"/><path d="${hairPath}" fill="${hair}"/><path d="M47 57h7M67 57h7" stroke="#1f252a" stroke-width="2.5" stroke-linecap="round"/><path d="M56 73q5 3 10 0" fill="none" stroke="#8f5144" stroke-width="2"/>${eyex}<path d="M38 104q21 20 44 0" fill="none" stroke="#e4f1f4" stroke-width="2" opacity=".45"/></svg>`}
@@ -493,7 +493,7 @@ function render(){if(!s){document.getElementById('app').innerHTML=renderModal();
 }
 function updatePlan(id,delta){if(s.live&&!s.live.finished)return notify('Finaliza el partido para modificar la agenda.');if(!Object.hasOwn(s.plan,id))return;let x=s.plan[id]+delta;if(x<0||x>4||delta>0&&sumPlan()>=8)return;s.plan[id]=x;save();render()}
 function exportGame(){let blob=new Blob([JSON.stringify(s,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`rift-director-${s.year}-${s.month}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);notify('Partida exportada en JSON.')}
-function importGame(file){if(!file)return;file.text().then(txt=>{let x=JSON.parse(txt);if(x?.v!==2||!Array.isArray(x.clubs)||!Array.isArray(x.players)||!x.userClub)throw Error('Formato de partida incompatible');stopTimer();s=x;modal=null;view='home';save();render();if(s.live?.running)playTimer();notify('Partida restaurada.')}).catch(e=>notify('No se pudo importar: '+e.message))}
+function importGame(file){if(!file)return;file.text().then(txt=>{let x=RiftCore.parseWorld(txt);stopTimer();s=x;modal=null;view='home';save();render();if(s.live?.running)playTimer();notify('Partida restaurada.')}).catch(e=>notify('No se pudo importar: '+e.message))}
 function goTab(id){if(!['home','roster','market','match','finance','world','settings'].includes(id))return;view=id;modal=null;render();window.scrollTo({top:0,behavior:'instant'})}
 function handleClick(ev){let target=ev.target.closest('[data-action],[data-nav]');if(!target)return;
  if(target.dataset.nav){goTab(target.dataset.nav);return}let a=target.dataset.action,id=target.dataset.id;

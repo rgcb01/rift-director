@@ -7,8 +7,8 @@ Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prome
 ## Estado
 
 - **Alpha 0.2 — [jugable]:** dos regiones ficticias, club y plantilla, finanzas mensuales, mercado sencillo, partidos narrados, noticias, offseason, SVG y guardado JSON.
-- **Base del repositorio — [en preparación]:** documentación, flujos de incidencias y comprobaciones de regresión.
-- **Objetivo inmediato — M1:** sacar un núcleo comprobable sin romper los guardados existentes.
+- **Base del repositorio — [implementada]:** documentación, flujos de incidencias y comprobaciones de regresión.
+- **M1.1 — [primera fase implementada]:** RNG, estado inicial, persistencia v2 y pruebas de compatibilidad extraídos. Aún falta separar calendario, reglas de dominio y aumentar la cobertura.
 
 ## Hitos
 
@@ -100,4 +100,4 @@ Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prome
 
 ## Próxima tarea concreta
 
-**M1.1:** documentar y aislar el modelo de estado, calendario y RNG. Crear pruebas deterministas de creación de mundo, mes completo, simulación de partidos y rollover anual, sin cambiar la semántica del guardado v2.
+**M1.1 restante:** extraer calendario y reglas de dominio con pruebas de importación de guardados heredados, cerrar invariantes de contratos y asegurar continuidad del formato v2. Después avanzar hacia M1.2 (narración y eventos).

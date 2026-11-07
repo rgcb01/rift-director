@@ -4,6 +4,14 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Refactor (M1.1, 2026-11-07)
+- RNG xorshift32 movido a `src/core/rng.js` sin cambiar la secuencia original.
+- Factory del estado v2 extraída a `src/core/state.js` con roles compartidos.
+- Guardados e importación centralizados en `src/core/persistence.js`, con validación de relaciones entre clubs, jugadores y alineaciones.
+- Scripts cargados explícitamente en el orden correcto por GitHub Pages.
+- Pruebas de regresión reproducible, huellas de resultados Alpha 0.2 y validación de guardados corruptos.
+- **Sin cambios intencionales de gameplay ni de formato de guardado**.
+
 ### Añadido (infraestructura de desarrollo, 2026-11-07)
 - README actualizado con instrucciones de juego, desarrollo y estado real.
 - Roadmap por hitos con criterios verificables de aceptación.

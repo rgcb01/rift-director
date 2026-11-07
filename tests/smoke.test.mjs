@@ -1,37 +1,7 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
-import vm from 'node:vm';
-
-const file = fileURLToPath(new URL('../game.js', import.meta.url));
-const source = readFileSync(file, 'utf8');
-
-// Puente temporal SOLO para testing. No se añade ninguna API global al juego distribuido.
-const exposed = source.replace(/\}\)\(\);\s*$/, `globalThis.__riftSmoke = {
-  newGame, simulateMatch, teamPlayers, currentClub,
-  save, load, applyMonth, getState: () => s
-};})();`);
-assert.notEqual(exposed, source, 'No se encontró el cierre esperado de game.js; actualizar harness.');
-
-function boot() {
-  const store = new Map();
-  const app = { innerHTML: '' };
-  const env = {
-    document: {
-      addEventListener() {},
-      getElementById() { return app; },
-    },
-    localStorage: {
-      getItem(k) { return store.get(k) ?? null; },
-      setItem(k, v) { store.set(k, v); },
-      removeItem(k) { store.delete(k); },
-    },
-    Date, console, setInterval, clearInterval, setTimeout, clearTimeout,
-  };
-  vm.runInNewContext(exposed, env, { timeout: 10000 });
-  return env.__riftSmoke;
-}
+import { boot as createHarness } from './harness.mjs';
+const boot = () => createHarness().sim;
 
 test('universo inicial: equipos, roles y calendario válidos', () => {
   const sim = boot();
@@ -53,7 +23,7 @@ test('un partido termina con ganador, nexo y eventos cronológicos', () => {
   const s = sim.newGame('balanced', 'QA Esports');
   const fixture = Object.values(s.fixtures).flat().find(f => f.a === s.userClub || f.b === s.userClub);
   assert.ok(fixture, 'No se encontró un partido del usuario');
-  for (let seed = 1; seed <= 20; seed++) {
+  for (let seed = 1; seed <= 50; seed++) {
     s.rng = seed * 1777;
     const match = sim.simulateMatch(fixture);
     assert.ok([fixture.a, fixture.b].includes(match.winner), 'Ganador inválido');

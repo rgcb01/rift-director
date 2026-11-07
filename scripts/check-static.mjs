@@ -5,7 +5,7 @@ import { dirname, join } from 'node:path';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const read = name => readFileSync(join(root, name), 'utf8');
-for (const name of ['index.html', 'styles.css', 'game.js', 'README.md', 'ROADMAP.md', 'CHANGELOG.md']) {
+for (const name of ['index.html', 'styles.css', 'game.js', 'src/core/rng.js', 'src/core/state.js', 'src/core/persistence.js', 'README.md', 'ROADMAP.md', 'CHANGELOG.md']) {
   const path = join(root, name);
   assert.ok(existsSync(path), `Falta ${name}`);
   assert.ok(statSync(path).size > 0, `Archivo vacío: ${name}`);
@@ -24,5 +24,12 @@ for (const ref of resources) {
   assert.ok(!clean.includes('..'), `Recurso fuera de la raíz: ${ref}`);
   assert.ok(existsSync(join(root, clean)), `Recurso local no encontrado: ${ref}`);
 }
-assert.match(read('game.js'), /rift_director_v02_save/, 'Falta clave de guardado v2');
+assert.match(read('src/core/persistence.js'), /rift_director_v02_save/, 'Falta clave de guardado v2');
+const order = ['src/core/rng.js', 'src/core/state.js', 'src/core/persistence.js', 'game.js'];
+let previous = -1;
+for (const entry of order) {
+  const position = html.indexOf('src="' + entry + '"');
+  assert.ok(position > previous, 'Orden de scripts incorrecto: ' + entry);
+  previous = position;
+}
 console.log('OK: archivos, punto de montaje, recursos locales y clave de guardado.');

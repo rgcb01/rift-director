@@ -1,4 +1,4 @@
-# Arquitectura actual — Alpha 0.2
+# Arquitectura actual — Alpha 0.2 / M1.1
 
 Este documento describe la **implementación comprobada** del repositorio a fecha 2026-11-07, no su arquitectura ideal.
 
@@ -7,7 +7,10 @@ Este documento describe la **implementación comprobada** del repositorio a fech
 ```text
 index.html                 Entrada estática con #app
 styles.css                 Estilos responsive
-game.js                    IIFE que incluye mundo, motor de partidos, finanzas, rendering y eventos DOM
+src/core/rng.js            Secuencia pseudoaleatoria v2 (sin cambios)
+src/core/state.js          Estado inicial v2 y roles
+src/core/persistence.js    Parseo, validación, almacenamiento local v2
+game.js                    IIFE con mundo, motor de partidos, finanzas, rendering y eventos DOM
 scripts/check-static.mjs   Validación ligera de archivos/recursos
 tests/smoke.test.mjs       Pruebas de invariantes básicas del motor
 docs/                     Reglas de producto y pruebas
@@ -18,7 +21,7 @@ No utiliza backend, empaquetador, frameworks ni peticiones a servicios externos.
 
 ## Estado de partida
 
-La variable `s` vive dentro de la IIFE de `game.js`. `newGame()` inicializa el universo (año **2027**, enero, dos regiones ficticias), la plantilla del usuario, sus rivales y la primera temporada.
+La variable `s` vive dentro de la IIFE de `game.js`. `newGame()` usa la factory `RiftCore.createInitialState()` de `src/core/state.js` e inicializa el universo (año **2027**, enero, dos regiones ficticias), la plantilla del usuario, sus rivales y la primera temporada.
 
 Campos centrales del objeto de estado (resumen, no esquema exhaustivo):
 
@@ -64,13 +67,13 @@ Campos centrales del objeto de estado (resumen, no esquema exhaustivo):
 
 ## Aleatoriedad y reproducibilidad
 
-`rnd()` utiliza un generador pseudoaleatorio con estado guardado en `s.rng`, inicializado al crear la partida. La misma instantánea de estado y secuencia de decisiones permiten repetir resultados; no hay aún selector de seed visible ni API pública de simulación. La prueba de smoke extrae funciones internas de la IIFE **solo durante las pruebas**, sin modificar el juego distribuido.
+`rnd()` delega a `RiftCore.nextRandom(s)` en `src/core/rng.js`, conservando exactamente el generador xorshift32 y el estado `s.rng` de Alpha 0.2, inicializado al crear la partida. La misma instantánea de estado y secuencia de decisiones permiten repetir resultados; no hay aún selector de seed visible ni API pública de simulación. La prueba de smoke extrae funciones internas de la IIFE **solo durante las pruebas**, sin modificar el juego distribuido.
 
 ## Guardados
 
 - Clave actual: `rift_director_v02_save` en `localStorage`.
 - Formato: JSON que incluye el estado completo y `v: 2`.
-- `load()` y `importGame()` verifican algunos campos estructurales, pero **no** validan exhaustivamente cada entidad o relación.
+- `load()` e `importGame()` usan `RiftCore.parseWorld()`, que valida versión, fecha, IDs, estructura básica de clubes, roster, roles y pertenencia de jugadores. **Aún no comprueba todas las reglas de calendario, contratos o historial**.
 - No existen migraciones desde otras versiones, sincronización en la nube ni garantía de capacidad ilimitada de almacenamiento.
 
 **Contrato de compatibilidad para próximos hitos:**
@@ -81,7 +84,7 @@ Campos centrales del objeto de estado (resumen, no esquema exhaustivo):
 
 ## Limitaciones y deuda técnica
 
-1. `game.js` mezcla datos, presentación, tiempo, economía y simulación; refactor gradual recomendado.
+1. `game.js` todavía mezcla mundo, tiempo, economía, partidas y UI; RNG, estado inicial y persistencia ya están aislados. Refactor gradual recomendado.
 2. Las pruebas iniciales verifican invariantes mínimas, no balance económico ni diversión.
 3. La IA rival, eventos causales y mercado usan heurísticas simplificadas.
 4. El feed de noticias conserva una ventana limitada; hace falta estrategia de archivo histórico.
@@ -99,3 +102,7 @@ tests/             Reglas deterministas e invariantes
 ```
 
 El siguiente paso debe ser extraer primero funciones puras y pruebas, evitando una reescritura total que comprometa las partidas guardadas.
+
+## Regresión de compatibilidad M1.1
+
+El juego carga `rng.js`, `state.js`, `persistence.js` y `game.js` en ese orden desde `index.html`. No hay bundler ni dependencia externa. La clave de `localStorage` es la misma y `v: 2` continúa intacto. `tests/golden.test.mjs` compara huellas SHA-256 de estados y resultados deterministas capturados en la Alpha 0.2 original; `tests/core.test.mjs` verifica secuencia de RNG, validación, roundtrip y transición anual. Las pruebas no implican una garantía absoluta de compatibilidad de todos los guardados históricos posibles.

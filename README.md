@@ -40,7 +40,8 @@ El juego actual es **estático y sin dependencias**:
 ```text
 index.html     Entrada de GitHub Pages
 styles.css     Interfaz adaptable
-game.js        Simulación, estado, UI y guardados (por ahora juntos)
+src/core/      RNG, estado inicial y validación/guardados v2
+game.js        Mundo, partidos, economía y UI (aún pendiente de modularizar)
 scripts/       Comprobaciones automatizadas
 docs/          Diseño, arquitectura y plan de pruebas
 .github/       CI y plantillas de incidencias
@@ -49,6 +50,9 @@ docs/          Diseño, arquitectura y plan de pruebas
 Requisitos para desarrollo: **Node.js 22+** para ejecutar comprobaciones. El navegador no necesita Node.
 
 ```bash
+node --check src/core/rng.js
+node --check src/core/state.js
+node --check src/core/persistence.js
 node --check game.js
 node scripts/check-static.mjs
 node --test
@@ -70,3 +74,7 @@ Los cambios a `main` pueden publicarse mediante la configuración de GitHub Page
 Todavía **no se ha elegido una licencia**. La publicación del código en GitHub no autoriza automáticamente su reutilización o redistribución. Antes de aceptar contribuciones externas o distribuir una versión abierta, hay que decidir una licencia explícita y revisar los derechos sobre los recursos.
 
 El universo oficial del juego usa contenido **original y ficticio**. No se deben incorporar nombres, logotipos, fotografías ni material de terceros sin los derechos pertinentes. Los futuros paquetes de datos opcionales deberán respetar esa regla.
+
+### M1.1: núcleo aislado sin romper Alpha 0.2
+
+La inicialización del estado, la secuencia de RNG y la validación de guardados ahora viven en `src/core/`. **La clave y el formato de guardado siguen siendo v2.** La suite incorpora una huella SHA-256 de un universo, partido y mes generados con la Alpha 0.2 original; no acepta cambios accidentales en los resultados. El motor deportivo, calendario y UI siguen en `game.js` para su extracción incremental.
