@@ -34,7 +34,7 @@ test('partida nueva arranca con diez profesionales en las líneas y junglas',()=
     for(const role of core.ROLES){
       const node=frame.navigation.after[team.lineup[role]].node;
       assert.equal(node,role==='JUN'?side+'_jungle_upper':side+'_'+
-        (role==='ADC'||role==='SUP'?'bot':role.toLowerCase())+'_outer');
+        (role==='ADC'||role==='SUP'?'bot':role.toLowerCase())+'_front');
     }
   }
 });
@@ -114,16 +114,16 @@ test('un asesinado reaparece en su fuente y no avanza mientras está muerto',()=
  assert.equal(respawn.navigation.after[id].alive,true);
 });
 
-test('transmisión y demos guardan las mismas posiciones en 1× y 5×',()=>{
+test('revisar jugadas y terminar mantiene la navegación y la demo no cambia el guardado',()=>{
  const {sim,core,world,fixture,store}=bootMatch();
  const match=sim.simulateMatch(fixture);
  world.live=match;
  const before=JSON.stringify(match.frames.map(f=>f.navigation));
- sim.liveControl('speed-5');
  sim.tick();sim.tick();
- sim.liveControl('pause');
- sim.liveControl('speed-1');
- sim.liveControl('resume');
+ const progress=match.replayProgress;
+ assert.equal(progress,2);
+ sim.seekReplay(0);
+ assert.equal(match.replayProgress,progress);
  sim.liveControl('instant');
  assert.equal(JSON.stringify(match.frames.map(f=>f.navigation)),before);
  assert.equal(world.matchReports.length,1);

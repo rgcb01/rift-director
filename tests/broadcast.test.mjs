@@ -9,7 +9,7 @@ const setup=()=>{
   return {sim,core,store,world,fixture};
 };
 
-test('1× es legible: 5 segundos por paso, 5× equivale al repaso rápido',()=>{
+test('compatibilidad: los intervalos históricos siguen disponibles, sin manejar la reproducción',()=>{
  const {core}=setup();
  assert.equal(core.broadcastInterval(1),5000);
  assert.equal(core.broadcastInterval(2),2500);
@@ -80,51 +80,45 @@ test('narraciones falsificadas son detectadas, sin tocar los eventos deportivos'
  assert.equal(core.auditMatch(clone,world).length,0);
 });
 
-test('en 1× las novedades se revelan de una en una, sin cambiar el marcador final',()=>{
+test('Siguiente evento descubre una jugada por pulsación, sin alterar el resultado',()=>{
  const {sim,core,world,fixture}=setup();
  world.live=sim.simulateMatch(fixture);
  const match=world.live;
- match.speed=1;match.visibleCount=core.feedCountAt(match,0);
- let last=match.visibleCount,count=0,withMultiple=false;
- for(let i=0;i<400&&!match.finished;i++){
-  sim.tick();
-  const now=match.visibleCount;
-  assert.ok(now>=last&&now-last<=1,'La retransmisión lenta saltó más de una novedad');
-  if(match.elapsed>0){
-   const prior=core.feedCountAt(match,match.elapsed-1),end=core.feedCountAt(match,match.elapsed);
-   if(end-prior>1 && now<end)withMultiple=true;
-  }
-  last=now;count++;
+ const timeline=core.MatchReplay.timeline(match);
+ let count=0;
+ while(!match.finished&&count<400){
+   const before=match.replayProgress;
+   sim.tick();
+   assert.equal(match.replayProgress,before+1);
+   count++;
  }
- assert.equal(match.finished,true,'Partido sin terminar en pasos de 1×');
- assert.ok(withMultiple,'No apareció un minuto con varias novedades');
- assert.equal(match.visibleCount,core.broadcastFeed(match).length);
+ assert.equal(match.finished,true,'El historial debe alcanzar la jugada del nexo');
+ assert.equal(match.replayProgress,timeline.length-1);
  assert.equal(world.matchReports.length,1);
  assert.equal(world.matchReports[0].win,match.winner===world.userClub);
- assert.ok(count>=match.frames.length);
+ assert.equal(count,timeline.length-1);
 });
 
-test('5×, pausa e instantáneo conservan todas las jugadas y premios únicos',()=>{
- const {sim,core,world,fixture,store}=setup();
+test('avanzar, retroceder, terminar y revisar no alteran el resultado ni premios únicos',()=>{
+ const {sim,core,world,fixture}=setup();
  world.live=sim.simulateMatch(fixture);
  const match=world.live;
- match.visibleCount=core.feedCountAt(match,0);
  const before=JSON.stringify({events:match.events,frames:match.frames,seed:match.broadcast.seed});
- sim.liveControl('speed-5');
- assert.equal(match.speed,5);
  sim.tick();sim.tick();
- const progress=match.elapsed;
- sim.liveControl('pause');
- assert.equal(match.running,false);
+ assert.equal(match.replayCursor,2);
+ assert.equal(sim.seekReplay(0),true);
+ assert.equal(match.replayCursor,0);
  sim.tick();
- assert.equal(match.elapsed,progress,'El mapa avanzó estando pausado');
- sim.liveControl('resume');
+ assert.equal(match.replayCursor,1);
  sim.liveControl('instant');
  assert.equal(match.finished,true);
- assert.equal(match.visibleCount,core.broadcastFeed(match).length);
+ assert.equal(match.replayProgress,core.MatchReplay.timeline(match).length-1);
  assert.equal(JSON.stringify({events:match.events,frames:match.frames,seed:match.broadcast.seed}),before);
  assert.equal(world.matchReports.length,1);
  const cash=sim.currentClub().cash;
+ sim.seekReplay(0);sim.tick();
+ assert.equal(world.matchReports.length,1);
+ assert.equal(sim.currentClub().cash,cash);
  sim.finishMatch();
  assert.equal(sim.currentClub().cash,cash);
 });

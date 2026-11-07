@@ -87,7 +87,27 @@
         '<path d="M-5 0h10M0 -5v10" stroke="'+stroke+'" stroke-width="1.5"/>')+'</g>';
     }).join('');
   }
-  function drawMap(match,frame,world,previousFrame){
+  function focusMarker(event,match){
+    if(!event)return '';
+    const f=event.facts;
+    let loc=null;
+    if(f){
+      if(f.action==='tower')loc=graph.towerPoint(event.teamId===match.fixture.a?'red':'blue',f.lane,f.stage);
+      else if(f.action==='gank'&&graph.nodes[f.victimNode])loc=graph.pointAt(f.victimNode);
+      else if(f.action==='teamfight'&&graph.nodes[f.node])loc=graph.pointAt(f.node);
+      else if(f.action==='dragon'||f.action==='baron')loc=graph.pointAt(f.action==='dragon'?'dragon_pit':'baron_pit');
+      else if(f.action==='nexus')loc=graph.pointAt(event.teamId===match.fixture.a?'red_nexus':'blue_nexus');
+    }else if(event.evidence?.lane){
+      const node={TOP:'top_corner',MID:'mid_center',BOT:'bot_corner'}[event.evidence.lane];
+      if(node)loc=graph.pointAt(node);
+    }
+    if(!loc)return '';
+    return '<g class="rift-mini-event-focus" data-focus-action="'+safe(f?.action||'insight')+
+      '"><title>Jugada seleccionada: '+safe(event.title)+'</title>'+
+      '<circle cx="'+loc.x+'" cy="'+loc.y+'" r="23" fill="#fff3c2" fill-opacity=".12" stroke="#ffe4a0" stroke-width="2.4" stroke-dasharray="5 4"/>'+
+      '<circle cx="'+loc.x+'" cy="'+loc.y+'" r="4" fill="#ffe4a0"/></g>';
+  }
+  function drawMap(match,frame,world,previousFrame,selectedEvent){
     const map=frame?.minimap;
     if(!map)return '<div class="rift-mini-legacy">Este partido se guardó antes del minimapa. Puedes terminarlo normalmente y probar una exhibición nueva para ver el mapa animado.</div>';
     const ids=[match.fixture.a,match.fixture.b];
@@ -103,7 +123,7 @@
         '<text x="'+p.x+'" y="'+(p.y+4)+'" font-size="12" text-anchor="middle" font-weight="800" fill="#ffe4ae">'+
         (index===0?'B':'D')+'</text></g>';
     }).join('');
-    const focus=map.focus?.action ? labels[map.focus.action]||'Jugada' : 'Fase de líneas';
+    const focus=selectedEvent?.title||(map.focus?.action ? labels[map.focus.action]||'Jugada' : 'Fase de líneas');
     return '<div class="rift-minimap" data-minimap-minute="'+frame.minute+'">'+
       '<svg viewBox="0 0 340 340" role="img" aria-label="'+safe('Minimapa de '+clubs[0].name+' contra '+clubs[1].name+'; minuto '+frame.minute)+'" xmlns="http://www.w3.org/2000/svg">'+
       '<defs><radialGradient id="riftMiniBlue"><stop offset="0%" stop-color="#2c98cd" stop-opacity=".19"/><stop offset="100%" stop-color="#2c98cd" stop-opacity="0"/></radialGradient>'+
@@ -118,9 +138,9 @@
       '<path d="M60 202L131 128L217 211L273 134" stroke="#738c84" stroke-width="1" stroke-dasharray="4 8" fill="none" opacity=".5"/>'+
       pulses+
       structures(map,previousFrame?.minimap,ids)+nexus(map,ids)+
-      avatars(map,previousFrame?.minimap,world,ids)+
+      avatars(map,previousFrame?.minimap,world,ids)+focusMarker(selectedEvent,match)+
       '<rect x="12" y="12" width="101" height="24" rx="6" fill="#091720" opacity=".94"/>'+
-      '<text x="20" y="29" fill="#e4f0f3" font-size="12" font-weight="700">MAPA · '+String(frame.minute).padStart(2,'0')+':00</text>'+
+      '<text x="20" y="29" fill="#e4f0f3" font-size="12" font-weight="700">MAPA · '+safe(selectedEvent?.time||String(frame.minute).padStart(2,'0')+':00')+'</text>'+
       '</svg>'+
       '<div class="rift-mini-legend"><span><i class="rift-mini-key blue"></i>'+safe(clubs[0].name)+'</span><span><i class="rift-mini-key red"></i>'+safe(clubs[1].name)+'</span></div>'+
       '<div class="rift-mini-foot">Foco: <b>'+safe(focus)+'</b> · '+Object.values(map.players).filter(p=>p.alive).length+'/10 vivos</div>'+

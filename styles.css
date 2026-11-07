@@ -28,3 +28,16 @@
 .event.insight .body>b{color:#badcef}
 .event.insight time{color:#92bbcc}
 @media(prefers-reduced-motion:reduce){.event.insight{animation:none}}
+
+/* Alpha 0.7 · replay controlled by the viewer, not a countdown. */
+.replay-history{max-height:470px;gap:5px}
+.replay-event{width:100%;appearance:none;background:transparent;border:1px solid transparent;border-radius:10px;color:inherit;text-align:left;font:inherit;padding:10px 8px;cursor:pointer;transition:background .12s,border-color .12s}
+.replay-event:hover{background:#22364b;border-color:#3e5d77}
+.replay-event:focus-visible{outline:2px solid #9de6ec;outline-offset:2px}
+.replay-event.is-selected{border-color:#59b9d2;background:#1d3d4d}
+.replay-event.is-selected .body{border-color:#80e3d8}
+.replay-event .body{display:block;min-width:0}
+.replay-description{display:block;font-size:12px;margin-top:4px;line-height:1.5;color:#b6cddd}
+.rift-mini-event-focus{filter:drop-shadow(0 0 5px #f4d89a)}
+@media(max-width:680px){.replay-history{max-height:370px}.replay-event{padding:12px 6px}}
+@media(prefers-reduced-motion:reduce){.replay-event{transition:none}}

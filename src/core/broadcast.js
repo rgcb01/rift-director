@@ -217,7 +217,7 @@ function broadcastFeed(match){
  const variants=match.broadcast?.variants;
  const originals=match.events.map((e,i)=>({...e,
    title:variants?.[i]?.title||e.title,
-   body:variants?.[i]?.body||e.body,source:'match'}));
+   body:variants?.[i]?.body||e.body,source:'match',eventIndex:i}));
  const insights=(match.broadcast?.insights||[]).map(e=>({...e,source:'insight'}));
  return [...originals,...insights].sort((x,y)=>x.minute-y.minute||x.time.localeCompare(y.time));
 }

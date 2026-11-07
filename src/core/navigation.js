@@ -65,7 +65,7 @@ function createNavigation(clubs,teams,seed){
    const p=teams[c.id].find(x=>x.role===role);
    if(!p||agents[p.id])throw Error('Invalid lineup for navigation');
    const node=role==='JUN'?side+'_jungle_upper':side+'_'+
-      (role==='ADC'||role==='SUP'?'bot':role.toLowerCase())+'_outer';
+      (role==='ADC'||role==='SUP'?'bot':role.toLowerCase())+'_front';
    agents[p.id]={id:p.id,teamId:c.id,role,node,goal:node,
      intent:'lane',alive:true,route:[node],movedFrom:node};
   }
@@ -131,7 +131,7 @@ function chooseGoal(nav,agent,t,worldState){
  }
  if(t<6){
   if(role==='JUN')return {goal:side+(t<3?'_jungle_upper':'_jungle_lower'),intent:'farm_jungle'};
-  return {goal:side+'_'+laneRole.toLowerCase()+'_outer',intent:'lane'};
+  return {goal:side+'_'+laneRole.toLowerCase()+'_front',intent:'lane'};
  }
  if(t<13){
   if(role==='JUN'){
@@ -140,8 +140,8 @@ function chooseGoal(nav,agent,t,worldState){
    return {goal:side+'_'+lane.toLowerCase()+'_outer',intent:'gank_setup'};
   }
   if(role==='SUP'&&t>=10)return {goal:'dragon_pit',intent:'objective'};
-  if(role==='ADC')return {goal:t<9?side+'_bot_outer':'bot_center',intent:'push'};
-  if(role==='TOP')return {goal:'top_center',intent:'push'};
+  if(role==='ADC'||role==='SUP')return {goal:'bot_corner',intent:'push'};
+  if(role==='TOP')return {goal:'top_corner',intent:'push'};
   return {goal:'mid_center',intent:'push'};
  }
  if(t<25){
