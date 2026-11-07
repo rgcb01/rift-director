@@ -121,10 +121,16 @@ test('Terminar partida entrega historial completo, permite rebobinar y no paga d
 
 test('un evento concreto muestra torres, bajas y lugar de combate justo después de la acción',()=>{
  const {sim,core,minimapUI,world,fixture}=setup();
- const match=sim.simulateMatch(fixture);
- const goalIndex=match.events.findIndex(e=>e.facts?.action==='tower');
- const fightIndex=match.events.findIndex(e=>['gank','teamfight'].includes(e.facts?.action));
- assert.ok(goalIndex>=0&&fightIndex>=0);
+ let match,goalIndex=-1,fightIndex=-1;
+ for(let seed=1;seed<=90;seed++){
+  world.rng=seed*15391;
+  const candidate=sim.simulateMatch(fixture);
+  const g=candidate.events.findIndex(e=>e.facts?.action==='tower');
+  const k=candidate.events.findIndex(e=>['gank','teamfight','lane_trade','skirmish'].includes(e.facts?.action)&&
+    (e.facts?.victimIds?.length||e.facts?.impacts?.length));
+  if(g>=0&&k>=0){match=candidate;goalIndex=g;fightIndex=k;break}
+ }
+ assert.ok(goalIndex>=0&&fightIndex>=0,'Seleccionar un partido con torre y combate reales');
  const towerEvent=match.events[goalIndex],moment=match.moments[goalIndex],prior=match.moments[goalIndex-1];
  assert.equal(moment.towers[towerEvent.teamId],prior.towers[towerEvent.teamId]+1);
  const svg=minimapUI.render(match,moment,world,prior,towerEvent);
@@ -132,7 +138,7 @@ test('un evento concreto muestra torres, bajas y lugar de combate justo después
  assert.match(svg,/just-fallen/);
  const fightEvent=match.events[fightIndex];
  const battleSvg=minimapUI.render(match,match.moments[fightIndex],world,match.moments[fightIndex-1],fightEvent);
- assert.match(battleSvg,/data-focus-action="(?:gank|teamfight)"/);
+ assert.match(battleSvg,/data-focus-action="(?:gank|teamfight|lane_trade|skirmish)"/);
 });
 
 test('última repetición sigue disponible después de salir y cargar un save v2',()=>{

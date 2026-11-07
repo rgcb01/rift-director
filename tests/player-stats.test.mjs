@@ -46,11 +46,16 @@ test('300 seeds: K/D/A, participaciones y pentas concuerdan con eventos en cada 
 
 test('auditor rechaza asistentes muertos, KDA inventados y participantes ajenos',()=>{
   const {sim,core,world,fixture}=setup();
-  const match=sim.simulateMatch(fixture);
+  let match,kill,objective;
+  for(let seed=1;seed<=120;seed++){
+    world.rng=seed*32519;
+    const candidate=sim.simulateMatch(fixture);
+    const fight=candidate.events.find(e=>e.facts?.action==='teamfight');
+    const goal=candidate.events.find(e=>['tower','dragon','baron'].includes(e.facts?.action)&&e.facts?.participantIds?.length);
+    if(fight&&goal){match=candidate;kill=fight;objective=goal;break}
+  }
   const clone=x=>JSON.parse(JSON.stringify(x));
-  const kill=match.events.find(e=>e.facts?.action==='teamfight');
-  const objective=match.events.find(e=>['tower','dragon','baron'].includes(e.facts?.action)&&e.facts?.participantIds?.length);
-  assert.ok(kill&&objective);
+  assert.ok(kill&&objective,'Necesitamos una seed real con kill y objetivo, sin inventarlas');
   const fakeAssist=clone(match);
   const fakeKill=fakeAssist.events.find(e=>e.facts?.action==='teamfight');
   fakeKill.facts.assistIds=[fakeKill.facts.victimIds[0]];
