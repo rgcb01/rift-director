@@ -39,10 +39,21 @@ test('fase de líneas minuto 10: ADC y SUP permanecen en su mitad y no en el mis
     (e.facts?.combatVersion===1&&
       e.facts.impacts?.some(hit=>(hit.id===adc||hit.id===sup)&&hit.retreat))
    ));
-   if(!casualties){
+   const reactive=new Set(['low_health','outnumbered_visible',
+     'protect_injured_adc','damage_retreat']);
+   const affected=reactive.has(frame.navigation.before[adc]?.reason)||
+     reactive.has(frame.navigation.before[sup]?.reason);
+   if(!casualties&&!affected){
     assert.equal(a.node,side+'_bot_front','ADC debe estar en su botlane');
     assert.equal(s.node,side+'_bot_front','SUP debe proteger al ADC');
     normal++;
+   }else if(!casualties&&affected){
+    // A healthy front is not mandatory after an HP-triggered retreat,
+    // but the response must remain on the team's own botlane.
+    const safeNodes=new Set([side+'_bot_front',side+'_bot_outer',
+     side+'_bot_inner',side+'_bot_base',side+'_nexus',side+'_fountain']);
+    assert.ok(safeNodes.has(a.node),'ADC reaccionó saltando a otro carril');
+    assert.ok(safeNodes.has(s.node),'SUP reaccionó saltando a otro carril');
    }
   }
  }
