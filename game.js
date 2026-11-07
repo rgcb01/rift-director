@@ -113,10 +113,12 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
  const m={minute:0,kills:{[a.id]:0,[b.id]:0},gold:{[a.id]:500,[b.id]:500},towers:{[a.id]:0,[b.id]:0},lanes:{[a.id]:{TOP:0,MID:0,BOT:0},[b.id]:{TOP:0,MID:0,BOT:0}},dragons:{[a.id]:0,[b.id]:0},barons:{[a.id]:0,[b.id]:0},dead:{},winner:null,events:[],frames:[],moments:[],nextDragon:5,nextBaron:20,baronBuff:{[a.id]:0,[b.id]:0}};
  const all=[a,b],teams={[a.id]:aP,[b.id]:bP};
  const navigation=RiftCore.Navigation.createNavigation(all,teams,commentarySeed);
+ const health=RiftCore.Encounters.create([...aP,...bP]);
+ const lastSkirmish={};
  let movementBefore=RiftCore.Navigation.snapshot(navigation,{},0);
  const nav=RiftCore.Navigation;
  const positioned=(c,node,depth=1)=>nav.participants(navigation,c.id,node,depth)
-   .filter(a=>(m.dead[a.id]||0)<=m.minute);
+   .filter(a=>a.intent!=='retreat'&&(m.dead[a.id]||0)<=m.minute);
  const aliveAt=(id,t)=>nav.getAgent(navigation,id)?.alive&&(m.dead[id]||0)<=t;
  const near=(x,y,depth=2)=>aliveAt(x.id,m.minute)&&aliveAt(y.id,m.minute)&&
    nav.combatRange(nav.getAgent(navigation,x.id).node,nav.getAgent(navigation,y.id).node,depth);
@@ -137,8 +139,8 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
  };
  const makeEv=(minute,title,body,kind='normal',team=null,facts=null)=>{
   const prior=m.events[m.events.length-1];
-  // Skirmish timestamps use an isolated deterministic clock and never
-  // consume gameplay RNG (the encounter already has a separate seed).
+  // New encounter timestamps use their own deterministic clock: no additional
+  // gameplay RNG is consumed by an incidental 2v1 commentary.
   const skirmish=facts?.action==='skirmish';
   const stamp=skirmish?(Math.imul((commentarySeed^minute)>>>0,1664525)+
     Math.imul(m.events.length+1,1013904223))>>>0:0;
@@ -154,7 +156,7 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
     kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},
     dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,
     map:RiftCore.cloneMapState(m.map),playerStats:RiftCore.clonePlayerStats(playerStats),
-    navigation:{before:movementBefore,after:nav.snapshot(navigation,m.dead,minute)}});
+    health:{...health},navigation:{before:movementBefore,after:nav.snapshot(navigation,m.dead,minute)}});
  };
  const balance=(c,t)=>{let stage=t<12?'early':t<25?'mid':'late';let z=teamPower(c,stage)+(m.gold[c.id]-m.gold[enemy(c).id])/2800+m.barons[c.id]*1.3;
  let pref=c.id===s.userClub?s.style:(c.id.charCodeAt(c.id.length-1)%3===0?'aggressive':c.id.charCodeAt(c.id.length-1)%3===1?'objectives':'scaling');
@@ -162,7 +164,7 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
  z+=(s.meta===pref?2:0);
  return z};
  const decide=(ca,cb,t,bonus=0)=>chance(clamp(.5+(balance(ca,t)-balance(cb,t)+bonus)*.018,.13,.87))?ca:cb;
- const addKill=(killer,victim,t)=>{if(!killer||!victim||(m.dead[killer.id]||0)>t||(m.dead[victim.id]||0)>t)return false;const c=club(killer.teamId);m.kills[c.id]++;m.gold[c.id]+=320;m.dead[victim.id]=t+(t<16?2:t<29?3:4);return true};
+ const addKill=(killer,victim,t)=>{if(!killer||!victim||(m.dead[killer.id]||0)>t||(m.dead[victim.id]||0)>t)return false;const c=club(killer.teamId);m.kills[c.id]++;m.gold[c.id]+=320;m.dead[victim.id]=t+(t<16?2:t<29?3:4);health[victim.id]=0;return true};
  const takeTower=(c,t,requestedLane=null)=>{
   const target=enemy(c),options=['TOP','MID','BOT']
     .filter(l=>!requestedLane||l===requestedLane).map(lane=>{
@@ -186,13 +188,14 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
  };
  const nextSnapshot=t=>m.frames.push({minute:t,kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
   playerStats:RiftCore.clonePlayerStats(playerStats),map:RiftCore.cloneMapState(m.map),
-  navigation:{before:movementBefore,after:nav.snapshot(navigation,m.dead,t)}});
+  health:{...health},navigation:{before:movementBefore,after:nav.snapshot(navigation,m.dead,t)}});
  makeEv(0,'Comienza el mapa',`${a.name} y ${b.name} entran a la Grieta. Ambos equipos buscan imponer su plan de juego.`, 'normal');nextSnapshot(0);
  const lastGankAttempt=Object.create(null);
  for(let t=1;t<=76&&!m.winner;t++){
   m.minute=t;
   for(const c of all){m.gold[c.id]+=ri(790,1080)+Math.round((balance(c,t)-65)*2);if(m.baronBuff[c.id]>0)m.baronBuff[c.id]--}
   nav.advance(navigation,t,m.dead,m);
+  RiftCore.Encounters.recover(health,navigation,m.dead,t);
   movementBefore=nav.snapshot(navigation,m.dead,t);
   m.map=updateMap(t);
   // Only stage ganks for a JUN who actually has a planned lane and is
@@ -242,6 +245,43 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
         initiatorNode:agent.node,targetNode:nav.getAgent(navigation,v.id).node,
         lane,route:approach,spatialVersion:2,plannedGankVersion:1
        });
+    }
+   }
+  }
+  // Causal objective skirmishes. A numerical 2v1 near Dragon/Baron
+  // becomes actual damage, a possible kill, or a forced, visible retreat.
+  // It never disappears behind an unrelated lane-pressure commentary.
+  if(t>=5){
+   const roster=Object.fromEntries([...aP,...bP].map(p=>[p.id,p]));
+   for(const zone of ['dragon_pit','baron_pit']){
+    if(zone==='baron_pit'&&t<20)continue;
+    const facts=RiftCore.Encounters.resolve({
+      nav:navigation,dead:m.dead,minute:t,zone,
+      players:roster,health,seed:commentarySeed,previous:lastSkirmish
+    });
+    if(!facts)continue;
+    const attacker=club(facts.teamId),defender=player(facts.targetId);
+    const leader=player(facts.actorId);
+    const zoneName=zone==='dragon_pit'?'Dragón':'Barón';
+    lastSkirmish[zone]=t;
+    if(facts.outcome==='kill'){
+      if(!addKill(leader,defender,t))throw Error('Kill de escaramuza sin víctima viva');
+      facts.hpAfter=0;
+      makeEv(t,'¡Escaramuza ganada en '+zoneName+'!',
+        attacker.name+' sorprende a '+defender.name+' con '+facts.attackerCount+
+        ' atacantes contra '+facts.defenderCount+
+        '. '+leader.name+' consigue la eliminación cerca de '+zoneName+'.',
+        'fight',attacker,facts);
+    }else{
+      health[defender.id]=facts.hpAfter;
+      if(!nav.forceRetreat(navigation,defender.id,t,facts.retreatGoal))
+        throw Error('Retirada sin jugador activo');
+      makeEv(t,'¡'+defender.name+' escapa de '+zoneName+'!',
+        attacker.name+' presiona con '+facts.attackerCount+' profesionales contra '+
+        facts.defenderCount+'. '+defender.name+' recibe '+facts.damage+
+        ' de daño, sobrevive con '+facts.hpAfter+
+        '% de vida y se retira; no se registra una eliminación.',
+        'fight',attacker,facts);
     }
    }
   }
@@ -355,7 +395,7 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
   }
   nextSnapshot(t)
  }
- const report={fixture:{a:f.a,b:f.b,round:f.round,playoff:!!f.playoff},frames:m.frames,events:m.events,moments:m.moments,playerStats:RiftCore.clonePlayerStats(playerStats),elapsed:0,speed:1,running:true,committed:false,winner:m.winner,finished:false};
+ const report={fixture:{a:f.a,b:f.b,round:f.round,playoff:!!f.playoff},frames:m.frames,events:m.events,moments:m.moments,health:{...health},playerStats:RiftCore.clonePlayerStats(playerStats),elapsed:0,speed:1,running:true,committed:false,winner:m.winner,finished:false};
  RiftCore.attachMinimap(report,s);RiftCore.attachBroadcast(report,s,commentarySeed);
  RiftCore.MatchReplay.attachReplay(report,s);return report
 }
@@ -797,11 +837,11 @@ function renderModal(){if(!s&&modal?.type!=='welcome')modal={type:'welcome'};if(
 function navButton(id,ic,label){return `<button data-nav="${id}" class="${view===id?'active':''}">${icon(ic)} <span>${label}</span></button>`}
 function render(){if(!s){document.getElementById('app').innerHTML=renderModal();return}
  const c=currentClub();let body=view==='home'?renderHome():view==='roster'?renderRoster():view==='market'?renderMarket():view==='match'?renderMatch():view==='finance'?renderFinance():view==='world'?renderWorld():renderSettings();
- document.getElementById('app').innerHTML=`<div class="layout"><aside class="sidebar"><div class="brand"><div class="brand-icon" style="color:var(--teal);font-size:22px;font-weight:900">R</div><div><strong>Rift Director</strong><small>ALFA 0.7.3 · SANDBOX</small></div></div>
+ document.getElementById('app').innerHTML=`<div class="layout"><aside class="sidebar"><div class="brand"><div class="brand-icon" style="color:var(--teal);font-size:22px;font-weight:900">R</div><div><strong>Rift Director</strong><small>ALFA 0.7.4 · SANDBOX</small></div></div>
  <nav class="nav" aria-label="Navegación">${demoBackup?navButton('match','match','Exhibición'):`${navButton('home','home','Inicio')}${navButton('roster','users','Plantilla')}${navButton('market','market','Mercado')}${navButton('match','match','Partidos')}${navButton('finance','money','Finanzas')}${navButton('world','world','Mundo')}${navButton('settings','settings','Partida')}`}</nav>
  <div class="sidebar-foot"><div class="eyebrow">TEMPORADA ${s.season}</div><div style="margin-top:5px;font-weight:800">${MONTHS[s.month-1]} ${s.year}</div><div class="chip">${s.clubs.length} clubes · ${s.players.filter(p=>!p.retired).length} profesionales</div></div></aside>
  <main class="main"><header class="topbar"><div class="clubhead">${crest(c,46)}<div><div class="clubtitle">${esc(c.name)}</div><div class="helper">${esc(s.leagueName)} · Club ${c.kind==='user'?'bajo tu dirección':'autónomo'}</div></div></div><div class="top-actions">${demoBackup?`<span class="chip">MODO PRUEBA</span><button class="btn small secondary" data-action="demo-exit">Volver</button>`:`<span class="chip">${icon('calendar',14)} ${MONTHS[s.month-1]} ${s.year}</span><span class="chip ${c.cash<250000?'red':'green'}">${icon('money',14)} ${fmt(c.cash)}</span><button class="btn small" data-action="close-month" ${s.over?'disabled':''}>Siguiente mes</button>`}</div></header>${body}
- <div class="footer">Rift Director Alpha 0.7.3 · Universo y retratos ficticios · Guardado local · Simulador independiente no afiliado a Riot Games</div></main></div>${renderModal()}${s.over?`<div class="modal-layer"><div class="modal end-screen"><div class="eyebrow">FIN DE PARTIDA</div><h1>Insolvencia.</h1><p>Tu club se quedó sin efectivo. El mundo sigue su historia, pero esta gestión termina aquí. Recuerda: ganar torneos nunca fue la única forma de triunfar.</p><div class="buttons" style="justify-content:center"><button class="btn" data-action="export">Exportar historia</button><button class="btn danger" data-action="reset">Nueva organización</button></div></div></div>`:''}`;
+ <div class="footer">Rift Director Alpha 0.7.4 · Universo y retratos ficticios · Guardado local · Simulador independiente no afiliado a Riot Games</div></main></div>${renderModal()}${s.over?`<div class="modal-layer"><div class="modal end-screen"><div class="eyebrow">FIN DE PARTIDA</div><h1>Insolvencia.</h1><p>Tu club se quedó sin efectivo. El mundo sigue su historia, pero esta gestión termina aquí. Recuerda: ganar torneos nunca fue la única forma de triunfar.</p><div class="buttons" style="justify-content:center"><button class="btn" data-action="export">Exportar historia</button><button class="btn danger" data-action="reset">Nueva organización</button></div></div></div>`:''}`;
  if(view==='match'&&s.live){const log=document.getElementById('eventlog');const selected=log?.querySelector('.is-selected');if(selected&&typeof selected.scrollIntoView==='function')selected.scrollIntoView({block:'nearest'})}
 }
 function updatePlan(id,delta){if(s.live&&!s.live.finished)return notify('Finaliza el partido para modificar la agenda.');if(!Object.hasOwn(s.plan,id))return;let x=s.plan[id]+delta;if(x<0||x>4||delta>0&&sumPlan()>=8)return;s.plan[id]=x;save();render()}
