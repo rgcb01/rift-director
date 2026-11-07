@@ -96,3 +96,12 @@ Antes de una release:
 - Mutaciones intencionales: falsificar el Smite del jungla con un MID, repetir una víctima, borrar la evidencia de una torre y alterar ganador.
 - Pruebas de exportación de un mapa pausado con `event.facts` sin cambiar `v2`.
 - Pendiente: modelo de campeones, hechizos equipados, posiciones, fog of war y tests estadísticos de traits bajo meta cambiante.
+
+## M1.2 — Estadísticas de jugadores
+
+- `tests/player-stats.test.mjs`: auditar cientos de semillas y comparar suma de K/D/A por profesional con totales de asesinatos por equipo.
+- Detectar datos falsificados: asistencias de un rival, participantes inexistentes y snapshots alterados.
+- Verificar que `finishMatch` no duplique KDA, histórico o recompensas cuando se llama dos veces.
+- Importar un `v2` con mapa heredado sin estadísticas y finalizarlo sin inventar datos.
+- Verificar casos de KDA perfecto y pentakills de cinco víctimas reales en un mismo evento.
+- Pendiente: asistencias por víctima, pentakills repartidas entre varios eventos dentro de una ventana de tiempo, toda la carrera IA y rendimiento en celulares modestos.

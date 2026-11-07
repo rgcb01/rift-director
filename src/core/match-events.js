@@ -24,13 +24,42 @@
     const totals = Object.fromEntries(counters.map(k => [k, {[a]:0,[b]:0}]));
     const lanes = {[a]:{TOP:0,MID:0,BOT:0}, [b]:{TOP:0,MID:0,BOT:0}};
     const dead = new Map();
+    const combatants = [a,b].flatMap(id => core.ROLES.map(role => players.get(clubs.get(id).lineup[role])));
+    let stats;
+    try { stats = core.createPlayerStats(combatants); }
+    catch (error) { return ['Participantes de partida inválidos: '+error.message]; }
+    function validateRows(actual, minute) {
+      if (!isRecord(actual) || Object.keys(actual).length !== Object.keys(stats).length) {
+        fail('Estadísticas individuales ausentes/incompletas: minuto '+minute);
+        return;
+      }
+      for (const [id, correct] of Object.entries(stats)) {
+        if (!isRecord(actual[id])) { fail('Falta registro de jugador: '+id); continue; }
+        for (const key of core.MATCH_STAT_FIELDS) {
+          if (!integer(actual[id][key]) || actual[id][key] !== correct[key]) {
+            fail('KDA/objetivo individual distinto a eventos: '+id+' / '+key+' minuto '+minute);
+          }
+        }
+      }
+    }
+    function verifyParticipants(event, facts, minute) {
+      if (!Array.isArray(facts.participantIds) || !facts.participantIds.includes(facts.actorId) ||
+          new Set(facts.participantIds).size !== facts.participantIds.length) {
+        fail('Lista inválida de participantes en objetivo.'); return;
+      }
+      for (const id of facts.participantIds) {
+        const p = players.get(id);
+        if (!p || p.teamId !== event.teamId || clubs.get(event.teamId).lineup[p.role] !== id ||
+            !alive(p, minute)) fail('Participación falsa o de jugador muerto: '+id);
+      }
+    }
     let nextDragon = 5, nextBaron = 20, nextEvent = 0, previousMinute = -1;
     let nexusCount = 0, lastEventMinute = 0;
 
     function alive(p, t) { return p && (dead.get(p.id) ?? 0) <= t; }
     function actor(facts, event, minute) {
       const p = players.get(facts.actorId);
-      if (!p || !roles.has(p.role) || p.teamId !== event.teamId) fail('Actor fuera del equipo o rol inválido: ' + facts.actorId);
+      if (!p || !roles.has(p.role) || p.teamId !== event.teamId || clubs.get(event.teamId).lineup[p.role] !== p.id) fail('Actor fuera del equipo o rol inválido: ' + facts.actorId);
       else if (!alive(p, minute)) fail('Un jugador muerto realiza una acción: ' + p.id);
       return p;
     }
@@ -49,6 +78,15 @@
         dead.set(id, minute + (minute < 16 ? 2 : minute < 29 ? 3 : 4));
         totals.kills[event.teamId]++;
       }
+      if (!Array.isArray(facts.assistIds) || new Set(facts.assistIds).size !== facts.assistIds.length ||
+          facts.assistIds.includes(facts.actorId)) fail('Asistencias repetidas o autor inválido.');
+      else for (const id of facts.assistIds) {
+        const helper = players.get(id);
+        if (!helper || helper.teamId !== event.teamId ||
+            clubs.get(event.teamId).lineup[helper.role] !== helper.id || !alive(helper, minute)) {
+          fail('Asistencia falsa o jugador muerto: '+id);
+        }
+      }
       if (facts.action === 'gank') {
         const j = players.get(facts.initiatorId);
         if (!j || j.role !== 'JUN' || j.teamId !== event.teamId || !alive(j, minute)) fail('Gank sin jungla vivo.');
@@ -61,7 +99,9 @@
             .every(p => !alive(p, minute));
           if (Boolean(facts.ace) !== wiped) fail('Exterminio narrado sin cinco enemigos muertos.');
         }
-        if (event.title.includes('PENTAKILL') && victims.length !== 5) fail('Pentakill sin cinco bajas.');
+        if (facts.multiKill !== victims.length) fail('Multikill no coincide con bajas reales.');
+        if (event.title.includes('PENTAKILL') !== (victims.length === 5)) fail('Pentakill sin cinco bajas del mismo autor.');
+        if (event.title.includes('CUÁDRUPLE') !== (victims.length === 4)) fail('Cuádruple no coincide con bajas.');
       }
       if (!killer) fail('Falta el autor de una eliminación.');
     }
@@ -73,7 +113,7 @@
       if (facts.action === 'gank' || facts.action === 'teamfight') {
         recordKills(event, facts, t);
       } else if (facts.action === 'tower') {
-        actor(facts, event, t);
+        actor(facts, event, t);verifyParticipants(event,facts,t);
         const target = event.teamId === a ? b : a;
         if (!['TOP','MID','BOT'].includes(facts.lane)) fail('Línea de torre inválida.');
         else {
@@ -82,13 +122,13 @@
           totals.towers[event.teamId]++;
         }
       } else if (facts.action === 'dragon') {
-        actor(facts, event, t);
+        actor(facts, event, t);verifyParticipants(event,facts,t);
         if (t < nextDragon) fail('Dragón antes de su aparición/reaparición.');
         nextDragon = t + 5;
         totals.dragons[event.teamId]++;
         if (facts.ordinal !== totals.dragons[event.teamId]) fail('Número de dragón incoherente.');
       } else if (facts.action === 'baron') {
-        const p = actor(facts, event, t);
+        const p = actor(facts, event, t);verifyParticipants(event,facts,t);
         if (t < nextBaron) fail('Barón antes de aparecer o reaparecer.');
         nextBaron = t + 7;
         totals.barons[event.teamId]++;
@@ -104,6 +144,8 @@
       } else {
         fail('Tipo de acción desconocido: ' + facts.action);
       }
+      try { core.applyPlayerEvent(stats, event); }
+      catch (error) { fail('Fallo de estadística individual: '+error.message); }
     }
 
     for (const frame of match.frames) {
@@ -128,7 +170,17 @@
           }
         }
       }
+      validateRows(frame.playerStats,frame.minute);
     }
+    validateRows(match.playerStats,'final');
+    const teamTotal = { [a]:0,[b]:0 }, deaths = { [a]:0,[b]:0 };
+    for (const [id,row] of Object.entries(stats)) {
+      const teamId = players.get(id)?.teamId;
+      if (teamId in teamTotal) {teamTotal[teamId] += row.kills;deaths[teamId] += row.deaths;}
+    }
+    if (teamTotal[a] !== totals.kills[a] || teamTotal[b] !== totals.kills[b] ||
+        deaths[a] !== totals.kills[b] || deaths[b] !== totals.kills[a])
+      fail('El total de kills y muertes individuales no coincide con el score.');
     if (nextEvent !== match.events.length) fail('Eventos sin frame asociado.');
     if (match.frames.length < 2 || match.frames[0].minute !== 0) fail('Partido sin comienzo.');
     if (match.frames.at(-1)?.winner !== match.winner) fail('Frame final sin ganador.');

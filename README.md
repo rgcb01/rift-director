@@ -40,7 +40,7 @@ El juego actual es **estático y sin dependencias**:
 ```text
 index.html     Entrada de GitHub Pages
 styles.css     Interfaz adaptable
-src/core/      RNG, estado, calendario, finanzas, guardados y auditoría de partidos
+src/core/      RNG, estado, calendario, finanzas, guardados y estadísticas/auditoría de partidos
 game.js        Mundo, partidos, economía y UI (aún pendiente de modularizar)
 scripts/       Comprobaciones automatizadas
 docs/          Diseño, arquitectura y plan de pruebas
@@ -54,6 +54,7 @@ node --check src/core/rng.js
 node --check src/core/state.js
 node --check src/core/calendar.js
 node --check src/core/finance.js
+node --check src/core/match-stats.js
 node --check src/core/match-events.js
 node --check src/core/persistence.js
 node --check game.js
@@ -93,3 +94,7 @@ La inicialización del estado, la secuencia de RNG y la validación de guardados
 ### M1.2 — Evidencias de jugadas
 
 Los partidos nuevos incluyen `event.facts` (gank, combate, torre, dragón, Barón y nexo) que identifica los jugadores y objetivos participantes. `src/core/match-events.js` audita que los hechos correspondan al marcador y respeten roles, muertes, reaparición, torres y objetivos. El Match Center muestra quién ejecutó cada jugada. **Los guardados anteriores no necesitan este campo**: se siguen pudiendo importar sin migración. El simulador sigue siendo una abstracción de un MOBA; no existe todavía un sistema de campeones ni hechizos individuales configurables.
+
+### M1.2 — Estadísticas individuales y carrera observada
+
+Los partidos narrados registran `K/D/A`, pentakills y participación en torres, dragones y Barones de **cada profesional**. El Match Center muestra datos en vivo y las cartas acumulan estadísticas de **mapas narrados** (no de toda su carrera: los partidos simulados en segundo plano todavía no generan KDA). Los valores se calculan desde `event.facts`, se congelan en cada frame y se auditan contra el marcador. Las estadísticas nuevas son opcionales en partidas guardadas `v2` anteriores. No hay nuevo backend ni dependencia externa.
