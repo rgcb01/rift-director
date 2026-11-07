@@ -7,7 +7,7 @@
 ```bash
 node --check game.js
 node scripts/check-static.mjs
-node --test tests/*.test.mjs
+node --test
 ```
 
 La CI ejecuta estos comandos en pushes y pull requests. Si un check falla, no se considera una versión lista para publicar. Estas pruebas no comprueban la interfaz en un navegador real.
