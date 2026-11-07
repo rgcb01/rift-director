@@ -40,7 +40,7 @@ test('minuto 0: diez caras, cinco roles por equipo y nueve torres en pie cada un
     const j=roster.find(id=>mini.players[id].role==='JUN');
     assert.ok(mini.players[j].node.includes('jungle'));
     const top=roster.find(id=>mini.players[id].role==='TOP');
-    assert.equal(mini.players[top].node,'top_lane');
+    assert.equal(mini.players[top].node,side+'_top_outer');
   }
   assert.equal(core.auditMinimap(match,world).length,0);
 });

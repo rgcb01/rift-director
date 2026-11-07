@@ -4,7 +4,7 @@
 
 [**Jugar en el navegador**](https://rgcb01.github.io/rift-director/) · [Roadmap](ROADMAP.md) · [Cambios](CHANGELOG.md) · [Cómo contribuir](CONTRIBUTING.md)
 
-> **Alpha 0.5 — prototipo jugable.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
+> **Alpha 0.6 — prototipo jugable.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
 
 ## La idea
 
@@ -20,7 +20,7 @@ Los meses impulsan las finanzas y el mundo. Las noticias y los rumores reflejan 
 - No hay instalación de paquetes, cuenta ni backend para jugar.
 - **Guardados:** automáticos en `localStorage` de ese navegador. En **Partida** puedes **exportar/importar JSON**. Los guardados no se sincronizan entre dispositivos; expórtalos antes de borrar datos del navegador.
 
-## Qué existe hoy (Alpha 0.5)
+## Qué existe hoy (Alpha 0.6)
 
 | Área | Implementado | Límites actuales |
 |---|---|---|
@@ -44,6 +44,7 @@ styles.css     Interfaz adaptable
 src/core/      RNG, calendario, economía, proyección del minimapa y guardados
 src/ui/        Render SVG del minimapa de partidos
 src/core/broadcast.js   Ritmo narrado y comentarios tácticos verificables
+src/core/navigation.js  Posiciones, rutas y validación de movimientos causales
 game.js        Mundo, partidos, economía y UI (aún pendiente de modularizar)
 scripts/       Comprobaciones automatizadas
 docs/          Diseño, arquitectura y plan de pruebas
@@ -59,6 +60,7 @@ node --check src/core/calendar.js
 node --check src/core/finance.js
 node --check src/core/map-state.js
 node --check src/core/minimap-graph.js
+node --check src/core/navigation.js
 node --check src/core/minimap-simulation.js
 node --check src/ui/minimap.js
 node --check src/core/broadcast.js
@@ -122,3 +124,11 @@ En **1×** la retransmisión avanza un paso cada **5 segundos**, y si un minuto 
 `src/core/broadcast.js` incorpora temas de cobertura derivados de la partida: presión de carriles, visión, ventaja de oro, remontadas reales, ventanas de objetivos, ventajas de torres, bajas y rendimiento del ADC. También elige variantes de títulos y comentarios para asesinatos, ganks, peleas, Barón, Dragón, torres y nexo. **No inventa asesinatos, wards, movimientos ni resultados**: las observaciones son una capa editorial separada de `event.facts`. La elección es determinista sin consumir RNG del juego; `auditBroadcast` verifica la correspondencia con los datos fuente. Los guardados `v2` históricos sin cobertura ampliada siguen funcionando; la velocidad 1× se actualizará igualmente a un ritmo más legible.
 
 **Siguiente paso de profundidad:** M1.3B introducirá desplazamiento espacial causal y M1.4B podrá registrar eventos jugables adicionales (intercambios de oleadas, trampas, peleas de visión, retirada estratégica) con consecuencias medibles. Los nuevos comentarios actuales **no son nuevas acciones deportivas**.
+
+### Alpha 0.6 — Movimiento que sí condiciona las jugadas
+
+Cada profesional es ahora un agente con **nodo actual, destino, intención, vida y ruta**. Avanza como máximo una arista por minuto; la navegación usa el grafo original del minimapa y no añade RNG. El motor mueve primero los agentes y **después** intenta resolver acciones. Solo puede ocurrir un gank cuando jungla, atacante y víctima están suficientemente cerca; tomar un objetivo requiere compañeros presentes en el foso; las torres exigen al menos dos atacantes cerca de la defensa y el nexo solo cae cuando su carril está abierto y **todos los atacantes vivos del equipo vencedor están presentes cerca de la base**, con al menos dos supervivientes. Los eliminados regresan a su fuente y deben recorrer el mapa tras reaparecer.
+
+`frame.navigation.before` y `after` guardan posiciones por minuto para verificar el viaje y la muerte sin inventar movimiento retroactivamente. El minimapa SVG usa esas coordenadas reales del motor; los encuentros `v2` anteriores sin navegación siguen mostrando su representación visual histórica. El límite superior de partidos nuevos es **76 minutos simulados**: se permite que un asedio tarde en concretarse, en vez de forzar torres o un nexo desde lugares imposibles.
+
+**Límites:** esto es un primer motor espacial abstracto, no un MOBA completo. Los desplazamientos son por nodos/minuto, los agentes siguen rutinas tácticas simplificadas, las decisiones de gran asedio se comprometen según una puntuación de recursos y aún no hay wards, líneas de visión exactas ni campeones. Las pentakills serán más infrecuentes con las nuevas restricciones espaciales; el equilibrio de acciones y traits se revisará en siguientes fases.

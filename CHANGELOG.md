@@ -4,6 +4,19 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+## [0.6.0-alpha] — 2026-11-07
+
+### Navegación causal — M1.3B, primera fase
+- Agentes espaciales para los 10 profesionales: nodo, ruta, objetivo, intención y estado vivo/muerto. Viajan como máximo una conexión por minuto del grafo del minimapa.
+- El simulador actualiza **las posiciones antes de resolver** ganks, torres, Dragón, Barón, peleas y asedio; esos eventos requieren presencia y tiempo, no teletransporte narrativo.
+- Las bajas devuelven al jugador a la fuente y obligan a desplazarse después de reaparecer. El minimapa toma `frame.navigation.after` en lugar de reconstruir trayectorias después del partido.
+- Nuevas restricciones físicas de distancia a estructuras y objetivos, además de conexiones del grafo.
+- El cierre exige tres torres derribadas de un carril y atacantes supervivientes reunidos en el nexo rival. La partida puede extenderse hasta 76 minutos simulados para permitir el desplazamiento; no se fuerzan torres/nexo sin participantes.
+- Auditoría `RiftCore.Navigation.auditNavigation` y pruebas de cientos de seeds: rutas, desplazamientos, muertes, revivir, objetivos, resultados deterministas y demos sin cambios en guardados.
+- **Cambio deliberado de simulación:** los resultados con la misma seed pueden diferir de Alpha 0.5. Golden test renovado para las reglas causales; **el cálculo financiero mensual histórico conserva su huella**.
+- Guardados `v2` antiguos compatibles: `frame.navigation` es aditivo. Limitaciones: rutas abstractas, IA de intenciones simplificada y ausencia de wards; algunas jugadas, como pentakills, se hacen más raras.
+
+
 ## [0.5.0-alpha] — 2026-11-07
 
 ### Ritmo narrativo y variedad de RiftCast
