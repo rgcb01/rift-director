@@ -86,6 +86,7 @@ test('un 2v1 detectado provoca retroceso, pero el 1v1 igualado no',()=>{
  const baseline={goal:'blue_mid_front',intent:'lane'};
  const equal=decide(x,mid,10,baseline);
  assert.equal(equal.intent,'lane');
+ x.context.positions[x.a.lineup.JUN].node='blue_fountain';
  const enemyJUN=x.context.positions[x.b.lineup.JUN];
  enemyJUN.node='mid_center'; // Visible proximity to blue MID; never teleport actual game.
  const enemyMID=x.context.positions[x.b.lineup.MID];
