@@ -80,7 +80,8 @@ function eventView(match,eventIndex){
  const f=event?.facts,pre=moment?.navigation?.before,map=moment?.minimap;
  if(!f||!pre||!map?.players)return null; // old v2 replay: no invented coordinates
  const ids=[...new Set([f.initiatorId,f.actorId,f.supportId,f.targetId,
-   ...(f.assistIds||[]),...(f.participantIds||[]),...(f.victimIds||[])]
+   ...(f.assistIds||[]),...(f.participantIds||[]),...(f.victimIds||[]),
+   ...(f.impacts||[]).map(hit=>hit.id)]
    .filter(Boolean))];
  const participants=ids.filter(id=>pre[id]&&map.players[id]);
  if(!participants.length)return null;
@@ -98,6 +99,7 @@ function eventView(match,eventIndex){
     y:Math.min(328,Math.max(12,p.y+dy)),
     node,fallen,alive:fallen?false:pre[id].alive,sceneRole:
        fallen?'victima':id===f.initiatorId?'jungla':
+       (f.impacts||[]).some(hit=>hit.id===id&&hit.retreat)?'retirada':
        id===f.targetId?(f.action==='skirmish'&&f.outcome==='retreat'?'retirada':'objetivo'):
        id===f.actorId?'asesino': 'apoyo'};
  }
@@ -115,7 +117,7 @@ function eventView(match,eventIndex){
   participants,
   consistent,
   action:f.action,
-  focusNode:attempted?v?.node:f.node||null,
+  focusNode:attempted?v?.node:(f.combatVersion===1?f.targetNode:f.node)||null,
   // For old sports histories with inconsistent locations, show a warning
   // instead of teleporting the jungler into a place he never occupied.
   legacyLocationWarning:attempted&&!consistent

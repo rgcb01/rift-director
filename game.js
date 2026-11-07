@@ -127,7 +127,7 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
  const playerStats=RiftCore.createPlayerStats([...aP,...bP]);
  const living=(c,t)=>teams[c.id].filter(p=>(m.dead[p.id]||0)<=t);
  const enemy=c=>c.id===a.id?b:a;
- const byRole=(c,r,t)=>living(c,t).find(p=>p.role===r);
+ const byRole=(c,r,t)=>living(c,t).find(p=>p.role===r&&nav.getAgent(navigation,p.id)?.intent!=='retreat');
  // Only living, same-team professionals are considered present at the objective.
  // Pick helpers deterministically from role/vision/teamplay, without consuming RNG.
  const presentWith=(c,t,actor,node,preferred=[])=>{
@@ -141,7 +141,7 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
   const prior=m.events[m.events.length-1];
   // New encounter timestamps use their own deterministic clock: no additional
   // gameplay RNG is consumed by an incidental 2v1 commentary.
-  const skirmish=facts?.action==='skirmish';
+  const skirmish=facts?.action==='skirmish'||facts?.combatVersion===1;
   const stamp=skirmish?(Math.imul((commentarySeed^minute)>>>0,1664525)+
     Math.imul(m.events.length+1,1013904223))>>>0:0;
   const sec=minute===0?0:prior?.minute===minute?
@@ -165,6 +165,30 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
  return z};
  const decide=(ca,cb,t,bonus=0)=>chance(clamp(.5+(balance(ca,t)-balance(cb,t)+bonus)*.018,.13,.87))?ca:cb;
  const addKill=(killer,victim,t)=>{if(!killer||!victim||(m.dead[killer.id]||0)>t||(m.dead[victim.id]||0)>t)return false;const c=club(killer.teamId);m.kills[c.id]++;m.gold[c.id]+=320;m.dead[victim.id]=t+(t<16?2:t<29?3:4);health[victim.id]=0;return true};
+ // Every injury in lanes, ganks and fights goes through the same HP ledger.
+ // No one can be awarded a kill without 0 HP, and a retreat changes the
+ // agent's actual next path instead of teleporting on the minimap.
+ const applyCombat=(facts,t)=>{
+  for(const impact of facts.impacts){
+   const target=player(impact.id);
+   if(!target||health[target.id]!==impact.hpBefore)
+    throw Error('Estado de vida anterior al combate incorrecto');
+   if(impact.hpAfter===0){
+    if(!addKill(player(facts.actorId),target,t))
+     throw Error('Combat kill without living victim');
+   }else{
+    health[target.id]=impact.hpAfter;
+    if(impact.retreat&&!nav.forceRetreat(navigation,target.id,t,impact.retreatGoal))
+     throw Error('Combat retreat without living target');
+   }
+  }
+ };
+ const affected=(facts)=>facts.impacts.map(q=>
+    player(q.id).name+' '+q.hpBefore+'% → '+q.hpAfter+'%'+
+    (q.hpAfter===0?' (eliminado)':q.retreat?' (se retira)':'')).join('; ');
+ const combatDetails=(facts)=>affected(facts)+'. '+
+    (facts.victimIds.length?'Eliminación confirmada.':
+     facts.outcome==='retreat'?'El rival cede espacio y se retira.':'Ambos siguen en el mapa.');
  const takeTower=(c,t,requestedLane=null)=>{
   const target=enemy(c),options=['TOP','MID','BOT']
     .filter(l=>!requestedLane||l===requestedLane).map(lane=>{
@@ -190,6 +214,7 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
   playerStats:RiftCore.clonePlayerStats(playerStats),map:RiftCore.cloneMapState(m.map),
   health:{...health},navigation:{before:movementBefore,after:nav.snapshot(navigation,m.dead,t)}});
  makeEv(0,'Comienza el mapa',`${a.name} y ${b.name} entran a la Grieta. Ambos equipos buscan imponer su plan de juego.`, 'normal');nextSnapshot(0);
+ const lastLaneTrade={TOP:-10,MID:-10,BOT:-10};
  const lastGankAttempt=Object.create(null);
  for(let t=1;t<=76&&!m.winner;t++){
   m.minute=t;
@@ -198,6 +223,35 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
   RiftCore.Encounters.recover(health,navigation,m.dead,t);
   movementBefore=nav.snapshot(navigation,m.dead,t);
   m.map=updateMap(t);
+  // Early lane trades are genuine ranged/close combat, including 2v2 bot.
+  // The two opposing laners must belong to the narrated lane, be in lane
+  // trading range and have enough health to participate. No fake kill rolls.
+  if(t>=3&&t<=35){
+   for(const [index,lane] of ['TOP','MID','BOT'].entries()){
+    if((t+index)%4!==0||t-lastLaneTrade[lane]<4)continue;
+    const attacker=((commentarySeed+t+index)%2===0)?a:b,defender=enemy(attacker);
+    const laneRoles=lane==='BOT'?['ADC','SUP']:[lane];
+    const offense=laneRoles.map(r=>byRole(attacker,r,t)).filter(Boolean);
+    const defense=laneRoles.map(r=>byRole(defender,r,t)).filter(Boolean);
+    if(!offense.length||!defense.length)continue;
+    const facts=RiftCore.Encounters.resolveCombat({
+     nav:navigation,dead:m.dead,minute:t,players:Object.fromEntries([...aP,...bP].map(p=>[p.id,p])),
+     health,seed:commentarySeed,mode:'lane',teamId:attacker.id,
+     attackerIds:offense.map(p=>p.id),targetIds:defense.map(p=>p.id),lane
+    });
+    if(!facts)continue;
+    lastLaneTrade[lane]=t;
+    facts.action='lane_trade';
+    applyCombat(facts,t);
+    const nameLane={TOP:'superior',MID:'central',BOT:'inferior'}[lane];
+    makeEv(t,facts.outcome==='kill'?'¡Eliminación en '+nameLane+'!':
+      facts.outcome==='retreat'?'Retrocede el carril '+nameLane:
+      'Intercambio de daño en '+nameLane,
+      player(facts.actorId).name+' intercambia daño en el carril '+nameLane+
+      ' con '+player(facts.targetId).name+'. '+combatDetails(facts),
+      facts.outcome==='kill'?'fight':'normal',attacker,facts);
+   }
+  }
   // Only stage ganks for a JUN who actually has a planned lane and is
   // physically close to that opponent. A random unrelated lane cannot fire.
   if(t>=4&&t<=22){
@@ -220,32 +274,30 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
                       nav.getAgent(navigation,y.id)?.node,2));
     const support=byRole(attacker,lanerRole,t);
     const helper=support&&closeGank(support,v)?support:null;
-    const pSuccess=RiftCore.gankChance(.44+(balance(attacker,t)-balance(victimTeam,t))*.014+
-       j.beh.agg*.002+(j.beh.risk-50)*.0015,context,attacker.id,victimTeam.id);
-    const found=chance(pSuccess),killer=found?(chance(.66)?j:(helper||j)):null;
-    const approach=nav.gankApproach(agent.node,lane),nameLane={TOP:'superior',MID:'central',BOT:'inferior'}[lane];
-    if(found&&killer&&closeGank(killer,v)&&addKill(killer,v,t)){
-     const actor=chance(.68)?j:(helper||j);
-     const assists=[...new Set([j,helper].filter(p=>p&&p.id!==killer.id&&
-       closeGank(p,v)).map(p=>p.id))];
-     makeEv(t,'¡Gank en '+nameLane+'!',
-      j.name+' llega desde '+({rio:'el río',jungla:'la jungla',flanco:'un flanco',tribush:'el acceso inferior'}[approach]||'la jungla')+
-      ' y presiona a '+v.name+'. '+killer.name+' consigue la eliminación.',
-      'fight',attacker,{action:'gank',actorId:killer.id,initiatorId:j.id,supportId:actor.id,
-       initiatorNode:agent.node,victimNode:nav.getAgent(navigation,v.id).node,
-       lane,route:approach,spatialVersion:2,plannedGankVersion:1,
-       attackerPressure:context.pressure[attacker.id],defenderVision:context.vision[victimTeam.id],
-       victimIds:[v.id],assistIds:assists});
-    }else{
-     makeEv(t,'Gank evitado en '+nameLane,
-       v.name+' mantiene la distancia ante '+j.name+', que aparece desde '+
-       ({rio:'el río',jungla:'la jungla',flanco:'un flanco',tribush:'el acceso inferior'}[approach]||'la jungla')+
-       '. No hay eliminación.', 'normal',attacker,{
-        action:'gank_avoided',actorId:j.id,initiatorId:j.id,targetId:v.id,
-        initiatorNode:agent.node,targetNode:nav.getAgent(navigation,v.id).node,
-        lane,route:approach,spatialVersion:2,plannedGankVersion:1
-       });
-    }
+    const combat=RiftCore.Encounters.resolveCombat({
+      nav:navigation,dead:m.dead,minute:t,
+      players:Object.fromEntries([...aP,...bP].map(p=>[p.id,p])),
+      health,seed:commentarySeed,mode:'gank',teamId:attacker.id,
+      attackerIds:[j.id,...(helper?[helper.id]:[])],targetIds:[v.id],lane
+    });
+    if(!combat)throw Error('Gank elegible sin daño resoluble');
+    const approach=nav.gankApproach(agent.node,lane);
+    const nameLane={TOP:'superior',MID:'central',BOT:'inferior'}[lane];
+    combat.action=combat.victimIds.length?'gank':'gank_avoided';
+    combat.initiatorId=j.id;
+    combat.initiatorNode=agent.node;
+    combat.spatialVersion=2;combat.plannedGankVersion=1;
+    combat.route=approach;combat.supportId=helper?.id||j.id;
+    combat.victimNode=nav.getAgent(navigation,v.id).node;
+    combat.attackerPressure=context.pressure[attacker.id];
+    combat.defenderVision=context.vision[victimTeam.id];
+    applyCombat(combat,t);
+    const entry=j.name+' se acerca por '+({rio:'el río',jungla:'la jungla',flanco:'un flanco',tribush:'el acceso inferior'}[approach]||'la jungla')+
+       ' hacia '+v.name+'. '+combatDetails(combat);
+    makeEv(t,combat.victimIds.length?'¡Gank con eliminación en '+nameLane+'!':
+      combat.outcome==='retreat'?'Gank obliga a retirarse en '+nameLane:
+      'Gank resistido en '+nameLane,
+      entry,combat.victimIds.length?'fight':'normal',attacker,combat);
    }
   }
   // Causal objective skirmishes. A numerical 2v1 near Dragon/Baron
@@ -304,46 +356,47 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
        ordinal:m.dragons[owner.id],node:'dragon_pit'});
     }
   }
-  // Teamfights resolve multiple real kills; a wipe checks all five enemy respawn states.
-  if(t>=12&&t<57&&chance(t<22?.18:.29)){
-   let winner=decide(a,b,t),loser=enemy(winner),engagements=nav.engagement(navigation,winner.id,2);
-   const options=engagements.map(e=>{
-    const comrades=living(winner,t).filter(p=>
-      nav.combatRange(nav.getAgent(navigation,p.id).node,e.actor.node,1));
-    const targets=e.foes.filter(p=>(m.dead[p.id]||0)<=t);
-    return {comrades,targets};
-   }).filter(x=>x.comrades.length>=2&&x.targets.length);
-   if(!options.length){
-    const other=nav.engagement(navigation,loser.id,2);
-    const counter=other.map(e=>({
-      comrades:living(loser,t).filter(p=>nav.combatRange(nav.getAgent(navigation,p.id).node,e.actor.node,1)),
-      targets:e.foes.filter(p=>(m.dead[p.id]||0)<=t)
-    })).filter(x=>x.comrades.length>=2&&x.targets.length);
-    if(counter.length){[winner,loser]=[loser,winner];options.push(...counter)}
-   }
-   if(options.length){
-    const battle=pick(options),attackers=battle.comrades,defenders=battle.targets.slice();
-    let k=clamp(ri(1,t>28?5:4),1,defenders.length);
-    if(chance(.25))k=Math.min(5,defenders.length);
-    const carry=attackers.find(p=>p.role==='ADC')||attackers.find(p=>p.role==='MID')||pick(attackers);
-    const inRange=defenders.filter(p=>near(carry,p,2));
-    const slain=[],slainIds=[];
-    for(let i=0;i<Math.min(k,inRange.length);i++){
-     const v=inRange.splice(ri(0,inRange.length-1),1)[0];
-     if(addKill(carry,v,t)){slain.push(v.name);slainIds.push(v.id)}
-    }
-    if(slain.length){
-     const ace=living(loser,t).length===0;
-     const multi=slain.length>=3?`${slain.length===5?'¡PENTAKILL!':slain.length===4?'¡CUÁDRUPLE!':'¡TRIPLE KILL!'} `:'';
-     const body=`${carry.name} encabeza una pelea en la misma zona del mapa para ${winner.name} y consigue ${slain.length} eliminación${slain.length!==1?'es':''}.`+
-       (ace?' ¡Exterminio! Todo el rival está fuera de combate.':'');
-     const assists=attackers.filter(p=>p.id!==carry.id&&near(p,carry,2))
-       .sort((x,y)=>(y.beh.team+y.a.comm+y.a.vision)-(x.beh.team+x.a.comm+x.a.vision)||x.id.localeCompare(y.id))
-       .slice(0,2).map(p=>p.id);
-     makeEv(t,multi+(ace?'¡Exterminio en la Grieta!':'Pelea de equipos'),
-       body,'fight',winner,{action:'teamfight',actorId:carry.id,victimIds:slainIds,
-        assistIds:assists,multiKill:slainIds.length,ace,
-        node:nav.getAgent(navigation,carry.id).node});
+  // Group encounters share the same HP + escape rules as lanes and ganks.
+  // A hero only dies after enough damage. A nonlethal fight is a real
+  // clash, with hurt heroes and forced retreats, not an unrecorded roll.
+  if(t>=12&&t<57&&chance(t<22?.22:.32)){
+   const chosen=decide(a,b,t);
+   const gather=(team)=>{
+    const fights=nav.engagement(navigation,team.id,2).map(e=>{
+     const comrades=living(team,t).filter(p=>
+       nav.getAgent(navigation,p.id)?.intent!=='retreat'&&
+       nav.combatRange(nav.getAgent(navigation,p.id).node,e.actor.node,1));
+     const targets=e.foes.filter(p=>(m.dead[p.id]||0)<=t&&p.intent!=='retreat');
+     return {comrades,targets};
+    }).filter(x=>x.comrades.length>=2&&x.targets.length);
+    return fights.length?pick(fights):null;
+   };
+   let winner=chosen,battle=gather(chosen);
+   if(!battle){winner=enemy(chosen);battle=gather(winner)}
+   if(battle){
+    const facts=RiftCore.Encounters.resolveCombat({
+     nav:navigation,dead:m.dead,minute:t,
+     players:Object.fromEntries([...aP,...bP].map(p=>[p.id,p])),
+     health,seed:commentarySeed,mode:'teamfight',teamId:winner.id,
+     attackerIds:battle.comrades.map(p=>p.id),
+     targetIds:battle.targets.map(p=>p.id)
+    });
+    if(facts){
+     facts.action=facts.victimIds.length?'teamfight':'clash';
+     facts.node=nav.getAgent(navigation,facts.actorId).node;
+     applyCombat(facts,t);
+     facts.multiKill=facts.victimIds.length;
+     facts.ace=facts.victimIds.length>0&&living(enemy(winner),t).length===0;
+     const multi=facts.victimIds.length===5?'¡PENTAKILL! ':
+       facts.victimIds.length===4?'¡CUÁDRUPLE! ':
+       facts.victimIds.length===3?'¡TRIPLE KILL! ':'';
+     makeEv(t,multi+(facts.victimIds.length?
+       (facts.ace?'¡Exterminio en la Grieta!':'Pelea de equipos'):
+       facts.outcome==='retreat'?'Pelea que obliga a retroceder':
+       'Intercambio entre equipos'),
+       player(facts.actorId).name+' lidera la escaramuza de '+winner.name+
+       '. '+combatDetails(facts)+(facts.ace?' ¡Todo el rival está fuera de combate!':''),
+       facts.victimIds.length?'fight':'normal',winner,facts);
     }
    }
   }
@@ -709,7 +762,8 @@ function matchEventDetail(e){
  if(!f)return '';
  const who=id=>player(id)?.name||'Profesional desconocido';
  let detail='';
- if(f.action==='gank')detail=`${f.lane||'Carril'} · Ruta ${f.route||'desconocida'} · Jungla: ${who(f.initiatorId)} · Kill: ${who(f.actorId)} · Visión rival ${f.defenderVision??'—'}/100`;
+ if(f.combatVersion===1)detail=`${f.mode==='gank'?'Gank':f.mode==='lane'?'Línea '+f.lane:'Pelea'} · ${f.attackerCount} atacante(s) · ${f.impacts.map(p=>who(p.id)+' '+p.hpBefore+'%→'+p.hpAfter+'%').join('; ')} · ${f.victimIds.length?'Baja(s): '+f.victimIds.length:f.outcome==='retreat'?'Retirada confirmada':'Intercambio sin baja'}`;
+ else if(f.action==='gank')detail=`${f.lane||'Carril'} · Ruta ${f.route||'desconocida'} · Jungla: ${who(f.initiatorId)} · Kill: ${who(f.actorId)} · Visión rival ${f.defenderVision??'—'}/100`;
  else if(f.action==='teamfight')detail=`${who(f.actorId)} · ${f.victimIds.length} eliminaciones${f.ace?' · Exterminio confirmado':''}`;
  else if(f.action==='skirmish')detail=`${f.zone==='dragon_pit'?'Dragón':'Barón'} · ${f.attackerCount} contra ${f.defenderCount} · ${who(f.targetId)}: ${f.hpBefore}% → ${f.hpAfter}% de vida · ${f.outcome==='kill'?'Eliminación confirmada':'Se retira sin morir'}`;
  else if(f.action==='baron')detail=f.stolen?`Robo con Smite: ${who(f.actorId)} (JUN)`:`Barón asegurado: ${who(f.actorId)}`;
@@ -837,11 +891,11 @@ function renderModal(){if(!s&&modal?.type!=='welcome')modal={type:'welcome'};if(
 function navButton(id,ic,label){return `<button data-nav="${id}" class="${view===id?'active':''}">${icon(ic)} <span>${label}</span></button>`}
 function render(){if(!s){document.getElementById('app').innerHTML=renderModal();return}
  const c=currentClub();let body=view==='home'?renderHome():view==='roster'?renderRoster():view==='market'?renderMarket():view==='match'?renderMatch():view==='finance'?renderFinance():view==='world'?renderWorld():renderSettings();
- document.getElementById('app').innerHTML=`<div class="layout"><aside class="sidebar"><div class="brand"><div class="brand-icon" style="color:var(--teal);font-size:22px;font-weight:900">R</div><div><strong>Rift Director</strong><small>ALFA 0.7.4 · SANDBOX</small></div></div>
+ document.getElementById('app').innerHTML=`<div class="layout"><aside class="sidebar"><div class="brand"><div class="brand-icon" style="color:var(--teal);font-size:22px;font-weight:900">R</div><div><strong>Rift Director</strong><small>ALFA 0.7.5 · SANDBOX</small></div></div>
  <nav class="nav" aria-label="Navegación">${demoBackup?navButton('match','match','Exhibición'):`${navButton('home','home','Inicio')}${navButton('roster','users','Plantilla')}${navButton('market','market','Mercado')}${navButton('match','match','Partidos')}${navButton('finance','money','Finanzas')}${navButton('world','world','Mundo')}${navButton('settings','settings','Partida')}`}</nav>
  <div class="sidebar-foot"><div class="eyebrow">TEMPORADA ${s.season}</div><div style="margin-top:5px;font-weight:800">${MONTHS[s.month-1]} ${s.year}</div><div class="chip">${s.clubs.length} clubes · ${s.players.filter(p=>!p.retired).length} profesionales</div></div></aside>
  <main class="main"><header class="topbar"><div class="clubhead">${crest(c,46)}<div><div class="clubtitle">${esc(c.name)}</div><div class="helper">${esc(s.leagueName)} · Club ${c.kind==='user'?'bajo tu dirección':'autónomo'}</div></div></div><div class="top-actions">${demoBackup?`<span class="chip">MODO PRUEBA</span><button class="btn small secondary" data-action="demo-exit">Volver</button>`:`<span class="chip">${icon('calendar',14)} ${MONTHS[s.month-1]} ${s.year}</span><span class="chip ${c.cash<250000?'red':'green'}">${icon('money',14)} ${fmt(c.cash)}</span><button class="btn small" data-action="close-month" ${s.over?'disabled':''}>Siguiente mes</button>`}</div></header>${body}
- <div class="footer">Rift Director Alpha 0.7.4 · Universo y retratos ficticios · Guardado local · Simulador independiente no afiliado a Riot Games</div></main></div>${renderModal()}${s.over?`<div class="modal-layer"><div class="modal end-screen"><div class="eyebrow">FIN DE PARTIDA</div><h1>Insolvencia.</h1><p>Tu club se quedó sin efectivo. El mundo sigue su historia, pero esta gestión termina aquí. Recuerda: ganar torneos nunca fue la única forma de triunfar.</p><div class="buttons" style="justify-content:center"><button class="btn" data-action="export">Exportar historia</button><button class="btn danger" data-action="reset">Nueva organización</button></div></div></div>`:''}`;
+ <div class="footer">Rift Director Alpha 0.7.5 · Universo y retratos ficticios · Guardado local · Simulador independiente no afiliado a Riot Games</div></main></div>${renderModal()}${s.over?`<div class="modal-layer"><div class="modal end-screen"><div class="eyebrow">FIN DE PARTIDA</div><h1>Insolvencia.</h1><p>Tu club se quedó sin efectivo. El mundo sigue su historia, pero esta gestión termina aquí. Recuerda: ganar torneos nunca fue la única forma de triunfar.</p><div class="buttons" style="justify-content:center"><button class="btn" data-action="export">Exportar historia</button><button class="btn danger" data-action="reset">Nueva organización</button></div></div></div>`:''}`;
  if(view==='match'&&s.live){const log=document.getElementById('eventlog');const selected=log?.querySelector('.is-selected');if(selected&&typeof selected.scrollIntoView==='function')selected.scrollIntoView({block:'nearest'})}
 }
 function updatePlan(id,delta){if(s.live&&!s.live.finished)return notify('Finaliza el partido para modificar la agenda.');if(!Object.hasOwn(s.plan,id))return;let x=s.plan[id]+delta;if(x<0||x>4||delta>0&&sumPlan()>=8)return;s.plan[id]=x;save();render()}

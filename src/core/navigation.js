@@ -110,7 +110,7 @@ function participants(nav,teamId,node,maxHops=1){
 }
 function engagement(nav,teamId,maxHops=1) {
  const our=teamAgents(nav,teamId).filter(a=>a.alive&&a.intent!=='retreat');
- const their=teamAgents(nav,enemy(nav,teamId)).filter(a=>a.alive);
+ const their=teamAgents(nav,enemy(nav,teamId)).filter(a=>a.alive&&a.intent!=='retreat');
  const candidates=[];
  for(const p of our){
   const foes=their.filter(x=>combatRange(p.node,x.node,maxHops));
@@ -329,6 +329,18 @@ function auditNavigation(match,world){
     if(!starter||starter.intent!=='gank_setup'||starter.lane!==f.lane)
       errs.push('Gank sin plan de jungla correspondiente: '+e.minute);
    }
+   // Modern combat facts are tied to the recorded positions of every target.
+   if(f.combatVersion===1){
+    const actor=positions[f.actorId];
+    if(!actor||!active(f.actorId)||actor.node!==f.actorNode)
+     errs.push('Ataque con actor ausente o movido: '+e.minute);
+    for(const hit of f.impacts||[]){
+     const p=positions[hit.id];
+     if(!p||!active(hit.id)||p.teamId===team||p.node!==hit.node||
+        !actor||!core.Encounters.hitRange(actor,p,f.mode,f.lane))
+       errs.push('Daño imposible desde otro carril: '+e.minute+' / '+hit.id);
+    }
+   }
    if(f.action==='gank'){
     const victim=f.victimIds[0];
     const iNode=positions[f.initiatorId]?.node,vNode=positions[victim]?.node;
@@ -386,6 +398,7 @@ function auditNavigation(match,world){
     if(attackers.length<2)errs.push('Nexo destruido sin asedio de dos atacantes.');
    }
    if(f.action==='gank'||f.action==='teamfight'||
+      (f.action==='lane_trade'&&f.outcome==='kill')||
       (f.action==='skirmish'&&f.outcome==='kill'))
     for(const id of f.victimIds)deadUntil[id]=e.minute+(e.minute<16?2:e.minute<29?3:4);
   }

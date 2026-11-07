@@ -13,8 +13,10 @@ const byRole=(world,teamId,role)=>
  world.clubs.find(c=>c.id===teamId).lineup[role];
 
 const validRetreat=(match,id,t)=>match.events.some(e=>
- e.minute<=t&&e.facts?.action==='skirmish'&&
- e.facts.outcome==='retreat'&&e.facts.targetId===id);
+ e.minute<=t&&(
+   (e.facts?.action==='skirmish'&&e.facts.outcome==='retreat'&&e.facts.targetId===id)||
+   (e.facts?.combatVersion===1&&e.facts.impacts?.some(hit=>hit.id===id&&hit.retreat))
+  ));
 
 test('fase de líneas minuto 10: ADC y SUP permanecen en su mitad y no en el mismo extremo neutral',()=>{
  const {sim,world,fixture}=prepare();
@@ -30,11 +32,13 @@ test('fase de líneas minuto 10: ADC y SUP permanecen en su mitad y no en el mis
    assert.notEqual(s.node,'top_corner','SUP nunca debe atascarse en TOP durante fase de líneas');
    // Characters can be dead or traveling back from fountain. Check stable
    // lane positions when both have stayed alive until this point.
-   const casualties=match.events.some(e=>e.minute<=10&&
-    ((['gank','teamfight','skirmish'].includes(e.facts?.action)&&
-      (e.facts.victimIds||[]).some(id=>id===adc||id===sup))||
-     (e.facts?.action==='skirmish'&&
-       (e.facts.targetId===adc||e.facts.targetId===sup))));
+   const casualties=match.events.some(e=>e.minute<=10&&(
+    (e.facts?.victimIds||[]).some(id=>id===adc||id===sup)||
+    (e.facts?.action==='skirmish'&&
+      (e.facts.targetId===adc||e.facts.targetId===sup))||
+    (e.facts?.combatVersion===1&&
+      e.facts.impacts?.some(hit=>(hit.id===adc||hit.id===sup)&&hit.retreat))
+   ));
    if(!casualties){
     assert.equal(a.node,side+'_bot_front','ADC debe estar en su botlane');
     assert.equal(s.node,side+'_bot_front','SUP debe proteger al ADC');

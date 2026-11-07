@@ -33,7 +33,31 @@ function createBroadcast(match,world,seed) {
   if(!f)return null;
   const club=name(e.teamId),enemy=name(foe(e.teamId)),actor=who(f.actorId);
   let entries;
-  if(f.action==='gank'){
+  if(f.combatVersion===1){
+   const target=who(f.targetId),k=(f.victimIds||[]).length;
+   const arena=f.mode==='gank'?'la emboscada de '+laneLabel[f.lane]:
+     f.mode==='lane'?'el carril '+laneLabel[f.lane]:'la pelea grupal';
+   const impacts=(f.impacts||[]).map(hit=>who(hit.id)+' queda con '+hit.hpAfter+'% de vida').join('; ');
+   const retreats=(f.impacts||[]).filter(hit=>hit.retreat).map(hit=>who(hit.id));
+   const resolution=k?('Caen '+f.victimIds.map(who).join(' y ')+'.'):
+     retreats.length?('Se retira'+(retreats.length>1?'n ':' ')+retreats.join(' y ')+'.'):
+     'Ambos bandos conservan sus jugadores.';
+   entries=[
+    [k?'¡Baja confirmada en '+arena+'!':
+      retreats.length?'¡Retirada tras '+arena+'!':'Intercambio en '+arena,
+     actor+' presiona a '+target+'. '+impacts+'. '+resolution],
+    [k?'Una eliminación abre espacio para '+club:
+      'La vida decide '+arena,
+     club+' encuentra el combate en '+arena+'. '+impacts+'. '+resolution],
+    [k?'¡El daño termina en kill!':
+      retreats.length?'¡No hay baja, pero ceden terreno!':'Intercambio sin víctimas',
+     actor+' encabeza el ataque. '+impacts+'. '+resolution],
+    [k?'¡'+club+' gana el enfrentamiento!':
+      'Se desgastan en '+arena,
+     'Daño registrado: '+f.impacts.map(hit=>who(hit.id)+' pierde '+hit.damage+' puntos').join('; ')+
+     '. '+resolution]
+   ];
+  }else if(f.action==='gank'){
    const lane=laneLabel[f.lane],victim=who(f.victimIds[0]);
    entries=[
     ['¡Aparece el jungla en '+lane+'!',who(f.initiatorId)+' '+({rio:'llega desde el río',jungla:'llega desde la jungla',tribush:'entra por el acceso inferior',flanco:'entra por un flanco'}[f.route]||'entra en la zona')+' y '+actor+' elimina a '+victim+'. Visión rival estimada: '+f.defenderVision+'/100.'],

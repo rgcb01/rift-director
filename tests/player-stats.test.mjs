@@ -49,7 +49,7 @@ test('auditor rechaza asistentes muertos, KDA inventados y participantes ajenos'
   const match=sim.simulateMatch(fixture);
   const clone=x=>JSON.parse(JSON.stringify(x));
   const kill=match.events.find(e=>e.facts?.action==='teamfight');
-  const objective=match.events.find(e=>e.facts?.participantIds?.length);
+  const objective=match.events.find(e=>['tower','dragon','baron'].includes(e.facts?.action)&&e.facts?.participantIds?.length);
   assert.ok(kill&&objective);
   const fakeAssist=clone(match);
   const fakeKill=fakeAssist.events.find(e=>e.facts?.action==='teamfight');
@@ -60,7 +60,7 @@ test('auditor rechaza asistentes muertos, KDA inventados y participantes ajenos'
   fakeStat.frames.at(-1).playerStats[first].kills+=7;
   assert.match(core.auditMatch(fakeStat,world).join(' '),/KDA\/objetivo individual/);
   const fakeObject=clone(match);
-  const e=fakeObject.events.find(x=>x.facts?.participantIds?.length);
+  const e=fakeObject.events.find(x=>['tower','dragon','baron'].includes(x.facts?.action)&&x.facts?.participantIds?.length);
   const rival=e.teamId===fixture.a?fixture.b:fixture.a;
   e.facts.participantIds.push(Object.values(teammates(world,rival))[0]);
   assert.match(core.auditMatch(fakeObject,world).join(' '),/Participación falsa|Atacante inválido en escaramuza/);
