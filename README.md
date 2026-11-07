@@ -4,7 +4,7 @@
 
 [**Jugar en el navegador**](https://rgcb01.github.io/rift-director/) · [Roadmap](ROADMAP.md) · [Cambios](CHANGELOG.md) · [Cómo contribuir](CONTRIBUTING.md)
 
-> **Alpha 0.6 — prototipo jugable.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
+> **Alpha 0.7 — prototipo jugable.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
 
 ## La idea
 
@@ -15,12 +15,12 @@ Los meses impulsan las finanzas y el mundo. Las noticias y los rumores reflejan 
 ## Jugar
 
 - **Web / móvil:** [rift-director en GitHub Pages](https://rgcb01.github.io/rift-director/).
-- **Probar sin empezar una partida:** en la bienvenida pulsa **Simular partida de prueba**. También puedes iniciarla desde **Partidos** o **Partida** si tienes un club. La exhibición permite pausar, 1×/2×/5×, saltar al final y repetir; **no cambia tu save**, resultados ni dinero. **Salir de la prueba** devuelve exactamente el estado anterior. Al recargar la página durante una demo se recupera el guardado anterior, no la demo.
+- **Probar sin empezar una partida:** en la bienvenida pulsa **Simular partida de prueba**. También puedes iniciarla desde **Partidos** o **Partida** si tienes un club. La exhibición avanza con **Siguiente evento**, permite **Terminar partida** y revisar cualquier jugada pulsando su historial, sin temporizador; **no cambia tu save**, resultados ni dinero. **Salir de la prueba** devuelve exactamente el estado anterior. Al recargar la página durante una demo se recupera el guardado anterior, no la demo.
 - **Local:** descarga el repositorio y abre `index.html` con tu navegador. Como alternativa, ejecuta `python -m http.server 8080` y visita `http://localhost:8080`.
 - No hay instalación de paquetes, cuenta ni backend para jugar.
 - **Guardados:** automáticos en `localStorage` de ese navegador. En **Partida** puedes **exportar/importar JSON**. Los guardados no se sincronizan entre dispositivos; expórtalos antes de borrar datos del navegador.
 
-## Qué existe hoy (Alpha 0.6)
+## Qué existe hoy (Alpha 0.7)
 
 | Área | Implementado | Límites actuales |
 |---|---|---|
@@ -45,6 +45,7 @@ src/core/      RNG, calendario, economía, proyección del minimapa y guardados
 src/ui/        Render SVG del minimapa de partidos
 src/core/broadcast.js   Ritmo narrado y comentarios tácticos verificables
 src/core/navigation.js  Posiciones, rutas y validación de movimientos causales
+src/core/replay.js      Repetición por jugada, reconstrucción exacta y selección reversible
 game.js        Mundo, partidos, economía y UI (aún pendiente de modularizar)
 scripts/       Comprobaciones automatizadas
 docs/          Diseño, arquitectura y plan de pruebas
@@ -119,7 +120,7 @@ En la retransmisión y en la **exhibición de prueba** aparece un minimapa liger
 
 ### M1.4 — Ritmo y narración contextual (Alpha 0.5)
 
-En **1×** la retransmisión avanza un paso cada **5 segundos**, y si un minuto contiene varias novedades, se muestran una por una. En **2×** cada minuto dura aproximadamente **2.5 segundos**; en **5×** tarda **950 ms por minuto**. Pausar, acelerar, saltar al final y repetir no modifica la simulación.
+**Nota histórica (Alpha 0.5):** la versión anterior tenía controles de tiempo 1×/2×/5×. Desde Alpha 0.7 estos botones se sustituyeron por navegación manual por eventos; los datos históricos se conservan, pero ya no existen temporizadores de reproducción.
 
 `src/core/broadcast.js` incorpora temas de cobertura derivados de la partida: presión de carriles, visión, ventaja de oro, remontadas reales, ventanas de objetivos, ventajas de torres, bajas y rendimiento del ADC. También elige variantes de títulos y comentarios para asesinatos, ganks, peleas, Barón, Dragón, torres y nexo. **No inventa asesinatos, wards, movimientos ni resultados**: las observaciones son una capa editorial separada de `event.facts`. La elección es determinista sin consumir RNG del juego; `auditBroadcast` verifica la correspondencia con los datos fuente. Los guardados `v2` históricos sin cobertura ampliada siguen funcionando; la velocidad 1× se actualizará igualmente a un ritmo más legible.
 
@@ -132,3 +133,12 @@ Cada profesional es ahora un agente con **nodo actual, destino, intención, vida
 `frame.navigation.before` y `after` guardan posiciones por minuto para verificar el viaje y la muerte sin inventar movimiento retroactivamente. El minimapa SVG usa esas coordenadas reales del motor; los encuentros `v2` anteriores sin navegación siguen mostrando su representación visual histórica. El límite superior de partidos nuevos es **76 minutos simulados**: se permite que un asedio tarde en concretarse, en vez de forzar torres o un nexo desde lugares imposibles.
 
 **Límites:** esto es un primer motor espacial abstracto, no un MOBA completo. Los desplazamientos son por nodos/minuto, los agentes siguen rutinas tácticas simplificadas, las decisiones de gran asedio se comprometen según una puntuación de recursos y aún no hay wards, líneas de visión exactas ni campeones. Las pentakills serán más infrecuentes con las nuevas restricciones espaciales; el equilibrio de acciones y traits se revisará en siguientes fases.
+
+### Alpha 0.7 — Repetición interactiva por jugadas (M1.5)
+
+- Pulsa **Siguiente evento** para desbloquear la siguiente jugada en orden, sin límite de tiempo. Puedes retroceder pulsando cualquier entrada ya vista de **Historial de jugadas**.
+- **Terminar partida** resuelve la reproducción al instante, registra el resultado una sola vez y desbloquea todo el historial. Después puedes revisar cualquier acción y seguir avanzando desde ese punto sin volver a pagar premios ni modificar el mundo.
+- El marcador, torres, objetivos, KDA y minimapa reflejan una **instantánea posterior al evento seleccionado**, incluso cuando varias jugadas ocurren en el mismo minuto. El minimapa marca con un círculo dónde sucedió la jugada (gank, combate, torre, objetivo, nexo) y sigue distinguiendo jugadores vivos de muertos.
+- Las posiciones iniciales de TOP, MID, ADC y SUP ahora están en nodos delanteros, cerca del centro de sus líneas. JUN comienza en su jungla. La conectividad del grafo mantiene el límite de una conexión recorrida por minuto.
+- Al salir de un partido oficial terminado, queda guardada **la última repetición** y se puede abrir desde **Partidos → Revisar último partido**. La exhibición continúa siendo temporal y no escribe `localStorage`.
+- Las partidas históricas `v2` sin `moments` siguen siendo navegables usando sus snapshots **por minuto**; no inventamos una precisión por jugada inexistente. El nuevo `match.moments` es opcional y el formato de save continúa siendo `v2`.
