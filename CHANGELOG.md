@@ -4,6 +4,21 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+## [0.7.0-alpha] — 2026-11-07
+
+### Historial de jugadas interactivo (M1.5)
+- **Siguiente evento** permite avanzar jugada a jugada y deja de depender del reloj. **Terminar partida** resuelve el resultado de inmediato y desbloquea todo el historial.
+- El historial de RiftCast ahora es **clicable y reversible**, incluso después de finalizar. Al seleccionar una jugada se recuperan marcador, oro, KDA, torres, objetivos y minimapa correspondientes.
+- Nuevos snapshots opcionales `match.moments` después de cada evento deportivo real, proyectados con el mismo motor de minimapa, incluso con múltiples jugadas en el mismo minuto. `src/core/replay.js` maneja progreso desbloqueado y punto histórico seleccionado de forma independiente.
+- Marcador del lugar de la jugada seleccionada: gank, teamfight, torre, Dragón, Barón o nexo.
+- Las cabezas de TOP/MID/ADC/SUP empiezan más adelantadas gracias a nuevos nodos simétricos de las líneas; JUN continúa en jungla. Son rutas y posiciones reales, no teletransportes.
+- Tras salir de un partido oficial, el **último replay** se conserva en el guardado y se puede abrir otra vez desde Partidos. Demo sin guardado ni premios.
+- Mantiene partidas `v2` anteriores, con reconstrucción por minuto cuando no existe `moments`; no inventa precisión histórica.
+- Tests de instantáneas por evento, retroceso, control manual, archivo de replay, compatibilidad, fraude de eventos y preservación de pagos.
+- Las semillas de nuevos partidos pueden variar por los nodos iniciales más adelantados; huella golden actualizada, finanzas mensuales preservadas.
+
+
+
 ## [0.6.0-alpha] — 2026-11-07
 
 ### Navegación causal — M1.3B, primera fase
