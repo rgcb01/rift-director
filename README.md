@@ -4,7 +4,7 @@
 
 [**Jugar en el navegador**](https://rgcb01.github.io/rift-director/) · [Roadmap](ROADMAP.md) · [Cambios](CHANGELOG.md) · [Cómo contribuir](CONTRIBUTING.md)
 
-> **Alpha 0.7.4 — prototipo jugable.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
+> **Alpha 0.7.5 — prototipo jugable.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
 
 ## La idea
 
@@ -171,3 +171,11 @@ La cercanía de jugadores en el minimapa **ya tiene consecuencias de combate**. 
 - Los encuentros solo se abren si al menos dos jugadores amenazan a uno desde el rango registrado y al menos uno está realmente a distancia de golpe. Un mismo objetivo tiene un enfriamiento para evitar combates ficticios repetidos.
 - Se conservan los guardados `v2` anteriores: en replays antiguos no se inventan barras de vida ni escaramuzas no simuladas. Los resultados deportivos de nuevas partidas pueden variar por esta regla.
 - **Limitación actual:** es el primer sistema de escaramuzas en fosos de objetivos, no un motor completo de habilidades, campeones, oleadas, tiempos de enfriamiento ni visión. Las peleas de línea preexistentes siguen teniendo reglas simplificadas y serán una fase posterior.
+
+### Alpha 0.7.5 — El mismo combate para todas las líneas, ganks y teamfights
+
+Los diez profesionales ahora comparten un **registro continuo de vida** durante el partido. TOP, MID y BOT pueden intercambiar daño cuando están en el mismo carril y dentro de un alcance de ataque compatible con el minimapa. Los ganks y las peleas grupales consumen la vida existente: ya no generan asesinatos únicamente por una tirada favorable. Cada impacto registra daño, vida previa y posterior, equipo, posición real y si el afectado muere, se retira por un camino físicamente permitido o continúa peleando. El espectador puede volver a cada jugada para revisar el estado exacto de su salud y posición.
+
+En los carriles el alcance abstracto permite intercambios a distancia dentro de la misma línea, sin fingir que están cuerpo a cuerpo; ganks y teamfights siguen exigiendo proximidad física de combate. La superioridad numérica ayuda, pero **un 2v2 igualado no se considera automáticamente un 2v1**. No hay bajas sin vida a cero y una retirada debe mover realmente al profesional en el siguiente minuto. El relato y el minimapa se derivan de los mismos hechos.
+
+El formato de guardado continúa en `v2`; los replays previos no se reescriben ni reciben daño ficticio. Esta fase sigue siendo una simulación táctica simplificada: los atributos, alcance, ventaja numérica y recuperación de HP están modelados, pero todavía no existen campeones individuales, habilidades con cooldown, estadísticas de minions ni niebla de guerra.

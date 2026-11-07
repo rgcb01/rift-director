@@ -4,6 +4,19 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+## [0.7.5-alpha] — 2026-11-07
+
+### Combate unificado en todos los carriles
+- `Encounters.resolveCombat`: contrato de daños determinista compartido por intercambios TOP/MID/BOT, ganks y enfrentamientos entre equipos; registro de `impacts` con daño, HP antes y después, identidad, resultado y retirada.
+- **Las kills requieren HP = 0**: ganks y teamfights ya no eliminan automáticamente por una tirada favorable. Los choques no letales provocan lesiones, retirada cuando corresponde, o continuación con vida.
+- Nuevas acciones `lane_trade` y `clash`. Los ganks evitados ahora pueden causar daño real y obligar al objetivo a regresar; las eliminaciones de línea y peleas grupales sí acreditan bajas y asistencias verificables.
+- TOP y BOT pueden intercambiar a alcance de línea razonable, mientras que kills de gank/teamfight exigen rango físico de combate. Los soportes y junglas que se retiran deben recorrer conexiones del mapa, sin reaparecer artificialmente.
+- `RiftCast` y replay incluyen HP antes/después, participantes y desenlaces seleccionables; el minimapa resalta a atacantes, víctimas y profesionales en retirada.
+- Auditoría deportiva y espacial ampliada: HP congruente con daño, asistentes presentes, bajas con cero HP, muerto en fuente, retirada con destino legal, rechazo de teletransportes o daño entre carriles.
+- Se ajustó el balance para no contar un 2v2 como una emboscada con superioridad; nuevas pruebas directas y simulaciones masivas con varias seeds.
+- Guardado `v2` inalterado en su contrato. Cambios intencionales de RNG deportivo y resultados para partidas nuevas; economía mensual y partidas antiguas preservadas.
+
+
 ## [0.7.4-alpha] — 2026-11-07
 
 ### Vida y consecuencias de encuentros cerca de objetivos
