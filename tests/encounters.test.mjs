@@ -47,6 +47,22 @@ test('2v1 cerca de Dragón provoca daño y una decisión, no un silencio',()=>{
   'No debe repetir la misma pelea al instante');
 });
 
+test('autor de una baja o retirada debe estar en alcance de golpe, no solo cerca del objetivo',()=>{
+ const x=setup(),{core,world}=x;
+ const {nav,players,jun,support,target}=staged(x);
+ target.node='red_bot_front'; // 84 units from Dragon: inside the local encounter.
+ support.node='red_bot_ambush'; // Direct striker, 34 units away.
+ jun.node='dragon_pit'; // Ally provides numerical pressure but cannot hit from 84.
+ const health=core.Encounters.create(world.players);
+ const f=core.Encounters.resolve({nav,dead:{},minute:15,zone:'dragon_pit',
+   players,health,seed:98231,previous:{}});
+ assert.ok(f,'The staged 2v1 should resolve');
+ assert.equal(core.Navigation.combatRange(jun.node,target.node,3),false);
+ assert.equal(core.Navigation.combatRange(support.node,target.node,3),true);
+ assert.equal(f.actorId,support.id,'Do not award a distant jungler the finishing blow');
+ assert.equal(f.participantIds.includes(jun.id),true,'Nearby teammate may contribute pressure');
+});
+
 test('un SUP con vida puede sobrevivir al 2v1 y debe abandonar la zona físicamente',()=>{
  const x=setup(),{core,world}=x;
  const {nav,players,target}=staged(x),health=core.Encounters.create(world.players);
