@@ -71,9 +71,13 @@ test('JUN reorienta gank a carril vulnerable por vida real',()=>{
  const x=setup(),jun=x.nav.agents[x.a.lineup.JUN];
  const baseline=x.core.Navigation.gankPlanForLane(x.nav,jun,'TOP');
  x.context.map.lanes.TOP.vision[x.b.id]=60;
- x.context.map.lanes.MID.vision[x.a.id]=96;
+ x.context.map.lanes.MID.vision[x.a.id]=12;
  x.context.map.lanes.MID.vision[x.b.id]=49;
  x.context.health[x.b.lineup.MID]=32;
+ const unscouted=decide(x,jun,7,baseline);
+ assert.notEqual(unscouted.reason,'opportunity_gank',
+  'JUN no debe conocer HP distante de una línea sin visión');
+ x.context.map.lanes.MID.vision[x.a.id]=96;
  const goal=decide(x,jun,7,baseline);
  assert.equal(goal.reason,'opportunity_gank');
  assert.equal(goal.lane,'MID');
