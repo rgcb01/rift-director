@@ -106,7 +106,8 @@
           [17,0],[-17,0],[0,-17],[18,18]];
         const [dx,dy]=offsets[current%offsets.length],p=point(n.node);
         positions[id]={...xy(p.x+dx,p.y+dy),node:n.node,role:n.role,
-          teamId,alive:n.alive,intent:n.intent,goal:n.goal};
+          teamId,alive:n.alive,intent:n.intent,goal:n.goal,
+          ...(Number.isInteger(frame.health?.[id])?{hp:frame.health[id]}:{})};
       }
     }else{
       for(const teamId of [a,b]){
@@ -190,7 +191,8 @@
             throw new Error('Torre del minimapa fuera de secuencia');
           state.towers[defending][f.lane]=f.stage;
         }
-        if(f.action==='gank'||f.action==='teamfight')
+        if(f.action==='gank'||f.action==='teamfight'||
+          (f.action==='skirmish'&&f.outcome==='kill'))
           for(const id of f.victimIds){
             if(!ctx.playerIndex.has(id))throw new Error('Víctima no es participante');
             state.deadUntil[id]=e.minute+duration(e.minute);

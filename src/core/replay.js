@@ -98,7 +98,8 @@ function eventView(match,eventIndex){
     y:Math.min(328,Math.max(12,p.y+dy)),
     node,fallen,alive:fallen?false:pre[id].alive,sceneRole:
        fallen?'victima':id===f.initiatorId?'jungla':
-       id===f.targetId?'objetivo':id===f.actorId?'asesino': 'apoyo'};
+       id===f.targetId?(f.action==='skirmish'&&f.outcome==='retreat'?'retirada':'objetivo'):
+       id===f.actorId?'asesino': 'apoyo'};
  }
  const attempted=f.action==='gank'||f.action==='gank_avoided';
  const targetId=f.action==='gank_avoided'?f.targetId:f.victimIds?.[0];

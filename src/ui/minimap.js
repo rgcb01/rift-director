@@ -6,7 +6,7 @@
   const graph=root.RiftCore.MiniGraph;
   const LANES=['TOP','MID','BOT'];
   const labels={TOP:'Superior',MID:'Central',BOT:'Inferior',
-    gank:'Gank',tower:'Torre',dragon:'Dragón',baron:'Barón',teamfight:'Teamfight',nexus:'Asedio al nexo'};
+    gank:'Gank',tower:'Torre',dragon:'Dragón',baron:'Barón',teamfight:'Teamfight',skirmish:'Escaramuza',nexus:'Asedio al nexo'};
   const color=['#45c7f4','#f27e91'];
   const safe=text=>String(text??'').replace(/[&<>"']/g,ch=>({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
@@ -60,11 +60,13 @@
         '<animateTransform attributeName="transform" type="translate" from="'+num(prior.x)+' '+num(prior.y)+
         '" to="'+num(p.x)+' '+num(p.y)+'" dur=".45s" fill="freeze"/>':'';
       const skin=['#e9b68d','#c68f6e','#b77e5c','#e8c3a0','#c99976'][String(id).length%5];
+  const health=Number.isFinite(p.hp)?Math.max(0,Math.min(100,p.hp)):null;
+  const lifeBar=health===null?'':'<g data-health="'+health+'"><rect x="-12" y="16" width="24" height="4" rx="2" fill="#07111c"/><rect x="-12" y="16" width="'+num(24*health/100)+'" height="4" rx="2" fill="'+(health<=30?'#ed6974':health<=60?'#e3bd74':'#58d6a9')+'"/></g>';
       result.push('<g class="rift-mini-avatar'+(p.sceneRole?' is-event-player':'')+
         (p.fallen?' is-fallen':!p.alive?' is-dead':'')+
         '" data-player-id="'+safe(id)+'" data-event-role="'+safe(p.sceneRole||'')+
         '" transform="translate('+num(p.x)+' '+num(p.y)+
-        ')"><title>'+safe(player.name+' · '+p.role+(p.alive?' · vivo':' · eliminado'))+'</title>'+
+        ')"><title>'+safe(player.name+' · '+p.role+(p.alive?' · vivo':' · eliminado')+(health!==null?' · vida '+health+'%':''))+'</title>'+
         animate+(p.sceneRole?'<circle r="16.5" fill="none" stroke="'+
           (p.fallen?'#ff9d84':'#ffe4a0')+'" stroke-width="2" stroke-dasharray="'+
           (p.fallen?'2 3':'0')+'"/>':'')+
@@ -76,7 +78,7 @@
         '<text x="10" y="14.5" fill="#071522" text-anchor="middle" font-size="8" font-weight="900">'+
         ({TOP:'T',JUN:'J',MID:'M',ADC:'A',SUP:'S'}[p.role]||'?')+'</text>'+
         ((!p.alive||p.fallen)?'<path d="M-7 -7l14 14m0 -14l-14 14" stroke="#f8fafc" stroke-width="2.3"/>':'')+
-        '</g>');
+        lifeBar+'</g>');
     }
     return result.join('');
   }
@@ -100,7 +102,7 @@
     if(f){
       if(f.action==='tower')loc=graph.towerPoint(event.teamId===match.fixture.a?'red':'blue',f.lane,f.stage);
       else if((f.action==='gank'||f.action==='gank_avoided')&&graph.nodes[f.action==='gank'?f.victimNode:f.targetNode])loc=graph.pointAt(f.action==='gank'?f.victimNode:f.targetNode);
-      else if(f.action==='teamfight'&&graph.nodes[f.node])loc=graph.pointAt(f.node);
+      else if((f.action==='teamfight'||f.action==='skirmish')&&graph.nodes[f.node])loc=graph.pointAt(f.node);
       else if(f.action==='dragon'||f.action==='baron')loc=graph.pointAt(f.action==='dragon'?'dragon_pit':'baron_pit');
       else if(f.action==='nexus')loc=graph.pointAt(event.teamId===match.fixture.a?'red_nexus':'blue_nexus');
     }else if(event.evidence?.lane){
@@ -152,7 +154,7 @@
       '<div class="rift-mini-foot">Foco: <b>'+safe(focus)+'</b> · '+Object.values(map.players).filter(p=>p.alive).length+'/10 visibles como vivos</div>'+
       (scene?.participants?.length ? '<div class="rift-mini-scene">'+scene.participants.map(id=>{
         const p=map.players[id],entry=world.players.find(q=>q.id===id);
-        const label={jungla:'Jungla',asesino:'Eliminó',victima:'Víctima',objetivo:'Rival',apoyo:'Apoyo'}[p?.sceneRole]||'Participó';
+        const label={jungla:'Jungla',asesino:'Eliminó',victima:'Víctima',objetivo:'Rival',retirada:'Se retira',apoyo:'Apoyo'}[p?.sceneRole]||'Participó';
         return '<span><b>'+safe(label)+':</b> '+safe(entry?.name||id)+
           (p?.fallen?' · cayó aquí':'')+'</span>';
        }).join('')+'</div>':'')+

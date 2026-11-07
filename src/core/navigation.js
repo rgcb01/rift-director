@@ -109,7 +109,7 @@ function participants(nav,teamId,node,maxHops=1){
  });
 }
 function engagement(nav,teamId,maxHops=1) {
- const our=teamAgents(nav,teamId).filter(a=>a.alive);
+ const our=teamAgents(nav,teamId).filter(a=>a.alive&&a.intent!=='retreat');
  const their=teamAgents(nav,enemy(nav,teamId)).filter(a=>a.alive);
  const candidates=[];
  for(const p of our){
@@ -230,6 +230,19 @@ function chooseGoal(nav,agent,t,worldState){
    intent:lead>1600?'push':'lane'};
  return {goal:lead>900?'mid_center':anchor('MID'),intent:'group'};
 }
+function forceRetreat(nav,id,minute,goal){
+ const agent=nav.agents[id];
+ if(!agent?.alive||!adjacency[goal])return false;
+ const side=getSide(nav,agent.teamId);
+ if(agent.role==='JUN'&&minute<36&&!jungleAllowed(side,goal))
+  throw Error('Jungla no puede retirarse por un carril');
+ const allowed=agent.role==='JUN'&&minute<36?node=>jungleAllowed(side,node):null;
+ const steps=path(agent.node,goal,allowed);
+ agent.retreatGoal=goal;
+ agent.retreatUntil=minute+Math.max(4,steps.length+2);
+ agent.goal=goal;agent.intent='retreat';
+ return true;
+}
 function advance(nav,t,dead,worldState){
  if(t<=nav.minute)throw Error('Navigation minutes must advance');
  nav.minute=t;
@@ -242,8 +255,12 @@ function advance(nav,t,dead,worldState){
    agent.node=fountain;agent.goal=fountain;agent.intent='dead';agent.route=[fountain];
    continue;
   }
-  if(wasDead)agent.node=fountain;
-  const plan=chooseGoal(nav,agent,t,worldState);
+  if(wasDead){agent.node=fountain;agent.retreatUntil=0;agent.retreatGoal=null;}
+  const escaping=agent.retreatGoal&&agent.node!==agent.retreatGoal&&
+    (agent.retreatUntil||0)>=t;
+  const plan=escaping?{goal:agent.retreatGoal,intent:'retreat'}:
+    chooseGoal(nav,agent,t,worldState);
+  if(!escaping){agent.retreatUntil=0;agent.retreatGoal=null;}
   agent.goal=plan.goal;agent.intent=plan.intent;agent.lane=plan.lane||null;
   const safe=agent.role==='JUN'&&t<36 ?node=>jungleAllowed(side,node):null;
   agent.route=path(agent.node,agent.goal,safe);
@@ -328,6 +345,26 @@ function auditNavigation(match,world){
     if(f.actorId!==f.initiatorId||f.initiatorNode!==iNode||
        f.targetNode!==vNode||!iNode||f.route!==gankApproach(iNode,f.lane))
      errs.push('Datos de emboscada fallida falsificados: '+e.minute);
+   }else if(f.action==='skirmish'){
+    const target=positions[f.targetId],actor=positions[f.actorId];
+    const inZone=id=>near(id,f.zone,3)||
+      (active(id)&&f.zone&&graph.nodes[f.zone]&&
+       Math.hypot(graph.pointAt(positions[id].node).x-graph.pointAt(f.zone).x,
+                  graph.pointAt(positions[id].node).y-graph.pointAt(f.zone).y)<=99);
+    if(!target?.alive||!actor?.alive||!['dragon_pit','baron_pit'].includes(f.zone)||
+       !inZone(f.targetId)||!inZone(f.actorId))
+      errs.push('Escaramuza sin jugadores en el objetivo: '+e.minute);
+    let direct=false;
+    for(const id of f.participantIds||[]){
+     if(!active(id)||positions[id]?.teamId!==team||!inZone(id)||
+        !positions[f.targetId]||!combatRange(positions[id].node,target.node,3)&&
+        (Math.hypot(graph.pointAt(positions[id].node).x-graph.pointAt(target.node).x,
+                    graph.pointAt(positions[id].node).y-graph.pointAt(target.node).y)>112))
+       errs.push('Atacante de escaramuza demasiado lejos: '+e.minute);
+     if(positions[id]&&target&&combatRange(positions[id].node,target.node,3))direct=true;
+    }
+    if(!direct||!actor||!target||!combatRange(actor.node,target.node,3))
+     errs.push('Autor de escaramuza fuera de rango de golpe: '+e.minute);
    }else if(f.action==='teamfight'){
     for(const id of f.victimIds)if(!together(f.actorId,id,2))
       errs.push('Teamfight desde otra zona: '+e.minute+' / '+id);
@@ -348,7 +385,8 @@ function auditNavigation(match,world){
     const attackers=Object.keys(positions).filter(id=>positions[id].teamId===team&&near(id,node,1));
     if(attackers.length<2)errs.push('Nexo destruido sin asedio de dos atacantes.');
    }
-   if(f.action==='gank'||f.action==='teamfight')
+   if(f.action==='gank'||f.action==='teamfight'||
+      (f.action==='skirmish'&&f.outcome==='kill'))
     for(const id of f.victimIds)deadUntil[id]=e.minute+(e.minute<16?2:e.minute<29?3:4);
   }
   for(const id of agentIds){
@@ -363,6 +401,6 @@ function auditNavigation(match,world){
 }
 core.Navigation=Object.freeze({links,adjacency,path,hops,adjacent,nearby,combatRange,isLaneNode,gankApproach,
  jungleAllowed,gankPlan,jungleGoal,
- towerNode,createNavigation,teamAgents,getAgent,at,participants,engagement,
+ towerNode,createNavigation,teamAgents,getAgent,at,participants,engagement,forceRetreat,
  advance,snapshot,auditNavigation});
 })(globalThis);

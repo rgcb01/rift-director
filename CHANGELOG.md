@@ -4,6 +4,17 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+## [0.7.4-alpha] — 2026-11-07
+
+### Vida y consecuencias de encuentros cerca de objetivos
+- Motor `src/core/encounters.js`: salud 0–100, recuperación, detección de inferioridad local en Dragón/Barón, daño basado en habilidades y vida, resultado reproducible sin RNG deportivo adicional.
+- **2v1 ya no puede permanecer invisible** en las zonas de objetivo: el resultado es una baja real o una retirada obligatoria, no necesariamente una muerte automática.
+- Los supervivientes dañados priorizan el retroceso hacia posiciones seguras por una ruta real (sin teletransporte); muertos van a fuente, se recuperan tras reaparecer y no participan en objetivos.
+- Los frames e instantáneas por jugada guardan salud; barras de vida y roles resaltados en el minimapa; RiftCast explica ventaja numérica, daño, supervivencia o asesinato.
+- `skirmish` tiene facts estructurados, asistencias cuando hay baja, registro del objetivo y auditorías deportivas, espaciales y sanitarias; los intentos no letales no suman kills.
+- Guardados `v2` históricos siguen compatibles sin reconstruir barras de vida; nuevo golden test para cambios deportivos deliberados.
+
+
 ## [0.7.3-alpha] — 2026-11-07
 
 ### Corredores de jungla y consistencia de toda la tabla de eventos

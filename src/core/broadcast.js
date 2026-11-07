@@ -51,6 +51,27 @@ function createBroadcast(match,world,seed) {
     ['Una rotación sin recompensa',actor+' abandona sus campamentos para acercarse a '+lane+
        ', pero '+target+' sobrevive y no se registra ninguna baja.']
    ];
+  }else if(f.action==='skirmish'){
+   const place=f.zone==='dragon_pit'?'Dragón':'Barón',target=who(f.targetId);
+   entries=f.outcome==='kill'?[
+    ['¡Superioridad decisiva junto a '+place+'!',club+' reúne '+f.attackerCount+
+      ' profesionales ante '+f.defenderCount+'. '+actor+' elimina a '+target+
+      ' después de '+f.damage+' puntos de daño.'],
+    ['¡Cae '+target+' cerca de '+place+'!',actor+' aprovecha el '+f.attackerCount+
+      ' contra '+f.defenderCount+' de '+club+'. '+target+' no consigue escapar.'],
+    ['¡Escaramuza convertida en baja!',club+' obliga a '+target+
+      ' a pelear en inferioridad junto a '+place+'. '+actor+' consigue la eliminación.']
+   ]:[
+    ['¡'+target+' escapa de '+place+'!',club+' presiona '+f.attackerCount+
+      ' contra '+f.defenderCount+'. '+target+' recibe '+f.damage+
+      ' de daño, queda con '+f.hpAfter+'% de vida y se retira. Sin bajas.'],
+    ['Ventaja numérica, pero sin eliminación',actor+' y sus compañeros amenazan a '+
+      target+' cerca de '+place+'. '+target+' sobrevive con '+f.hpAfter+
+      '% de vida y cede la zona.'],
+    ['¡Retirada a tiempo junto a '+place+'!',club+' controla el encuentro '+
+      f.attackerCount+' contra '+f.defenderCount+', pero '+target+
+      ' retrocede con '+f.hpAfter+'% de vida. No se registra kill.']
+   ];
   }else if(f.action==='tower'){
    const layer=['','exterior','interior','de base'][f.stage],lane=laneLabel[f.lane];
    entries=[

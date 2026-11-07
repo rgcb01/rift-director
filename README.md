@@ -4,7 +4,7 @@
 
 [**Jugar en el navegador**](https://rgcb01.github.io/rift-director/) · [Roadmap](ROADMAP.md) · [Cambios](CHANGELOG.md) · [Cómo contribuir](CONTRIBUTING.md)
 
-> **Alpha 0.7.3 — prototipo jugable.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
+> **Alpha 0.7.4 — prototipo jugable.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
 
 ## La idea
 
@@ -160,3 +160,14 @@ No se cambian posiciones en el SVG a posteriori: se modifica `Navigation.chooseG
 **Problema corregido:** los JUN aparecían a menudo en MID porque se les ordenaba gankear durante varios minutos aun sin una jugada confirmada y porque el BFS atravesaba MID como ruta corta entre campamentos. La nueva navegación usa conexiones **directas entre campamentos** por cada equipo, accesos de emboscada fuera de carriles y **rutas restringidas por rol**. Antes del asedio tardío (minuto 36), JUN solo puede transitar por sus campamentos, su fuente, corredores del río, fosos y puntos de emboscada, nunca por TOP/MID/BOT como atajo. Un gank se prepara en ventanas breves, con lane objetivo definido; si encuentra a un rival cercano puede haber eliminación o un intento evitado. Ambos casos se registran con datos verificables (`facts`), sin inventar bajas.
 
 **La tabla de eventos también se auditó:** teamfights y asistencias ahora requieren proximidad física, no simplemente pocos enlaces de grafo; los ganks efectivos y evitados tienen actor, destino, ruta y objetivo coherentes con las posiciones guardadas. El replay de una emboscada evitada identifica al jungla y al rival en sus ubicaciones originales. Las partidas antiguas mantienen sus posiciones históricas sin reescribirlas. El formato de guardado sigue siendo `v2`; la misma seed puede producir resultados nuevos tras cambiar legalmente las rutas.
+
+### Alpha 0.7.4 — Vida, escaramuzas y retiradas junto a objetivos
+
+La cercanía de jugadores en el minimapa **ya tiene consecuencias de combate**. Un 2v1 físicamente válido cerca de Dragón o Barón se convierte en una escaramuza: se calcula daño según el estado de vida y las características de los participantes. Puede terminar en eliminación o en supervivencia; un superviviente amenazado **debe retirarse por los enlaces reales del mapa**. No se inventa una muerte solo por tener superioridad numérica.
+
+- Cada profesional tiene vida (0–100) persistente durante **ese partido**, recuperación gradual, vuelta con vida completa tras reaparecer y una **barra de vida visible** en el minimapa de nuevos encuentros.
+- El evento `skirmish` guarda jugadores, superioridad, zona, objetivo, daño, vida anterior y posterior, y resultado `kill` o `retreat`. RiftCast explica la supervivencia cuando no hay kill.
+- Retiradas con objetivo real y prioridad sobre los planes normales del rol hasta alcanzar una zona segura; no permiten tomar objetivos mientras el jugador se retira. Los participantes que mueren regresan a fuente y no capturan objetivos.
+- Los encuentros solo se abren si al menos dos jugadores amenazan a uno desde el rango registrado y al menos uno está realmente a distancia de golpe. Un mismo objetivo tiene un enfriamiento para evitar combates ficticios repetidos.
+- Se conservan los guardados `v2` anteriores: en replays antiguos no se inventan barras de vida ni escaramuzas no simuladas. Los resultados deportivos de nuevas partidas pueden variar por esta regla.
+- **Limitación actual:** es el primer sistema de escaramuzas en fosos de objetivos, no un motor completo de habilidades, campeones, oleadas, tiempos de enfriamiento ni visión. Las peleas de línea preexistentes siguen teniendo reglas simplificadas y serán una fase posterior.
