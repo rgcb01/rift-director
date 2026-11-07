@@ -1,4 +1,4 @@
-# Arquitectura actual — Alpha 0.5 / M1.4A
+# Arquitectura actual — Alpha 0.6 / M1.3B
 
 Este documento describe la **implementación comprobada** del repositorio a fecha 2026-11-07, no su arquitectura ideal.
 
@@ -15,6 +15,7 @@ src/core/match-events.js   Auditoría de eventos: kills, objetivos, roles y marc
 src/core/match-stats.js    Estadísticas K/D/A y participación individual reconstruibles
 src/core/map-state.js      Visión/presión y rutas abstractas de gank
 src/core/minimap-graph.js  Nodos, carriles y coordenadas de torres
+src/core/navigation.js     Agentes, BFS, intención, desplazamiento y auditoría causal
 src/core/minimap-simulation.js  Proyección visual de frames/eventos
 src/ui/minimap.js         SVG de jugadores, estructuras y territorio
 src/core/broadcast.js     Variantes de narración, análisis contextual y tiempos de reproducción
@@ -171,3 +172,13 @@ El formato de save sigue siendo `v2`. Las partidas antiguas sin `frame.minimap` 
 En `tick()`, la velocidad `1×` revela una novedad por paso de **5000 ms** y usa el frame precomputado para mostrar el mapa; `2×` y `5×` avanzan los frames a **2500 ms** y **950 ms**. El reloj deportivo y el feed se basan en el mismo encuentro precalculado; **algunas cifras del minuto pueden adelantarse a la última línea de comentario cuando hay varias novedades dentro de ese minuto**. Se trata de una limitación de snapshots por minuto que se resolverá con subframes de evento.
 
 Los save `v2` sin `broadcast` presentan el registro original completo y se pueden reproducir con el nuevo ritmo. La nueva capa editorial explica jugadas y señales pero no crea acciones deportivas ni modifica el ganador; las acciones tácticas causales se proponen para M1.3B/M1.4B.
+
+## Alpha 0.6 — Navegación causal (M1.3B, parte 1)
+
+`RiftCore.Navigation` crea diez agentes al empezar el mapa y usa rutas de grafo BFS sobre `MiniGraph.links` más conexiones de fuente y jungla. `advance(nav,t,dead,m)` decide destinos por rol y fase (líneas, preparación de objetivos, agrupamiento, asedio) y mueve un solo nodo por minuto, **antes de** cualquier gank/torre/objetivo/pelea. `frame.navigation.before` guarda dónde estaban antes del combate; `frame.navigation.after` resuelve muertes a la fuente. Las posiciones completas se quedan dentro del report del partido, que es reproducible.
+
+La simulación exige participantes vivos y cercanos a un nodo para ganks, dragones, barones, torres y nexo; no basta con compartir equipo. Las torres se abren en secuencia (exterior→interior→base). En el último tercio, el director deportivo determina un equipo que asedia por una línea, mientras el otro defiende. El nexo solo cae si la línea está abierta y el equipo ganador reúne a todos sus atacantes vivos (al menos dos) físicamente cerca del nodo contrario. El tiempo máximo se amplía a 76 minutos simulados para completar rutas sin forzar destrucciones.
+
+`attachMinimap` consume `frame.navigation.after` y nunca reubica retroactivamente a un autor para hacer creíble un evento. Los reportes anteriores carecen de navegación y mantienen su proyección anterior; no se migra el schema `v2`. `Navigation.auditNavigation` valida cada viaje entre frames, muerte/respawn, actor y víctima próximos, presencia efectiva ante torre, foso y nexo, y diferencia entre nodo conectado y distancia física razonable.
+
+**Límites deliberados:** la decisión de destino no modela todavía un árbol táctico profundo; un salto por minuto ignora el tiempo exacto entre segundos, las decisiones de asedio dependen de recursos simplificados y la fog of war no bloquea información. La retrocompatibilidad está automatizada pero pendiente de prueba manual con JSON histórico real en Safari/Chrome móvil.
