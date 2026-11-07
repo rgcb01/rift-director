@@ -1,50 +1,72 @@
-# Rift Director — Alpha 0.2
+# Rift Director
 
-Simulador **ficticio e independiente** de gestión de una organización profesional de esports. Juego web en español, responsive, sin frameworks, sin backend y sin dependencias externas.
+**Simulador de dirección de una organización profesional de esports**. Administra una empresa, descubre jugadores, prepara un equipo y observa partidos narrados mientras un universo competitivo evoluciona por meses.
+
+[**Jugar en el navegador**](https://rgcb01.github.io/rift-director/) · [Roadmap](ROADMAP.md) · [Cambios](CHANGELOG.md) · [Cómo contribuir](CONTRIBUTING.md)
+
+> **Alpha 0.2 — prototipo jugable.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
+
+## La idea
+
+Eres **CEO, General Manager y Head Coach**. No controlas campeones en tiempo real: escoges plantilla, entrenamiento y estrategia; tus profesionales ejecutan sus partidos autónomamente. Puedes ganar títulos, formar rookies, vivir de merchandising y patrocinadores o reconstruir un club. **No hay victoria definitiva ni cantidad de dinero objetivo.** Si el saldo disponible llega a cero, la partida termina.
+
+Los meses impulsan las finanzas y el mundo. Las noticias y los rumores reflejan fichajes, contratos, actuaciones y cambios en las ligas. Las buenas decisiones mejoran las probabilidades a largo plazo, pero nunca eliminan la incertidumbre.
 
 ## Jugar
 
-**GitHub Pages**: una vez configurado, el sitio se publicará en `https://rgcb01.github.io/rift-director/`.
+- **Web / móvil:** [rift-director en GitHub Pages](https://rgcb01.github.io/rift-director/).
+- **Local:** descarga el repositorio y abre `index.html` con tu navegador. Como alternativa, ejecuta `python -m http.server 8080` y visita `http://localhost:8080`.
+- No hay instalación de paquetes, cuenta ni backend para jugar.
+- **Guardados:** automáticos en `localStorage` de ese navegador. En **Partida** puedes **exportar/importar JSON**. Los guardados no se sincronizan entre dispositivos; expórtalos antes de borrar datos del navegador.
 
-En local, abre `index.html` o inicia un servidor estático: `python -m http.server 8080`.
+## Qué existe hoy (Alpha 0.2)
 
-- Crea tu organización, gestiona contratos, personal, salarios, patrocinios y merchandising.
-- Distribuye actividades mensuales entre scrims, entrenamiento, comunidad, contenido y scouting.
-- Explora cartas de profesionales con habilidades y traits gradualmente descubiertos.
-- Prepara tu alineación y ve los partidos narrados en tiempo simulado.
-- Avanza los meses, sigue el mercado, la prensa y el offseason.
-- No hay un ganador final: sobrevive financieramente.
+| Área | Implementado | Límites actuales |
+|---|---|---|
+| Club | Creación, presupuesto, plantilla y configuración | Gestión empresarial simplificada |
+| Economía | Ingresos de sponsors/merch/liga/contenido, salarios, staff, gastos, crisis comerciales y saldo de cierre | Valores todavía no calibrados para muchas temporadas |
+| Calendario | Plan mensual, partidos, liga y playoffs | Una región jugable y una segunda simulada |
+| Jugadores | Cinco roles, cartas, atributos, comportamiento, traits observables, entrenamiento, scouting, fichajes y ventas | IA y progresión iniciales |
+| Partidos | Simulación de eventos con marcadores, torres, dragones, Barón, jugadas y narración; velocidades y salto al resultado | Sin draft completo de campeones ni sistemas MOBA exhaustivos |
+| Mundo vivo | Rumores, noticias vinculadas a eventos, IA de otros clubes, rookies, retiro, cambios de meta y expansión ocasional | Ecosistema regional y causalidad todavía básicos |
+| Presentación | Interfaz web responsive, retratos y escudos SVG generados | Accesibilidad y experiencia móvil por mejorar |
 
-## Estructura
-
-| Archivo | Función |
-|---|---|
-| `index.html` | Entrada del juego, apta para GitHub Pages |
-| `styles.css` | Interfaz responsive y estilos |
-| `game.js` | Mundo, jugadores, economía, partidos, eventos y guardados |
-
-## Publicar en GitHub Pages
-
-1. Abre **Settings → Pages** dentro del repositorio.
-2. En **Build and deployment**, selecciona **Deploy from a branch**.
-3. Elige **main**, carpeta **/(root)**, y guarda.
-4. GitHub generará el sitio. La URL será `https://rgcb01.github.io/rift-director/` si no tienes dominio personalizado.
-
-**Atención**: el repositorio actualmente es **privado**. GitHub Free requiere que un repositorio sea público para usar Pages; GitHub Pro/Team permiten Pages desde repositorios privados, aunque el sitio resultante será público. Cambia la visibilidad solo si lo decides tú. No hay claves ni datos personales en esta versión del juego.
-
-## Guardados
-
-El juego usa almacenamiento local del navegador, de modo que cada dispositivo o navegador conserva su propia partida. No hay sincronización de nube. Exporta tus partidas periódicamente para respaldarlas o trasladarlas a otro dispositivo.
-
-## Limitaciones de Alpha 0.2
-
-- Sin draft completo de campeones y bans.
-- Partidos con simulación simplificada, no un MOBA 1:1.
-- Dos regiones, no un ecosistema mundial definitivo.
-- Noticias mediante plantillas basadas en eventos, sin IA generativa externa.
-- Economía, progresión, mercado e IA rivales requieren mayor calibración.
-- Identidades y marcas ficticias; ninguna afiliación con Riot Games.
+**No se ha implementado todavía** un draft de picks/bans completo, torneos internacionales tipo Worlds, negociación detallada de contratos, ligas reales ni una simulación rigurosa de todas las reglas de LoL. El roadmap contiene propuestas, no funcionalidades disponibles.
 
 ## Desarrollo
 
-El código está en JavaScript puro para simplificar el despliegue. Próximo paso: separar el motor de simulación en módulos, añadir pruebas deterministas y desarrollar draft y lógica avanzada de roles/traits. Los tres archivos de la raíz son suficientes para ejecutar el juego.
+El juego actual es **estático y sin dependencias**:
+
+```text
+index.html     Entrada de GitHub Pages
+styles.css     Interfaz adaptable
+game.js        Simulación, estado, UI y guardados (por ahora juntos)
+scripts/       Comprobaciones automatizadas
+docs/          Diseño, arquitectura y plan de pruebas
+.github/       CI y plantillas de incidencias
+```
+
+Requisitos para desarrollo: **Node.js 22+** para ejecutar comprobaciones. El navegador no necesita Node.
+
+```bash
+node --check game.js
+node scripts/check-static.mjs
+node --test tests/*.test.mjs
+```
+
+Los cambios a `main` pueden publicarse mediante la configuración de GitHub Pages existente (**main / raíz**); no hay build de producción ni workflow de despliegue personalizado. La validación automatizada comprueba integridad básica, **no** reemplaza la prueba manual del gameplay.
+
+## Documentación y mejora continua
+
+- [ROADMAP.md](ROADMAP.md): hitos, prioridades y criterios de aceptación.
+- [CHANGELOG.md](CHANGELOG.md): cambios por versión.
+- [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md): reglas de diseño acordadas.
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): estado real del código, datos y guardados.
+- [docs/TEST_PLAN.md](docs/TEST_PLAN.md): pruebas manuales y regresiones.
+- [CONTRIBUTING.md](CONTRIBUTING.md): flujo de trabajo, criterios de calidad y reportes de errores.
+
+## Licencia y propiedad intelectual
+
+Todavía **no se ha elegido una licencia**. La publicación del código en GitHub no autoriza automáticamente su reutilización o redistribución. Antes de aceptar contribuciones externas o distribuir una versión abierta, hay que decidir una licencia explícita y revisar los derechos sobre los recursos.
+
+El universo oficial del juego usa contenido **original y ficticio**. No se deben incorporar nombres, logotipos, fotografías ni material de terceros sin los derechos pertinentes. Los futuros paquetes de datos opcionales deberán respetar esa regla.
