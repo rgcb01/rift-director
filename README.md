@@ -4,7 +4,7 @@
 
 [**Jugar en el navegador**](https://rgcb01.github.io/rift-director/) · [Roadmap](ROADMAP.md) · [Cambios](CHANGELOG.md) · [Cómo contribuir](CONTRIBUTING.md)
 
-> **Alpha 0.2 — prototipo jugable.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
+> **Alpha 0.3 — prototipo jugable.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
 
 ## La idea
 
@@ -15,11 +15,12 @@ Los meses impulsan las finanzas y el mundo. Las noticias y los rumores reflejan 
 ## Jugar
 
 - **Web / móvil:** [rift-director en GitHub Pages](https://rgcb01.github.io/rift-director/).
+- **Probar sin empezar una partida:** en la bienvenida pulsa **Simular partida de prueba**. También puedes iniciarla desde **Partidos** o **Partida** si tienes un club. La exhibición permite pausar, 1×/2×/5×, saltar al final y repetir; **no cambia tu save**, resultados ni dinero. **Salir de la prueba** devuelve exactamente el estado anterior. Al recargar la página durante una demo se recupera el guardado anterior, no la demo.
 - **Local:** descarga el repositorio y abre `index.html` con tu navegador. Como alternativa, ejecuta `python -m http.server 8080` y visita `http://localhost:8080`.
 - No hay instalación de paquetes, cuenta ni backend para jugar.
 - **Guardados:** automáticos en `localStorage` de ese navegador. En **Partida** puedes **exportar/importar JSON**. Los guardados no se sincronizan entre dispositivos; expórtalos antes de borrar datos del navegador.
 
-## Qué existe hoy (Alpha 0.2)
+## Qué existe hoy (Alpha 0.3)
 
 | Área | Implementado | Límites actuales |
 |---|---|---|
@@ -40,7 +41,7 @@ El juego actual es **estático y sin dependencias**:
 ```text
 index.html     Entrada de GitHub Pages
 styles.css     Interfaz adaptable
-src/core/      RNG, estado, calendario, finanzas, guardados y estadísticas/auditoría de partidos
+src/core/      RNG, estado, calendario, finanzas, mapa, estadísticas y guardados
 game.js        Mundo, partidos, economía y UI (aún pendiente de modularizar)
 scripts/       Comprobaciones automatizadas
 docs/          Diseño, arquitectura y plan de pruebas
@@ -54,6 +55,7 @@ node --check src/core/rng.js
 node --check src/core/state.js
 node --check src/core/calendar.js
 node --check src/core/finance.js
+node --check src/core/map-state.js
 node --check src/core/match-stats.js
 node --check src/core/match-events.js
 node --check src/core/persistence.js
@@ -98,3 +100,7 @@ Los partidos nuevos incluyen `event.facts` (gank, combate, torre, dragón, Baró
 ### M1.2 — Estadísticas individuales y carrera observada
 
 Los partidos narrados registran `K/D/A`, pentakills y participación en torres, dragones y Barones de **cada profesional**. El Match Center muestra datos en vivo y las cartas acumulan estadísticas de **mapas narrados** (no de toda su carrera: los partidos simulados en segundo plano todavía no generan KDA). Los valores se calculan desde `event.facts`, se congelan en cada frame y se auditan contra el marcador. Las estadísticas nuevas son opcionales en partidas guardadas `v2` anteriores. No hay nuevo backend ni dependencia externa.
+
+### M1.2 · Modelo táctico del mapa (Alpha 0.3)
+
+`src/core/map-state.js` calcula para cada minuto una **estimación abstracta** de presión y visión de TOP/MID/BOT y visión del río. Los ganks ahora consideran esa presión, visión rival y rutas simplificadas (río, flanco o tribush); RiftCast puede mostrar estos datos. No es un mapa 2D con coordenadas ni conoce aún campeones individuales, wards o fog of war exacto. Los datos de mapa son opcionales en guardados anteriores `v2`.

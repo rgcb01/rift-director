@@ -105,3 +105,12 @@ Antes de una release:
 - Importar un `v2` con mapa heredado sin estadísticas y finalizarlo sin inventar datos.
 - Verificar casos de KDA perfecto y pentakills de cinco víctimas reales en un mismo evento.
 - Pendiente: asistencias por víctima, pentakills repartidas entre varios eventos dentro de una ventana de tiempo, toda la carrera IA y rendimiento en celulares modestos.
+
+## Alpha 0.3 — Pruebas del modo exhibición y mapa
+
+- Desde bienvenida, simular exhibición, acelerar, pausar, saltar al final y salir; no debe aparecer un save nuevo ni un premio.
+- Con partida activa, exportar save, iniciar demo, repetir varias veces y salir: mismo objeto de mundo, caja, temporada, plantilla y bytes de `localStorage`.
+- Con partido oficial pausado, iniciar demo, salir y volver a la posición exacta anterior del marcador.
+- Auditar ganks por semilla: rol JUN, carril TOP/MID/BOT, ruta válida, presión y visión coincidentes con frame.
+- Atributos de visión defensiva deben **reducir** probabilidad de gank, manteniendo clamps de balance.
+- Probar botón demo/volver en Safari iOS y Chrome Android reales antes de cerrar hito. La UI es HTML estático y no precisa backend.

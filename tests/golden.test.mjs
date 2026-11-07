@@ -15,7 +15,7 @@ test('semilla fija: mundo y finanzas compatibles; partido con correcciones M1.2 
   const match = sim.simulateMatch(fixture);
   // The structured "facts" field is additive. Confirm the legacy event envelope
   // remains identical for the reference seed, unless a documented bugfix changes it.
-  const legacyMatch = {...match, frames:match.frames.map(({playerStats,...frame})=>frame), events:match.events.map(({facts,...event})=>event)};
+  const legacyMatch = {...match, frames:match.frames.map(({playerStats,map,...frame})=>frame), events:match.events.map(({facts,...event})=>event)};
   delete legacyMatch.playerStats; // Additive M1.2 individual stats do not change match RNG/outcomes.
   // M1.2 changes the seed's match on purpose by forbidding impossible tower/Baron actions.
   // Snapshot after stripping the additive facts field; future changes require an explanation.

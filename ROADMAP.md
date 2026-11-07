@@ -6,10 +6,10 @@ Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prome
 
 ## Estado
 
-- **Alpha 0.2 — [jugable]:** dos regiones ficticias, club y plantilla, finanzas mensuales, mercado sencillo, partidos narrados, noticias, offseason, SVG y guardado JSON.
+- **Alpha 0.3 — [jugable]:** dos regiones ficticias, club y plantilla, finanzas mensuales, mercado sencillo, partidos narrados, noticias, offseason, SVG y guardado JSON.
 - **Base del repositorio — [implementada]:** documentación, flujos de incidencias y comprobaciones de regresión.
 - **M1.1 — [base implementada; validación manual pendiente]:** RNG, estado inicial, calendario, finanzas, validación v2 y pruebas de regresión. Faltan un guardado histórico real y validación manual en móvil.
-- **M1.2 — [fase 2 en pruebas]:** evidencias estructuradas, auditoría de narración y estadísticas individuales K/D/A, pentakills, participación en objetivos y cartas con registro de mapas narrados.
+- **M1.2 — [fase 3 integrada]:** auditoría de narración y K/D/A, simulación táctica de presión/visión/rutas de gank y **partida de prueba aislada del guardado**. Quedan posiciones exactas, visión por wards, campeones y multikills entre eventos.
 
 ## Hitos
 

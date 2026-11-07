@@ -1,4 +1,4 @@
-# Arquitectura actual — Alpha 0.2 / M1.1
+# Arquitectura actual — Alpha 0.3 / M1.2
 
 Este documento describe la **implementación comprobada** del repositorio a fecha 2026-11-07, no su arquitectura ideal.
 
@@ -13,6 +13,7 @@ src/core/calendar.js       Calendario round-robin, jornadas, tablas iniciales y 
 src/core/finance.js        Cotización mensual, salarios, transferencias de caja, precios
 src/core/match-events.js   Auditoría de eventos: kills, objetivos, roles y marcador
 src/core/match-stats.js    Estadísticas K/D/A y participación individual reconstruibles
+src/core/map-state.js      Visión/presión y rutas abstractas de gank
 src/core/persistence.js    Parseo, validación, almacenamiento local v2
 game.js                    IIFE con mundo, motor de partidos, finanzas, rendering y eventos DOM
 scripts/check-static.mjs   Validación ligera de archivos/recursos
@@ -140,3 +141,9 @@ Los eventos heredados de Alpha 0.2 carecen de `facts` y no se reescriben al impo
 `finishMatch()` conserva `outcome.playerStats` para mapas nuevos y suma los resultados opcionales a `player.broadcastStats` solo una vez. **No son estadísticas de carrera global:** las partidas rápidas entre IA no tienen simulación individual, de modo que se etiqueta «mapas narrados». Los reportes existentes y guardados antiguos `v:2` carecen de este campo y no necesitan migración; no se sintetizan eliminaciones inexistentes.
 
 En la Alpha actual, pentakill significa cinco bajas válidas atribuidas al mismo profesional en **un evento de pelea**; la validación de cadenas entre eventos y ventanas de segundos, así como posiciones exactas, campeones, Summoner Spells y asistencias detalladas por víctima, quedan para fases posteriores. No afirmar que se reproduce todo LoL.
+
+## Alpha 0.3 · Demo aislada y estado táctico
+
+`startDemoMatch()` preserva el estado de partida anterior, vista y modal en `demoBackup` (solo RAM), genera un universo provisional y reproduce un fixture sin cambiar el calendario del usuario. `save()` es **no-op durante la demo**; `finishMatch()` solo marca el fin de la retransmisión demo y no entrega premios, histórico o progreso. `exitDemoMatch()` recupera la referencia original de mundo/vista/modal y reanuda el timer si el partido real estaba activo. La demo no se exporta ni persiste: recargar restablece el save normal. `tests/demo-map.test.mjs` valida aislamiento con y sin partida y restauración de un partido pausado.
+
+`RiftCore.computeMapState` calcula de forma **determinista** estimaciones de visión del río y control/visión por carril a partir de atributos, cansancio, oro y torres actuales. No hay RNG adicional, coordenadas, wards ni fog of war; los valores afectan la probabilidad de éxito del gank vía `gankChance`. Cada `frame.map` es una instantánea independiente, y el gank registra los parámetros de visión/presión y ruta usados para auditar la narración. Los guardados anteriores no tienen este campo y se leen sin conversión.

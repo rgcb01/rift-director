@@ -63,7 +63,7 @@
       else if (!alive(p, minute)) fail('Un jugador muerto realiza una acción: ' + p.id);
       return p;
     }
-    function recordKills(event, facts, minute) {
+    function recordKills(event, facts, minute, frame) {
       const killer = actor(facts, event, minute);
       const victims = facts.victimIds;
       if (!Array.isArray(victims) || !victims.length || new Set(victims).size !== victims.length) {
@@ -91,6 +91,13 @@
         const j = players.get(facts.initiatorId);
         if (!j || j.role !== 'JUN' || j.teamId !== event.teamId || !alive(j, minute)) fail('Gank sin jungla vivo.');
         if (victims.length !== 1) fail('Gank con múltiples victimas no modeladas.');
+        const lane=frame.map?.lanes?.[facts.lane];
+        if (!['TOP','MID','BOT'].includes(facts.lane) || !lane ||
+            !['rio','tribush','flanco'].includes(facts.route) ||
+            facts.route!==core.gankRoute(facts.lane,lane,event.teamId,event.teamId===a?b:a) ||
+            facts.attackerPressure!==lane.pressure[event.teamId] ||
+            facts.defenderVision!==lane.vision[event.teamId===a?b:a])
+          fail('Gank con ruta, presión o visión que no corresponde al mapa.');
       }
       if (facts.action === 'teamfight') {
         if (facts.ace !== undefined) {
@@ -106,12 +113,12 @@
       if (!killer) fail('Falta el autor de una eliminación.');
     }
 
-    function applyEvent(event) {
+    function applyEvent(event,frame) {
       if (!isRecord(event) || !integer(event.minute) || !isRecord(event.facts)) return;
       const { facts } = event, t = event.minute;
       if (![a,b].includes(event.teamId)) { fail('Equipo del evento inexistente.'); return; }
       if (facts.action === 'gank' || facts.action === 'teamfight') {
-        recordKills(event, facts, t);
+        recordKills(event, facts, t,frame);
       } else if (facts.action === 'tower') {
         actor(facts, event, t);verifyParticipants(event,facts,t);
         const target = event.teamId === a ? b : a;
@@ -159,9 +166,29 @@
           fail('Evento fuera de orden.'); continue;
         }
         lastEventMinute = e.minute;
-        if (e.facts) applyEvent(e);
+        if (e.facts) applyEvent(e,frame);
         else if (['goal','fight','end'].includes(e.kind)) fail('Falta evidencia estructurada para: ' + e.title);
       }
+      if (frame.map) {
+        const map=frame.map;
+        if (map.minute!==frame.minute || !isRecord(map.lanes) || !isRecord(map.riverVision)) {
+          fail('Estado de mapa inválido: minuto '+frame.minute);
+        } else {
+          for (const lane of core.LANES) {
+            const data=map.lanes[lane];
+            if (!isRecord(data) || !isRecord(data.pressure) || !isRecord(data.vision)) {
+              fail('Carril sin presión o visión: '+lane);continue;
+            }
+            for (const id of [a,b])for (const field of ['pressure','vision'])
+              if (!integer(data[field][id]) || data[field][id]>100)
+                fail('Valor de mapa fuera de límites: '+lane+' '+field);
+            if (data.pressure[a]+data.pressure[b]!==100)
+              fail('La presión de carril debe sumar 100: '+lane);
+          }
+          for(const id of [a,b])if (!integer(map.riverVision[id]) || map.riverVision[id]>100)
+            fail('Visión del río fuera de límites.');
+        }
+      } else fail('Frame sin estado táctico de mapa.');
       if (frame.eventsCount !== nextEvent) fail('Número de eventos del frame incoherente.');
       for (const k of counters) {
         for (const id of [a,b]) {

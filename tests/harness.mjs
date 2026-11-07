@@ -27,7 +27,7 @@ export function boot(options = {}) {
     setInterval: () => 1, clearInterval: () => {},
     setTimeout: () => 1, clearTimeout: () => {},
   };
-  for (const path of ['src/core/rng.js', 'src/core/state.js', 'src/core/calendar.js', 'src/core/persistence.js', 'src/core/finance.js', 'src/core/match-stats.js', 'src/core/match-events.js']) {
+  for (const path of ['src/core/rng.js', 'src/core/state.js', 'src/core/calendar.js', 'src/core/persistence.js', 'src/core/finance.js', 'src/core/map-state.js', 'src/core/match-stats.js', 'src/core/match-events.js']) {
     vm.runInNewContext(read(path), env, { timeout: 10000, filename: path });
   }
   // Test-only API injection; game.js remains unmodified in production.
@@ -38,6 +38,8 @@ export function boot(options = {}) {
     '  quickSeasonGame, quickPlayoffGame, makeFinalAfterSemis,',
     '  closeMonth, resolveCrisis, startMatch, finishMatch,',
     '  signFreeAgent, sellPlayer, chooseSponsor, upgrade, scoutPlayer,',
+    '  startDemoMatch, replayDemoMatch, exitDemoMatch, liveControl,',
+    '  getDemoActive: () => Boolean(demoBackup), getView: () => view,',
     '  getState: () => s };',
     '})();'
   ].join('\n');
