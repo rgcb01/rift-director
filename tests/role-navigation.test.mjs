@@ -12,6 +12,10 @@ const prepare=()=>{
 const byRole=(world,teamId,role)=>
  world.clubs.find(c=>c.id===teamId).lineup[role];
 
+const validRetreat=(match,id,t)=>match.events.some(e=>
+ e.minute<=t&&e.facts?.action==='skirmish'&&
+ e.facts.outcome==='retreat'&&e.facts.targetId===id);
+
 test('fase de líneas minuto 10: ADC y SUP permanecen en su mitad y no en el mismo extremo neutral',()=>{
  const {sim,world,fixture}=prepare();
  let normal=0;
@@ -27,8 +31,10 @@ test('fase de líneas minuto 10: ADC y SUP permanecen en su mitad y no en el mis
    // Characters can be dead or traveling back from fountain. Check stable
    // lane positions when both have stayed alive until this point.
    const casualties=match.events.some(e=>e.minute<=10&&
-    ['gank','teamfight'].includes(e.facts?.action)&&
-    e.facts.victimIds.some(id=>id===adc||id===sup));
+    ((['gank','teamfight','skirmish'].includes(e.facts?.action)&&
+      (e.facts.victimIds||[]).some(id=>id===adc||id===sup))||
+     (e.facts?.action==='skirmish'&&
+       (e.facts.targetId===adc||e.facts.targetId===sup))));
    if(!casualties){
     assert.equal(a.node,side+'_bot_front','ADC debe estar en su botlane');
     assert.equal(s.node,side+'_bot_front','SUP debe proteger al ADC');
@@ -64,10 +70,10 @@ test('JUN sigue corredores de jungla y ventanas de gank sin transitar por MID',(
      assert.equal(nav.jungleAllowed(side,p.goal),true);
     }
    }
-   if(all[7].alive)assert.equal(all[7].intent,'gank_setup','Primera ventana sigue activa al minuto 7');
-   if(all[22].alive)assert.equal(all[22].intent,'objective_setup','Preparación de Dragón');
-   if(all[26].alive)assert.equal(all[26].intent,'objective_setup','Preparación de Barón');
-   if(all[31].alive)assert.equal(all[31].intent,'farm_jungle','Vuelta a campamentos');
+   if(all[7].alive&&!validRetreat(match,id,7))assert.equal(all[7].intent,'gank_setup','Primera ventana sigue activa al minuto 7');
+   if(all[22].alive&&!validRetreat(match,id,22))assert.equal(all[22].intent,'objective_setup','Preparación de Dragón');
+   if(all[26].alive&&!validRetreat(match,id,26))assert.equal(all[26].intent,'objective_setup','Preparación de Barón');
+   if(all[31].alive&&!validRetreat(match,id,31))assert.equal(all[31].intent,'farm_jungle','Vuelta a campamentos');
   }
  }
  assert.ok(gankSetup>200 && farm>300 && objective>100);
@@ -85,6 +91,10 @@ test('SUP tiene roaming breve después de líneas y regresa junto a su ADC',()=>
    for(const frame of match.frames.filter(f=>f.minute<=27)){
     const p=frame.navigation.after[sup],carry=frame.navigation.after[adc],t=frame.minute;
     if(!p.alive)continue;
+    if(p.intent==='retreat'){
+     assert.ok(validRetreat(match,sup,t),'SUP se retiró sin combate previo');
+     continue;
+    }
     if(t>=14&&t<=17) {
      assert.equal(p.intent,'ward_roam','Roaming debe tener una ventana temporal');
      seenRoam++;
@@ -97,7 +107,7 @@ test('SUP tiene roaming breve después de líneas y regresa junto a su ADC',()=>
      assert.equal(p.intent,'objective_setup','SUP debe preparar el Barón con tiempo');
      seenBaron++;
     }
-    if(t>=1&&t<=13&&carry.alive){
+    if(t>=1&&t<=13&&carry.alive&&!validRetreat(match,sup,t)){
      assert.equal(p.intent,'protect_adc','En early el SUP protege al ADC');
     }
    }
