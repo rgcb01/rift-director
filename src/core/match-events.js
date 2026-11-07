@@ -123,6 +123,39 @@
       if (![a,b].includes(event.teamId)) { fail('Equipo del evento inexistente.'); return; }
       if (facts.action === 'gank' || facts.action === 'teamfight') {
         recordKills(event, facts, t,frame);
+      } else if (facts.action === 'skirmish') {
+        if (facts.healthVersion!==1||!['dragon_pit','baron_pit'].includes(facts.zone)||
+            facts.node!==facts.zone||!['kill','retreat'].includes(facts.outcome)||
+            !integer(facts.attackerCount)||facts.attackerCount<2||
+            !integer(facts.defenderCount)||facts.defenderCount<1)
+          fail('Escaramuza sin resultado, zona o superioridad válida.');
+        const target=players.get(facts.targetId);
+        if(!target||target.teamId===event.teamId||!alive(target,t))
+          fail('Objetivo de escaramuza no era rival vivo.');
+        if(!Array.isArray(facts.participantIds)||facts.participantIds.length<2||
+           !facts.participantIds.includes(facts.actorId)||
+           new Set(facts.participantIds).size!==facts.participantIds.length)
+          fail('Escaramuza sin dos participantes únicos.');
+        else for(const id of facts.participantIds){
+          const p=players.get(id);
+          if(!p||p.teamId!==event.teamId||!alive(p,t))fail('Atacante inválido en escaramuza: '+id);
+        }
+        if(!integer(facts.hpBefore)||facts.hpBefore<1||facts.hpBefore>100||
+           !integer(facts.damage)||facts.damage<18||facts.damage>120||
+           facts.hpAfter!==Math.max(0,facts.hpBefore-facts.damage))
+          fail('Daño incompatible con vida registrada.');
+        if(facts.outcome==='kill'){
+          if(facts.hpAfter!==0||!Array.isArray(facts.victimIds)||
+             facts.victimIds.length!==1||facts.victimIds[0]!==facts.targetId)
+            fail('Escaramuza sin baja justificada por daño.');
+          recordKills(event,facts,t,frame);
+        }else{
+          actor(facts,event,t);
+          if(facts.hpAfter<1||facts.victimIds?.length||facts.assistIds?.length)
+            fail('Retirada no puede entregar kills ni asistencias.');
+          if(!core.Navigation.adjacency[facts.retreatGoal])
+            fail('Retirada sin ruta válida.');
+        }
       } else if (facts.action === 'gank_avoided') {
         const j = actor(facts,event,t), target=players.get(facts.targetId);
         if (!j || j.role!=='JUN' || facts.initiatorId!==facts.actorId)
@@ -215,6 +248,15 @@
         }
       }
       validateRows(frame.playerStats,frame.minute);
+    }
+    if(match.moments){
+      for(let i=0;i<match.events.length;i++){
+        const f=match.events[i].facts;
+        if(f?.action!=='skirmish')continue;
+        const moment=match.moments[i];
+        if(!moment?.health||moment.health[f.targetId]!==f.hpAfter)
+          fail('Vida de escaramuza no coincide con instantánea: '+i);
+      }
     }
     validateRows(match.playerStats,'final');
     const teamTotal = { [a]:0,[b]:0 }, deaths = { [a]:0,[b]:0 };

@@ -173,3 +173,12 @@ El plan Alpha 0.5 de reproducción a velocidad variable queda **histórico**: se
 - [x] Auditoría de todas las posiciones tempranas JUN y de la tabla de eventos durante numerosos partidos.
 - [ ] Próxima mejora: ritmo de desplazamiento por longitud real de cada arista, campamentos/visión causal y lógica de respuesta enemiga; evitar horarios de gank rígidos.
 - [ ] QA visual y táctil en navegadores reales, especialmente minutos 5–16.
+
+### Alpha 0.7.4 — Primer combate persistente y escaramuzas de objetivos
+- [x] Vida por profesional, recuperación, muerte y reaparición; presentación en el minimapa.
+- [x] Detección de 2v1 real alrededor de Dragón/Barón, basada en ubicación y rango físico.
+- [x] Daño, kill o retirada con resultado reproducible y explicación causal en RiftCast.
+- [x] Retirada física prioritaria con ruta restringida de JUN y exclusión temporal de las capturas.
+- [x] Capturas por evento auditables y compatibilidad con replays `v2`.
+- [ ] Fase siguiente: extender vida/daño a ganks, duelos de línea y teamfights; incorporar niveles, oleadas, habilidades, enfriamientos y visión real.
+- [ ] Equilibrar las tasas de kills/retiradas, sincronizar captura del objetivo y reproducir manualmente partidos en navegadores móviles.

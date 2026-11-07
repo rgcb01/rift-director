@@ -25,7 +25,8 @@
     if (!facts) return stats;
     const row = stats[facts.actorId];
     if (!row) throw new Error('Autor no forma parte de la partida: '+facts.actorId);
-    if (facts.action === 'gank' || facts.action === 'teamfight') {
+    if (facts.action === 'gank' || facts.action === 'teamfight' ||
+        (facts.action==='skirmish'&&facts.outcome==='kill')) {
       if (!Array.isArray(facts.victimIds) || !facts.victimIds.length) throw new Error('Eliminaciones sin víctimas');
       const assistants = facts.assistIds || [];
       if (!Array.isArray(assistants) || new Set(assistants).size !== assistants.length ||

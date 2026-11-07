@@ -184,3 +184,12 @@ Antes de una release:
 - Inyectar coordenadas falsas de un JUN en MID y exigir fallo explícito de auditoría.
 - Controlar diversidad de intenciones, las seis combinaciones bando/carril, la finalización de partidas y compatibilidad con partidas antiguas.
 - Pruebas móviles/visuales reales pendientes: confirmar separación entre JUN y MID y animación clara de los accesos de emboscada.
+
+## Alpha 0.7.4 — Pruebas de combate y vida
+
+- Caso construido: dos profesionales amenazan a un SUP solitario en Dragón; el encuentro debe tener `skirmish`, daño, participantes y resultado `kill` o `retreat`.
+- Caso superviviente: HP positivo, marcador intacto, orden de retirada, desplazamiento máximo de una conexión por minuto, sin contar kill ni asistencia.
+- Caso letal: objetivo con poca vida cae por daño real; víctima, salud cero, eliminaciones y ayudas coinciden con facts y contador.
+- Cientos de partidas completas: cada frame de vida 0–100, cero para muertos, retiras visibles, mapa y crónica congruentes; auditores de navegación, scoreboard, minimapa, broadcast y salud en verde.
+- Datos manipulados: cambiar vida posterior o resultado de escaramuza debe provocar error del auditor.
+- Manual pendiente: visualizar en navegador una escaramuza 2v1 cerca de Dragón alrededor de 15:59 y confirmar texto, barra de vida y retirada.

@@ -137,8 +137,14 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
  };
  const makeEv=(minute,title,body,kind='normal',team=null,facts=null)=>{
   const prior=m.events[m.events.length-1];
+  // Skirmish timestamps use an isolated deterministic clock and never
+  // consume gameplay RNG (the encounter already has a separate seed).
+  const skirmish=facts?.action==='skirmish';
+  const stamp=skirmish?(Math.imul((commentarySeed^minute)>>>0,1664525)+
+    Math.imul(m.events.length+1,1013904223))>>>0:0;
   const sec=minute===0?0:prior?.minute===minute?
-    Math.min(59,Number(prior.time.slice(3))+ri(1,8)):ri(0,29);
+    Math.min(59,Number(prior.time.slice(3))+(skirmish?1+stamp%8:ri(1,8))):
+    skirmish?stamp%30:ri(0,29);
   const event={minute,time:`${String(minute).padStart(2,'0')}:${String(sec).padStart(2,'0')}`,
     title,body,kind,teamId:team?.id||null};
   if(facts){event.facts=facts;RiftCore.applyPlayerEvent(playerStats,event)}
@@ -665,6 +671,7 @@ function matchEventDetail(e){
  let detail='';
  if(f.action==='gank')detail=`${f.lane||'Carril'} · Ruta ${f.route||'desconocida'} · Jungla: ${who(f.initiatorId)} · Kill: ${who(f.actorId)} · Visión rival ${f.defenderVision??'—'}/100`;
  else if(f.action==='teamfight')detail=`${who(f.actorId)} · ${f.victimIds.length} eliminaciones${f.ace?' · Exterminio confirmado':''}`;
+ else if(f.action==='skirmish')detail=`${f.zone==='dragon_pit'?'Dragón':'Barón'} · ${f.attackerCount} contra ${f.defenderCount} · ${who(f.targetId)}: ${f.hpBefore}% → ${f.hpAfter}% de vida · ${f.outcome==='kill'?'Eliminación confirmada':'Se retira sin morir'}`;
  else if(f.action==='baron')detail=f.stolen?`Robo con Smite: ${who(f.actorId)} (JUN)`:`Barón asegurado: ${who(f.actorId)}`;
  else if(f.action==='dragon')detail=`Objetivo: ${who(f.actorId)} · Dragón ${f.ordinal}`;
  else if(f.action==='tower')detail=`Presión: ${who(f.actorId)} · Torre ${f.stage} de ${f.lane}`;
