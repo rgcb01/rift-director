@@ -297,7 +297,7 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
   if(t>=29&&!m.winner){
    const eligible=all.filter(c=>Object.values(m.lanes[enemy(c).id]).some(n=>n===3))
     .map(c=>({c,nearNexus:positioned(c,(enemy(c).id===a.id?'blue':'red')+'_nexus') }))
-    .filter(x=>x.nearNexus.length>=2);
+    .filter(x=>x.nearNexus.length>=2&&x.nearNexus.length===living(x.c,t).length);
    if(eligible.length&&(t>=54||chance(t>=46?.66:.16))){
     const w=eligible.length===1?eligible[0].c:decide(eligible[0].c,eligible[1].c,t);
     const selected=eligible.find(x=>x.c.id===w.id).nearNexus;
