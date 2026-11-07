@@ -1,0 +1,38 @@
+# Changelog
+
+Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y utilizamos versionado **Alpha 0.x** sin promesas de compatibilidad permanente.
+
+## [Unreleased]
+
+### Añadido (infraestructura de desarrollo, 2026-11-07)
+- README actualizado con instrucciones de juego, desarrollo y estado real.
+- Roadmap por hitos con criterios verificables de aceptación.
+- Documentación de diseño, arquitectura, guardados y pruebas manuales.
+- Guía de contribuciones, plantillas de incidencias y verificación automatizada de sintaxis, estructura y un smoke test de simulación.
+
+### Nota
+- **Sin cambios de gameplay** en esta actualización documental. No se incrementa la versión del juego.
+- No se sustituye ni migra el formato de guardado existente.
+
+## [0.2.0-alpha] — 2026-11-07
+
+### Añadido
+- Juego web ejecutable desde `index.html`, con estilos y lógica en JavaScript puro.
+- Creación de organización, tablero, cartas de jugadores y roster por TOP/JUN/MID/ADC/SUP.
+- Gestión mensual: entrenamiento, scrims, descansos, contenido, comunidad y scouting.
+- Economía: caja, salarios, patrocinadores, merchandising, ingresos de liga y gastos.
+- Mercado inicial: agentes libres, ventas y scouting; clubes rivales con actividad autónoma.
+- Dos regiones ficticias (`Aurora` y `Boreal`), temporada regular, playoffs y transición de año.
+- Motor de partidos con eventos, comentaristas procedurales, marcador y avance temporal.
+- Noticias y rumores, rookies, envejecimiento, retiros, cambios de meta y algunos eventos de expansión.
+- Guardado automático local; exportación e importación de partidas JSON.
+- Escudos y retratos SVG ligeros y diseño responsive.
+- Publicación estática mediante GitHub Pages.
+
+### Limitaciones conocidas
+- La lógica permanece concentrada en `game.js`, sin módulos ni pruebas de dominio completas.
+- Los partidos abstraen muchas reglas de un MOBA; no incluyen draft completo.
+- Economía, traits, carreras y comportamiento de la IA requieren balance y pruebas prolongadas.
+- La interfaz móvil y las validaciones de importación aún necesitan endurecimiento.
+
+<!-- Añadir siempre los cambios nuevos en [Unreleased]. Moverlos a una versión fechada al publicar una release. -->
