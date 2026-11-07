@@ -169,7 +169,7 @@ function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attacker
   const damage=clamp(Math.round(base+outnumber*(mode==='lane'?8:19)+
     delta*.28+variance*16+burst),12,120);
   const after=Math.max(0,before-damage);
-  const retreat=after>0&&(after<48||(allies.length>=2&&after<72));
+  const retreat=after>0&&(after<48||(allies.length>defenders.length&&after<72));
   impacts.push({id:target.id,node:target.node,hpBefore:before,hpAfter:after,
    damage,retreat,retreatGoal:retreat?retreatDestination(nav,target,minute):null});
  }
