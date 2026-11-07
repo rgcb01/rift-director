@@ -31,6 +31,7 @@ export function boot(options = {}) {
     vm.runInNewContext(read(path), env, { timeout: 10000, filename: path });
   }
   vm.runInNewContext(read('src/ui/minimap.js'), env, { timeout:10000, filename:'src/ui/minimap.js' });
+  vm.runInNewContext(read('src/core/broadcast.js'), env, { timeout:10000, filename:'src/core/broadcast.js' });
   // Test-only API injection; game.js remains unmodified in production.
   const source = read('game.js');
   const injection = [
@@ -39,7 +40,7 @@ export function boot(options = {}) {
     '  quickSeasonGame, quickPlayoffGame, makeFinalAfterSemis,',
     '  closeMonth, resolveCrisis, startMatch, finishMatch,',
     '  signFreeAgent, sellPlayer, chooseSponsor, upgrade, scoutPlayer,',
-    '  startDemoMatch, replayDemoMatch, exitDemoMatch, liveControl,',
+    '  startDemoMatch, replayDemoMatch, exitDemoMatch, liveControl, tick,',
     '  renderMatch, render,',
     '  getDemoActive: () => Boolean(demoBackup), getView: () => view,',
     '  getState: () => s };',

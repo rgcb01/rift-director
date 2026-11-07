@@ -6,11 +6,12 @@ Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prome
 
 ## Estado
 
-- **Alpha 0.4 — [jugable]:** dos regiones ficticias, club y plantilla, finanzas mensuales, mercado sencillo, partidos narrados, noticias, offseason, SVG y guardado JSON.
+- **Alpha 0.5 — [jugable]:** dos regiones ficticias, club y plantilla, finanzas mensuales, mercado sencillo, partidos narrados, noticias, offseason, SVG y guardado JSON.
 - **Base del repositorio — [implementada]:** documentación, flujos de incidencias y comprobaciones de regresión.
 - **M1.1 — [base implementada; validación manual pendiente]:** RNG, estado inicial, calendario, finanzas, validación v2 y pruebas de regresión. Faltan un guardado histórico real y validación manual en móvil.
 - **M1.2 — [base integrada]:** auditoría, K/D/A, presión/visión y prueba aislada sin guardado; faltan posiciones causales, wards y hechizos.
-- **M1.3A — [en validación]:** minimapa SVG y proyección por frame de los diez profesionales, torres y territorio sin cambiar el motor.
+- **M1.3A — [integrada, QA móvil pendiente]:** minimapa SVG por frame, diez profesionales, torres y control territorial sin alterar resultados.
+- **M1.4A — [en validación]:** velocidades narradas verdaderamente legibles y cobertura contextual variada, derivada de evidencias y no de historias inventadas.
 - **M1.3B/C — [pendientes]:** movimiento por rutas que condicione eventos, después visión, wards y splitpush.
 
 ## Hitos
@@ -114,3 +115,11 @@ Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prome
 **M1.3C — Visión avanzada (pendiente):** colocación/expiración de wards abstractos, niebla, detección de emboscadas, empujes laterales y transiciones de territorio razonadas por presencia real. Mantener rendimiento en móviles modestos.
 
 **Criterio de cierre:** una secuencia de eventos se corresponde exactamente con el mapa, las posiciones afectan al juego desde M1.3B y los controles 1×/2×/5×/instantáneo sólo modifican la reproducción.
+
+### M1.4 · Retransmisión que se quiera observar
+
+**M1.4A — Narración (Alpha 0.5):** 1× para lectura pausada, 2× intermedio, 5× repaso rápido. No revelar en un solo instante varias novedades si está seleccionada 1×. Añadir análisis de presión, oro, visión, momentos críticos y oportunidades de objetivo según datos reales; reducir frases repetidas con variantes por semilla y enfriamiento por tema. Mantener los resultados inalterados ante cambios de velocidad.
+
+**M1.4B — Nuevas acciones causales (pendiente):** las visiones/intercambios de líneas, invasiones, desenganches, cebos, rotaciones y peleas por visión tienen que producirse con actores presentes y tener efectos medibles en mapa/estado, no solo en comentarios. Se coordina con M1.3B (navegación espacial).
+
+**Prueba de diversión:** observar varios mapas completos a 1× y registrar si existen tramos largos sin cambios relevantes o sucesiones repetidas de peleas/torres. Evitar llenar el log con frases triviales que no explican decisiones.

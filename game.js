@@ -109,7 +109,7 @@ function tagHtml(p){let items=visibleTraits(p).map(([t,k])=>`<span class="tag ${
 function record(sType,amount,note=''){s.history.unshift({year:s.year,month:s.month,type:sType,amount,note});s.history=s.history.slice(0,100)}
 function notify(t){let d=document.getElementById('toast');if(d)d.remove();d=document.createElement('div');d.className='toast';d.id='toast';d.textContent=t;document.body.appendChild(d);clearTimeout(toastTimer);toastTimer=setTimeout(()=>d.remove(),3600)}
 // MATCH ENGINE — deterministic events first; commentary describes validated state.
-function simulateMatch(f){const a=club(f.a),b=club(f.b),aP=teamPlayers(a),bP=teamPlayers(b);
+function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.b),aP=teamPlayers(a),bP=teamPlayers(b);
  const m={minute:0,kills:{[a.id]:0,[b.id]:0},gold:{[a.id]:500,[b.id]:500},towers:{[a.id]:0,[b.id]:0},lanes:{[a.id]:{TOP:0,MID:0,BOT:0},[b.id]:{TOP:0,MID:0,BOT:0}},dragons:{[a.id]:0,[b.id]:0},barons:{[a.id]:0,[b.id]:0},dead:{},winner:null,events:[],frames:[],nextDragon:5,nextBaron:20,baronBuff:{[a.id]:0,[b.id]:0}};
  const all=[a,b],teams={[a.id]:aP,[b.id]:bP};
  const updateMap=t=>RiftCore.computeMapState({clubs:all,teams,gold:m.gold,lanes:m.lanes,minute:t,userClub:s.userClub,style:s.style});
@@ -204,8 +204,8 @@ function simulateMatch(f){const a=club(f.a),b=club(f.b),aP=teamPlayers(a),bP=tea
   if(t>=52&&!m.winner){let active=all.filter(c=>living(c,t).length>=2);if(active.length){let eligible=active.filter(c=>Object.values(m.lanes[enemy(c).id]).some(n=>n===3));let w=eligible[0]||(active.length===2?decide(active[0],active[1],t):active[0]);if(!eligible.length){let target=enemy(w);let lane='MID';while(m.lanes[target.id][lane]<3)takeTower(w,t,lane)}const closer=living(w,t).find(p=>p.role==='ADC')||living(w,t)[0];m.winner=w.id;makeEv(t,'¡NEXO DESTRUIDO!',`${w.name} rompe la última defensa y asegura la victoria en una partida larguísima.`, 'end',w,{action:'nexus',actorId:closer.id})}}
   nextSnapshot(t)
  }
- const report={fixture:{a:f.a,b:f.b,round:f.round,playoff:!!f.playoff},frames:m.frames,events:m.events,playerStats:RiftCore.clonePlayerStats(playerStats),elapsed:0,speed:2,running:true,committed:false,winner:m.winner,finished:false};
- RiftCore.attachMinimap(report,s);return report
+ const report={fixture:{a:f.a,b:f.b,round:f.round,playoff:!!f.playoff},frames:m.frames,events:m.events,playerStats:RiftCore.clonePlayerStats(playerStats),elapsed:0,speed:1,running:true,committed:false,winner:m.winner,finished:false};
+ RiftCore.attachMinimap(report,s);RiftCore.attachBroadcast(report,s,commentarySeed);return report
 }
 function quickGame(a,b){let pa=teamPower(club(a)),pb=teamPower(club(b));return chance(clamp(.5+(pa-pb)*.022,.12,.88))?a:b}
 function award(a,b,winner,kind='league'){
@@ -244,9 +244,27 @@ function finishMatch(){const live=s.live;if(!live||live.committed)return;live.ru
  else notify((won?'Victoria':'Derrota')+' ante '+opp.name+'. '+(won?'Premio: ':'Participación: ')+fmt(prize));
  save();render()
 }
-function tick(){if(!s||!s.live||!s.live.running||s.live.finished||s.over)return;let l=s.live;l.elapsed=Math.min(l.frames.length-1,l.elapsed+1);if(l.elapsed>=l.frames.length-1){stopTimer();finishMatch()}else{if(l.elapsed%5===0)save();if(view==='match')render()}}
+function tick(){
+ if(!s||!s.live||!s.live.running||s.live.finished||s.over)return;
+ const l=s.live,last=l.frames.length-1;
+ const current=RiftCore.feedCountAt(l,l.elapsed);
+ if(!Number.isInteger(l.visibleCount))l.visibleCount=current;
+ if(l.speed===1&&l.visibleCount<current){l.visibleCount++}
+ else if(l.elapsed<last){
+  const previous=current;
+  l.elapsed++;
+  const next=RiftCore.feedCountAt(l,l.elapsed);
+  l.visibleCount=l.speed===1?Math.min(next,previous+1):next;
+ }else{stopTimer();finishMatch();return}
+ if(l.elapsed===last&&l.visibleCount>=RiftCore.feedCountAt(l,last)){
+  stopTimer();finishMatch();
+ }else{
+  if(l.elapsed%5===0)save();
+  if(view==='match')render();
+ }
+}
 function stopTimer(){if(timer){clearInterval(timer);timer=null}}
-function playTimer(){stopTimer();if(s?.live?.running&&!s.live.finished)timer=setInterval(tick,Math.round(750/s.live.speed))}
+function playTimer(){stopTimer();if(s?.live?.running&&!s.live.finished)timer=setInterval(tick,RiftCore.broadcastInterval(s.live.speed))}
 // A disposable match: no writes, transfers, rewards, months or changes to the existing save.
 function startDemoMatch(){
  if(demoBackup)return replayDemoMatch();
@@ -258,7 +276,7 @@ function startDemoMatch(){
   const fixture=(s.fixtures[2]||[]).find(f=>f.a===s.userClub||f.b===s.userClub);
   if(!fixture)throw new Error('No hay rivales disponibles para la exhibición');
   s.live=simulateMatch(fixture);
-  s.live.speed=5;
+  s.live.speed=1;s.live.visibleCount=RiftCore.feedCountAt(s.live,0);
   modal=null;view='match';
   render();playTimer();
  }catch(e){
@@ -268,7 +286,7 @@ function startDemoMatch(){
 }
 function replayDemoMatch(){
  if(!demoBackup||!s?.live)return;
- stopTimer();s.live=simulateMatch(s.live.fixture);s.live.speed=5;
+ stopTimer();s.live=simulateMatch(s.live.fixture);s.live.speed=1;s.live.visibleCount=RiftCore.feedCountAt(s.live,0);
  s.live.running=true;view='match';modal=null;render();playTimer();
 }
 function exitDemoMatch(){
@@ -279,8 +297,25 @@ function exitDemoMatch(){
  render();
  if(s?.live?.running&&!s.live.finished)playTimer();
 }
-function startMatch(){if(s.over||s.live?.running)return;const f=nextFixtures()[0];if(!f){notify('No hay partidos pendientes este mes.');return}s.live=simulateMatch(f);view='match';save();render();playTimer()}
-function liveControl(action){if(!s.live)return;if(action==='pause'){s.live.running=false;stopTimer()}else if(action==='resume'&&!s.live.finished){s.live.running=true;playTimer()}else if(action==='instant'){stopTimer();s.live.elapsed=s.live.frames.length-1;finishMatch()}else if(action.startsWith('speed-')){s.live.speed=Number(action.split('-')[1]);if(s.live.running)playTimer()}save();render()}
+function startMatch(){if(s.over||s.live?.running)return;const f=nextFixtures()[0];if(!f){notify('No hay partidos pendientes este mes.');return}s.live=simulateMatch(f);s.live.visibleCount=RiftCore.feedCountAt(s.live,0);view='match';save();render();playTimer()}
+function liveControl(action){
+ if(!s.live)return;
+ const l=s.live;
+ if(action==='pause'){l.running=false;stopTimer()}
+ else if(action==='resume'&&!l.finished){l.running=true;playTimer()}
+ else if(action==='instant'){
+  stopTimer();l.elapsed=l.frames.length-1;
+  l.visibleCount=RiftCore.feedCountAt(l,l.elapsed);
+  finishMatch();
+ }else if(action.startsWith('speed-')){
+  const requested=Number(action.split('-')[1]);
+  if(![1,2,5].includes(requested))return;
+  l.speed=requested;
+  if(requested!==1)l.visibleCount=RiftCore.feedCountAt(l,l.elapsed);
+  if(l.running)playTimer();
+ }
+ save();render();
+}
 function beginPlayoffs(){if(s.playoffsSetup)return;s.playoffsSetup=true;const rank=rankTable('Aurora');const pairs=[[rank[0],rank[3]],[rank[1],rank[2]]];s.playoffs=pairs.map(([a,b],j)=>({a:a.id,b:b.id,round:50+j,phase:'semi',playoff:true,played:false}));
  addNews('Playoffs: cuatro equipos, un título',`${rank.slice(0,4).map(c=>c.name).join(', ')} competirán por el campeonato regional.`,'league',null,3);
  if(!s.playoffs.some(f=>f.a===s.userClub||f.b===s.userClub)){for(const f of s.playoffs)quickPlayoffGame(f);makeFinalAfterSemis(true)}}
@@ -520,15 +555,18 @@ function renderMatch(){const c=currentClub(),l=s.live;
  <section class="panel"><h2>Probar simulación</h2><p class="helper">Juega un mapa ficticio independiente. No necesitas avanzar meses ni modificar tu temporada.</p><button class="btn secondary" style="margin-top:8px" data-action="demo-start">Simular partida de prueba</button></section>
  <section class="panel"><h2>Últimos resultados</h2>${s.matchReports.slice(0,8).map(r=>`<div class="activity"><span><b class="${r.win?'good':'bad'}">${r.win?'VICTORIA':'DERROTA'}</b> · ${esc(r.against)} ${r.playoff?'· Playoffs':''}</span><b>${r.killsFor} – ${r.killsAgainst}</b></div>`).join('')||'<div class="empty">Aún no has jugado un mapa.</div>'}</section></div>
  <div><section class="panel"><h2>Cómo funciona</h2><p class="helper" style="margin-top:8px">No controlas al ADC ni al jungla. El simulador calcula ganks, eliminaciones, torres, dragones y Barones usando atributos, traits, roles y el estado real del mapa.</p><div class="banner">El juego narra acontecimientos simulados, no inventa un resultado para justificarlo después.</div></section>${rosterSmall()}</div></div>`;
- let f=l.fixture,a=club(f.a),b=club(f.b),frame=l.frames[Math.min(l.elapsed,l.frames.length-1)],ended=l.finished,events=l.events.filter(e=>e.minute<=frame.minute),win=club(l.winner);
- return `${demoBackup?'<div class="banner" style="margin-bottom:14px"><b>PARTIDO DE PRUEBA · NO SE GUARDA</b><p class="helper" style="margin:6px 0">Ninguna jugada, premio ni estadística afectará a tu temporada.</p><button class="btn secondary small" data-action="demo-exit">Volver sin guardar</button></div>':''}${pageTitle('Retransmisión en directo','El marcador y los comentaristas siguen la misma simulación. Puedes pausar, acelerar o saltar al resultado.',`<span class="chip ${ended?'gold':'green'}">${ended?'FINALIZADO':l.running?'EN DIRECTO':'PAUSADO'}</span>`)}
+ let f=l.fixture,a=club(f.a),b=club(f.b),frame=l.frames[Math.min(l.elapsed,l.frames.length-1)],ended=l.finished,
+ fullFeed=RiftCore.broadcastFeed(l),
+ reveal=Number.isInteger(l.visibleCount)?l.visibleCount:RiftCore.feedCountAt(l,l.elapsed),
+ events=fullFeed.slice(0,reveal),win=club(l.winner);
+ return `${demoBackup?'<div class="banner" style="margin-bottom:14px"><b>PARTIDO DE PRUEBA · NO SE GUARDA</b><p class="helper" style="margin:6px 0">Ninguna jugada, premio ni estadística afectará a tu temporada.</p><button class="btn secondary small" data-action="demo-exit">Volver sin guardar</button></div>':''}${pageTitle('Retransmisión en directo','Una retransmisión pausada para seguir las jugadas y la lectura táctica. Puedes acelerar o saltar al resultado.',`<span class="chip ${ended?'gold':'green'}">${ended?'FINALIZADO':l.running?'EN DIRECTO':'PAUSADO'}</span>`)}
  <div class="cols"><div><section class="panel"><div class="scoreboard"><div class="split"><span class="eyebrow">${demoBackup?'Exhibición de prueba':f.playoff?'Playoffs':'Liga regular'} · ${MONTHS[s.month-1]} ${s.year}</span><span class="chip ${ended?'gold':'green'}">${String(frame.minute).padStart(2,'0')}:${frame.minute===0?'00':'59'}</span></div>
  <div class="split" style="margin-top:12px;gap:6px"><div class="flex">${crest(a,41)}<div class="scoreteam">${esc(a.name)}</div></div><div class="scoreline num">${frame.kills[a.id]} : ${frame.kills[b.id]}</div><div class="flex"><div class="scoreteam">${esc(b.name)}</div>${crest(b,41)}</div></div>
  <div class="scoregrid"><div><small>ORO</small><strong>${(frame.gold[a.id]/1000).toFixed(1)}k · ${(frame.gold[b.id]/1000).toFixed(1)}k</strong></div><div><small>TORRES</small><strong>${frame.towers[a.id]} · ${frame.towers[b.id]}</strong></div><div><small>DRAGONES</small><strong>${frame.dragons[a.id]} · ${frame.dragons[b.id]}</strong></div><div><small>BARÓN</small><strong>${frame.barons[a.id]} · ${frame.barons[b.id]}</strong></div><div><small>FASE</small><strong>${frame.minute<13?'Early':frame.minute<26?'Mid':'Late'}</strong></div><div><small>STATUS</small><strong>${ended?'Finalizado':l.running?'En juego':'En pausa'}</strong></div></div>
  </div><div class="buttons" style="margin-top:13px">${ended?demoBackup?`<button class="btn" data-action="demo-replay">Simular otra partida</button><button class="btn secondary" data-action="demo-exit">Salir de la prueba</button>`:`<button class="btn" data-action="leave-match">Volver al club</button>`:`<button class="btn secondary" data-action="${l.running?'pause':'resume'}">${icon(l.running?'pause':'play',14)} ${l.running?'Pausar':'Continuar'}</button>`}
  ${[1,2,5].map(n=>`<button class="btn ${l.speed===n?'':'ghost'} small" data-action="speed-${n}" ${ended?'disabled':''}>${n}×</button>`).join('')}<button class="btn ghost small" data-action="instant" ${ended?'disabled':''}>Ir al final</button></div>
  ${ended?`<div class="banner ${l.winner===s.userClub?'':'warn'}" style="margin-top:13px"><strong>${l.winner===s.userClub?'¡VICTORIA!':'Derrota'}</strong> · ${esc(win.name)} destruyó el nexo. Duración: ${frame.minute} minutos. ${demoBackup?'Exhibición terminada: sin cambios en tu partida.':'Los resultados quedaron registrados en las estadísticas y finanzas.'}</div>`:''}</section>
- <section class="panel"><div class="panel-head"><h2>Comentaristas · RiftCast</h2><span class="chip">${events.length} acontecimientos</span></div><div class="eventlog" id="eventlog">${events.map(e=>`<div class="event ${e.kind==='goal'?'goal':e.kind==='fight'||e.kind==='end'?'major':''}"><time>${e.time}</time><div class="body"><b>${esc(e.title)}</b><p>${esc(e.body)}</p>${matchEventDetail(e)}</div></div>`).join('')}</div></section></div>
+ <section class="panel"><div class="panel-head"><h2>Comentaristas · RiftCast</h2><span class="chip">${events.length}/${fullFeed.length} momentos</span></div><p class="helper" style="margin:0 0 9px">1× = ritmo narrado, novedad por novedad · 2× = ritmo medio · 5× = repaso rápido</p><div class="eventlog" id="eventlog">${events.map(e=>`<div class="event ${e.kind==='insight'?'insight':e.kind==='goal'?'goal':e.kind==='fight'||e.kind==='end'?'major':''}"><time>${e.time}</time><div class="body"><b>${esc(e.title)}</b><p>${esc(e.body)}</p>${matchEventDetail(e)}</div></div>`).join('')}</div></section></div>
  <div><section class="panel"><div class="panel-head"><h2>Minimapa táctico</h2><span class="chip">10 profesionales</span></div>
  ${RiftMinimap.render(l,frame,s,l.frames[Math.max(0,Math.min(l.elapsed,l.frames.length-1)-1)])}
  <p class="helper" style="margin-top:9px">Posiciones SVG estimadas desde eventos y presión del mapa. Los movimientos todavía no limitan las jugadas; esa será la fase M1.3B.</p></section>
@@ -583,11 +621,11 @@ function renderModal(){if(!s&&modal?.type!=='welcome')modal={type:'welcome'};if(
 function navButton(id,ic,label){return `<button data-nav="${id}" class="${view===id?'active':''}">${icon(ic)} <span>${label}</span></button>`}
 function render(){if(!s){document.getElementById('app').innerHTML=renderModal();return}
  const c=currentClub();let body=view==='home'?renderHome():view==='roster'?renderRoster():view==='market'?renderMarket():view==='match'?renderMatch():view==='finance'?renderFinance():view==='world'?renderWorld():renderSettings();
- document.getElementById('app').innerHTML=`<div class="layout"><aside class="sidebar"><div class="brand"><div class="brand-icon" style="color:var(--teal);font-size:22px;font-weight:900">R</div><div><strong>Rift Director</strong><small>ALFA 0.4 · SANDBOX</small></div></div>
+ document.getElementById('app').innerHTML=`<div class="layout"><aside class="sidebar"><div class="brand"><div class="brand-icon" style="color:var(--teal);font-size:22px;font-weight:900">R</div><div><strong>Rift Director</strong><small>ALFA 0.5 · SANDBOX</small></div></div>
  <nav class="nav" aria-label="Navegación">${demoBackup?navButton('match','match','Exhibición'):`${navButton('home','home','Inicio')}${navButton('roster','users','Plantilla')}${navButton('market','market','Mercado')}${navButton('match','match','Partidos')}${navButton('finance','money','Finanzas')}${navButton('world','world','Mundo')}${navButton('settings','settings','Partida')}`}</nav>
  <div class="sidebar-foot"><div class="eyebrow">TEMPORADA ${s.season}</div><div style="margin-top:5px;font-weight:800">${MONTHS[s.month-1]} ${s.year}</div><div class="chip">${s.clubs.length} clubes · ${s.players.filter(p=>!p.retired).length} profesionales</div></div></aside>
  <main class="main"><header class="topbar"><div class="clubhead">${crest(c,46)}<div><div class="clubtitle">${esc(c.name)}</div><div class="helper">${esc(s.leagueName)} · Club ${c.kind==='user'?'bajo tu dirección':'autónomo'}</div></div></div><div class="top-actions">${demoBackup?`<span class="chip">MODO PRUEBA</span><button class="btn small secondary" data-action="demo-exit">Volver</button>`:`<span class="chip">${icon('calendar',14)} ${MONTHS[s.month-1]} ${s.year}</span><span class="chip ${c.cash<250000?'red':'green'}">${icon('money',14)} ${fmt(c.cash)}</span><button class="btn small" data-action="close-month" ${s.over?'disabled':''}>Siguiente mes</button>`}</div></header>${body}
- <div class="footer">Rift Director Alpha 0.4 · Universo y retratos ficticios · Guardado local · Simulador independiente no afiliado a Riot Games</div></main></div>${renderModal()}${s.over?`<div class="modal-layer"><div class="modal end-screen"><div class="eyebrow">FIN DE PARTIDA</div><h1>Insolvencia.</h1><p>Tu club se quedó sin efectivo. El mundo sigue su historia, pero esta gestión termina aquí. Recuerda: ganar torneos nunca fue la única forma de triunfar.</p><div class="buttons" style="justify-content:center"><button class="btn" data-action="export">Exportar historia</button><button class="btn danger" data-action="reset">Nueva organización</button></div></div></div>`:''}`;
+ <div class="footer">Rift Director Alpha 0.5 · Universo y retratos ficticios · Guardado local · Simulador independiente no afiliado a Riot Games</div></main></div>${renderModal()}${s.over?`<div class="modal-layer"><div class="modal end-screen"><div class="eyebrow">FIN DE PARTIDA</div><h1>Insolvencia.</h1><p>Tu club se quedó sin efectivo. El mundo sigue su historia, pero esta gestión termina aquí. Recuerda: ganar torneos nunca fue la única forma de triunfar.</p><div class="buttons" style="justify-content:center"><button class="btn" data-action="export">Exportar historia</button><button class="btn danger" data-action="reset">Nueva organización</button></div></div></div>`:''}`;
  if(view==='match'&&s.live){let log=document.getElementById('eventlog');if(log)log.scrollTop=log.scrollHeight}
 }
 function updatePlan(id,delta){if(s.live&&!s.live.finished)return notify('Finaliza el partido para modificar la agenda.');if(!Object.hasOwn(s.plan,id))return;let x=s.plan[id]+delta;if(x<0||x>4||delta>0&&sumPlan()>=8)return;s.plan[id]=x;save();render()}
