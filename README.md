@@ -51,7 +51,7 @@ Requisitos para desarrollo: **Node.js 22+** para ejecutar comprobaciones. El nav
 ```bash
 node --check game.js
 node scripts/check-static.mjs
-node --test tests/*.test.mjs
+node --test
 ```
 
 Los cambios a `main` pueden publicarse mediante la configuración de GitHub Pages existente (**main / raíz**); no hay build de producción ni workflow de despliegue personalizado. La validación automatizada comprueba integridad básica, **no** reemplaza la prueba manual del gameplay.
