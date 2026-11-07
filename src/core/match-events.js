@@ -8,7 +8,7 @@
   const counters = ['kills', 'towers', 'dragons', 'barons'];
   const integer = n => Number.isSafeInteger(n) && n >= 0;
 
-  function auditMatch(match, world, { allowLegacy = false } = {}) {
+  function auditMatch(match, world) {
     const errors = [];
     const fail = (message) => errors.push(message);
     const isRecord = x => x !== null && typeof x === 'object' && !Array.isArray(x);
@@ -118,7 +118,7 @@
         }
         lastEventMinute = e.minute;
         if (e.facts) applyEvent(e);
-        else if (!allowLegacy && ['goal','fight','end'].includes(e.kind)) fail('Falta evidencia estructurada para: ' + e.title);
+        else if (['goal','fight','end'].includes(e.kind)) fail('Falta evidencia estructurada para: ' + e.title);
       }
       if (frame.eventsCount !== nextEvent) fail('Número de eventos del frame incoherente.');
       for (const k of counters) {
@@ -132,7 +132,7 @@
     if (nextEvent !== match.events.length) fail('Eventos sin frame asociado.');
     if (match.frames.length < 2 || match.frames[0].minute !== 0) fail('Partido sin comienzo.');
     if (match.frames.at(-1)?.winner !== match.winner) fail('Frame final sin ganador.');
-    if (!allowLegacy && (nexusCount !== 1 || match.events.at(-1)?.facts?.action !== 'nexus')) {
+    if (nexusCount !== 1 || match.events.at(-1)?.facts?.action !== 'nexus') {
       fail('Partido sin un único nexo destruido al final.');
     }
     return errors;
