@@ -25,9 +25,9 @@ test('semilla fija: coherencia espacial Alpha 0.7.3 reproducible y contabilidad 
   delete legacyMatch.playerStats; // Additive M1.2 individual stats do not change match RNG/outcomes.
   // M1.3B changes match outcomes intentionally: movement and proximity now govern all objectives.
   // Snapshot after stripping the additive facts field; future changes require an explanation.
-  console.log('JUNGLE_073_GOLDEN legacyMatch',hash(legacyMatch));
-  console.log('JUNGLE_073_GOLDEN world after match',hash(world));
+  assert.equal(hash(legacyMatch), '220de035fb87cc8186a4600fee39e2e49222c7907741640a43be953f893e3c72');
+  assert.equal(hash(world), '47b996a248b5cff93256c670a62c3b4999978423431544f7f7d03a8dc933af6a');
   const report = sim.applyMonth();
   assert.equal(hash(report), '63f62558933347e5947cc1b476f9056c23d59aa9e79fce65edd0c7d58372dbd9');
-  console.log('JUNGLE_073_GOLDEN world after month',hash(world));
+  assert.equal(hash(world), '7732d287de1944f09b0c9943c11e204d1c2a9a8b2d6443feaf2d56a303518761');
 });
