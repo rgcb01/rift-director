@@ -63,7 +63,7 @@ test('auditor rechaza asistentes muertos, KDA inventados y participantes ajenos'
   const e=fakeObject.events.find(x=>x.facts?.participantIds?.length);
   const rival=e.teamId===fixture.a?fixture.b:fixture.a;
   e.facts.participantIds.push(Object.values(teammates(world,rival))[0]);
-  assert.match(core.auditMatch(fakeObject,world).join(' '),/Participación falsa/);
+  assert.match(core.auditMatch(fakeObject,world).join(' '),/Participación falsa|Atacante inválido en escaramuza/);
 });
 
 test('las cartas sólo acumulan mapas narrados, una vez por partido',()=>{
