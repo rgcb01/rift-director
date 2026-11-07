@@ -93,13 +93,30 @@
   function projectMinute(frame,ctx,state){
     const {a,b}=ctx,t=frame.minute;
     const positions={};
-    for(const teamId of [a,b]){
-      for(const id of ctx.playersByTeam[teamId]){
-        const role=ctx.playerIndex.get(id).role;
-        const alive=(state.deadUntil[id]||0)<=t;
-        const base=alive?nominalPosition(teamId,role,t,frame,ctx,state.towers):
-          {...point((teamId===a?'blue':'red')+'_fountain'),node:(teamId===a?'blue':'red')+'_fountain'};
-        positions[id]={...base,role,teamId,alive};
+    const spatial=Boolean(frame.navigation?.after);
+    if(spatial){
+      // Physical source of truth: same node before and after a fight unless the
+      // fighter died. Offsets are presentational only, not a second location.
+      const collisions=new Map();
+      for(const teamId of [a,b])for(const id of ctx.playersByTeam[teamId]){
+        const n=frame.navigation.after[id];
+        if(!n||!graph.nodes[n.node])throw Error('Navegación inválida del jugador '+id);
+        const current=collisions.get(n.node)||0;collisions.set(n.node,current+1);
+        const offsets=[[0,0],[12,-10],[-12,10],[12,12],[-12,-12],[0,17],
+          [17,0],[-17,0],[0,-17],[18,18]];
+        const [dx,dy]=offsets[current%offsets.length],p=point(n.node);
+        positions[id]={...xy(p.x+dx,p.y+dy),node:n.node,role:n.role,
+          teamId,alive:n.alive,intent:n.intent,goal:n.goal};
+      }
+    }else{
+      for(const teamId of [a,b]){
+        for(const id of ctx.playersByTeam[teamId]){
+          const role=ctx.playerIndex.get(id).role;
+          const alive=(state.deadUntil[id]||0)<=t;
+          const base=alive?nominalPosition(teamId,role,t,frame,ctx,state.towers):
+            {...point((teamId===a?'blue':'red')+'_fountain'),node:(teamId===a?'blue':'red')+'_fountain'};
+          positions[id]={...base,role,teamId,alive};
+        }
       }
     }
     let focused=null;
@@ -108,6 +125,7 @@
       if(!f)continue;
       focused={action:f.action,teamId:e.teamId,minute:e.minute};
       const foes=e.teamId===a?b:a;
+      if(spatial)continue;
       if(f.action==='gank'){
         const location=graph.pointOnLane(f.lane,.5);
         const participating=[f.initiatorId,f.actorId,...(f.assistIds||[])];
@@ -135,7 +153,8 @@
     for(const [id,p] of Object.entries(positions)){
       if(p.alive)continue;
       const node=(p.teamId===a?'blue':'red')+'_fountain';
-      positions[id]={...p,...point(node),node};
+      if(!spatial)positions[id]={...p,...point(node),node};
+      else if(p.node!==node)throw Error('Muerto desplazado fuera de fuente');
     }
     const territory={};
     for(const lane of lanes)
