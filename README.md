@@ -40,7 +40,7 @@ El juego actual es **estático y sin dependencias**:
 ```text
 index.html     Entrada de GitHub Pages
 styles.css     Interfaz adaptable
-src/core/      RNG, estado inicial, calendario, finanzas y guardados v2
+src/core/      RNG, estado, calendario, finanzas, guardados y auditoría de partidos
 game.js        Mundo, partidos, economía y UI (aún pendiente de modularizar)
 scripts/       Comprobaciones automatizadas
 docs/          Diseño, arquitectura y plan de pruebas
@@ -54,6 +54,7 @@ node --check src/core/rng.js
 node --check src/core/state.js
 node --check src/core/calendar.js
 node --check src/core/finance.js
+node --check src/core/match-events.js
 node --check src/core/persistence.js
 node --check game.js
 node scripts/check-static.mjs
@@ -88,3 +89,7 @@ La inicialización del estado, la secuencia de RNG y la validación de guardados
 ### M1.1 — Motor financiero extraído
 
 `src/core/finance.js` contiene cotizaciones de cierres mensuales, salarios, costes de agenda, precios de mercado y movimientos de caja. La venta de un profesional ahora verifica que el comprador puede pagar la transferencia **antes** de modificar plantillas. Los cálculos numéricos originales y el formato de guardado `v2` no cambian; hay pruebas que cubren penalizaciones, fichajes, crisis y operaciones repetidas.
+
+### M1.2 — Evidencias de jugadas
+
+Los partidos nuevos incluyen `event.facts` (gank, combate, torre, dragón, Barón y nexo) que identifica los jugadores y objetivos participantes. `src/core/match-events.js` audita que los hechos correspondan al marcador y respeten roles, muertes, reaparición, torres y objetivos. El Match Center muestra quién ejecutó cada jugada. **Los guardados anteriores no necesitan este campo**: se siguen pudiendo importar sin migración. El simulador sigue siendo una abstracción de un MOBA; no existe todavía un sistema de campeones ni hechizos individuales configurables.

@@ -89,3 +89,10 @@ Antes de una release:
 - Valida transferencia con y sin fondos: ningún pago incompleto cambia saldos.
 - Verifica firma de agente libre, venta de suplente, reintento duplicado, rescisión de sponsor, inversión en staff, scouting y crisis que lleva a insolvencia.
 - Sigue pendiente un test estadístico del equilibrio de sponsors/merch durante 10–20 temporadas y en dispositivos de gama baja.
+
+## M1.2 — Auditoría de narración
+
+- `tests/match-events.test.mjs`: partidas con cientos de seeds, comprobación de acciones válidas, marcador, órdenes de objetivos y unicidad del nexo.
+- Mutaciones intencionales: falsificar el Smite del jungla con un MID, repetir una víctima, borrar la evidencia de una torre y alterar ganador.
+- Pruebas de exportación de un mapa pausado con `event.facts` sin cambiar `v2`.
+- Pendiente: modelo de campeones, hechizos equipados, posiciones, fog of war y tests estadísticos de traits bajo meta cambiante.

@@ -11,6 +11,7 @@ src/core/rng.js            Secuencia pseudoaleatoria v2 (sin cambios)
 src/core/state.js          Estado inicial v2 y roles
 src/core/calendar.js       Calendario round-robin, jornadas, tablas iniciales y fechas
 src/core/finance.js        Cotización mensual, salarios, transferencias de caja, precios
+src/core/match-events.js   Auditoría de eventos: kills, objetivos, roles y marcador
 src/core/persistence.js    Parseo, validación, almacenamiento local v2
 game.js                    IIFE con mundo, motor de partidos, finanzas, rendering y eventos DOM
 scripts/check-static.mjs   Validación ligera de archivos/recursos
@@ -122,3 +123,9 @@ El módulo puro `RiftCore.quoteMonth(world, club, getPlayer)` calcula ingresos, 
 `RiftCore.adjustCash` centraliza los movimientos individuales; `RiftCore.transferCash` aplica pagos de comprador a vendedor como una operación atómica que retorna `false` sin modificar estado cuando faltan fondos. `sellPlayer` filtra compradores con dinero suficiente antes de transferir a un profesional. Este cambio corrige un caso futuro de valores de mercado altos que antes podía dejar a un comprador con saldo negativo inesperado.
 
 **Limitaciones:** no existe todavía un libro contable de doble entrada para todos los clubes; el historial de usuario sigue en `record()` dentro de `game.js`. No se agregó un esquema de guardado nuevo ni una propiedad obligatoria adicional. Los contratos más detallados y la inflación pertenecen a hitos futuros.
+
+## M1.2 fase 1 — Evidencias y coherencia narrativa
+
+Los mapas nuevos generan eventos con un objeto opcional `facts` que registra el tipo de jugada, autor, víctimas y parámetros del objetivo; el comentarista usa ese mismo registro. `RiftCore.auditMatch(match, world)` recorre hechos y `frames` sin consumir RNG, comprobando coherencia de kills, torres, dragones, Barones, muerte/reaparición, pentakills, exterminios y nexo. La auditoría no forma parte del render en producción: es una verificación automatizable para no impactar rendimiento en móviles.
+
+Los eventos heredados de Alpha 0.2 carecen de `facts` y no se reescriben al importar guardados `v2`. No podemos demostrar todas las reglas de los mapas antiguos con la misma auditoría estructural. **Smite solo lo atribuye el código al jungla en los robos de Barón**; un futuro modelo explícito de campeones/hechizos requerirá más validación.

@@ -27,7 +27,7 @@ export function boot(options = {}) {
     setInterval: () => 1, clearInterval: () => {},
     setTimeout: () => 1, clearTimeout: () => {},
   };
-  for (const path of ['src/core/rng.js', 'src/core/state.js', 'src/core/calendar.js', 'src/core/persistence.js', 'src/core/finance.js']) {
+  for (const path of ['src/core/rng.js', 'src/core/state.js', 'src/core/calendar.js', 'src/core/persistence.js', 'src/core/finance.js', 'src/core/match-events.js']) {
     vm.runInNewContext(read(path), env, { timeout: 10000, filename: path });
   }
   // Test-only API injection; game.js remains unmodified in production.
