@@ -1,0 +1,66 @@
+name: Reporte de error
+description: Reportar fallos de juego, guardados, finanzas, partidos o interfaz.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por reportarlo. No incluyas información privada ni adjuntes un guardado sin revisarlo primero.
+  - type: input
+    id: version
+    attributes:
+      label: Versión
+      placeholder: "Alpha 0.2 / commit (si lo sabes)"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Sistema afectado
+      options:
+        - Partidos y retransmisión
+        - Economía y patrocinios
+        - Mercado y jugadores
+        - Calendario y offseason
+        - Noticias y mundo
+        - Guardado / importación
+        - Interfaz móvil / web
+        - Otro
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Pasos para reproducir
+      description: Incluye fecha de juego y acciones en orden.
+      placeholder: "1. Crear club...\n2. Avanzar hasta...\n3. Pulsar..."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Resultado esperado
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Resultado observado
+      description: Si puedes, adjunta captura o mensaje de error.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Navegador / sistema / dispositivo
+      placeholder: "Safari iOS 27, Chrome Android, Firefox Windows..."
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Comprobaciones
+      options:
+        - label: Revisé que mis adjuntos no incluyen datos privados o secretos.
+          required: true
