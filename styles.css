@@ -41,3 +41,11 @@
 .rift-mini-event-focus{filter:drop-shadow(0 0 5px #f4d89a)}
 @media(max-width:680px){.replay-history{max-height:370px}.replay-event{padding:12px 6px}}
 @media(prefers-reduced-motion:reduce){.replay-event{transition:none}}
+
+/* Event-centric replay scene: actors at their actual pre-combat navigation nodes. */
+.rift-mini-avatar.is-event-player{filter:drop-shadow(0 0 5px #ffe4a075)}
+.rift-mini-avatar.is-fallen{opacity:.9}
+.rift-mini-scene{display:flex;justify-content:center;flex-wrap:wrap;gap:5px 12px;
+  padding:10px 9px;margin-top:9px;border:1px solid #385d68;border-radius:8px;
+  background:#112b36;font-size:11px;line-height:1.4;color:#cce5ed}
+.rift-mini-scene b{color:#ffe0a3;font-weight:700}

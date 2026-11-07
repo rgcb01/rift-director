@@ -158,3 +158,12 @@ Antes de una release:
 - Salir de un partido oficial, reabrir el último replay, serializarlo en `v2` y verificar que las instantáneas se conservan.
 - Cargar partida histórica sin `moments`: historial navegable con precisión por minuto, sin fabricar interacciones no registradas.
 - **Pendiente en navegador real:** respuesta táctil del historial, scroll al evento seleccionado, diseño compacto y uso de almacenamiento al retener un replay entero; probar Safari iOS y Chrome Android.
+
+## Alpha 0.7.1 — Gank compatible con mapa y narración
+
+- Probar que un jungla en BOT no puede participar desde allí en un gank etiquetado MID si la distancia física es excesiva, aunque la ruta del grafo sea corta.
+- Auditar 220 semillas: víctima dentro del carril real; jungla/asesino a distancia viable; ruta del texto calculada del nodo original.
+- Al seleccionar gank, los avatares de jungla, asesino y víctima se ven en sus nodos previos al combate, y la víctima queda marcada como caída sobre la jugada; no se modifica el estado posterior ni la partida guardada.
+- En una retransmisión antigua manipulada o incoherente, mostrar advertencia explícita sin teletransportar al jungla.
+- Falsificar posición del jungla en navegación debe producir errores de auditoría.
+- Mantener compatibilidad v2, modo exhibición sin persistencia y ausencia de premios duplicados.

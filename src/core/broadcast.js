@@ -36,7 +36,7 @@ function createBroadcast(match,world,seed) {
   if(f.action==='gank'){
    const lane=laneLabel[f.lane],victim=who(f.victimIds[0]);
    entries=[
-    ['¡Aparece el jungla en '+lane+'!',who(f.initiatorId)+' llega por '+f.route+' y '+actor+' elimina a '+victim+'. Visión rival estimada: '+f.defenderVision+'/100.'],
+    ['¡Aparece el jungla en '+lane+'!',who(f.initiatorId)+' '+({rio:'llega desde el río',jungla:'llega desde la jungla',tribush:'entra por el acceso inferior',flanco:'entra por un flanco'}[f.route]||'entra en la zona')+' y '+actor+' elimina a '+victim+'. Visión rival estimada: '+f.defenderVision+'/100.'],
     ['La emboscada funciona en '+lane,club+' aprovecha un hueco de visión. '+actor+' consigue la baja de '+victim+' tras la entrada de '+who(f.initiatorId)+'.'],
     ['Castigan el carril '+lane,victim+' cae ante '+actor+'. La entrada de '+who(f.initiatorId)+' convierte la oportunidad en una eliminación.'],
     ['¡Gank decisivo en '+lane+'!',who(f.initiatorId)+' encuentra el acceso al carril; '+actor+' firma el asesinato sobre '+victim+'.']

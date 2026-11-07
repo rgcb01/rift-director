@@ -147,3 +147,11 @@ Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prome
 - [ ] Validación manual de uso táctil, accesibilidad del historial y almacenamiento en teléfonos modestos.
 
 El plan Alpha 0.5 de reproducción a velocidad variable queda **histórico**: se sustituyó por navegación de eventos a solicitud del usuario. El objetivo de M1.4B sigue siendo agregar acciones deportivas causales, no líneas narrativas inventadas.
+
+### Alpha 0.7.1 — Corrección de sincronización espacial
+
+- [x] Exigir distancia euclidiana razonable y nodo del carril para autorizar un gank, no solo proximidad topológica.
+- [x] Registrar y auditar el acceso real del jungla desde su nodo.
+- [x] Proyectar una escena de evento seleccionable a partir de las posiciones previas del combate y señalar a la víctima caída sin teletransportarla a otro carril.
+- [x] Advertencia explícita para replays con ganks históricos imposibles; los guardados `v2` permanecen compatibles.
+- [ ] Validación manual del cambio con la reproducción visual de la captura original en escritorio y celular.

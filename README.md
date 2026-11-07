@@ -4,7 +4,7 @@
 
 [**Jugar en el navegador**](https://rgcb01.github.io/rift-director/) · [Roadmap](ROADMAP.md) · [Cambios](CHANGELOG.md) · [Cómo contribuir](CONTRIBUTING.md)
 
-> **Alpha 0.7 — prototipo jugable.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
+> **Alpha 0.7.1 — prototipo jugable.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
 
 ## La idea
 
@@ -142,3 +142,9 @@ Cada profesional es ahora un agente con **nodo actual, destino, intención, vida
 - Las posiciones iniciales de TOP, MID, ADC y SUP ahora están en nodos delanteros, cerca del centro de sus líneas. JUN comienza en su jungla. La conectividad del grafo mantiene el límite de una conexión recorrida por minuto.
 - Al salir de un partido oficial terminado, queda guardada **la última repetición** y se puede abrir desde **Partidos → Revisar último partido**. La exhibición continúa siendo temporal y no escribe `localStorage`.
 - Las partidas históricas `v2` sin `moments` siguen siendo navegables usando sus snapshots **por minuto**; no inventamos una precisión por jugada inexistente. El nuevo `match.moments` es opcional y el formato de save continúa siendo `v2`.
+
+### Alpha 0.7.1 — Coherencia entre ganks y minimapa
+
+Los ganks nuevos **exigen proximidad física en unidades SVG** además de distancia de grafo; la víctima tiene que encontrarse realmente en el carril narrado. La ruta narrada (río, jungla, flanco o acceso inferior) se obtiene del nodo real del jungla y se audita. Un jungla en BOT no puede hacer una eliminación en MID solo por estar a dos enlaces topológicos.
+
+Al seleccionar una jugada, el minimapa muestra una **escena de ese evento** desde `moment.navigation.before`, no solo las posiciones de los supervivientes después de la muerte: los autores y asistentes permanecen en sus ubicaciones reales y la víctima aparece marcada como caída en el lugar del combate. El mapa global y las estadísticas después del evento no se modifican. Los participantes reciben un halo y una pequeña leyenda de roles. Las retransmisiones `v2` antiguas sin posiciones precisas mantienen su visualización histórica; una jugada antigua espacialmente inconsistente se marca con advertencia, sin teletransportar personajes para disimular el problema.

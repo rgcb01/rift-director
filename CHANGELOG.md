@@ -4,6 +4,17 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+## [0.7.1-alpha] — 2026-11-07
+
+### Corrección: ganks coherentes con el minimapa
+- Los ganks solo suceden cuando jungla, asesino y víctima están a distancia física viable, conectados y con la víctima en el carril indicado. Las conexiones largas del grafo ya no sirven para atacar desde otra línea.
+- `Navigation.auditNavigation` comprueba proximidad de verdad, nodo de víctima, ruta desde la posición del jungla y detecta ganks falsificados.
+- La descripción de la ruta (jungla, río, flanco, acceso inferior) deriva de la ubicación del jugador, no de una inferencia por visión rival. La retransmisión se ajusta a ella.
+- `MatchReplay.eventView` construye la escena «durante la jugada» sin mutar el partido: participantes vivos en sus nodos reales antes del combate y víctima marcada como caída en ese lugar, en vez de aparecer únicamente en fuente.
+- Jugadas antiguas registradas con distancia incoherente muestran una advertencia; no se inventa una posición nueva para ocultarlo.
+- Nueva suite de pruebas de ubicaciones, más de 200 semillas, auditoría, replay y ausencia de teletransporte. Los resultados deportivos nuevos pueden cambiar para algunas semillas debido a la corrección.
+
+
 ## [0.7.0-alpha] — 2026-11-07
 
 ### Historial de jugadas interactivo (M1.5)

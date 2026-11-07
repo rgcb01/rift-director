@@ -60,16 +60,22 @@
         '<animateTransform attributeName="transform" type="translate" from="'+num(prior.x)+' '+num(prior.y)+
         '" to="'+num(p.x)+' '+num(p.y)+'" dur=".45s" fill="freeze"/>':'';
       const skin=['#e9b68d','#c68f6e','#b77e5c','#e8c3a0','#c99976'][String(id).length%5];
-      result.push('<g class="rift-mini-avatar'+(!p.alive?' is-dead':'')+'" transform="translate('+num(p.x)+' '+num(p.y)+
+      result.push('<g class="rift-mini-avatar'+(p.sceneRole?' is-event-player':'')+
+        (p.fallen?' is-fallen':!p.alive?' is-dead':'')+
+        '" data-player-id="'+safe(id)+'" data-event-role="'+safe(p.sceneRole||'')+
+        '" transform="translate('+num(p.x)+' '+num(p.y)+
         ')"><title>'+safe(player.name+' · '+p.role+(p.alive?' · vivo':' · eliminado'))+'</title>'+
-        animate+'<circle r="12.4" fill="#0c1725" stroke="'+theme+'" stroke-width="2"/>'+
+        animate+(p.sceneRole?'<circle r="16.5" fill="none" stroke="'+
+          (p.fallen?'#ff9d84':'#ffe4a0')+'" stroke-width="2" stroke-dasharray="'+
+          (p.fallen?'2 3':'0')+'"/>':'')+
+        '<circle r="12.4" fill="#0c1725" stroke="'+theme+'" stroke-width="2"/>'+
         '<ellipse cx="0" cy="1" rx="7" ry="7.5" fill="'+skin+'"/>'+
         '<path d="M-7 -2 Q-6 -11 0 -9 Q7 -10 7 -2 Q3 -7 -1 -5 L-6 -1Z" fill="#283441"/>'+
         '<circle cx="-2.5" cy="1" r=".8" fill="#16232c"/><circle cx="2.5" cy="1" r=".8" fill="#16232c"/>'+
         '<rect x="4.6" y="7" rx="3" width="11" height="10" fill="'+theme+'" stroke="#101b2b" stroke-width=".8"/>'+
         '<text x="10" y="14.5" fill="#071522" text-anchor="middle" font-size="8" font-weight="900">'+
         ({TOP:'T',JUN:'J',MID:'M',ADC:'A',SUP:'S'}[p.role]||'?')+'</text>'+
-        (!p.alive?'<path d="M-7 -7l14 14m0 -14l-14 14" stroke="#f8fafc" stroke-width="2.3"/>':'')+
+        ((!p.alive||p.fallen)?'<path d="M-7 -7l14 14m0 -14l-14 14" stroke="#f8fafc" stroke-width="2.3"/>':'')+
         '</g>');
     }
     return result.join('');
@@ -107,7 +113,7 @@
       '<circle cx="'+loc.x+'" cy="'+loc.y+'" r="23" fill="#fff3c2" fill-opacity=".12" stroke="#ffe4a0" stroke-width="2.4" stroke-dasharray="5 4"/>'+
       '<circle cx="'+loc.x+'" cy="'+loc.y+'" r="4" fill="#ffe4a0"/></g>';
   }
-  function drawMap(match,frame,world,previousFrame,selectedEvent){
+  function drawMap(match,frame,world,previousFrame,selectedEvent,scene){
     const map=frame?.minimap;
     if(!map)return '<div class="rift-mini-legacy">Este partido se guardó antes del minimapa. Puedes terminarlo normalmente y probar una exhibición nueva para ver el mapa animado.</div>';
     const ids=[match.fixture.a,match.fixture.b];
@@ -143,7 +149,13 @@
       '<text x="20" y="29" fill="#e4f0f3" font-size="12" font-weight="700">MAPA · '+safe(selectedEvent?.time||String(frame.minute).padStart(2,'0')+':00')+'</text>'+
       '</svg>'+
       '<div class="rift-mini-legend"><span><i class="rift-mini-key blue"></i>'+safe(clubs[0].name)+'</span><span><i class="rift-mini-key red"></i>'+safe(clubs[1].name)+'</span></div>'+
-      '<div class="rift-mini-foot">Foco: <b>'+safe(focus)+'</b> · '+Object.values(map.players).filter(p=>p.alive).length+'/10 vivos</div>'+
+      '<div class="rift-mini-foot">Foco: <b>'+safe(focus)+'</b> · '+Object.values(map.players).filter(p=>p.alive).length+'/10 visibles como vivos</div>'+
+      (scene?.participants?.length ? '<div class="rift-mini-scene">'+scene.participants.map(id=>{
+        const p=map.players[id],entry=world.players.find(q=>q.id===id);
+        const label={jungla:'Jungla',asesino:'Eliminó',victima:'Víctima',apoyo:'Apoyo'}[p?.sceneRole]||'Participó';
+        return '<span><b>'+safe(label)+':</b> '+safe(entry?.name||id)+
+          (p?.fallen?' · cayó aquí':'')+'</span>';
+       }).join('')+'</div>':'')+
       '</div>';
   }
   root.RiftMinimap={render:drawMap};

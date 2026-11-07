@@ -47,6 +47,24 @@ function path(from,to){
 function hops(from,to){return path(from,to).length-1}
 function adjacent(a,b){return Boolean(adjacency[a]?.has(b))}
 function nearby(a,b,maxHops=1){return hops(a,b)<=maxHops}
+function combatRange(a,b,maxHops=2){
+ if(!adjacency[a]||!adjacency[b]||!nearby(a,b,maxHops))return false;
+ const p=graph.pointAt(a),q=graph.pointAt(b);
+ return Math.hypot(p.x-q.x,p.y-q.y)<=76;
+}
+function isLaneNode(node,lane){
+ if(!['TOP','MID','BOT'].includes(lane)||!adjacency[node])return false;
+ const l=lane.toLowerCase();
+ return node===l+'_center'||node===l+'_corner'||
+        node.startsWith('blue_'+l+'_')||node.startsWith('red_'+l+'_');
+}
+function gankApproach(node,lane){
+ if(!adjacency[node])throw Error('Nodo desconocido para gank: '+node);
+ if(node.includes('river')||node.endsWith('_pit'))return 'rio';
+ if(lane==='BOT'&&node==='bot_corner')return 'tribush';
+ if(node.includes('jungle'))return 'jungla';
+ return 'flanco';
+}
 function seedHash(...values){
  let x=2166136261>>>0;
  for(const value of values){for(const ch of String(value)){x^=ch.charCodeAt(0);x=Math.imul(x,16777619)>>>0}}
@@ -225,12 +243,17 @@ function auditNavigation(match,world){
      return Math.hypot(source.x-target.x,source.y-target.y)<=64;
    };
    const together=(x,y,d=1)=>active(x)&&active(y)&&nearby(positions[x].node,positions[y].node,d);
+   const inGankRange=(x,y)=>active(x)&&active(y)&&
+     combatRange(positions[x].node,positions[y].node,2);
    if(!active(f.actorId))errs.push('Actor muerto en evento: '+f.action);
    if(f.action==='gank'){
     const victim=f.victimIds[0];
-    if(!together(f.initiatorId,victim,2)||!together(f.actorId,victim,2))
-     errs.push('Gank sin jungla o asesino presente: '+e.minute);
-    if(f.initiatorNode!==positions[f.initiatorId]?.node)
+    const iNode=positions[f.initiatorId]?.node,vNode=positions[victim]?.node;
+    if(!inGankRange(f.initiatorId,victim)||!inGankRange(f.actorId,victim)||
+       !isLaneNode(vNode,f.lane))
+     errs.push('Gank imposible: jungla lejos o víctima fuera de carril, minuto '+e.minute);
+    if(f.initiatorNode!==iNode||f.victimNode!==vNode||
+       !iNode||f.route!==gankApproach(iNode,f.lane))
      errs.push('Ruta de gank falsificada: '+e.minute);
    }else if(f.action==='teamfight'){
     for(const id of f.victimIds)if(!together(f.actorId,id,2))
@@ -265,7 +288,7 @@ function auditNavigation(match,world){
  }
  return errs;
 }
-core.Navigation=Object.freeze({links,adjacency,path,hops,adjacent,nearby,
+core.Navigation=Object.freeze({links,adjacency,path,hops,adjacent,nearby,combatRange,isLaneNode,gankApproach,
  towerNode,createNavigation,teamAgents,getAgent,at,participants,engagement,
  advance,snapshot,auditNavigation});
 })(globalThis);
