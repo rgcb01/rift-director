@@ -86,6 +86,10 @@ function choose({nav,agent,minute,worldState,context,baseline}){
  if(lane&&numericalThreat&&riskHP&&pressure&&ownVision>=45){
   return withReason({goal:safe,intent:'fallback'},'outnumbered_visible');
  }
+ // A deliberate lane-resource call survives unrelated pressure heuristics,
+ // but never overrides emergency recovery or a witnessed outnumbered retreat.
+ if(baseline?.decisionVersion===5&&/^macro_(farm|defend|pressure|objective)$/.test(baseline.reason||''))
+  return baseline;
  // A weak ADC is protected by their SUP instead of abandoning lane for a
  // scheduled roam. The SUP does not know enemies outside vision range.
  if(agent.role==='SUP'){

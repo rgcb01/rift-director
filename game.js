@@ -185,6 +185,7 @@ function simulateMatch(f){
     powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
     shutdowns:RiftCore.Shutdowns.snapshot(shutdowns),
     vision:RiftCore.Vision.snapshot(navigation.vision,minute),
+    macro:RiftCore.MacroPolicy.snapshot(navigation,minute),
     navigation:{before:movementBefore,after:nav.snapshot(navigation,m.dead,minute)}});
  };
  const balance=(c,t)=>{let stage=t<12?'early':t<25?'mid':'late';let z=teamPower(c,stage)+(m.gold[c.id]-m.gold[enemy(c).id])/2800+m.barons[c.id]*1.3;
@@ -266,6 +267,7 @@ function simulateMatch(f){
   powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
   shutdowns:RiftCore.Shutdowns.snapshot(shutdowns),
   vision:RiftCore.Vision.snapshot(navigation.vision,t),
+  macro:RiftCore.MacroPolicy.snapshot(navigation,t),
   playerStats:RiftCore.clonePlayerStats(playerStats),map:RiftCore.cloneMapState(m.map),
   health:{...health},navigation:{before:movementBefore,after:nav.snapshot(navigation,m.dead,t)}});
  makeEv(0,'Comienza el mapa',`${a.name} y ${b.name} entran a la Grieta. Ambos equipos buscan imponer su plan de juego.`, 'normal');nextSnapshot(0);

@@ -4,6 +4,18 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+## [0.7.14-alpha] — 2026-11-08
+
+### Riesgo y coste de oportunidad verificables
+- **MacroPolicy determinista y auditable:** TOP/MID ponderan cuatro alternativas: farmear, defender una oleada amenazante, presionar con oleada y (MID) rotar a un Dragón/Barón anunciado. La puntuación utiliza posición y HP propios, visión local/wards, rivales realmente observados, aliados próximos, frente de oleada, estructuras, oro y distancia por el grafo. Nunca consulta HP oculto ni posición global desconocida.
+- **Riesgos evaluados:** sobreextensión, falta de visión, inferioridad numérica visible y distancia sin escoltas. Un equipo rezagado puede disputar una oportunidad real si tiene colaboradores cercanos y visión suficiente; no recibe buffs ni una probabilidad de remontada forzada.
+- **Intervención selectiva:** el sistema existente de roles permanece al mando salvo que la nueva decisión tenga un margen de ventaja observable. El plan dura hasta tres minutos, pero se cancela ante peligro, muerte, cambio de circunstancias o pérdida del objetivo. Se preserva el splitpush legítimo de TOP con oro, oleada y salud favorables; las rutas de TOP son simétricas y seguras.
+- **Defensa física:** una oleada amenazante puede frenarse por un defensor presente. No hay oro adicional, kill, torre ni captura por script; sigue aplicando la simulación de oleadas, HP, movilidad y estructuras. Se calibró la contribución de un defensor aislado por debajo de un asedio coordinado.
+- Los frames/replays guardan puntuaciones y evidencia, y la batería añade pruebas de rivales ocultos, wards, escorts, oleadas, riesgo, cancelación y preservación de rol. Se mantiene una duodécima gráfica `macro.svg` y métricas de presión riesgosa y objetivos escoltados.
+- **Validación de release (#32):** 139/139 pruebas funcionales, 1,000 partidos auditados y 1,000 espejados; cero fallos de causalidad, regresiones bloqueantes o advertencias (runs 42533090373 y 42533090372). Frente a 0.7.13: remontadas 4.5%→4.2%, victorias azul espejo 49.9%→49.5%, kills 6.41→6.39, duración 49.18→49.28 min. Huella deportiva `6b5d60d9...` congelada; hash del mundo/finanzas sin cambios.
+- **A vigilar en 0.7.15:** torres en dos o más líneas 82.4%→79.6%, ambos equipos toman torres 29.7%→25.7% y mapas con splitpush solitario 68.9%→64.9%. No alcanzan umbral bloqueante, pero ameritan seguimiento en las próximas iteraciones de asedio.
+
+
 ## [0.7.13-alpha] — 2026-11-08
 
 ### Primer corte de wards y visión física imperfecta

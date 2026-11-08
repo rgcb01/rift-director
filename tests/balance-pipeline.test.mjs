@@ -40,7 +40,7 @@ test('genera un dashboard HTML con graficos SVG sin dependencias',()=>{
   const r=generate(current,baseline,dir);
   assert.equal(r.failures.length,0);
   for(const name of ['index.html','report.md','duration.svg','kills.svg','sides.svg',
-    'objectives.svg','dragon.svg','shutdown.svg','counterplay.svg','towers.svg','strategy.svg','power.svg','previous.svg','regressions.json']){
+    'objectives.svg','dragon.svg','shutdown.svg','counterplay.svg','towers.svg','strategy.svg','macro.svg','power.svg','previous.svg','regressions.json']){
    assert.ok(existsSync(join(dir,name)),name+' no generado');
   }
   assert.match(readFileSync(join(dir,'duration.svg'),'utf8'),/<svg/);
@@ -48,7 +48,7 @@ test('genera un dashboard HTML con graficos SVG sin dependencias',()=>{
  }finally{rmSync(dir,{recursive:true,force:true})}
 });
 
-test('CLI del reporte genera HTML, 11 SVG y JSON desde argumentos relativos',()=>{
+test('CLI del reporte genera HTML, 12 SVG y JSON desde argumentos relativos',()=>{
  const dir=mkdtempSync(join(tmpdir(),'rift-cli-report-'));
  try{
   const current=structuredClone(baseline);
@@ -60,7 +60,7 @@ test('CLI del reporte genera HTML, 11 SVG y JSON desde argumentos relativos',()=
     {encoding:'utf8',timeout:20000});
   assert.equal(run.status,0,'Report CLI: '+run.stderr);
   for(const name of ['index.html','report.md','regressions.json','duration.svg','kills.svg',
-    'sides.svg','objectives.svg','dragon.svg','shutdown.svg','counterplay.svg','towers.svg','strategy.svg','power.svg','previous.svg']){
+    'sides.svg','objectives.svg','dragon.svg','shutdown.svg','counterplay.svg','towers.svg','strategy.svg','macro.svg','power.svg','previous.svg']){
    assert.ok(existsSync(join(dir,name)),name+' ausente en invocacion CLI');
   }
  }finally{rmSync(dir,{recursive:true,force:true})}

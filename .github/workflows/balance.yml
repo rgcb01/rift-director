@@ -83,10 +83,10 @@ jobs:
         if: always() && steps.gate.outputs.should_run == 'true'
         run: node benchmarks/report.mjs .balance-output/summary.json .balance-output/previous.json .balance-output
 
-      - name: Exigir dashboard y once gráficas antes de subirlo
+      - name: Exigir dashboard y doce gráficas antes de subirlo
         if: always() && steps.gate.outputs.should_run == 'true'
         run: |
-          for path in .balance-output/summary.json .balance-output/report.md .balance-output/regressions.json .balance-output/index.html .balance-output/{duration,kills,sides,objectives,dragon,shutdown,counterplay,towers,strategy,power,previous}.svg; do
+          for path in .balance-output/summary.json .balance-output/report.md .balance-output/regressions.json .balance-output/index.html .balance-output/{duration,kills,sides,objectives,dragon,shutdown,counterplay,towers,strategy,macro,power,previous}.svg; do
             test -s "$path" || { echo "::error::Falta reporte: $path"; exit 1; }
           done
 

@@ -10,12 +10,30 @@ try{
  if(process.env.GH_TOKEN&&process.env.GITHUB_REPOSITORY){
   const cmd=path=>JSON.parse(execFileSync('gh',['api',path],{encoding:'utf8',timeout:60000}));
   const found=cmd('/repos/'+process.env.GITHUB_REPOSITORY+'/actions/artifacts?per_page=100');
+  const released=new Map();
+  const isPublished=a=>{
+    const branch=a.workflow_run.head_branch||'';
+    if(branch==='main'||/^(?:v)?\d+\.\d+\.\d+(?:-alpha)?$/.test(branch))return true;
+    // A successful PR benchmark becomes a valid release baseline only if
+    // that *exact head SHA* is an ancestor of main after a real merge.
+    // Do not import failed or merely open experimental PRs.
+    const sha=a.workflow_run.head_sha;
+    if(!/^[a-f0-9]{40}$/.test(sha||''))return false;
+    if(released.has(sha))return released.get(sha);
+    let ok=false;
+    try{
+      const comparison=cmd('/repos/'+process.env.GITHUB_REPOSITORY+'/compare/'+sha+'...main');
+      ok=comparison.behind_by===0&&['ahead','identical'].includes(comparison.status);
+    }catch(e){console.warn('No se pudo verificar ancestry '+sha+': '+e.message)}
+    released.set(sha,ok);
+    return ok;
+  };
   const candidates=(found.artifacts||[]).filter(a=>!a.expired&&
     /^balance-report-\d+\.\d+\.\d+-alpha$/.test(a.name)&&a.workflow_run?.id)
     .map(a=>({...a,version:a.name.slice('balance-report-'.length)}))
     .filter(a=>compareVersions(a.version,version)<0)
-    .filter(a=>a.workflow_run.head_branch==='main'||/^(?:v)?\d+\.\d+\.\d+(?:-alpha)?$/.test(a.workflow_run.head_branch||''))
-    .sort((a,b)=>compareVersions(b.version,a.version)||b.created_at.localeCompare(a.created_at));
+    .sort((a,b)=>compareVersions(b.version,a.version)||b.created_at.localeCompare(a.created_at))
+    .filter(isPublished);
   for(const a of candidates){
    try{
     const dir=out+'/download';
@@ -46,6 +64,14 @@ if(!previous){
  source='frozen baseline '+chosen.version+
   (previous.source?' — '+previous.source:'');
 }
+// Fail closed: a newer version must not silently compare against an older
+// available artifact if its immediate released predecessor is missing.
+const headings=[...readFileSync('CHANGELOG.md','utf8').matchAll(/^## \[(\d+\.\d+\.\d+-alpha)\]/gm)]
+ .map(x=>x[1]).filter(v=>compareVersions(v,version)<0);
+const immediate=headings.sort((a,b)=>compareVersions(b,a))[0];
+if(immediate&&previous.version!==immediate)
+ throw Error('Se exige baseline inmediatamente anterior '+immediate+
+  ', pero solo se encontro '+previous.version+' ('+source+')');
 previous.baselineSource=source;
 writeFileSync(dst,JSON.stringify(previous,null,2)+'\n');
 console.log('Comparacion con: '+previous.version+' ['+source+']');

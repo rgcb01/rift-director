@@ -4,7 +4,7 @@
 
 [**Jugar en el navegador**](https://rgcb01.github.io/rift-director/) · [Roadmap](ROADMAP.md) · [Cambios](CHANGELOG.md) · [Cómo contribuir](CONTRIBUTING.md)
 
-> **Alpha 0.7.13 — publicada tras 128/128 pruebas y 2,000 partidas auditadas/espejadas.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
+> **Alpha 0.7.14 — validada con 139/139 pruebas y 2,000 partidas auditadas/espejadas.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
 
 ## La idea
 
@@ -19,6 +19,12 @@ Los meses impulsan las finanzas y el mundo. Las noticias y los rumores reflejan 
 - **Local:** descarga el repositorio y abre `index.html` con tu navegador. Como alternativa, ejecuta `python -m http.server 8080` y visita `http://localhost:8080`.
 - No hay instalación de paquetes, cuenta ni backend para jugar.
 - **Guardados:** automáticos en `localStorage` de ese navegador. En **Partida** puedes **exportar/importar JSON**. Los guardados no se sincronizan entre dispositivos; expórtalos antes de borrar datos del navegador.
+
+## Alpha 0.7.14 — Riesgo y decisiones macro (integrada)
+
+TOP/MID evalúan **farm, defensa de oleadas, presión y rotación hacia objetivos anunciados** usando visión real aproximada, wards, rivales efectivamente detectados, apoyo de aliados, salud, oleadas, oro y coste de traslado. La IA solo sustituye el plan de rol si detecta una oportunidad clara; puede cancelar órdenes que se vuelven peligrosas. Un splitpush legítimo de TOP conserva su prioridad cuando la oleada y ventaja económica lo justifican. Cada decisión tiene evidencia auditable en el replay y ninguna concede oro, kills o estructuras sin presencia física.
+
+**Resultado de 2,000 partidas:** remontadas 4.2% (antes 4.5%), kills 6.39 (antes 6.41), lado azul espejado 49.5% (antes 49.9%). El reporte incluye **12 SVG**, con `macro.svg` para farm/defensa/presión/objetivos y métricas de acciones bajo riesgo. Seguiremos midiendo variedad de torres y splitpush en 0.7.15.
 
 ## Alpha 0.7.13 — Wards y visión imperfecta (integrada)
 
