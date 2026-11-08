@@ -141,6 +141,17 @@
    for(const role of roles){
     const actor=Object.values(nav.agents).find(a=>a.teamId===id&&a.role===role);
     if(!actor||!((dead[actor.id]??0)<=minute))continue;
+    // The existing TOP policy already handles earned solo splitpush when
+    // winning a lane. Do not overwrite that credible, punishable route with
+    // a permanent safe staging order. Tactical threat checks still apply.
+    const foe=other(nav,id);
+    const lead=(world.gold?.[id]??0)-(world.gold?.[foe]??0);
+    const wave=core.LaneEconomy.pressureFor(
+     {teamIds:[nav.a,nav.b],lanes:world.waves},id,role);
+    if(role==='TOP'&&minute<=28&&lead>1400&&wave>=.65&&
+       (health?.[actor.id]??100)>=67){
+     delete nav.macroCalls[actor.id];continue;
+    }
     const old=nav.macroCalls[actor.id],call=nav.neutralPlans?.[id];
     const stillObjective=old?.action!=='objective'||(
      ['take','contest'].includes(call?.action)&&
