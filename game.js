@@ -514,6 +514,7 @@ function simulateMatch(f){
      facts.counterplayVersion=1;
      facts.counterplay={
       reason:call.reason,targetId:call.targetId,
+      targetIds:[...call.targetIds],
       observedNode:call.observedNode,observedHp:call.observedHp,
       localEdge:call.localEdge,score:call.score,
       targetStreak:call.streak,bountyAtPlan:call.bounty,
