@@ -85,6 +85,67 @@ test('un equipo rezagado considera disputa física en vez de farm automático',(
  assert.equal(health[mid.id],100,'La decisión no genera ni quita HP.');
  assert.equal(state.gold[a],13000,'Planificar no fabrica oro.');
 });
+test('el riesgo de empuje se basa en rivales vistos, no en HP o posiciones ocultas',()=>{
+ const {core,nav,state,health,a,b,clubs}=setup();
+ const us=nav.agents[clubs[0].lineup.TOP];
+ const them=nav.agents[clubs[1].lineup.TOP];
+ us.node='blue_top_front';them.node='top_corner';
+ state.map.lanes.TOP.vision[a]=39;
+ state.map.lanes.TOP.pressure[a]=58;
+ state.waves.TOP.front=.5;
+ const threatened=core.MacroPolicy.evaluate(nav,state,us,18,health);
+ assert.equal(threatened.evidence.visibleEnemies,1,
+  'El rival cercano debe identificarse por sight real');
+ assert.ok(threatened.evidence.overextendRisk>10);
+ assert.equal(threatened.action,'farm',
+  'No sobreextenderse sin información suficiente');
+ them.node='red_fountain';health[them.id]=10;
+ const hiddenWounded=core.MacroPolicy.evaluate(nav,state,us,18,health);
+ health[them.id]=100;
+ const hiddenHealthy=core.MacroPolicy.evaluate(nav,state,us,18,health);
+ assert.deepEqual(hiddenWounded.scores,hiddenHealthy.scores,
+  'El HP de un rival oculto nunca debe dar inteligencia omnisciente');
+ assert.equal(hiddenWounded.evidence.visibleEnemies,0);
+ nav.vision.wards.push({id:'vision-test',teamId:a,actorId:us.id,
+  node:'red_top_ambush',placed:17,expires:25});
+ const ward=core.MacroPolicy.evaluate(nav,state,us,18,health);
+ assert.equal(ward.evidence.wardCover,true);
+ assert.ok(ward.evidence.overextendRisk<hiddenHealthy.evidence.overextendRisk,
+  'Un ward realmente colocado reduce el riesgo de la ruta');
+});
+test('TOP presiona hacia el lado rival y no siempre hacia el mismo rincón azul',()=>{
+ const {core,nav,state,health,a,b,clubs}=setup();
+ state.waves.TOP.front=3;
+ state.map.lanes.TOP.pressure[a]=82;
+ state.map.lanes.TOP.vision[a]=90;
+ const blue=core.MacroPolicy.evaluate(nav,state,
+  nav.agents[clubs[0].lineup.TOP],18,health);
+ state.waves.TOP.front=-3;
+ state.map.lanes.TOP.pressure[b]=82;
+ state.map.lanes.TOP.vision[b]=90;
+ const red=core.MacroPolicy.evaluate(nav,state,
+  nav.agents[clubs[1].lineup.TOP],18,health);
+ assert.equal(blue.action,'pressure');
+ assert.equal(red.action,'pressure');
+ assert.equal(blue.goal,'top_center');
+ assert.equal(red.goal,'top_corner');
+ assert.ok(core.Navigation.hops('blue_top_front',blue.goal)>0);
+ assert.ok(core.Navigation.hops('red_top_front',red.goal)>0);
+});
+test('rotar sin escoltas visibles cuesta más que una rotación realmente coordinada',()=>{
+ const {core,nav,state,health,a,clubs}=setup();
+ const mid=nav.agents[clubs[0].lineup.MID];
+ nav.neutralPlans={[a]:{action:'contest',target:'dragon_pit',
+  reason:'dragon_contest',until:24,score:10}};
+ const alone=core.MacroPolicy.evaluate(nav,state,mid,22,health);
+ const jun=nav.agents[clubs[0].lineup.JUN];
+ jun.node='lower_river';
+ const withEscort=core.MacroPolicy.evaluate(nav,state,mid,22,health);
+ assert.ok(withEscort.evidence.objectiveEscortCount>
+  alone.evidence.objectiveEscortCount);
+ assert.ok(withEscort.scores.objective>alone.scores.objective);
+ assert.ok(withEscort.evidence.objectiveRisk<alone.evidence.objectiveRisk);
+});
 test('presión compromete una oleada física; la llamada no concede oro gratis',()=>{
  const {core,nav,state,economy,health,a,b,clubs}=setup();
  for(const agent of Object.values(nav.agents)){
