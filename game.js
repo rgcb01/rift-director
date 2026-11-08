@@ -109,7 +109,18 @@ function tagHtml(p){let items=visibleTraits(p).map(([t,k])=>`<span class="tag ${
 function record(sType,amount,note=''){s.history.unshift({year:s.year,month:s.month,type:sType,amount,note});s.history=s.history.slice(0,100)}
 function notify(t){let d=document.getElementById('toast');if(d)d.remove();d=document.createElement('div');d.className='toast';d.id='toast';d.textContent=t;document.body.appendChild(d);clearTimeout(toastTimer);toastTimer=setTimeout(()=>d.remove(),3600)}
 // MATCH ENGINE — deterministic events first; commentary describes validated state.
-function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.b),aP=teamPlayers(a),bP=teamPlayers(b);
+function simulateMatch(f){
+ // One stable world-level draw reserves a fresh match seed. All tactical
+ // rolls are then private to this fixture, so adding plates/rotations
+ // cannot randomly alter future transfers, finances or world news.
+ const commentarySeed=s.rng;
+ RiftCore.nextRandom(s);
+ const matchRandom={rng:commentarySeed};
+ const rnd=()=>RiftCore.nextRandom(matchRandom);
+ const ri=(a,b)=>Math.floor(rnd()*(b-a+1))+a;
+ const chance=p=>rnd()<p;
+ const pick=arr=>arr[Math.floor(rnd()*arr.length)];
+ const a=club(f.a),b=club(f.b),aP=teamPlayers(a),bP=teamPlayers(b);
  const m={minute:0,kills:{[a.id]:0,[b.id]:0},gold:{[a.id]:500,[b.id]:500},towers:{[a.id]:0,[b.id]:0},lanes:{[a.id]:{TOP:0,MID:0,BOT:0},[b.id]:{TOP:0,MID:0,BOT:0}},dragons:{[a.id]:0,[b.id]:0},barons:{[a.id]:0,[b.id]:0},dead:{},winner:null,events:[],frames:[],moments:[],nextDragon:5,nextBaron:20,baronBuff:{[a.id]:0,[b.id]:0}};
  const all=[a,b],teams={[a.id]:aP,[b.id]:bP};
  const laneEconomy=RiftCore.LaneEconomy.create(a.id,b.id);
