@@ -60,7 +60,7 @@ test('CLI del reporte genera HTML, 9 SVG y JSON desde argumentos relativos',()=>
     {encoding:'utf8',timeout:20000});
   assert.equal(run.status,0,'Report CLI: '+run.stderr);
   for(const name of ['index.html','report.md','regressions.json','duration.svg','kills.svg',
-    'sides.svg','objectives.svg','dragon.svg','towers.svg','strategy.svg','power.svg','previous.svg']){
+    'sides.svg','objectives.svg','dragon.svg','shutdown.svg','towers.svg','strategy.svg','power.svg','previous.svg']){
    assert.ok(existsSync(join(dir,name)),name+' ausente en invocacion CLI');
   }
  }finally{rmSync(dir,{recursive:true,force:true})}
