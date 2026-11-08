@@ -97,6 +97,10 @@ export function evaluate(current,previous){
  warn(v.pairedBlueWinRate>.55||v.pairedBlueWinRate<.45,
   'Persiste sesgo de color del lado en partidos espejados');
  warn(v.noDragonRate>.30,'Mas de 30% de los partidos no tienen Dragon');
+ if(previous.version!==current.version){
+  warn(v.noBaronRate-p.noBaronRate>.08,
+   'Las partidas sin Baron aumentaron más de ocho puntos porcentuales');
+ }
  warn(v.contestedDragonRate!==null&&v.contestedDragonRate<.03,
   'Pocos mapas registran Dragones disputados físicamente');
  warn(v.crossmapPlatesMean!==null&&v.crossmapPlatesMean<.01,
