@@ -7,3 +7,6 @@ coverage/
 .vscode/
 .idea/
 *.local
+
+# Local deterministic balance dashboards
+.balance-output/

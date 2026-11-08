@@ -214,3 +214,10 @@ Antes de una release:
 - El asedio de minuto 36+ sigue teniendo prioridad sobre los desvíos tácticos.
 - Simular muchas semillas y auditar `Navigation`, `Encounters`, marcador, minimapa, historial y RiftCast; revisar razones `decisionVersion` por profesión.
 - QA manual pendiente: comparar selección de eventos y Plan deportivo en escritorio/móvil; comprobar que el espectador comprende por qué una cabeza retrocede.
+
+
+## Desde Alpha 0.7.7 — Benchmark obligatorio por x.y.z
+
+Cada versión `x.y.z-alpha` ejecuta automáticamente 1,000 partidos + 500 parejas espejadas (1,000 partidos adicionales) con el mismo motor que utiliza GitHub Pages, y produce gráficos SVG, informe HTML/Markdown, JSON y alertas comparadas con la versión anterior. Todas las partidas de la primera batería pasan auditorías de navegación, IA, HP, facts, replay y narración. Los tests rápidos siguen ejecutándose con cada push/PR. La política, umbrales y comandos están en [benchmarks/README.md](../benchmarks/README.md).
+
+**Estado de referencia:** Alpha 0.7.6 — promedio 48.58 minutos, 8.64 kills, 60.4% de victorias azules, 41% sin Dragón y 79% de finales con exactamente tres torres en la muestra espejada. Son hallazgos, no criterios de éxito.

@@ -75,6 +75,10 @@ node --test
 
 Los cambios a `main` pueden publicarse mediante la configuración de GitHub Pages existente (**main / raíz**); no hay build de producción ni workflow de despliegue personalizado. La validación automatizada comprueba integridad básica, **no** reemplaza la prueba manual del gameplay.
 
+## Validación de balance por versión
+
+Cada release `x.y.z-alpha` ejecuta en GitHub Actions 1,000 partidos y 500 parejas de enfrentamientos espejados (1,000 mapas adicionales). El pipeline genera gráficos SVG y dashboard HTML, compara los resultados con la versión anterior, detecta regresiones importantes y adjunta el reporte al workflow. Véase [benchmarks/README.md](benchmarks/README.md) para disparadores, guardrails y metodología. El baseline inicial es Alpha 0.7.6; no cambia el gameplay.
+
 ## Documentación y mejora continua
 
 - [ROADMAP.md](ROADMAP.md): hitos, prioridades y criterios de aceptación.
