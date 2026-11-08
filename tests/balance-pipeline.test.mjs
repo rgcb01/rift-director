@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync,existsSync,mkdtempSync,rmSync} from 'node:fs';
+import {readFileSync,writeFileSync,existsSync,mkdtempSync,rmSync} from 'node:fs';
+import {spawnSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {latestChangelogVersion,compareVersions} from '../benchmarks/version.mjs';
@@ -38,12 +39,29 @@ test('genera un dashboard HTML con graficos SVG sin dependencias',()=>{
   current.standard.audited=1000;
   const r=generate(current,baseline,dir);
   assert.equal(r.failures.length,0);
-  for(const name of ['summary.json'].filter(()=>false))assert.ok(existsSync(join(dir,name)));
   for(const name of ['index.html','report.md','duration.svg','kills.svg','sides.svg',
     'objectives.svg','towers.svg','previous.svg','regressions.json']){
    assert.ok(existsSync(join(dir,name)),name+' no generado');
   }
   assert.match(readFileSync(join(dir,'duration.svg'),'utf8'),/<svg/);
   assert.match(bars('Test',[{label:'x',value:1}]),/<svg/);
+ }finally{rmSync(dir,{recursive:true,force:true})}
+});
+
+test('CLI del reporte genera HTML, 6 SVG y JSON desde argumentos relativos',()=>{
+ const dir=mkdtempSync(join(tmpdir(),'rift-cli-report-'));
+ try{
+  const current=structuredClone(baseline);
+  current.standard.audited=1000;
+  const actual=join(dir,'actual.json'),previous=join(dir,'previous.json');
+  writeFileSync(actual,JSON.stringify(current));
+  writeFileSync(previous,JSON.stringify(baseline));
+  const run=spawnSync(process.execPath,['benchmarks/report.mjs',actual,previous,dir],
+    {encoding:'utf8',timeout:20000});
+  assert.equal(run.status,0,'Report CLI: '+run.stderr);
+  for(const name of ['index.html','report.md','regressions.json','duration.svg','kills.svg',
+    'sides.svg','objectives.svg','towers.svg','previous.svg']){
+   assert.ok(existsSync(join(dir,name)),name+' ausente en invocacion CLI');
+  }
  }finally{rmSync(dir,{recursive:true,force:true})}
 });
