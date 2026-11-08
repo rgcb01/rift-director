@@ -183,6 +183,19 @@
             facts.plannedGankVersion!==1 || facts.route!==route)
           fail('Gank fallido sin ruta y carril verificables.');
         // No elimination, structures, gold or player statistics are awarded.
+      } else if (facts.action === 'item_purchase') {
+        const buyer=actor(facts,event,t);
+        verifyParticipants(event,facts,t);
+        const side=event.teamId===a?'blue':'red';
+        const item=core.PowerEconomy.ITEM_CATALOG.find(x=>x.id===facts.itemId);
+        if(!buyer||!item||item.cost!==facts.goldCost||
+           ![side+'_fountain',side+'_nexus'].includes(facts.node)||
+           !integer(facts.slot)||facts.slot<1||facts.slot>3||
+           !integer(facts.level)||facts.level<1||facts.level>18)
+         fail('Compra sin jugador en base, nivel o precio válido.');
+        const moment=match.moments?.[match.events.indexOf(event)];
+        if(moment?.navigation?.before?.[facts.actorId]?.node!==facts.node)
+         fail('Compra inventada fuera de la base: '+facts.actorId);
       } else if (facts.action === 'plate') {
         actor(facts,event,t);verifyParticipants(event,facts,t);
         const defender=event.teamId===a?b:a;
