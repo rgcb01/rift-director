@@ -490,7 +490,10 @@ function simulateMatch(f){
    if(initiator){
     const challenger=enemy(initiator),j1=positioned(initiator,'baron_pit').find(p=>p.role==='JUN');
     const j2=positioned(challenger,'baron_pit').find(p=>p.role==='JUN');
-    const steal=j2&&positioned(challenger,'baron_pit').length>=2&&
+    // A jungler can steal Baron alone with Smite when physically in reach.
+    // Requiring two challengers removed legitimate surprise steals in many
+    // deterministic fixtures; the solo play is risky but causally verifiable.
+    const steal=j2&&
      chance(clamp(.11+(player(j2.id).beh.risk-50)*.0018,.055,.22));
     const owner=steal?challenger:initiator;
     const actor=player((steal?j2:j1||positioned(initiator,'baron_pit')[0]).id);
