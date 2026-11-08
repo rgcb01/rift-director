@@ -65,3 +65,19 @@ test('CLI del reporte genera HTML, 8 SVG y JSON desde argumentos relativos',()=>
   }
  }finally{rmSync(dir,{recursive:true,force:true})}
 });
+
+test('la comparación 0.7.8→0.7.9 alerta sobre kills, duración, remontadas y slots saturados',()=>{
+ const previous=JSON.parse(readFileSync('benchmarks/baselines/0.7.8-alpha.json','utf8'));
+ const current=structuredClone(previous);
+ current.version='0.7.9-alpha';
+ current.mirror.failures=[];
+ current.standard.kills.mean=6.35;
+ current.standard.duration.mean=51.5;
+ current.standard.gameplay.comebackWins20=25;
+ current.standard.gameplay.purchasesPerMatch=26.9;
+ const assessment=evaluate(current,previous);
+ assert.ok(assessment.warnings.some(x=>x.includes('kills medias')));
+ assert.ok(assessment.warnings.some(x=>x.includes('duración media')));
+ assert.ok(assessment.warnings.some(x=>x.includes('remontadas')));
+ assert.ok(assessment.warnings.some(x=>x.includes('80%')));
+});
