@@ -6,9 +6,9 @@ Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prome
 
 ## Estado de release y próximas versiones (2026-11-08)
 
-**Publicada: Alpha 0.7.12** mediante PRs #21–#27 (pruebas de regresión, economía de oleadas, placas/torres, rotaciones, XP/objetos, dragones disputados, shutdowns y contraataques visibles). Comparación 0.7.11→0.7.12 sobre 1,000 mapas auditados y 1,000 espejados: kills 6.86→6.39, remontadas 1.9%→4.2%, shutdowns 8.8%→11%, ventaja azul espejada 51.1%→50.2%. Sin errores de auditoría, bloqueos ni advertencias en el run 42459888783.
+**Publicada: Alpha 0.7.13** mediante PRs #21–#27 (pruebas de regresión, economía de oleadas, placas/torres, rotaciones, XP/objetos, dragones disputados, shutdowns y contraataques visibles). Comparación 0.7.11→0.7.12 sobre 1,000 mapas auditados y 1,000 espejados: kills 6.86→6.39, remontadas 1.9%→4.2%, shutdowns 8.8%→11%, ventaja azul espejada 51.1%→50.2%. Sin errores de auditoría, bloqueos ni advertencias en el run 42459888783.
 
-**Siguiente: Alpha 0.7.13 (PR #29 en desarrollo).** Wards físicos colocados por JUN/SUP, duración/cooldown, visibilidad local y replays comprobables. Cerrar solo tras CI y benchmarking de 2,000 mapas, sin introducir omnisciencia ni alterar daño/XP/pagos.
+**Alpha 0.7.13 cerrada (#29):** wards colocados físicamente por JUN/SUP, visibilidad local limitada y replay auditable. 128/128 pruebas y 2,000 mapas en verde (run 42460763541). **Siguiente: 0.7.14**, economía estratégica de recursos de mapa y trade-offs verificables entre farm, presión y objetivos.
 
 **Más adelante (propuesta, sujeta a balance):**
 - **0.7.14:** economía de recursos/mapa y prioridades de farm, presión y objetivos con trade-offs.
@@ -121,7 +121,7 @@ Cualquier cambio deportivo en Alpha x.y.z exige pruebas funcionales, referencia 
 
 ## Próxima tarea concreta
 
-**Alpha 0.7.13:** validar el primer corte de wards y visión causal del PR #29. Mantener pendientes la prueba manual de guardados históricos y móvil (M1.1), la negociación detallada (M3) y la niebla/visión avanzada (M1.3C).
+**Alpha 0.7.14:** planificar opciones de farm, presión y objetivos con costes de oportunidad observables; no premiar movimientos sin presencia física. Mantener pendientes la prueba manual de guardados históricos y móvil (M1.1), la negociación detallada (M3) y la niebla/visión avanzada (M1.3C).
 
 ### M1.3 · Minimap dinámico y navegación espacial
 
