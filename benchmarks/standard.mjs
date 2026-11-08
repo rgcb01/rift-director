@@ -61,6 +61,17 @@ export function runStandard() {
           barons:(f.barons[a]||0)+(f.barons[b]||0),
           towers:(f.towers[a]||0)+(f.towers[b]||0),
           baronSteals,
+          shutdownEvents:m.events.filter(e=>(e.facts?.bountyGold||0)>0).length,
+          shutdowns:m.events.reduce((n,e)=>n+(e.facts?.shutdowns?.length||0),0),
+          shutdownGold:m.events.reduce((n,e)=>n+(e.facts?.bountyGold||0),0),
+          comebackShutdownGold:m.events.reduce((n,e)=>{
+            if(!(e.facts?.bountyGold>0))return n;
+            const moment=m.moments[m.events.indexOf(e)];
+            const opponent=e.teamId===a?b:a;
+            // Snapshot is after the payout. Only count if still trailing.
+            return n+(moment.gold[e.teamId]<moment.gold[opponent]?
+              e.facts.bountyGold:0);
+          },0),
           dragonContests:m.events.filter(e=>e.facts?.action==='dragon'&&e.facts.contested).length,
           dragonSteals:m.events.filter(e=>e.facts?.action==='dragon'&&e.facts.stolen).length,
           firstDragonMinute:m.events.find(e=>e.facts?.action==='dragon')?.minute??null,
@@ -109,6 +120,7 @@ export function runStandard() {
             ...core.LaneEconomy.audit(m),
             ...core.PowerEconomy.audit(m),
             ...core.NeutralObjectives.audit(m),
+            ...core.Shutdowns.audit(m),
             ...core.TacticalAI.audit(m,world),
             ...core.Encounters.audit(m,world),
             ...core.auditMatch(m,world),
@@ -147,6 +159,10 @@ export function runStandard() {
       firstTowerMean:+avg(rows.filter(r=>r.firstTowerMinute!==null).map(r=>r.firstTowerMinute)).toFixed(2),
       platesPerMatch:+avg(rows.map(r=>r.actions.plate||0)).toFixed(2),
       contestedDragonsPerMatch:+avg(rows.map(r=>r.dragonContests)).toFixed(2),
+      shutdownsPerMatch:+avg(rows.map(r=>r.shutdowns)).toFixed(2),
+      shutdownGoldPerMatch:+avg(rows.map(r=>r.shutdownGold)).toFixed(2),
+      shutdownGames:rows.filter(r=>r.shutdowns>0).length,
+      underdogShutdownGoldPerMatch:+avg(rows.map(r=>r.comebackShutdownGold)).toFixed(2),
       dragonStealsPer100Maps:+(sum(rows,'dragonSteals')*100/rows.length).toFixed(2),
       firstDragonMean:+avg(rows.filter(r=>r.firstDragonMinute!==null)
         .map(r=>r.firstDragonMinute)).toFixed(2),
