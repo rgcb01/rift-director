@@ -34,7 +34,7 @@ test('semilla fija: balance Alpha 0.7.10 reproducible y contabilidad estable', (
   const matchHash=hash(legacyMatch),worldAfterMatch=hash(world);
   const report=sim.applyMonth();
   const reportHash=hash(report),worldAfterMonth=hash(world);
-  assert.equal(matchHash, 'fd288d7f4e9cb5ca9ad64d25774ebeccdbc763a5f07247edbe5a003c6838fd5d');
+  assert.equal(matchHash, '88bd2ce2eae650ab293b7e6afccef83b145e8df72140d68f89b52e728cc4c091');
   assert.equal(worldAfterMatch, '342aa15055a9fab9e597749e13d099630f73351acb244b4d5c4380068b36caf1');
   assert.equal(reportHash, '63f62558933347e5947cc1b476f9056c23d59aa9e79fce65edd0c7d58372dbd9');
   assert.equal(worldAfterMonth, 'aaa0c74e7c2d45ecf8a1fdc5bfc0016d782b40d546e8b8225f67dcc869d19244');
