@@ -232,6 +232,11 @@ function chooseGoal(nav,agent,t,worldState,context=null){
  const dragonPlan=core.NeutralObjectives?.movement(nav,agent,t,worldState);
  if(dragonPlan)return dragonPlan;
 
+ // A won local fight creates a short opportunity to push a wave, not a
+ // plate/tower entitlement. Actual structures still need attackers & waves.
+ const pressure=core.Counterplay?.followup(nav,agent,t,worldState,context);
+ if(pressure)return pressure;
+
  // Only actual economic or wave advantage commits an attacking team.
  // Junglers preserve their own corridors until minute 36, after which
  // they can join a coordinated push without teleportation.

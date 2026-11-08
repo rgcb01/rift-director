@@ -29,6 +29,14 @@ export function flatten(d){
   earlyTowerRate:s.gameplay.earlyTowerMatches===undefined?null:ratio(s.gameplay.earlyTowerMatches,s.completed),
   platesMean:s.gameplay.platesPerMatch||0,
   shutdownsMean:s.gameplay.shutdownsPerMatch??null,
+  counterplayFightsMean:s.gameplay.counterplayFightsPerMatch??null,
+  counterplayKillsMean:s.gameplay.counterplayKillsPerMatch??null,
+  underdogFightsMean:s.gameplay.underdogFightsPerMatch??null,
+  shutdownHuntsPer100:s.gameplay.shutdownHuntsPer100Maps??null,
+  earnedFightPlatesMean:s.gameplay.earnedFightPlatesPerMatch??null,
+  earnedFightTowerRate:s.gameplay.earnedFightTowerGames===undefined?null:
+    ratio(s.gameplay.earnedFightTowerGames,s.completed),
+  counterplayWinRate:s.gameplay.counterplayWinRate??null,
   shutdownGoldMean:s.gameplay.shutdownGoldPerMatch??null,
   shutdownGameRate:s.gameplay.shutdownGames===undefined?null:
     ratio(s.gameplay.shutdownGames,s.completed),
@@ -102,6 +110,10 @@ export function evaluate(current,previous){
  warn(v.pairedBlueWinRate>.55||v.pairedBlueWinRate<.45,
   'Persiste sesgo de color del lado en partidos espejados');
  warn(v.noDragonRate>.30,'Mas de 30% de los partidos no tienen Dragon');
+ warn(v.counterplayFightsMean!==null&&v.counterplayFightsMean<.35,
+  'Menos de 0.35 combates tácticos por mapa: revisar oportunidades reales');
+ warn(v.counterplayKillsMean!==null&&v.counterplayKillsMean<.1,
+  'Muy pocas eliminaciones verificadas de contraataque');
  warn(v.shutdownGameRate!==null&&v.shutdownGameRate<.08,
   'Menos del 8% de mapas ofrecen una recompensa por terminar una racha');
  if(previous.version!==current.version){
@@ -181,6 +193,13 @@ const keys=[
  ['earlyTowerRate','Torres antes del min 36','rate'],
  ['platesMean','Placas por mapa','num'],
  ['shutdownsMean','Rachas eliminadas por mapa','num'],
+ ['counterplayFightsMean','Peleas iniciadas por oportunidad visible por mapa','num'],
+ ['counterplayKillsMean','Kills por peleas tácticas por mapa','num'],
+ ['underdogFightsMean','Contraataques estando atrás por mapa','num'],
+ ['shutdownHuntsPer100','Cazas de jugadores con recompensa por 100 mapas','num'],
+ ['earnedFightPlatesMean','Placas tras peleas ganadas por mapa','num'],
+ ['earnedFightTowerRate','Mapas con torres tras peleas ganadas','rate'],
+ ['counterplayWinRate','Peleas tácticas con kill confirmada','rate'],
  ['shutdownGoldMean','Oro adicional por shutdown por mapa','num'],
  ['shutdownGameRate','Mapas con al menos un shutdown','rate'],
  ['underdogShutdownGoldMean','Oro shutdown para equipo en desventaja por mapa','num'],
@@ -236,6 +255,11 @@ export function generate(current,previous,output){
    {label:'Sin Dragon',value:assessment.current.noDragonRate*100},
    {label:'Disputado',value:(assessment.current.contestedDragonRate||0)*100},
    {label:'Torre de intercambio',value:(assessment.current.crossmapTowerRate||0)*100}
+  ],{max:100,decimals:0})],
+  ['counterplay.svg',bars('Peleas tácticas y conversión territorial por 100 mapas',[
+   {label:'Peleas con kill',value:(assessment.current.counterplayWinRate||0)*100},
+   {label:'Torres de respuesta',value:(assessment.current.earnedFightTowerRate||0)*100},
+   {label:'Peleas sin kill',value:(1-(assessment.current.counterplayWinRate||0))*100}
   ],{max:100,decimals:0})],
   ['shutdown.svg',bars('Recompensas por cortar rachas (porcentaje de mapas)',[
    {label:'Con shutdown',value:(assessment.current.shutdownGameRate||0)*100},
