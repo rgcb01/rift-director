@@ -91,7 +91,7 @@ function createNavigation(clubs,teams,seed){
   }
  }
  return {a,b,agents,teams,seed,siegeTeam:null,siegeLane:null,
-   siegeChecked:0,siegeUntil:0,minute:0};
+   sideLane:null,siegeChecked:0,siegeUntil:0,minute:0};
 }
 function teamAgents(nav,id){return Object.values(nav.agents).filter(x=>x.teamId===id)}
 function getAgent(nav,id){return nav.agents[id]||null}
@@ -128,6 +128,23 @@ function siegeLane(nav,worldState,team){
  return [...LANES].sort((x,y)=>rank(y)-rank(x)||
    seedHash(nav.seed,team,x)%3-seedHash(nav.seed,team,y)%3)[0];
 }
+function secondaryLane(nav,worldState,team,primary){
+ // Solo-lane pressure is a strategic allocation: TOP/MID may contest a
+ // different physical structure, while ADC/SUP keep the coordinated siege.
+ const other=enemy(nav,team);
+ const choices=['TOP','MID'].filter(lane=>lane!==primary);
+ return choices.sort((a,b)=>{
+  const rank=lane=>{
+   const progress=worldState.lanes[other][lane];
+   const wave=worldState.waves?.[lane];
+   const pressure=core.LaneEconomy?.pressureFor(
+     {teamIds:[nav.a,nav.b],lanes:worldState.waves},team,lane)||0;
+   const plates=wave?.plates?.[other]?.[progress]||0;
+   return (progress>=3?-100:0)+plates*2+pressure*1.2+progress;
+  };
+  return rank(b)-rank(a)||a.localeCompare(b);
+ })[0]||'TOP';
+}
 function determineSiege(nav,worldState,t){
  if(nav.siegeChecked===t)return;
  nav.siegeChecked=t;
@@ -150,6 +167,7 @@ function determineSiege(nav,worldState,t){
  if(nav.siegeTeam&&nav.siegeTeam!==proposed&&advantage<1600)return;
  nav.siegeTeam=proposed;
  nav.siegeLane=siegeLane(nav,worldState,proposed);
+ nav.sideLane=secondaryLane(nav,worldState,proposed,nav.siegeLane);
  nav.siegeUntil=t+8;
 }
 // Only these regions belong to the JUN's travel network before teamfights.
@@ -208,12 +226,44 @@ function chooseGoal(nav,agent,t,worldState){
   determineSiege(nav,worldState,t);
  }
  if(nav.siegeTeam&&(role!=='JUN'||t>=36)){
+  const main=nav.siegeLane,sideLane=nav.sideLane||'TOP';
+  const sideRole=sideLane==='TOP'?'TOP':'MID';
   if(team===nav.siegeTeam){
-   const lane=nav.siegeLane,stage=worldState.lanes[foe][lane]+1;
-   return {goal:stage<=3?towerNode(getSide(nav,foe),lane,stage):getSide(nav,foe)+'_nexus',intent:'siege'};
+   // A solo-laner can threaten a second line, but never teleport there:
+   // their regular path is followed one edge per minute.
+   if(role===sideRole&&worldState.lanes[foe][sideLane]<3){
+    const stage=worldState.lanes[foe][sideLane]+1;
+    return {goal:towerNode(getSide(nav,foe),sideLane,stage),
+      intent:'splitpush',lane:sideLane,reason:'secondary_wave_pressure',
+      decisionVersion:2};
+   }
+   const stage=worldState.lanes[foe][main]+1;
+   return {goal:stage<=3?towerNode(getSide(nav,foe),main,stage):getSide(nav,foe)+'_nexus',
+     intent:'siege',lane:main,reason:'primary_siege',decisionVersion:2};
   }
-  const lane=nav.siegeLane,stage=worldState.lanes[team][lane]+1;
-  return {goal:stage<=3?towerNode(side,lane,stage):side+'_nexus',intent:'defend'};
+  if(role===sideRole&&worldState.lanes[foe][sideLane]<3){
+   const wave=worldState.waves?.[sideLane];
+   const enemyWave=core.LaneEconomy?.pressureFor(
+     {teamIds:[nav.a,nav.b],lanes:worldState.waves},foe,sideLane)||0;
+   const plateThreat=wave?.plates?.[team]?.[worldState.lanes[team][sideLane]]||0;
+   // A defender responds to witnessed sustained pressure, not perfect
+   // knowledge of an opponent's hidden path.
+   const vision=worldState.map?.lanes?.[sideLane]?.vision?.[team]??50;
+   const threatened=enemyWave>=1.35||plateThreat>=2&&vision>=58;
+   if(threatened){
+    const stage=worldState.lanes[team][sideLane]+1;
+    return {goal:stage<=3?towerNode(side,sideLane,stage):side+'_nexus',
+      intent:'counter_siege',lane:sideLane,reason:'protect_secondary_lane',
+      decisionVersion:2};
+   }
+   const stage=worldState.lanes[foe][sideLane]+1;
+   return {goal:towerNode(getSide(nav,foe),sideLane,stage),
+     intent:'counterpush',lane:sideLane,reason:'trade_crossmap_pressure',
+     decisionVersion:2};
+  }
+  const stage=worldState.lanes[team][main]+1;
+  return {goal:stage<=3?towerNode(side,main,stage):side+'_nexus',
+    intent:'defend',lane:main,reason:'defend_main_lane',decisionVersion:2};
  }
 
  if(role==='JUN')return jungleGoal(nav,agent,t);
