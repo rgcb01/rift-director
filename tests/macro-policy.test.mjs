@@ -227,6 +227,22 @@ test('sin ventaja verificable, el plan macro no sustituye a la navegación exist
  const invalidated=core.MacroPolicy.plan(nav,state,20,health,{});
  assert.equal(invalidated[top.id],undefined);
 });
+test('un TOP con ventaja de oro y oleada conserva el splitpush de su rol',()=>{
+ const {core,nav,state,health,a,b,clubs}=setup();
+ const top=nav.agents[clubs[0].lineup.TOP];
+ state.gold[a]=19000;state.gold[b]=16300;
+ state.waves.TOP.front=1.2;
+ state.map.lanes.TOP.pressure[a]=77;
+ state.map.lanes.TOP.vision[a]=87;
+ assert.equal(core.MacroPolicy.evaluate(nav,state,top,19,health).action,'pressure');
+ const granted=core.MacroPolicy.plan(nav,state,19,health,{});
+ assert.equal(granted[top.id],undefined,
+  'La macro no puede cancelar un splitpush de rol con ventaja legítima');
+ state.waves.TOP.front=-2.1;
+ const forced=core.MacroPolicy.plan(nav,state,20,health,{});
+ assert.equal(forced[top.id]?.action,'defend',
+  'La defensa de una oleada amenazada sigue teniendo prioridad causal');
+});
 test('70 partidas reproducibles conservan las auditorías y registran costes de oportunidad',()=>{
  const {sim,core,world,fixture}=setup();
  const actions={farm:0,defend:0,pressure:0,objective:0};
