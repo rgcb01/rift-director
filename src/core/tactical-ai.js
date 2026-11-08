@@ -139,7 +139,12 @@ function choose({nav,agent,minute,worldState,context,baseline}){
  }
  // Engage a healthier, locally stronger side; do not advance all 10 heads
  // to the same neutral tile. A push requires pressure and a real advantage.
+ // A Baron setup by SUP should not silently become lane pressure just
+ // because the nearby lane is favorable. Only a recorded risk or an
+ // explicit objective/trade plan may cancel this committed window.
  if(lane&&minute>=14&&minute<=32&&hp>=78&&
+    !(agent.role==='SUP'&&minute>=22&&minute<=28&&
+      baseline?.intent==='objective_setup')&&
     localAllies>opponents.length&&opponents.length>0){
   const advantage=context.map.lanes[lane].pressure[agent.teamId];
   if(advantage>=62&&ownVision>=56&&
