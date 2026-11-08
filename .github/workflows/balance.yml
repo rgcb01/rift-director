@@ -83,5 +83,6 @@ jobs:
         with:
           name: balance-report-${{ steps.version.outputs.version }}
           path: .balance-output/
-          if-no-files-found: warn
+          if-no-files-found: error
+          include-hidden-files: true
           retention-days: 90
