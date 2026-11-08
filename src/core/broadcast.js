@@ -98,9 +98,12 @@ function createBroadcast(match,world,seed) {
    ];
   }else if(f.action==='item_purchase'){
    entries=[
-    [actor+' vuelve con equipamiento',actor+' compra '+f.itemName+' en la base por '+f.goldCost+' de oro.'],
+    [actor+(f.voluntaryRecall?' vuelve con equipamiento':' renace con equipamiento'),
+     actor+' compra '+f.itemName+' en la base por '+f.goldCost+' de oro'+
+     (f.voluntaryRecall?' tras una retirada táctica.':' durante su paso por el nexo.')],
     ['Nueva inversión de '+club,actor+' convierte su oro en '+f.itemName+'. El próximo duelo tendrá otro balance.'],
-    [actor+' alcanza un pico de poder',club+' invierte en '+f.itemName+' después de regresar físicamente a base.']
+    [actor+' alcanza un pico de poder',club+' invierte en '+f.itemName+
+      (f.voluntaryRecall?' después de regresar desde el mapa.':' mientras ya estaba en base.')]
    ];
   }else if(f.action==='plate'){
    const lane=laneLabel[f.lane];
