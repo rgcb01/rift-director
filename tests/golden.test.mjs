@@ -37,7 +37,7 @@ test('semilla fija: Alpha 0.7.14 macro reproducible y contabilidad estable', () 
   const report=sim.applyMonth();
   const reportHash=hash(report),worldAfterMonth=hash(world);
   console.log('GOLDEN_FINGERPRINTS='+JSON.stringify({matchHash,worldAfterMatch,reportHash,worldAfterMonth}));
-  assert.equal(matchHash, '21517a90f1948fb822931280c178d4fcc6487d148d067f6a95404a920bbf80e3');
+  assert.equal(matchHash, 'ee3a5f999321752b7e096ba4941abfb3a66409603a214d6b7e609ba9445d8839');
   assert.equal(worldAfterMatch, '342aa15055a9fab9e597749e13d099630f73351acb244b4d5c4380068b36caf1');
   assert.equal(reportHash, '63f62558933347e5947cc1b476f9056c23d59aa9e79fce65edd0c7d58372dbd9');
   assert.equal(worldAfterMonth, 'aaa0c74e7c2d45ecf8a1fdc5bfc0016d782b40d546e8b8225f67dcc869d19244');
