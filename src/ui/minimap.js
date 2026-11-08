@@ -45,6 +45,19 @@
     }
     return out.join('');
   }
+  function wardMarkers(map,ids){
+    return (map.wards||[]).map(w=>{
+      if(!graph.nodes[w.node])return '';
+      const p=graph.pointAt(w.node),side=w.teamId===ids[0]?0:1;
+      return '<g class="rift-mini-ward" data-ward-id="'+safe(w.id)+
+        '"><title>'+safe('Ward del equipo '+(side===0?'azul':'rojo')+
+        ' · expira en minuto '+w.expires)+'</title>'+
+        '<circle cx="'+p.x+'" cy="'+p.y+'" r="15" fill="'+color[side]+
+        '" opacity=".12"/><path d="M'+p.x+' '+(p.y-6)+
+        'l6 6 -6 6 -6 -6z" fill="#10242b" stroke="'+color[side]+
+        '" stroke-width="1.7"/></g>';
+    }).join('');
+  }
   function avatars(map,previous,world,ids){
     const roster=new Map(world.players.map(p=>[p.id,p]));
     const motion=typeof root.matchMedia==='function' && !root.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -145,7 +158,7 @@
       '" opacity="'+num(Math.abs(river-.5)*.22)+'"/>'+
       influence(map)+
       '<path d="M60 202L131 128L217 211L273 134" stroke="#738c84" stroke-width="1" stroke-dasharray="4 8" fill="none" opacity=".5"/>'+
-      pulses+
+      pulses+wardMarkers(map,ids)+
       structures(map,previousFrame?.minimap,ids)+nexus(map,ids)+
       avatars(map,previousFrame?.minimap,world,ids)+focusMarker(selectedEvent,match)+
       '<rect x="12" y="12" width="101" height="24" rx="6" fill="#091720" opacity=".94"/>'+
