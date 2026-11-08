@@ -11,7 +11,7 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 - Una ward revela rivales dentro de un radio local de 70 unidades SVG para su equipo, sin acceso global a posiciones ocultas. La observación de rango cercano y el reconocimiento probabilístico previos siguen funcionando; este primer corte no implementa visión por paredes ni niebla pixel-perfect.
 - Los eventos `ward_place` incluyen autor, equipo, ubicación y expiración. Frames, historial y minimapa SVG muestran las wards existentes en cada momento; las wards caducadas desaparecen, sin reescribir el pasado.
 - Auditoría de colocación, propiedad, expiración y coherencia del replay, más escenarios controlados y lotes multisemilla. Las decisiones usan la misma semilla determinista y no añaden sorteos al RNG mundial.
-- Alcance limitado a visión: sin alterar directamente daño, oro, XP, objetos, Smite o probabilidades de victoria. **No fusionar antes de comparar 1,000 partidas auditadas y 1,000 espejadas con 0.7.12**.
+- **Aprobada e integrada (#29):** CI 128/128, 1,000 mapas auditados + 1,000 espejados, cero bloqueos/advertencias (runs 42460763542 y 42460763541). Frente a 0.7.12: kills 6.39→6.41, remontadas 4.2%→4.5%, azul espejado 50.2%→49.9%; los eventos adicionales son wards físicos registrados. No se alteran daño, oro, XP, objetos, Smite ni probabilidades de victoria.
 
 
 ## [0.7.12-alpha] — 2026-11-08
