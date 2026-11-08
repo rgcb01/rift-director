@@ -49,12 +49,13 @@ function locate(nav,dead,minute,zone){
  }
  return result;
 }
-function power(player){
+function power(player,powerState=null,kind='attack'){
  const a=player?.a||{},b=player?.beh||{};
- return (a.mech||50)*.45+(a.macro||50)*.19+
+ const intrinsic=(a.mech||50)*.45+(a.macro||50)*.19+
    (a.comm||50)*.14+(a.vision||50)*.09+(b.agg||50)*.08+(b.team||50)*.05;
+ return intrinsic+(core.PowerEconomy?.boost(powerState,player?.id,kind)||0);
 }
-function candidate(nav,health,players,side,enemy,zone){
+function candidate(nav,health,players,side,enemy,zone,powerState=null){
  // Find a defender with at least two threatening opponents, including
  // at least one actually within striking range. No invisible long-range kill.
  const candidates=[];
@@ -63,8 +64,8 @@ function candidate(nav,health,players,side,enemy,zone){
   const striking=attackers.filter(a=>reachable(nav,a,defender));
   const nearbyAllies=enemy.filter(a=>a.id!==defender.id&&threat(nav,a,defender));
   if(attackers.length<2||!striking.length)continue;
-  const groupPower=attackers.reduce((sum,a)=>sum+power(players[a.id]),0);
-  const defenderPower=power(players[defender.id]);
+  const groupPower=attackers.reduce((sum,a)=>sum+power(players[a.id],powerState,'attack'),0);
+  const defenderPower=power(players[defender.id],powerState,'defense');
   const edge=attackers.length-nearbyAllies.length-1;
   if(edge<=0)continue;
   candidates.push({defender,attackers,striking,nearbyAllies,
@@ -72,12 +73,12 @@ function candidate(nav,health,players,side,enemy,zone){
  }
  return candidates.sort((a,b)=>b.score-a.score||a.defender.id.localeCompare(b.defender.id))[0]||null;
 }
-function resolve({nav,dead,minute,zone,players,health,seed,previous={}}){
+function resolve({nav,dead,minute,zone,players,health,seed,previous={},powerState=null}){
  if(!['dragon_pit','baron_pit'].includes(zone))return null;
  if(minute-(previous[zone]??-20)<4)return null;
  const groups=locate(nav,dead,minute,zone);
- const first=candidate(nav,health,players,groups[nav.a],groups[nav.b],zone);
- const second=candidate(nav,health,players,groups[nav.b],groups[nav.a],zone);
+ const first=candidate(nav,health,players,groups[nav.a],groups[nav.b],zone,powerState);
+ const second=candidate(nav,health,players,groups[nav.b],groups[nav.a],zone,powerState);
  const chosen=!first?second:!second?first:
    first.score===second.score?(hash(seed,zone,minute)%2?first:second):
    first.score>second.score?first:second;
@@ -85,13 +86,13 @@ function resolve({nav,dead,minute,zone,players,health,seed,previous={}}){
  const {defender,attackers,striking,nearbyAllies}=chosen;
  const lead=attackers[0].teamId,player=players[defender.id];
  const attackBySkill=members=>members.slice().sort((a,b)=>
-    power(players[b.id])-power(players[a.id])||a.id.localeCompare(b.id));
+    power(players[b.id],powerState,'attack')-power(players[a.id],powerState,'attack')||a.id.localeCompare(b.id));
  // Damage can benefit from nearby support; the finisher MUST be close enough
  // to strike personally, not merely the highest-rated player in the zone.
  const killer=attackBySkill(striking)[0];
  const attackersBySkill=[killer,...attackBySkill(attackers.filter(a=>a.id!==killer.id))];
- const quality=attackers.reduce((n,p)=>n+power(players[p.id]),0)/attackers.length;
- const defence=power(player);
+ const quality=attackers.reduce((n,p)=>n+power(players[p.id],powerState,'attack'),0)/attackers.length;
+ const defence=power(player,powerState,'defense');
  const before=health[defender.id]??100;
  // More attackers and weak/low-health defenders suffer more pressure.
  // A lucky burst can kill, but a fresh, vigilant support can disengage.
@@ -131,7 +132,7 @@ function retreatDestination(nav,agent,minute){
  const lane=agent.role==='ADC'||agent.role==='SUP'?'bot':agent.role.toLowerCase();
  return side+'_'+lane+'_inner';
 }
-function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attackerIds,targetIds,lane=null}){
+function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attackerIds,targetIds,lane=null,powerState=null}){
  if(!['lane','gank','teamfight'].includes(mode)||![nav.a,nav.b].includes(teamId))
   throw Error('Invalid combat mode/team');
  const get=id=>nav.agents[id],alive=id=>get(id)?.alive&&
@@ -144,7 +145,7 @@ function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attacker
  const targets=defenders.filter(d=>attackers.some(a=>hitRange(a,d,mode,lane)));
  if(!targets.length)return null;
  const viable=attackers.filter(a=>targets.some(d=>hitRange(a,d,mode,lane)));
- const rank=(a,b)=>power(players[b.id])-power(players[a.id])||a.id.localeCompare(b.id);
+ const rank=(a,b)=>power(players[b.id],powerState,'attack')-power(players[a.id],powerState,'attack')||a.id.localeCompare(b.id);
  const leader=mode==='gank'&&viable.some(a=>a.id===attackerIds[0])?
    viable.find(a=>a.id===attackerIds[0]):viable.sort(rank)[0];
  // In teamfight mode one author can deal damage to several nearby targets.
@@ -164,7 +165,7 @@ function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attacker
   const variance=(hash(seed,minute,mode,leader.id,target.id)%1000)/1000;
   const base={lane:21,gank:52,teamfight:42}[mode];
   const outnumber=clamp(allies.length-1,0,3);
-  const delta=power(players[leader.id])-power(players[target.id]);
+  const delta=power(players[leader.id],powerState,'attack')-power(players[target.id],powerState,'defense');
   const burst=variance>.88?(mode==='lane'?12:26):0;
   const damage=clamp(Math.round(base+outnumber*(mode==='lane'?8:19)+
     delta*.28+variance*16+burst),12,120);

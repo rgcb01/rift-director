@@ -1,0 +1,55 @@
+{
+  "version": "0.7.8-alpha",
+  "benchmarkRevision": "fixed-seed-1000-v1",
+  "source": "Verified GitHub Actions run 42437774262, 1,000 primary + 1,000 mirrored matches; curated historical metrics",
+  "sourceRun": "https://github.com/rgcb01/rift-director/actions/runs/42437774262",
+  "standard": {
+    "requested": 1000,
+    "completed": 1000,
+    "audited": 1000,
+    "issueCount": 0,
+    "auditFailures": 0,
+    "wins": {
+      "blue": 553,
+      "red": 447,
+      "invalid": 0
+    },
+    "duration": {
+      "mean": 48.25
+    },
+    "kills": {
+      "mean": 7.75
+    },
+    "objectives": {
+      "dragonsAvg": 0.76,
+      "gamesWithoutDragon": 411,
+      "baronsAvg": 1.37,
+      "gamesWithoutBaron": 33,
+      "towersAvg": 4.31
+    },
+    "gameplay": {
+      "actionMatches": {
+        "gank": 288
+      },
+      "meanEvents": 59.89,
+      "zeroKills": 0,
+      "earlyTowerMatches": 558,
+      "platesPerMatch": 15.83,
+      "comebackWins20": 38,
+      "gamesMultipleTowerLanes": 728,
+      "gamesBothTeamsTowers": 231,
+      "soloSplitTowerGames": 578
+    }
+  },
+  "mirror": {
+    "matches": 1000,
+    "wins": {
+      "blue": 544,
+      "red": 456
+    },
+    "towers": {
+      "exact3": 277,
+      "noEarlyTowerBefore36": 454
+    }
+  }
+}

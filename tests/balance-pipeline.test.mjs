@@ -40,7 +40,7 @@ test('genera un dashboard HTML con graficos SVG sin dependencias',()=>{
   const r=generate(current,baseline,dir);
   assert.equal(r.failures.length,0);
   for(const name of ['index.html','report.md','duration.svg','kills.svg','sides.svg',
-    'objectives.svg','towers.svg','strategy.svg','previous.svg','regressions.json']){
+    'objectives.svg','towers.svg','strategy.svg','power.svg','previous.svg','regressions.json']){
    assert.ok(existsSync(join(dir,name)),name+' no generado');
   }
   assert.match(readFileSync(join(dir,'duration.svg'),'utf8'),/<svg/);
@@ -48,7 +48,7 @@ test('genera un dashboard HTML con graficos SVG sin dependencias',()=>{
  }finally{rmSync(dir,{recursive:true,force:true})}
 });
 
-test('CLI del reporte genera HTML, 6 SVG y JSON desde argumentos relativos',()=>{
+test('CLI del reporte genera HTML, 8 SVG y JSON desde argumentos relativos',()=>{
  const dir=mkdtempSync(join(tmpdir(),'rift-cli-report-'));
  try{
   const current=structuredClone(baseline);
@@ -60,8 +60,24 @@ test('CLI del reporte genera HTML, 6 SVG y JSON desde argumentos relativos',()=>
     {encoding:'utf8',timeout:20000});
   assert.equal(run.status,0,'Report CLI: '+run.stderr);
   for(const name of ['index.html','report.md','regressions.json','duration.svg','kills.svg',
-    'sides.svg','objectives.svg','towers.svg','previous.svg']){
+    'sides.svg','objectives.svg','towers.svg','strategy.svg','power.svg','previous.svg']){
    assert.ok(existsSync(join(dir,name)),name+' ausente en invocacion CLI');
   }
  }finally{rmSync(dir,{recursive:true,force:true})}
+});
+
+test('la comparación 0.7.8→0.7.9 alerta sobre kills, duración, remontadas y slots saturados',()=>{
+ const previous=JSON.parse(readFileSync('benchmarks/baselines/0.7.8-alpha.json','utf8'));
+ const current=structuredClone(previous);
+ current.version='0.7.9-alpha';
+ current.mirror.failures=[];
+ current.standard.kills.mean=6.35;
+ current.standard.duration.mean=51.5;
+ current.standard.gameplay.comebackWins20=25;
+ current.standard.gameplay.purchasesPerMatch=26.9;
+ const assessment=evaluate(current,previous);
+ assert.ok(assessment.warnings.some(x=>x.includes('kills medias')));
+ assert.ok(assessment.warnings.some(x=>x.includes('duración media')));
+ assert.ok(assessment.warnings.some(x=>x.includes('remontadas')));
+ assert.ok(assessment.warnings.some(x=>x.includes('80%')));
 });

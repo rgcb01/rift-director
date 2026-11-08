@@ -34,7 +34,23 @@ export function flatten(d){
   counterTowerRate:s.gameplay.gamesBothTeamsTowers===undefined?null:
     ratio(s.gameplay.gamesBothTeamsTowers,s.completed),
   soloSplitTowerGames:s.gameplay.soloSplitTowerGames===undefined?null:
-    ratio(s.gameplay.soloSplitTowerGames,s.completed)
+    ratio(s.gameplay.soloSplitTowerGames,s.completed),
+  purchasesPerMatch:s.gameplay.purchasesPerMatch??null,
+  recallPurchasesMean:s.gameplay.recallPurchasesPerMatch??null,
+  recallTravelMinutesMean:s.gameplay.recallTravelMinutesPerMatch??null,
+  earlyPurchasesMean:s.gameplay.earlyPurchasesPerMatch??null,
+  recallPurchaseShare:s.gameplay.recallPurchasesPerMatch===undefined||
+    !s.gameplay.purchasesPerMatch?null:
+    s.gameplay.recallPurchasesPerMatch/s.gameplay.purchasesPerMatch,
+  itemSlotsUsed:s.gameplay.purchasesPerMatch===undefined?null:
+    s.gameplay.purchasesPerMatch/30,
+  equipmentSpentMean:s.gameplay.equipmentGoldPerMatch??null,
+  avgFinalLevel:s.gameplay.avgFinalLevel??null,
+  noItemRate:s.gameplay.noItemGames===undefined?null:
+    ratio(s.gameplay.noItemGames,s.completed),
+  bothTeamsItemRate:s.gameplay.bothTeamsItemGames===undefined?null:
+    ratio(s.gameplay.bothTeamsItemGames,s.completed),
+  firstPurchaseMean:s.gameplay.firstPurchaseMean??null
  };
 }
 export function evaluate(current,previous){
@@ -77,8 +93,26 @@ export function evaluate(current,previous){
   'Menos del 18% de partidas destruyen torres en al menos dos carriles');
  warn(v.counterTowerRate!==null&&v.counterTowerRate<.04,
   'Pocas partidas registran torres destruidas por ambos clubes');
+ warn(v.noItemRate!==null&&v.noItemRate>.25,
+  'Más del 25% de los partidos terminan sin ninguna compra');
+ warn(v.bothTeamsItemRate!==null&&v.bothTeamsItemRate<.50,
+  'Menos del 50% de los mapas tienen compras de ambos equipos');
  if(p.exactlyThreeTowers!==null&&v.exactlyThreeTowers-p.exactlyThreeTowers>.05)
   warnings.push('La proporción de partidas con exactamente tres torres empeoró más de cinco puntos porcentuales');
+ if(previous.version!==current.version){
+  warn(v.killsMean<p.killsMean*.85,
+   'Las kills medias cayeron más de 15% respecto a la versión anterior');
+  warn(v.durationMean-p.durationMean>2,
+   'La duración media empeoró más de dos minutos');
+  warn(v.comebackRate!==null&&p.comebackRate!==null&&
+    p.comebackRate-v.comebackRate>.01,
+   'La frecuencia de remontadas cayó más de un punto porcentual');
+  warn(v.counterTowerRate!==null&&p.counterTowerRate!==null&&
+    p.counterTowerRate-v.counterTowerRate>.05,
+   'Los mapas con torres para ambos equipos cayeron más de cinco puntos porcentuales');
+ }
+ warn(v.itemSlotsUsed!==null&&v.itemSlotsUsed>.80,
+  'Más del 80% de los 30 espacios prototipo de objetos están ocupados al terminar');
  warn(v.noEarlyTowerRate>.90,'Mas de 90% de los partidos no derriban torres antes del minuto 36');
  warn(current.standard.duration.min>=35,
   'No hay victorias tempranas (duracion minima 35+): revisar asedio por reloj');
@@ -125,7 +159,18 @@ const keys=[
  ['comebackRate','Remontadas con deficit >=1500 al min 20','rate'],
  ['multiLaneRate','Torres en dos o mas carriles','rate'],
  ['counterTowerRate','Ambos equipos toman torres','rate'],
- ['soloSplitTowerGames','Partidos con torre de splitpush solitario','rate']];
+ ['soloSplitTowerGames','Partidos con torre de splitpush solitario','rate'],
+ ['purchasesPerMatch','Compras de objetos por mapa','num'],
+ ['recallPurchasesMean','Compras por regreso táctico por mapa','num'],
+ ['recallTravelMinutesMean','Minutos-jugador dedicados a volver a comprar','num'],
+ ['earlyPurchasesMean','Compras antes del minuto 30','num'],
+ ['recallPurchaseShare','Porcentaje de compras desde recall','rate'],
+ ['itemSlotsUsed','Espacios de objetos equipados (30 posibles)','rate'],
+ ['equipmentSpentMean','Oro convertido en equipamiento por mapa','num'],
+ ['avgFinalLevel','Nivel individual promedio al final','num'],
+ ['firstPurchaseMean','Minuto promedio de primera compra','num'],
+ ['noItemRate','Partidos sin ninguna compra','rate'],
+ ['bothTeamsItemRate','Partidos con compras de ambos equipos','rate']];
 const show=(v,type)=>v==null?'No medido':type==='rate'?percent(v):number(v);
 export function generate(current,previous,output){
  mkdirSync(output,{recursive:true});
@@ -152,6 +197,12 @@ export function generate(current,previous,output){
    {label:'Dos carriles',value:(assessment.current.multiLaneRate||0)*100},
    {label:'Ambos toman',value:(assessment.current.counterTowerRate||0)*100},
    {label:'Remontadas',value:(assessment.current.comebackRate||0)*100}],{max:100,decimals:0})],
+  ['power.svg',bars('Equipamiento: porcentaje de mapas por resultado',[
+   {label:'Ambos compran',value:(assessment.current.bothTeamsItemRate||0)*100},
+   {label:'Slots llenos',value:(assessment.current.itemSlotsUsed||0)*100},
+   {label:'Vuelta a tienda',value:(assessment.current.recallPurchaseShare||0)*100},
+   {label:'Sin compras',value:(assessment.current.noItemRate||0)*100}
+  ],{max:100,decimals:0})],
   ['previous.svg',bars('Version anterior vs actual: porcentaje de partidas sin Dragon',[
    {label:previous.version,value:assessment.baseline.noDragonRate*100,color:'#f27e8a'},
    {label:current.version,value:assessment.current.noDragonRate*100,color:'#6de2c1'}],{max:100,decimals:0})]

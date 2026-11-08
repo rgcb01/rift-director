@@ -20,6 +20,15 @@ Los meses impulsan las finanzas y el mundo. Las noticias y los rumores reflejan 
 - No hay instalación de paquetes, cuenta ni backend para jugar.
 - **Guardados:** automáticos en `localStorage` de ese navegador. En **Partida** puedes **exportar/importar JSON**. Los guardados no se sincronizan entre dispositivos; expórtalos antes de borrar datos del navegador.
 
+## Alpha 0.7.9 — niveles y compras (en validación)
+
+**Ajuste experimental de resets:** la IA ya no vuelve a tienda simplemente porque tiene oro. Una oportunidad de compra tiene que justificar perder presencia en el mapa: se priorizan profesionales lesionados, no se abandona un asedio con salud alta y se preservan los roams de SUP. Cada jugador puede realizar un regreso voluntario por mapa; las compras al reaparecer no gastan ese regreso. Los reportes miden los minutos-jugador viajando y distinguen compras voluntarias de compras naturales.
+
+
+Los profesionales acumulan **experiencia individual, niveles 1–18 y oro personal**. Un jugador con oro suficiente puede regresar físicamente a su base para comprar uno de cinco objetos abstractos; cada compra afecta el poder de ataque o defensa del profesional en combates posteriores, y queda registrada en el replay y la retransmisión. La pantalla de estadísticas históricas muestra nivel, oro e ítems por jugador. El motor conserva el oro del marcador como oro **ganado**; la cartera individual controla lo **disponible** para compras.
+
+Este es un primer vertical slice de combate/economía: no replica campeones, habilidades activas ni todos los objetos de League of Legends. Se comparan 2,000 mapas frente a la versión previa antes de fusionar.
+
 ## Alpha 0.7.8 — rotaciones y splitpush (en validación)
 
 Los equipos pueden dividir un asedio: un TOP/MID presiona otra línea, y el rival puede responder a la oleada que observa o contraatacar. Una torre lateral sin defensores puede caer con un solo jugador vivo **únicamente** si la oleada y las tres placas lo permiten. El resto del equipo debe desplazarse de manera legal para el asedio principal. Los objetivos del balance son: reducir cierres exclusivamente por una línea, mantener el cierre legal del nexo y conservar las pruebas de 2,000 mapas por versión. El modelo de oleadas sigue siendo agregado.
@@ -87,7 +96,7 @@ Los cambios a `main` pueden publicarse mediante la configuración de GitHub Page
 
 ## Validación de balance por versión
 
-Cada release `x.y.z-alpha` ejecuta en GitHub Actions 1,000 partidos y 500 parejas de enfrentamientos espejados (1,000 mapas adicionales). El pipeline genera siete gráficos SVG y dashboard HTML, compara los resultados con la versión anterior, detecta regresiones importantes y adjunta el reporte al workflow. Véase [benchmarks/README.md](benchmarks/README.md) para disparadores, guardrails y metodología. El baseline inicial es Alpha 0.7.6; no cambia el gameplay.
+Cada release `x.y.z-alpha` ejecuta en GitHub Actions 1,000 partidos y 500 parejas de enfrentamientos espejados (1,000 mapas adicionales). El pipeline genera ocho gráficos SVG y dashboard HTML, compara los resultados con la versión anterior, detecta regresiones importantes y adjunta el reporte al workflow. Véase [benchmarks/README.md](benchmarks/README.md) para disparadores, guardrails y metodología. El baseline inicial es Alpha 0.7.6; no cambia el gameplay.
 
 ## Documentación y mejora continua
 

@@ -211,13 +211,20 @@ function jungleGoal(nav,agent,t){
  if(t<=32)return {goal:own('lower'),intent:'farm_jungle'};
  return {goal:own(t%4<2?'upper':'lower'),intent:'farm_jungle'};
 }
-function chooseGoal(nav,agent,t,worldState){
+function chooseGoal(nav,agent,t,worldState,context=null){
  const side=getSide(nav,agent.teamId),team=agent.teamId;
  const foe=enemy(nav,team),role=agent.role;
  const anchor=lane=>side+'_'+lane.toLowerCase()+'_front';
  const lead=worldState.gold[team]-worldState.gold[foe];
  const partner=role==='SUP'?teamAgents(nav,team).find(p=>p.role==='ADC'&&p.alive):null;
  const followADC=()=>partner?.goal&&adjacency[partner.goal]?partner.goal:anchor('BOT');
+
+ // An affordable power spike can justify physically returning to base.
+ // A single professional per squad may recall; there is no teleport/instant buy.
+ if(worldState.powerEconomy&&
+    core.PowerEconomy.shouldRecall(worldState.powerEconomy,nav,agent,t,worldState,context))
+  return {goal:side+'_nexus',intent:'shop_recall',
+    reason:'affordable_item_spike',decisionVersion:3};
 
  // Only actual economic or wave advantage commits an attacking team.
  // Junglers preserve their own corridors until minute 36, after which
@@ -337,7 +344,7 @@ function advance(nav,t,dead,worldState,context=null){
   if(wasDead){agent.node=fountain;agent.retreatUntil=0;agent.retreatGoal=null;}
   const escaping=agent.retreatGoal&&agent.node!==agent.retreatGoal&&
     (agent.retreatUntil||0)>=t;
-  const baseline=escaping?null:chooseGoal(nav,agent,t,worldState);
+  const baseline=escaping?null:chooseGoal(nav,agent,t,worldState,context);
   const plan=escaping?{goal:agent.retreatGoal,intent:'retreat',reason:'damage_retreat'}:
     core.TacticalAI?.choose({nav,agent,minute:t,worldState,
       context:tacticalContext,baseline})||baseline;

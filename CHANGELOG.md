@@ -4,6 +4,24 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+## [0.7.9-alpha] — 2026-11-07
+
+### Primer sistema de niveles, compras y picos de poder
+- Diez profesionales con **experiencia y niveles 1–18**, ganados por presencia, oleadas y objetivos de mapa. Las kills y asistencias también otorgan XP trazable.
+- Cada jugador mantiene **cartera de oro personal y oro gastado**. Las recompensas se obtienen por ingreso pasivo, farmeo real, eliminaciones y objetivos; el oro total del marcador sigue siendo oro acumulado y no se consume al comprar.
+- **Tienda de cinco objetos** con costes y estadísticas de ataque, defensa y tempo. La elección se calcula por rol, estado económico e inventario; máximo tres objetos únicos por profesional.
+- **Regreso físico a base** para comprar; la IA puede sacrificar presión por una mejora, pero limita el número de viajeros simultáneos. Las compras quedan registradas con jugador, lugar, coste, nivel y objeto.
+- El combate, las selecciones de objetivos individuales y las peleas consultan ahora niveles y equipo reales; no se otorgan bajas sin el daño necesario.
+- Ajuste de calibración tras 2,000 partidos: coste de objetos más elevado, XP por minuto más contenida y bonificaciones ofensivas/defensivas diferenciadas; oro de placas, torres y grandes objetivos distribuido a las carteras.
+- El jungla puede robar Barón con Smite **sin otro aliado presente** si realmente está en el foso: no se exige un segundo compañero artificial para validar el robo.
+- El reproductor de partidos muestra nivel, oro disponible y equipo por profesional en el momento histórico seleccionado; RiftCast describe las compras como hechos.
+- **Revisión de resets tácticos:** comprar no obliga automáticamente a abandonar un asedio; solo un profesional herido puede retirar presencia de un asedio activo. Un jugador sano mantiene su carril. Cada profesional tiene un máximo de un viaje voluntario de tienda por partido; comprar tras reaparecer no consume el permiso. Se respetan los roams de SUP y los corredores de JUN, y la narración distingue compra tras muerte y regreso voluntario.
+- **Benchmark de coste de oportunidad:** minutos-jugador invertidos en viaje a tienda, compras voluntarias frente a compras naturales y compras antes de minuto 30, con auditoría de origen del recall en las instantáneas.
+- Reproducción determinista, integridad de oro y auditoría de compras/XP en partidos completos; la contabilidad empresarial y el RNG de partido siguen separados.
+- Benchmark de 1,000 partidos + 500 parejas espejadas, comparado con la **referencia Alpha 0.7.8** congelada y auditada. Reporta compras, niveles, conversiones de oro, remontadas y duración.
+- Alcance deliberado: modelo de objetos abstractos (no estadísticas ni campeones específicos de LoL); sin inventario de seis objetos, runas, habilidades activas, animaciones de compra ni minions físicos.
+
+
 ## [0.7.8-alpha] — 2026-11-07
 
 ### Rotaciones laterales, splitpush y respuesta defensiva
