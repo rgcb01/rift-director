@@ -54,7 +54,7 @@ function advance(model,{minute,nav,map,health,gold}){
   // momentum, while a solo push has less momentum than a squad siege.
   const escortDelta=(escort(a)-escort(b))*.36+
     (macroEscort(a)-macroEscort(b))*.16+
-    (defenseEscort(a)-defenseEscort(b))*.22;
+    (defenseEscort(a)-defenseEscort(b))*.12;
   const difference=(pa-pb)*.035+(va-vb)*.65+escortDelta;
   const momentum=clamp(difference,-1.35,1.35);
   // Dissipating momentum: a wave cannot remain permanently won when its
