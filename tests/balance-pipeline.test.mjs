@@ -60,7 +60,7 @@ test('CLI del reporte genera HTML, 11 SVG y JSON desde argumentos relativos',()=
     {encoding:'utf8',timeout:20000});
   assert.equal(run.status,0,'Report CLI: '+run.stderr);
   for(const name of ['index.html','report.md','regressions.json','duration.svg','kills.svg',
-    'sides.svg','objectives.svg','dragon.svg','shutdown.svg','towers.svg','strategy.svg','power.svg','previous.svg']){
+    'sides.svg','objectives.svg','dragon.svg','shutdown.svg','counterplay.svg','towers.svg','strategy.svg','power.svg','previous.svg']){
    assert.ok(existsSync(join(dir,name)),name+' ausente en invocacion CLI');
   }
  }finally{rmSync(dir,{recursive:true,force:true})}
@@ -104,4 +104,27 @@ test('Alpha 0.7.10 compara Dragones contra la versión anterior realmente audita
  assert.equal(result.current.crossmapTowerRate,.1);
  assert.equal(result.baseline.crossmapTowerRate,null);
  assert.equal(result.failures.length,0);
+});
+
+test('Alpha 0.7.12 compara contra Alpha 0.7.11 y no inventa métricas antiguas',()=>{
+ const previous=JSON.parse(readFileSync('benchmarks/baselines/0.7.11-alpha.json','utf8'));
+ assert.equal(previous.version,'0.7.11-alpha');
+ assert.equal(previous.standard.completed,1000);
+ assert.equal(previous.standard.audited,1000);
+ assert.equal(previous.mirror.matches,1000);
+ assert.equal(previous.standard.gameplay.comebackWins20,19);
+ const current=structuredClone(previous);
+ current.version='0.7.12-alpha';
+ current.mirror.failures=[];
+ Object.assign(current.standard.gameplay,{
+  counterplayFightsPerMatch:2.3,counterplayKillsPerMatch:1.1,
+  underdogFightsPerMatch:.4,shutdownHuntsPer100Maps:10,
+  earnedFightPlatesPerMatch:.2,earnedFightTowerGames:50,
+  counterplayWinRate:.47
+ });
+ const r=evaluate(current,previous);
+ assert.equal(r.baseline.counterplayFightsMean,null);
+ assert.equal(r.current.counterplayFightsMean,2.3);
+ assert.equal(r.current.earnedFightTowerRate,.05);
+ assert.equal(r.failures.length,0);
 });
