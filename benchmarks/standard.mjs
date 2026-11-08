@@ -78,6 +78,7 @@ export function runStandard() {
           audited++;
           const errors=[
             ...core.Navigation.auditNavigation(m,world),
+            ...core.LaneEconomy.audit(m),
             ...core.TacticalAI.audit(m,world),
             ...core.Encounters.audit(m,world),
             ...core.auditMatch(m,world),
