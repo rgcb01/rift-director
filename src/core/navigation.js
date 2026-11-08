@@ -481,9 +481,14 @@ function auditNavigation(match,world){
       errs.push('Splitpush sin oleada real y especialista en el carril: '+e.minute);
      // A physically nearby enemy who is already retreating cannot contest
      // tower damage. Match the live event eligibility filter exactly.
-     if(Object.keys(positions).some(id=>positions[id].teamId===other&&
-        positions[id].intent!=='retreat'&&active(id)&&near(id,target,1)))
-      errs.push('Splitpush solitario declarado con un defensor presente: '+e.minute);
+     const nearbyDefenders=Object.keys(positions).filter(id=>
+       positions[id].teamId===other&&positions[id].intent!=='retreat'&&
+       active(id)&&near(id,target,1));
+     if(nearbyDefenders.length)
+      errs.push('Splitpush solitario declarado con un defensor presente: '+e.minute+
+        ' / '+JSON.stringify({team,other,node:target,actor:f.actorId,blockers:
+          nearbyDefenders.map(id=>({id,position:positions[id],
+            deadUntil:deadUntil[id]||0})),participants:f.participantIds}));
     }
     if(!near(f.actorId,target,1))errs.push('Torre derribada desde otra zona: '+e.minute);
     for(const id of f.participantIds)if(!near(id,target,1))
