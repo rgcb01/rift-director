@@ -93,7 +93,7 @@ function plan(nav,world,minute,health){
    target:objective==='dragon'?'dragon_pit':'baron_pit',
    targetSpawn:objective==='dragon'?world.nextDragon:world.nextBaron,
    score:+score.toFixed(2),
-   enemyId:foe,created:minute,until:minute+5,cooldownUntil:minute+10};
+   enemyId:foe,created:minute,until:minute+3,cooldownUntil:minute+12};
   nav.neutralCalls[id]=call;
   out[id]=call;
  }
