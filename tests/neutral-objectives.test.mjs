@@ -64,7 +64,8 @@ test('objetivo disponible no reemite la misma llamada en cada minuto y se reinic
  assert.equal(cooling.action,'hold');
  state.nextDragon=17;
  const next=core.NeutralObjectives.plan(nav,state,22,health)[a];
- assert.equal(next.targetSpawn,17);
+ assert.ok(['dragon_pit','baron_pit'].includes(next.target));
+ assert.equal(next.targetSpawn,next.target==='baron_pit'?state.nextBaron:state.nextDragon);
  assert.equal(next.created,22);
 });
 test('100 mapas: ningún Dragón ni torre intercambiada nace fuera del mapa',()=>{
