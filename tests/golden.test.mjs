@@ -24,6 +24,7 @@ test('semilla fija: balance Alpha 0.7.9 reproducible y contabilidad estable', ()
   legacyMatch.speed = 2; // Playback defaults to 1x; sports history before M1.4 used 2x by default.
   delete legacyMatch.playerStats; // Additive M1.2 individual stats do not change match RNG/outcomes.
   // M1.3B changes match outcomes intentionally: movement and proximity now govern all objectives.
+  // Alpha 0.7.9 selects intentional wounded-only shopping recalls, while XP and purchases affect sport.
   // Alpha 0.7.9 changes match XP, wallet and purchased gear. Sporting hashes
   // change deliberately, while club economy and RNG world hashes stay fixed.
   // The financial report fingerprint remains unchanged. World RNG differs
@@ -32,7 +33,7 @@ test('semilla fija: balance Alpha 0.7.9 reproducible y contabilidad estable', ()
   const matchHash=hash(legacyMatch),worldAfterMatch=hash(world);
   const report=sim.applyMonth();
   const reportHash=hash(report),worldAfterMonth=hash(world);
-  assert.equal(matchHash, '73e9be5bfed1dbee849cfe060d7ecac1c7265fe6c0f5ec218d99257e7ce2c93a');
+  assert.equal(matchHash, 'b69ec42b7c62e1ef62af6d355249c4521e7052ea8ba0b00b86916e672d2a91d4');
   assert.equal(worldAfterMatch, '342aa15055a9fab9e597749e13d099630f73351acb244b4d5c4380068b36caf1');
   assert.equal(reportHash, '63f62558933347e5947cc1b476f9056c23d59aa9e79fce65edd0c7d58372dbd9');
   assert.equal(worldAfterMonth, 'aaa0c74e7c2d45ecf8a1fdc5bfc0016d782b40d546e8b8225f67dcc869d19244');
