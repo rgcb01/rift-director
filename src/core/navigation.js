@@ -131,7 +131,7 @@ function siegeLane(nav,worldState,team){
 function determineSiege(nav,worldState,t){
  if(nav.siegeChecked===t)return;
  nav.siegeChecked=t;
- if(t<24)return;
+ if(t<30)return;
  // No global minute-36 order. Economic advantage and committed waves
  // trigger a reversible siege. Long games get an opportunity to break a
  // stalemate, but the leading team is still chosen by current game state.
@@ -139,14 +139,15 @@ function determineSiege(nav,worldState,t){
    worldState.kills[id]*280+worldState.barons[id]*450;
  const delta=score(nav.a)-score(nav.b);
  const advantage=Math.abs(delta);
- if(!nav.siegeTeam&&t<49&&advantage<1700)return;
+ if(!nav.siegeTeam&&t<44&&advantage<1100)return;
  const proposed=advantage<100?
    (seedHash(nav.seed,'siege',Math.floor(t/8))%2?nav.a:nav.b):
    delta>0?nav.a:nav.b;
  if(nav.siegeTeam&&t<(nav.siegeUntil||0))return;
+ if(nav.siegeTeam&&t>=60)return; // preserve a long enough final push
  // The losing side can seize the initiative if its comeback actually
  // overtakes the opponent; do not ping-pong after tiny market fluctuations.
- if(nav.siegeTeam&&nav.siegeTeam!==proposed&&advantage<850&&t<61)return;
+ if(nav.siegeTeam&&nav.siegeTeam!==proposed&&advantage<1600)return;
  nav.siegeTeam=proposed;
  nav.siegeLane=siegeLane(nav,worldState,proposed);
  nav.siegeUntil=t+8;
