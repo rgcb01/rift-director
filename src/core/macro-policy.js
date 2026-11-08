@@ -106,6 +106,7 @@
   return {version:1,teamId:id,actorId:agent.id,role:agent.role,lane,
    created:minute,until:minute+2,action,goal,scores,
    evidence:{wave:round(wave),lanePressure:pressure,vision,
+    riverVision:riverSight,
     goldDeficit:deficit,hp,objectiveCall:eligible?call.reason:null,
     travelHops:travel,overextendRisk:round(overextendRisk),
     objectiveRisk:eligible?round(objectiveRisk):null,
@@ -113,6 +114,24 @@
     visibleEnemies:risk.visibleEnemies,nearbyAllies:risk.nearbyAllies,
     woundedVisibleEnemies:risk.woundedVisibleEnemies,
     wardCover:risk.wardCover}};
+ }
+ // The role navigation already supplies a sane default. An experimental
+ // macro policy may override it only on a well-supported, observable edge.
+ // This avoids compulsory 3-minute push/farm cycles that amplify snowballs.
+ function credible(p){
+  if(!p)return false;
+  const e=p.evidence,s=p.scores;
+  if(p.action==='pressure')return e.wave>=.95&&
+   (e.vision>=62||e.wardCover)&&e.hp>=73&&e.overextendRisk<=9&&
+   s.pressure>=s.farm+8;
+  if(p.action==='defend')return e.wave<=-1.25&&e.hp>=52&&
+   e.visibleEnemies<=e.nearbyAllies+1&&
+   s.defend>=s.farm+4;
+  if(p.action==='objective')return e.objectiveEscortCount>=1&&
+   e.riverVision>=54&&e.hp>=70&&s.objective>=s.farm+5;
+  if(p.action==='farm')return e.hp<=68&&e.wave<.6||
+   e.wave<=-.65&&e.vision<57&&s.farm>=s.pressure+5;
+  return false;
  }
  function plan(nav,world,minute,health,dead={}){
   if(!nav.macroCalls)nav.macroCalls={};
@@ -126,11 +145,14 @@
     const stillObjective=old?.action!=='objective'||(
      ['take','contest'].includes(call?.action)&&
      call?.target===old.goal&&call?.until>=minute);
-    if(old&&old.until>=minute&&stillObjective){
+    const option=evaluate(nav,world,actor,minute,health);
+    // If the scene no longer justifies taking someone away from their role,
+    // let the proven role/tactical policy work instead of retaining a stale
+    // risky commitment. The replay then contains no fabricated macro order.
+    if(!credible(option)){delete nav.macroCalls[actor.id];continue}
+    if(old&&old.until>=minute&&stillObjective&&old.action===option.action){
      selected[actor.id]=old;continue;
     }
-    const option=evaluate(nav,world,actor,minute,health);
-    if(!option)continue;
     nav.macroCalls[actor.id]=option;selected[actor.id]=option;
    }
   }
@@ -188,5 +210,5 @@
   }
   return errors;
  }
- core.MacroPolicy=Object.freeze({evaluate,plan,movement,snapshot,audit});
+ core.MacroPolicy=Object.freeze({evaluate,credible,plan,movement,snapshot,audit});
 })(globalThis);
