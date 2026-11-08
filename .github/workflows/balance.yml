@@ -1,0 +1,87 @@
+name: Balance por versión (1000 partidos + espejados)
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+      - '*.*.*-alpha'
+    paths:
+      - CHANGELOG.md
+  pull_request:
+    paths:
+      - CHANGELOG.md
+      - 'benchmarks/**'
+      - '.github/workflows/balance.yml'
+      - 'tests/balance-pipeline.test.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: balance-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  simulate:
+    name: 1000 partidos, 500 pares espejados y reporte de regresiones
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Obtener repositorio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Determinar versión
+        id: version
+        run: node benchmarks/version.mjs
+
+      - name: Evitar repetir una versión sin nuevo lanzamiento
+        id: gate
+        shell: bash
+        run: |
+          should_run=true
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
+            old_version=$(git show HEAD^:CHANGELOG.md 2>/dev/null | grep -m1 -E '^## \[[0-9]+\.[0-9]+\.[0-9]+-alpha\]' | sed -E 's/^## \[([^]]+)\].*/\1/' || true)
+            if [[ "$old_version" == "${{ steps.version.outputs.version }}" ]]; then
+              should_run=false
+              echo "Sin cambio de versión; la batería se reserva para el próximo x.y.z."
+            fi
+          fi
+          echo "should_run=$should_run" >> "$GITHUB_OUTPUT"
+
+      - name: Tests funcionales y determinismo
+        if: steps.gate.outputs.should_run == 'true'
+        run: node --test
+
+      - name: Recuperar resultados de versión anterior
+        if: steps.gate.outputs.should_run == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node benchmarks/find-previous.mjs "${{ steps.version.outputs.version }}" .balance-output
+
+      - name: Simular 1,000 partidos y 500 pares espejados
+        if: steps.gate.outputs.should_run == 'true'
+        run: node benchmarks/run.mjs "${{ steps.version.outputs.version }}" .balance-output
+
+      - name: Generar gráficas y evaluación de regresiones
+        if: steps.gate.outputs.should_run == 'true'
+        run: node benchmarks/report.mjs .balance-output/summary.json .balance-output/previous.json .balance-output
+
+      - name: Adjuntar reportes reproducibles (HTML, SVG, JSON)
+        if: always() && steps.gate.outputs.should_run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: balance-report-${{ steps.version.outputs.version }}
+          path: .balance-output/
+          if-no-files-found: warn
+          retention-days: 90
