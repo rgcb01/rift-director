@@ -28,6 +28,7 @@ jobs:
           node --check src/core/map-state.js
           node --check src/core/minimap-graph.js
           node --check src/core/lane-economy.js
+          node --check src/core/power-economy.js
           node --check src/core/navigation.js
           node --check src/core/tactical-ai.js
           node --check src/core/encounters.js
