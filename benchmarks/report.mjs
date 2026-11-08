@@ -28,7 +28,13 @@ export function flatten(d){
   zeroKillRate:ratio(s.gameplay.zeroKills,s.completed),
   earlyTowerRate:s.gameplay.earlyTowerMatches===undefined?null:ratio(s.gameplay.earlyTowerMatches,s.completed),
   platesMean:s.gameplay.platesPerMatch||0,
-  comebackRate:s.gameplay.comebackWins20===undefined?null:ratio(s.gameplay.comebackWins20,s.completed)
+  comebackRate:s.gameplay.comebackWins20===undefined?null:ratio(s.gameplay.comebackWins20,s.completed),
+  multiLaneRate:s.gameplay.gamesMultipleTowerLanes===undefined?null:
+    ratio(s.gameplay.gamesMultipleTowerLanes,s.completed),
+  counterTowerRate:s.gameplay.gamesBothTeamsTowers===undefined?null:
+    ratio(s.gameplay.gamesBothTeamsTowers,s.completed),
+  soloSplitTowerGames:s.gameplay.soloSplitTowerGames===undefined?null:
+    ratio(s.gameplay.soloSplitTowerGames,s.completed)
  };
 }
 export function evaluate(current,previous){
@@ -67,6 +73,10 @@ export function evaluate(current,previous){
   'Persiste sesgo de color del lado en partidos espejados');
  warn(v.noDragonRate>.30,'Mas de 30% de los partidos no tienen Dragon');
  warn(v.exactlyThreeTowers>.65,'Mas de 65% de los partidos caen con exactamente tres torres');
+ warn(v.multiLaneRate!==null&&v.multiLaneRate<.18,
+  'Menos del 18% de partidas destruyen torres en al menos dos carriles');
+ warn(v.counterTowerRate!==null&&v.counterTowerRate<.04,
+  'Pocas partidas registran torres destruidas por ambos clubes');
  if(p.exactlyThreeTowers!==null&&v.exactlyThreeTowers-p.exactlyThreeTowers>.05)
   warnings.push('La proporción de partidas con exactamente tres torres empeoró más de cinco puntos porcentuales');
  warn(v.noEarlyTowerRate>.90,'Mas de 90% de los partidos no derriban torres antes del minuto 36');
@@ -112,7 +122,10 @@ const keys=[
  ['zeroKillRate','Sin bajas','rate'],
  ['earlyTowerRate','Torres antes del min 36','rate'],
  ['platesMean','Placas por mapa','num'],
- ['comebackRate','Remontadas con deficit >=1500 al min 20','rate']];
+ ['comebackRate','Remontadas con deficit >=1500 al min 20','rate'],
+ ['multiLaneRate','Torres en dos o mas carriles','rate'],
+ ['counterTowerRate','Ambos equipos toman torres','rate'],
+ ['soloSplitTowerGames','Partidos con torre de splitpush solitario','rate']];
 const show=(v,type)=>v==null?'No medido':type==='rate'?percent(v):number(v);
 export function generate(current,previous,output){
  mkdirSync(output,{recursive:true});
@@ -135,8 +148,10 @@ export function generate(current,previous,output){
   ['towers.svg',bars('Torres destruidas (espejados)',Object.entries(m.towers.hist)
    .map(([label,value])=>({label:label+' torres',value})),{max:1000})],
   ['strategy.svg',bars('Indicadores nuevos de presion y remontadas',[
-   {label:'Torres temprano',value:assessment.current.earlyTowerRate*100},
-   {label:'Remontadas',value:assessment.current.comebackRate*100}],{max:100,decimals:0})],
+   {label:'Torres temprano',value:(assessment.current.earlyTowerRate||0)*100},
+   {label:'Dos carriles',value:(assessment.current.multiLaneRate||0)*100},
+   {label:'Ambos toman',value:(assessment.current.counterTowerRate||0)*100},
+   {label:'Remontadas',value:(assessment.current.comebackRate||0)*100}],{max:100,decimals:0})],
   ['previous.svg',bars('Version anterior vs actual: porcentaje de partidas sin Dragon',[
    {label:previous.version,value:assessment.baseline.noDragonRate*100,color:'#f27e8a'},
    {label:current.version,value:assessment.current.noDragonRate*100,color:'#6de2c1'}],{max:100,decimals:0})]
