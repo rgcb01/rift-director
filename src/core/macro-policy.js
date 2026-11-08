@@ -52,10 +52,11 @@
   const eligible=lane==='MID'&&['take','contest'].includes(call?.action)&&
    call?.until>=minute&&['dragon_pit','baron_pit'].includes(call.target)&&hp>=66;
   const travel=eligible?core.Navigation.hops(agent.node,call.target):0;
-  // A TOP push must move toward the *enemy* half on either side, not send
-  // both teams toward blue's corner. MID has a shared central staging node.
+  // Committed waves need a safe, symmetrical TOP staging node. Only a real
+  // escort and sustained momentum can carry them into enemy structures.
+  // Advancing deeper without cover is an avoidable risk, not a free bonus.
   const pushGoal=lane==='TOP'?
-   (side(nav,id)==='blue'?'top_center':'top_corner'):'mid_center';
+   (side(nav,id)==='blue'?'top_corner':'top_center'):'mid_center';
   const risk=observableRisk(nav,world,agent,minute,health,pushGoal);
   const fogRisk=risk.wardCover?0:clamp((67-vision)*.38,0,18);
   const overextendRisk=fogRisk+risk.outnumbered*17+
@@ -67,6 +68,15 @@
   const farming=45+clamp(-wave,0,2)*11+
    underdog*.35+clamp(100-hp,0,50)*.12+
    clamp(50-vision,0,30)*.16;
+  // Defending a wave is a deliberate resource decision, not identical to
+  // last-hitting for gold. It only exists while a publicly observed enemy
+  // wave threatens a surviving friendly tower.
+  const threatened=wave<=-.9&&(world.lanes?.[id]?.[lane]??3)<3;
+  const towerStage=world.lanes?.[id]?.[lane]??0;
+  const damaged=world.waves?.[lane]?.plates?.[id]?.[towerStage]??0;
+  const defendScore=threatened?45+clamp(-wave,0,3)*12+
+   clamp((world.map?.lanes?.[lane]?.pressure?.[opponent]??50)-50,0,40)*.2+
+   damaged*2-risk.outnumbered*12-clamp(66-hp,0,66)*.38: null;
   const pushing=32+clamp(wave,0,3)*14+
    (pressure-50)*.62+(vision-50)*.12-(100-hp)*.20+
    visiblePick+underdog*.65-overextendRisk;
@@ -85,13 +95,13 @@
     Math.max(0,travel-1)*3.7-clamp(-wave,0,3)*5+
     (world.dragons?.[opponent]??0)*.5+
     escort*3+comebackOpportunity-objectiveRisk:-Infinity;
-  const scores={farm:round(farming),pressure:round(pushing),
-   objective:eligible?round(rotating):null};
-  const action=['farm','pressure',...(eligible?['objective']:[])]
-   .sort((a,b)=>scores[b]-scores[a]||
-      ['farm','pressure','objective'].indexOf(a)-
-      ['farm','pressure','objective'].indexOf(b))[0];
-  const goal=action==='farm'?side(nav,id)+'_'+lane.toLowerCase()+'_front':
+  const scores={farm:round(farming),defend:threatened?round(defendScore):null,
+   pressure:round(pushing),objective:eligible?round(rotating):null};
+  const priority=['farm','defend','pressure','objective'];
+  const action=priority.filter(k=>scores[k]!==null)
+   .sort((a,b)=>scores[b]-scores[a]||priority.indexOf(a)-priority.indexOf(b))[0];
+  const goal=(action==='farm'||action==='defend')?
+   side(nav,id)+'_'+lane.toLowerCase()+'_front':
    action==='pressure'?pushGoal:call.target;
   return {version:1,teamId:id,actorId:agent.id,role:agent.role,lane,
    created:minute,until:minute+2,action,goal,scores,
@@ -149,10 +159,11 @@
     const agent=frame.navigation?.before?.[id];
     if(p.version!==1||!agent||!roles.includes(p.role)||
        p.actorId!==id||p.teamId!==agent.teamId||p.role!==agent.role||
-       p.lane!==agent.role||!['farm','pressure','objective'].includes(p.action)||
+       p.lane!==agent.role||!['farm','defend','pressure','objective'].includes(p.action)||
        !core.Navigation.adjacency[p.goal]||p.created>frame.minute||
        p.until<frame.minute||p.until-p.created!==2||
        !Number.isFinite(p.scores?.farm)||!Number.isFinite(p.scores?.pressure)||
+       (p.action==='defend'&&!Number.isFinite(p.scores?.defend))||
        (p.action==='objective'&&!Number.isFinite(p.scores?.objective))||
        !Number.isFinite(p.evidence?.wave)||
        !Number.isFinite(p.evidence?.goldDeficit)||
