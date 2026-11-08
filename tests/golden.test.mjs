@@ -13,6 +13,7 @@ test('semilla fija: Alpha 0.7.14 macro reproducible y contabilidad estable', () 
   assert.equal(hash(world), 'b3fb6a59ae4ad7748ef4889deec8cc722902340da330beaf6868b557a9ee0330');
   const fixture = Object.values(world.fixtures).flat().find(f => f.a === world.userClub || f.b === world.userClub);
   const match = sim.simulateMatch(fixture);
+  const originalFullMatchHash=hash(match);
   // The structured "facts" field is additive. Confirm the legacy event envelope
   // remains identical for the reference seed, unless a documented bugfix changes it.
   const legacyMatch = {...match, frames:match.frames.map(({playerStats,map,minimap,navigation,...frame})=>frame), events:match.events.map(({facts,...event})=>event)};
@@ -43,7 +44,7 @@ test('semilla fija: Alpha 0.7.14 macro reproducible y contabilidad estable', () 
   const againWorld=again.newGame('balanced','QA Esports');
   const againFixture=Object.values(againWorld.fixtures).flat().find(f=>
    f.a===againWorld.userClub||f.b===againWorld.userClub);
-  assert.equal(hash(again.simulateMatch(againFixture)),hash(match),
+  assert.equal(hash(again.simulateMatch(againFixture)),originalFullMatchHash,
    'Identical seed and fixture must reproduce the entire match exactly');
   assert.match(matchHash,/^[a-f0-9]{64}$/);
   assert.equal(worldAfterMatch, '342aa15055a9fab9e597749e13d099630f73351acb244b4d5c4380068b36caf1');
