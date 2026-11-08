@@ -7,7 +7,7 @@ const hash = value => createHash('sha256').update(JSON.stringify(value)).digest(
 
 // Fingerprints captured from the unmodified Alpha 0.2 (commit 4893edb).
 // Changing one requires deliberate discussion and a migration / balance note.
-test('semilla fija: balance Alpha 0.7.10 reproducible y contabilidad estable', () => {
+test('semilla fija: balance Alpha 0.7.11 reproducible y contabilidad estable', () => {
   const { sim } = boot({ now: 1731111111000 });
   const world = sim.newGame('balanced', 'QA Esports');
   assert.equal(hash(world), 'b3fb6a59ae4ad7748ef4889deec8cc722902340da330beaf6868b557a9ee0330');
