@@ -14,6 +14,9 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 - Nueva auditoría independiente reconstruye cada racha desde los hechos de la partida, detecta recibos falsos, duplicaciones de oro personal y divergencias de instantáneas. Se añaden pruebas de unidad y de simulación multisemilla.
 - **10 gráficas y comparativa por versión:** nuevas métricas de mapas con shutdown, oro total y oro entregado al equipo que continúa perdiendo. Se comparan 1,000 partidas auditadas + 1,000 espejadas contra el baseline verificado de Alpha 0.7.10.
 - **Scope controlado:** no se tocan daño, XP, IA de navegación, decisión de Dragón/Barón ni costes de objetos. Las futuras mecánicas de pelea en objetivos se evaluarán por separado.
+- **Resultado de validación (2,000 partidos, run 42454674583):** 1,000 mapas auditados y 1,000 espejados, cero errores de causalidad; 8.8% con shutdown y 19.05 de oro extra por mapa en promedio. El oro de shutdown fue para equipos aún en desventaja a razón de 12.63 por mapa, contando todos los encuentros.
+- **Hallazgo abierto de balance:** las remontadas medidas pasaron del 2.0% al 1.9%, las kills de 6.87 a 6.86 y Dragón/Barón quedaron prácticamente sin cambios. La mecánica es válida, pero **no resuelve aún las remontadas**: los shutdowns son poco frecuentes y la economía recuperada es insuficiente. No forzar un comeback ni subir recompensas sin revalidar. Pendiente: mejorar las oportunidades de pelea y castigo real a ventajas mal defendidas en una versión distinta.
+
 
 
 ## [0.7.10-alpha] — 2026-11-07
