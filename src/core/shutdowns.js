@@ -55,7 +55,6 @@ function audit(match){
   const victims=f?.victimIds;
   if(Array.isArray(victims)&&victims.length){
    try{
-    apply(expected,{facts:{actorId:f.actorId,victimIds:victims}});
     const replica={facts:{actorId:f.actorId,victimIds:victims}};
     apply(ledger,replica);
     if(JSON.stringify(replica.facts.shutdowns)!==JSON.stringify(f.shutdowns)||
