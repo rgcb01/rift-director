@@ -76,6 +76,7 @@ function teamGoldAward(model,teamId,amount){
  if(!Number.isSafeInteger(amount)||amount<0)throw Error('Invalid objective payout');
  const players=Object.values(model.entries).filter(p=>p.teamId===teamId)
   .sort((a,b)=>a.id.localeCompare(b.id));
+ if(players.length!==5)throw Error('Objective payout requires exactly five team players');
  const shared=Math.floor(amount/players.length),extra=amount%players.length;
  players.forEach((p,i)=>goldAward(model,p.id,shared+(i<extra?1:0),'objectiveGold'));
 }
