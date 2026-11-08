@@ -25,9 +25,12 @@ test('semilla fija: coherencia espacial Alpha 0.7.6 reproducible y contabilidad 
   delete legacyMatch.playerStats; // Additive M1.2 individual stats do not change match RNG/outcomes.
   // M1.3B changes match outcomes intentionally: movement and proximity now govern all objectives.
   // Snapshot after stripping the additive facts field; future changes require an explanation.
-  assert.equal(hash(legacyMatch), '0a85ab4048c468b9f04f197024400648abba8cd5629eb3aaf1f2e5266ddb29ad');
-  assert.equal(hash(world), 'f7205d60b2892ae542131eeda06b944a1432573adf3b8d53760d6f0a70cfe53d');
-  const report = sim.applyMonth();
-  assert.equal(hash(report), '63f62558933347e5947cc1b476f9056c23d59aa9e79fce65edd0c7d58372dbd9');
-  assert.equal(hash(world), '14c70950c833af2cbd130327f3642497eabfb222b37e46e85128a2a018ce4a65');
+  const matchHash=hash(legacyMatch),worldAfterMatch=hash(world);
+  const report=sim.applyMonth();
+  const reportHash=hash(report),worldAfterMonth=hash(world);
+  console.log('NEW_GOLDEN_077='+JSON.stringify({matchHash,worldAfterMatch,reportHash,worldAfterMonth}));
+  assert.equal(matchHash, '0a85ab4048c468b9f04f197024400648abba8cd5629eb3aaf1f2e5266ddb29ad');
+  assert.equal(worldAfterMatch, 'f7205d60b2892ae542131eeda06b944a1432573adf3b8d53760d6f0a70cfe53d');
+  assert.equal(reportHash, '63f62558933347e5947cc1b476f9056c23d59aa9e79fce65edd0c7d58372dbd9');
+  assert.equal(worldAfterMonth, '14c70950c833af2cbd130327f3642497eabfb222b37e46e85128a2a018ce4a65');
 });
