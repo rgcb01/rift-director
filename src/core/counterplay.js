@@ -39,11 +39,17 @@
     const deficit=(gold?.[foe]||0)-(gold?.[actor.teamId]||0);
     const streak=shutdowns?.streaks?.[target.id]||0;
     const bounty=core.Shutdowns.bounty(streak);
-    // Equal-number fights are viable against a visibly wounded rival,
-    // not automatically avoided. The damage engine still decides the kill.
-    if(localEdge===0&&(hp>72||allyHp<hp+22)&&bounty<150)continue;
+    // Two balanced groups can still fight when their lane has a factual
+    // pressure edge or one rival is visibly weaker. Avoid free full-HP
+    // 2v2s with no strategic opportunity.
+    const lane=roleLane(target.role)||roleLane(actor.role)||'MID';
+    const lanePressure=map?.lanes?.[lane]?.pressure?.[actor.teamId]??50;
+    if(localEdge===0&&bounty<150&&
+       ((hp>85&&lanePressure<60)||allyHp+12<hp))continue;
     const score=14+localEdge*15+(100-hp)*.24+
-      Math.min(10,Math.max(0,allyHp-hp)*.22)+Math.min(bounty/35,11)+
+      Math.min(10,Math.max(0,allyHp-hp)*.22)+
+      Math.min(10,Math.max(0,lanePressure-50)*.5)+
+      (localEdge===0?5:0)+Math.min(bounty/35,11)+
       (deficit>1200?Math.min(deficit/600,7):0)-
       Math.max(0,74-allyHp)*.16;
     if(score<30)continue;
