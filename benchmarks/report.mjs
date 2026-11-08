@@ -28,6 +28,15 @@ export function flatten(d){
   zeroKillRate:ratio(s.gameplay.zeroKills,s.completed),
   earlyTowerRate:s.gameplay.earlyTowerMatches===undefined?null:ratio(s.gameplay.earlyTowerMatches,s.completed),
   platesMean:s.gameplay.platesPerMatch||0,
+  contestedDragonRate:s.gameplay.contestedDragonGames===undefined?null:
+    ratio(s.gameplay.contestedDragonGames,s.completed),
+  contestedDragonsMean:s.gameplay.contestedDragonsPerMatch??null,
+  dragonStealsPer100:s.gameplay.dragonStealsPer100Maps??null,
+  firstDragonMean:s.gameplay.firstDragonMean??null,
+  objectiveCommitmentMean:s.gameplay.objectiveCommitmentMinutesPerMatch??null,
+  crossmapPlatesMean:s.gameplay.crossmapTradePlatesPerMatch??null,
+  crossmapTowerRate:s.gameplay.crossmapTradeTowerGames===undefined?null:
+    ratio(s.gameplay.crossmapTradeTowerGames,s.completed),
   comebackRate:s.gameplay.comebackWins20===undefined?null:ratio(s.gameplay.comebackWins20,s.completed),
   multiLaneRate:s.gameplay.gamesMultipleTowerLanes===undefined?null:
     ratio(s.gameplay.gamesMultipleTowerLanes,s.completed),
@@ -88,6 +97,10 @@ export function evaluate(current,previous){
  warn(v.pairedBlueWinRate>.55||v.pairedBlueWinRate<.45,
   'Persiste sesgo de color del lado en partidos espejados');
  warn(v.noDragonRate>.30,'Mas de 30% de los partidos no tienen Dragon');
+ warn(v.contestedDragonRate!==null&&v.contestedDragonRate<.03,
+  'Pocos mapas registran Dragones disputados físicamente');
+ warn(v.crossmapPlatesMean!==null&&v.crossmapPlatesMean<.01,
+  'La decisión de intercambiar Dragón rara vez produce placas reales');
  warn(v.exactlyThreeTowers>.65,'Mas de 65% de los partidos caen con exactamente tres torres');
  warn(v.multiLaneRate!==null&&v.multiLaneRate<.18,
   'Menos del 18% de partidas destruyen torres en al menos dos carriles');
@@ -156,6 +169,13 @@ const keys=[
  ['zeroKillRate','Sin bajas','rate'],
  ['earlyTowerRate','Torres antes del min 36','rate'],
  ['platesMean','Placas por mapa','num'],
+ ['contestedDragonRate','Mapas con Dragón disputado','rate'],
+ ['contestedDragonsMean','Dragones disputados por partida','num'],
+ ['dragonStealsPer100','Robos de Dragón por 100 mapas','num'],
+ ['firstDragonMean','Minuto promedio del primer Dragón','num'],
+ ['objectiveCommitmentMean','Minutos-jugador de preparación del Dragón','num'],
+ ['crossmapPlatesMean','Placas obtenidas como intercambio por Dragón','num'],
+ ['crossmapTowerRate','Mapas con torre intercambiada por Dragón','rate'],
  ['comebackRate','Remontadas con deficit >=1500 al min 20','rate'],
  ['multiLaneRate','Torres en dos o mas carriles','rate'],
  ['counterTowerRate','Ambos equipos toman torres','rate'],
@@ -197,6 +217,11 @@ export function generate(current,previous,output){
    {label:'Dos carriles',value:(assessment.current.multiLaneRate||0)*100},
    {label:'Ambos toman',value:(assessment.current.counterTowerRate||0)*100},
    {label:'Remontadas',value:(assessment.current.comebackRate||0)*100}],{max:100,decimals:0})],
+  ['dragon.svg',bars('Objetivos neutrales: disputa, intercambios y ausencia',[
+   {label:'Sin Dragon',value:assessment.current.noDragonRate*100},
+   {label:'Disputado',value:(assessment.current.contestedDragonRate||0)*100},
+   {label:'Torre de intercambio',value:(assessment.current.crossmapTowerRate||0)*100}
+  ],{max:100,decimals:0})],
   ['power.svg',bars('Equipamiento: porcentaje de mapas por resultado',[
    {label:'Ambos compran',value:(assessment.current.bothTeamsItemRate||0)*100},
    {label:'Slots llenos',value:(assessment.current.itemSlotsUsed||0)*100},
