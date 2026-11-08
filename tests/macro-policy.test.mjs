@@ -239,6 +239,7 @@ test('un TOP con ventaja de oro y oleada conserva el splitpush de su rol',()=>{
  assert.equal(granted[top.id],undefined,
   'La macro no puede cancelar un splitpush de rol con ventaja legítima');
  state.waves.TOP.front=-2.1;
+ state.map.lanes.TOP.pressure[b]=70;
  const forced=core.MacroPolicy.plan(nav,state,20,health,{});
  assert.equal(forced[top.id]?.action,'defend',
   'La defensa de una oleada amenazada sigue teniendo prioridad causal');
