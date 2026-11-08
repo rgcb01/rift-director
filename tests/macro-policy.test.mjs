@@ -36,10 +36,10 @@ test('la misma oleada genera decisiones diferentes por ventaja, visión y econom
  const weak=core.MacroPolicy.evaluate(nav,state,nav.agents[clubs[1].lineup.MID],18,health);
  assert.equal(strong.action,'pressure');
  assert.equal(strong.goal,'mid_center');
- assert.equal(weak.action,'farm');
+ assert.equal(weak.action,'defend','Una oleada amenazante merece defensa activa');
  assert.equal(weak.goal,'red_mid_front');
  assert.ok(strong.scores.pressure>strong.scores.farm);
- assert.ok(weak.scores.farm>weak.scores.pressure);
+ assert.ok(weak.scores.defend>weak.scores.pressure);
 });
 test('rotación a Dragón compite con oro perdido, sin regalar captura, experiencia ni recompensa',()=>{
  const {core,nav,state,health,a,clubs}=setup();
@@ -56,14 +56,15 @@ test('rotación a Dragón compite con oro perdido, sin regalar captura, experien
  state.map.lanes.MID.vision[a]=30;
  health[mid.id]=75;
  const farm=core.MacroPolicy.evaluate(nav,state,mid,22,health);
- assert.equal(farm.action,'farm','Una oleada perdida y un deficit real deben justificar farm');
+ assert.ok(['farm','defend'].includes(farm.action),
+  'Una oleada perdida y un déficit real exigen quedarse en línea');
  nav.neutralPlans={[a]:{action:'take',target:'dragon_pit',
   reason:'dragon_take',until:25,score:25}};
  nav.macroPlans=core.MacroPolicy.plan(nav,state,22,health,{});
  const before=core.MacroPolicy.snapshot(nav,22);
- assert.equal(before.plans[mid.id].action,'farm');
+ assert.equal(before.plans[mid.id].action,farm.action);
  const movement=core.MacroPolicy.movement(nav,mid,22);
- assert.equal(movement.intent,'macro_farm');
+ assert.equal(movement.intent,'macro_'+farm.action);
  assert.equal(movement.decisionVersion,5);
  assert.equal(nav.seed,23519,'La decisión no consume RNG global');
 });
@@ -113,7 +114,7 @@ test('el riesgo de empuje se basa en rivales vistos, no en HP o posiciones ocult
  assert.ok(ward.evidence.overextendRisk<hiddenHealthy.evidence.overextendRisk,
   'Un ward realmente colocado reduce el riesgo de la ruta');
 });
-test('TOP presiona hacia el lado rival y no siempre hacia el mismo rincón azul',()=>{
+test('TOP prepara oleadas desde puntos seguros simétricos antes de avanzar',()=>{
  const {core,nav,state,health,a,b,clubs}=setup();
  state.waves.TOP.front=3;
  state.map.lanes.TOP.pressure[a]=82;
@@ -127,8 +128,8 @@ test('TOP presiona hacia el lado rival y no siempre hacia el mismo rincón azul'
   nav.agents[clubs[1].lineup.TOP],18,health);
  assert.equal(blue.action,'pressure');
  assert.equal(red.action,'pressure');
- assert.equal(blue.goal,'top_center');
- assert.equal(red.goal,'top_corner');
+ assert.equal(blue.goal,'top_corner');
+ assert.equal(red.goal,'top_center');
  assert.ok(core.Navigation.hops('blue_top_front',blue.goal)>0);
  assert.ok(core.Navigation.hops('red_top_front',red.goal)>0);
 });
@@ -167,6 +168,38 @@ test('presión compromete una oleada física; la llamada no concede oro gratis',
  core.LaneEconomy.advance(economy,{minute:19,nav,map:state.map,health,gold});
  assert.equal(gold[a],goldBefore,'Dar orden de empuje sin presencia no entrega gold');
  assert.ok(economy.lanes.TOP.front<momentum,'La oleada pierde impulso sin escort real');
+});
+test('una defensa física frena oleadas entrantes sin regalar oro ni destruir torres',()=>{
+ const {core,nav,state,health,a,b,clubs}=setup();
+ for(const p of Object.values(nav.agents)){
+  p.node=p.teamId===a?'blue_fountain':'red_fountain';
+  p.alive=true;p.intent='lane';
+ }
+ const defender=nav.agents[clubs[0].lineup.TOP];
+ const attacker=nav.agents[clubs[1].lineup.TOP];
+ defender.node='blue_top_front';attacker.node='red_top_front';
+ state.waves.TOP.front=-2;
+ state.map.lanes.TOP.pressure[a]=35;
+ state.map.lanes.TOP.pressure[b]=65;
+ const decision=core.MacroPolicy.evaluate(nav,state,defender,19,health);
+ assert.equal(decision.action,'defend');
+ const goldFarm={[a]:0,[b]:0},goldDefense={[a]:0,[b]:0};
+ defender.intent='macro_farm';
+ const farm=core.LaneEconomy.create(a,b);
+ core.LaneEconomy.advance(farm,{minute:19,nav,map:state.map,health,gold:goldFarm});
+ defender.intent='macro_defend';
+ const defense=core.LaneEconomy.create(a,b);
+ core.LaneEconomy.advance(defense,{minute:19,nav,map:state.map,health,gold:goldDefense});
+ assert.ok(defense.lanes.TOP.front>farm.lanes.TOP.front,
+  'Defensa visible debe frenar el avance de la oleada enemiga');
+ assert.deepEqual(goldFarm,goldDefense,'Defender no fabrica farm extra');
+ defender.node='blue_fountain';
+ const untouched=core.LaneEconomy.create(a,b);
+ const goldAway={[a]:0,[b]:0};
+ core.LaneEconomy.advance(untouched,{minute:19,nav,map:state.map,health,gold:goldAway});
+ assert.equal(goldAway[a],0,'Defender desde la fuente no produce oro');
+ assert.ok(untouched.lanes.TOP.front<defense.lanes.TOP.front,
+  'La defensa desaparece al abandonar físicamente el carril');
 });
 test('70 partidas reproducibles conservan las auditorías y registran costes de oportunidad',()=>{
  const {sim,core,world,fixture}=setup();
