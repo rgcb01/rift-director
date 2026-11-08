@@ -890,6 +890,8 @@ function matchEventDetail(e){
  if(f.combatVersion===1)detail=`${f.mode==='gank'?'Gank':f.mode==='lane'?'Línea '+f.lane:'Pelea'} · ${f.attackerCount} atacante(s) · ${f.impacts.map(p=>who(p.id)+' '+p.hpBefore+'%→'+p.hpAfter+'%').join('; ')} · ${f.victimIds.length?'Baja(s): '+f.victimIds.length:f.outcome==='retreat'?'Retirada confirmada':'Intercambio sin baja'}`;
  else if(f.action==='gank')detail=`${f.lane||'Carril'} · Ruta ${f.route||'desconocida'} · Jungla: ${who(f.initiatorId)} · Kill: ${who(f.actorId)} · Visión rival ${f.defenderVision??'—'}/100`;
  else if(f.action==='teamfight')detail=`${who(f.actorId)} · ${f.victimIds.length} eliminaciones${f.ace?' · Exterminio confirmado':''}`;
+ if(f.bountyGold>0)detail+=' · Shutdown '+f.bountyGold+' oro contra '+
+  f.shutdowns.map(x=>who(x.victimId)+' ('+x.streakBefore+' kills de racha)').join(', ');
  else if(f.action==='skirmish')detail=`${f.zone==='dragon_pit'?'Dragón':'Barón'} · ${f.attackerCount} contra ${f.defenderCount} · ${who(f.targetId)}: ${f.hpBefore}% → ${f.hpAfter}% de vida · ${f.outcome==='kill'?'Eliminación confirmada':'Se retira sin morir'}`;
  else if(f.action==='baron')detail=f.stolen?`Robo con Smite: ${who(f.actorId)} (JUN)`:`Barón asegurado: ${who(f.actorId)}`;
  else if(f.action==='dragon')detail=`Objetivo: ${who(f.actorId)} · Dragón ${f.ordinal}`;
