@@ -6,12 +6,12 @@ Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prome
 
 ## Estado de release y próximas versiones (2026-11-08)
 
-**Publicada: Alpha 0.7.13** mediante PRs #21–#27 (pruebas de regresión, economía de oleadas, placas/torres, rotaciones, XP/objetos, dragones disputados, shutdowns y contraataques visibles). Comparación 0.7.11→0.7.12 sobre 1,000 mapas auditados y 1,000 espejados: kills 6.86→6.39, remontadas 1.9%→4.2%, shutdowns 8.8%→11%, ventaja azul espejada 51.1%→50.2%. Sin errores de auditoría, bloqueos ni advertencias en el run 42459888783.
+**Publicada: Alpha 0.7.14** mediante PR #32, después de 139/139 pruebas funcionales y 1,000 partidas auditadas más 500 pares espejados. Economía estratégica con decisiones de farm, defensa de oleadas, presión y rotaciones respaldadas por información observada. Frente a 0.7.13: kills 6.41→6.39, remontadas 4.5%→4.2%, victorias azules espejadas 49.9%→49.5%, duración 49.18→49.28 minutos. Cero regresiones bloqueantes y cero advertencias en Actions 42533682794.
 
-**Alpha 0.7.13 cerrada (#29):** wards colocados físicamente por JUN/SUP, visibilidad local limitada y replay auditable. 128/128 pruebas y 2,000 mapas en verde (run 42460763541). **Siguiente: 0.7.14**, economía estratégica de recursos de mapa y trade-offs verificables entre farm, presión y objetivos.
+**Alpha 0.7.13 cerrada (#29):** wards colocados físicamente por JUN/SUP, visibilidad local limitada y replay auditable; 128/128 pruebas. **Alpha 0.7.14 cerrada (#32):** evaluación de riesgo visible, defensa física, prioridades macro selectivas y costes de oportunidad auditables. **Siguiente: Alpha 0.7.15**, asedios, defensa de estructuras, inhibidores y conversión causal del Barón; recuperar variedad de splitpush y torres multicarril sin favorecer un lado artificialmente.
 
 **Más adelante (propuesta, sujeta a balance):**
-- **0.7.14:** economía de recursos/mapa y prioridades de farm, presión y objetivos con trade-offs.
+- **0.7.14 [integrada]:** economía de recursos y evaluación de riesgos: farm, defensa, presión y rotaciones con costes de oportunidad.
 - **0.7.15:** defensa, asedios, inhibidores y conversiones reales de Barón.
 - **0.7.16:** calibración, cobertura de regresión, variedad de snowballs/throws/remontadas sin guiones.
 - **0.8:** campeones ficticios, habilidades, builds y metajuego competitivo.
@@ -29,7 +29,7 @@ Cualquier cambio deportivo en Alpha x.y.z exige pruebas funcionales, referencia 
 - **M1.4A — [base narrativa integrada]:** cobertura contextual basada en hechos; velocidades 1×/2×/5× retiradas de la interfaz en Alpha 0.7.
 - **M1.5 — [integrado, QA móvil pendiente]:** siguiente evento y final instantáneo, historial clicable, marcador/minimapa sincronizados y último replay guardado.
 - **M1.3B — [primer corte integrado]:** agentes por nodo, desplazamiento previo a eventos, ganks/torres/objetivos/asedio con presencia real y auditoría. Falta ampliar intención autónoma, interpolación y contraestrategias.
-- **M1.3C — [en desarrollo, PR #29]:** wards físicos y visión parcial como primera fase; niebla, invasiones y visión avanzada aún pendientes.
+- **M1.3C — [primer corte integrado, PR #29]:** wards físicos y visión parcial; niebla, invasiones y visión avanzada aún pendientes.
 
 ## Hitos
 
@@ -121,7 +121,7 @@ Cualquier cambio deportivo en Alpha x.y.z exige pruebas funcionales, referencia 
 
 ## Próxima tarea concreta
 
-**Alpha 0.7.14:** planificar opciones de farm, presión y objetivos con costes de oportunidad observables; no premiar movimientos sin presencia física. Mantener pendientes la prueba manual de guardados históricos y móvil (M1.1), la negociación detallada (M3) y la niebla/visión avanzada (M1.3C).
+**Alpha 0.7.15:** mejorar conversiones de Barón a torres e inhibidores, asedios y defensa física; recuperar splitpush y variedad de líneas sin guiones ni resultados garantizados. Mantener pendientes la prueba manual de guardados históricos y móvil (M1.1), la negociación detallada (M3) y la niebla/visión avanzada (M1.3C).
 
 ### M1.3 · Minimap dinámico y navegación espacial
 
