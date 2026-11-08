@@ -127,11 +127,18 @@ function createBroadcast(match,world,seed) {
     ['Cede la defensa de '+lane,enemy+' pierde su torre '+layer+'; '+club+' gana espacio para seguir avanzando.']
    ];
   }else if(f.action==='dragon'){
-   entries=[
+   entries=f.stolen?[
+    ['¡Robo de Dragón!',actor+' llega al foso y roba el objetivo iniciado por '+enemy+' con Smite.'],
+    ['¡Smite decisivo de '+actor+'!',club+' recupera el Dragón disputado tras la preparación de '+enemy+'.'],
+    ['¡El Dragón cambia de manos!',actor+' castiga el intento de '+enemy+' y se queda el objetivo.']
+   ]:f.contested?[
+    ['¡Dragón disputado para '+club+'!',actor+' asegura la captura pese a la presión de '+enemy+'.'],
+    ['¡Gana la pelea por el objetivo!',club+' conquista el Dragón número '+f.ordinal+' con '+actor+' en el foso.'],
+    ['¡Control del río!',actor+' asegura el Dragón ante la presencia del rival.']
+   ]:[
     ['Dragón para '+club,actor+' participa en el objetivo. Ya son '+f.ordinal+' dragones para '+club+'.'],
-    ['Controlan el foso inferior',club+' asegura su dragón número '+f.ordinal+' con '+actor+' entre los participantes.'],
-    ['¡Objetivo elemental asegurado!',actor+' aparece entre quienes consiguen el dragón '+f.ordinal+' de '+club+'.'],
-    ['El río da sus frutos',club+' confirma su '+f.ordinal+'.º dragón del encuentro; '+actor+' figura en la jugada.']
+    ['Controlan el foso inferior',club+' asegura su dragón número '+f.ordinal+' sin oposición inmediata.'],
+    ['¡Objetivo elemental asegurado!',actor+' aparece entre quienes consiguen el dragón '+f.ordinal+' de '+club+'.']
    ];
   }else if(f.action==='baron'){
    entries=f.stolen?[
