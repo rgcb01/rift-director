@@ -278,7 +278,7 @@ function simulateMatch(f){
    if(!purchase)continue;
    const buyer=player(agent.id);
    makeEv(t,'Compra de equipamiento',
-     buyer.name+' regresa a base y compra '+purchase.itemName+
+     buyer.name+(purchase.voluntaryRecall?' completa un regreso táctico y compra ':' aprovecha su presencia en base para comprar ')+purchase.itemName+
      ' por '+purchase.goldCost+' de oro, alcanzando nivel '+purchase.level+'.',
      'normal',club(agent.teamId),purchase);
   }
