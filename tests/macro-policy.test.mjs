@@ -209,7 +209,8 @@ test('sin ventaja verificable, el plan macro no sustituye a la navegación exist
  assert.equal(undecided.action,'farm');
  assert.equal(core.MacroPolicy.credible(undecided),false);
  const empty=core.MacroPolicy.plan(nav,state,18,health,{});
- assert.deepEqual(empty,{},'No forzar farm/pressure solo porque pasó un minuto');
+ assert.equal(Object.keys(empty).length,0,
+  'No forzar farm/pressure solo porque pasó un minuto');
  state.waves.TOP.front=2.7;
  state.map.lanes.TOP.pressure[a]=80;
  state.map.lanes.TOP.vision[a]=89;
