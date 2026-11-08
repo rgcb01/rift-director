@@ -126,3 +126,39 @@ test('el oro de objetivos llega a los jugadores y modifica su poder real',()=>{
  assert.ok(equipped.impacts[0].damage>normal.impacts[0].damage,
   'Los niveles e ítems deben cambiar el daño real, no solo la narración');
 });
+
+test('regreso táctico: lesión y compra justifican el viaje, no el mero oro acumulado',()=>{
+ const {core}=boot();
+ const E=core.PowerEconomy,model=E.create(testRoster());
+ const nav={a:'a',b:'b',siegeTeam:null,agents:Object.fromEntries(testRoster().map(p=>
+  [p.id,{...p,alive:true,intent:'lane',
+    node:p.teamId==='a'?'blue_top_front':'red_top_front'}]))};
+ const world={gold:{a:13000,b:15300}};
+ const p=nav.agents['a-TOP'],row=model.entries[p.id];
+ row.wallet+=5500;row.earned+=5500;
+ const health=Object.fromEntries(testRoster().map(p=>[p.id,100]));
+ assert.equal(E.shouldRecall(model,nav,p,20,world,{health}),false,
+  'Un jugador sano no abandona la línea solo por tener oro');
+ health[p.id]=63;
+ assert.equal(E.shouldRecall(model,nav,p,20,world,{health}),true,
+  'Un jugador herido puede transformar el oro en una compra útil');
+ p.intent='shop_recall';
+ nav.siegeTeam='a';
+ health[p.id]=100;
+ assert.equal(E.shouldRecall(model,nav,p,29,world,{health}),true,
+  'Un reset en ruta mantiene el compromiso hasta llegar a la base');
+ p.node='blue_nexus';
+ const buy=E.purchase(model,nav,p,29,world);
+ assert.equal(buy?.voluntaryRecall,true);
+ assert.equal(row.voluntaryBuys,1);
+ assert.equal(E.shouldRecall(model,nav,p,30,world,{health}),false,
+  'Una compra completada no puede reiniciar otro regreso consecutivo');
+ const other=nav.agents['a-MID'],second=model.entries[other.id];
+ second.wallet+=5500;second.earned+=5500;
+ health[other.id]=51;
+ assert.equal(E.shouldRecall(model,nav,other,42,world,{health}),true,
+  'Un compañero herido puede comprar después del primer reset');
+ nav.siegeTeam='b';health[other.id]=67;
+ assert.equal(E.shouldRecall(model,nav,other,42,world,{health}),false,
+  'Un asedio activo no debe perder un jugador suficientemente sano');
+});
