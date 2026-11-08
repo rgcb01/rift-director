@@ -153,6 +153,7 @@ test('regreso táctico: lesión y compra justifican el viaje, no el mero oro acu
  assert.equal(row.voluntaryBuys,1);
  assert.equal(E.shouldRecall(model,nav,p,30,world,{health}),false,
   'Una compra completada no puede reiniciar otro regreso consecutivo');
+ p.intent='lane'; // Navigation releases the traveler on the following minute.
  const other=nav.agents['a-MID'],second=model.entries[other.id];
  second.wallet+=5500;second.earned+=5500;
  health[other.id]=51;
