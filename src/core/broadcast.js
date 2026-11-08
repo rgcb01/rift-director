@@ -105,7 +105,13 @@ function createBroadcast(match,world,seed) {
    ];
   }else if(f.action==='tower'){
    const layer=['','exterior','interior','de base'][f.stage],lane=laneLabel[f.lane];
-   entries=[
+   entries=f.soloSplitpush?[
+    ['¡Splitpush en '+lane+'!',actor+' derriba por su cuenta la torre '+layer+
+      ' de '+enemy+'. La oleada llegó y ningún defensor estaba cerca.'],
+    ['La presión lateral se convierte en oro',club+' consigue la torre '+layer+
+      ' en '+lane+' gracias a la presión individual de '+actor+'.'],
+    ['¡'+enemy+' descuida '+lane+'!',actor+' aprovecha la ruta desprotegida y conquista la torre '+layer+'.']
+   ]:[
     ['¡Se abre '+lane+'!',actor+' participa en la caída de la torre '+layer+' de '+enemy+'. '+club+' convierte presión en una estructura.'],
     ['Una estructura menos para '+enemy,'La torre '+layer+' de '+lane+' queda destruida. '+actor+' lidera el empuje de '+club+'.'],
     ['La presión se convierte en torre',club+' derriba la torre '+layer+' del carril '+lane+'. '+actor+' consta entre los protagonistas.'],
