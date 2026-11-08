@@ -7,6 +7,7 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 ## [0.7.12-alpha] — 2026-11-08
 
 ### Contraataques basados en visibilidad y presión territorial ganada
+- Ajuste de balance posterior a las primeras 2,000 partidas: permitir enfrentamientos visibles con números iguales cuando un objetivo está herido, resolver varios rivales visibles en una misma pelea y evaluar hasta tres oportunidades independientes sin tirar RNG global. El motor de daño y los requisitos de alcance siguen sin cambios. Requiere benchmark comparativo nuevo antes de aprobar.
 - **Selección de peleas por oportunidad real:** se reemplaza la selección probabilística del equipo atacante en las peleas grupales por una evaluación determinista de un enemigo realmente visible, el apoyo físico próximo (mínimo dos aliados), salud, aislamiento local, ventaja de oro y racha conocida del objetivo.
 - Las decisiones distinguen **caza de shutdown**, **rival aislado**, **contraataque de equipo rezagado** y **pelea con superioridad visible**. La información de visión es la aproximación existente y no permite revelar siempre enemigos lejanos. Se respeta el enfriamiento entre peleas y no se ejecutan ataques contra muertos o enemigos ya en retirada.
 - **Sin kills artificiales:** la decisión solamente propone un encuentro; daño, alcance, objetivos alcanzados, bajas y retirada siguen resolviéndose por `Encounters.resolveCombat` con las estadísticas existentes. No se sube el daño, la XP, las recompensas ni se crean probabilidades de victoria especiales.
