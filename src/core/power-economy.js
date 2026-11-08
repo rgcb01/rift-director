@@ -141,13 +141,13 @@ function shouldRecall(model,nav,agent,minute,worldState,context=null){
  // Continue a reset already in progress, even if the wave or HP changes
  // while the professional walks along legal graph edges to the nexus.
  if(agent.intent==='shop_recall')return true;
- if(agent.role==='JUN'&&minute<36)return false;
+ if(agent.role==='JUN'&&minute<36||agent.role==='SUP'&&minute<29)return false;
  const hp=id=>context?.health?.[id]??100;
  const committed=nav.siegeTeam!==null&&minute>=24;
  const accepted=p=>{
   const r=model.entries[p.id];
   if(!r||r.voluntaryBuys>=1||minute-r.lastPurchaseMinute<8||
-     p.role==='JUN'&&minute<36)return false;
+     (p.role==='JUN'&&minute<36||p.role==='SUP'&&minute<29))return false;
   const buy=nextPurchase(model,p.id,enemyLead);
   if(!buy||r.wallet<buy.cost+450)return false;
   const health=hp(p.id);
