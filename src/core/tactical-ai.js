@@ -89,7 +89,7 @@ function choose({nav,agent,minute,worldState,context,baseline}){
  // A deliberate lane-resource call survives unrelated pressure heuristics,
  // but never overrides emergency recovery or a witnessed outnumbered retreat.
  if(baseline?.decisionVersion===5&&/^macro_(farm|pressure|objective)$/.test(baseline.reason||''))
-  return withReason(baseline,baseline.reason);
+  return baseline;
  // A weak ADC is protected by their SUP instead of abandoning lane for a
  // scheduled roam. The SUP does not know enemies outside vision range.
  if(agent.role==='SUP'){
