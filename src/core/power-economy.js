@@ -128,6 +128,11 @@ function nextPurchase(model,id,opponentGoldLead=0){
 function shouldRecall(model,nav,agent,minute,worldState,context=null){
  const row=model.entries[agent.id];
  if(!row||!agent.alive||minute<13||minute>63||row.items.length>=3)return false;
+ const side=agent.teamId===nav.a?'blue':'red';
+ // A professional already at home can buy naturally. Returning from a
+ // death timer must not be misclassified as a voluntary strategic recall.
+ if(agent.intent!=='shop_recall'&&
+   [side+'_fountain',side+'_nexus'].includes(agent.node))return false;
  const enemy=agent.teamId===nav.a?nav.b:nav.a;
  const enemyLead=(worldState.gold[enemy]||0)-(worldState.gold[agent.teamId]||0);
  const item=nextPurchase(model,agent.id,enemyLead);
