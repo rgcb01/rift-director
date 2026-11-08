@@ -226,6 +226,12 @@ function chooseGoal(nav,agent,t,worldState,context=null){
   return {goal:side+'_nexus',intent:'shop_recall',
     reason:'affordable_item_spike',decisionVersion:3};
 
+ // Neutral objectives are a real opportunity cost: the two escorts must
+ // travel to Dragon, or a splitpusher can pressure TOP instead. This is a
+ // per-team decision made before any agent moves, never turn-order magic.
+ const dragonPlan=core.NeutralObjectives?.movement(nav,agent,t,worldState);
+ if(dragonPlan)return dragonPlan;
+
  // Only actual economic or wave advantage commits an attacking team.
  // Junglers preserve their own corridors until minute 36, after which
  // they can join a coordinated push without teleportation.
