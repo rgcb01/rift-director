@@ -19,7 +19,7 @@ test('compatibilidad: los intervalos históricos siguen disponibles, sin manejar
 
 test('más de 150 mapas: noticias contextuales diversas sin alterar ni una acción deportiva',()=>{
  const {sim,core,world,fixture}=setup();
- const topics=new Set(),headlines=new Set(),kindCount={insight:0,sports:0};
+ const topics=new Set(),headlines=new Set(),kindCount={insight:0,sports:0,ward:0};
  let totalInsights=0,low=Infinity;
  for(let seed=1;seed<=150;seed++){
   world.rng=seed*12571;
@@ -49,7 +49,8 @@ test('más de 150 mapas: noticias contextuales diversas sin alterar ni una acci�
     assert.ok(entry.evidence&&typeof entry.evidence==='object');
     const frame=match.frames.find(f=>f.minute===entry.minute);
     assert.ok(frame && !frame.winner);
-   }else kindCount.sports++;
+   }else if(entry.facts?.action==='ward_place')kindCount.ward++;
+   else kindCount.sports++;
   }
   const insightTotal=match.broadcast.insights.length;
   low=Math.min(low,insightTotal);
@@ -67,7 +68,9 @@ test('más de 150 mapas: noticias contextuales diversas sin alterar ni una acci�
  assert.ok(topics.size>=8,'Too few different editorial topics: '+[...topics]);
  assert.ok(headlines.size>=18,'Headlines repeat across maps');
  assert.ok(totalInsights/150>=8,'Broadcast adds too few strategic observations on average');
- assert.ok(kindCount.insight>kindCount.sports/3,'Too few strategy highlights');
+ assert.ok(kindCount.ward>100,'Expected causal ward placement events');
+ assert.ok(kindCount.insight>kindCount.sports/3,
+  'Too few strategy highlights relative to non-vision sports events');
 });
 
 test('narraciones falsificadas son detectadas, sin tocar los eventos deportivos',()=>{
