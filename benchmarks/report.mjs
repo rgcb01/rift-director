@@ -173,7 +173,7 @@ export function generate(current,previous,output){
  console.log(md);
  return report;
 }
-const executed=process.argv[1]&&fileURLToPath(import.meta.url)===process.argv[1];
+const executed=process.argv[1]?.endsWith('/report.mjs');
 if(executed){
  const current=JSON.parse(readFileSync(process.argv[2]||'.balance-output/summary.json','utf8'));
  const previous=JSON.parse(readFileSync(process.argv[3]||'.balance-output/previous.json','utf8'));
