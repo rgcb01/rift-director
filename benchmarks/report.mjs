@@ -36,6 +36,8 @@ export function flatten(d){
   soloSplitTowerGames:s.gameplay.soloSplitTowerGames===undefined?null:
     ratio(s.gameplay.soloSplitTowerGames,s.completed),
   purchasesPerMatch:s.gameplay.purchasesPerMatch??null,
+  itemSlotsUsed:s.gameplay.purchasesPerMatch===undefined?null:
+    s.gameplay.purchasesPerMatch/30,
   equipmentSpentMean:s.gameplay.equipmentGoldPerMatch??null,
   avgFinalLevel:s.gameplay.avgFinalLevel??null,
   noItemRate:s.gameplay.noItemGames===undefined?null:
@@ -91,6 +93,20 @@ export function evaluate(current,previous){
   'Menos del 50% de los mapas tienen compras de ambos equipos');
  if(p.exactlyThreeTowers!==null&&v.exactlyThreeTowers-p.exactlyThreeTowers>.05)
   warnings.push('La proporción de partidas con exactamente tres torres empeoró más de cinco puntos porcentuales');
+ if(previous.version!==current.version){
+  warn(v.killsMean<p.killsMean*.85,
+   'Las kills medias cayeron más de 15% respecto a la versión anterior');
+  warn(v.durationMean-p.durationMean>2,
+   'La duración media empeoró más de dos minutos');
+  warn(v.comebackRate!==null&&p.comebackRate!==null&&
+    p.comebackRate-v.comebackRate>.01,
+   'La frecuencia de remontadas cayó más de un punto porcentual');
+  warn(v.counterTowerRate!==null&&p.counterTowerRate!==null&&
+    p.counterTowerRate-v.counterTowerRate>.05,
+   'Los mapas con torres para ambos equipos cayeron más de cinco puntos porcentuales');
+ }
+ warn(v.itemSlotsUsed!==null&&v.itemSlotsUsed>.80,
+  'Más del 80% de los 30 espacios prototipo de objetos están ocupados al terminar');
  warn(v.noEarlyTowerRate>.90,'Mas de 90% de los partidos no derriban torres antes del minuto 36');
  warn(current.standard.duration.min>=35,
   'No hay victorias tempranas (duracion minima 35+): revisar asedio por reloj');
@@ -139,6 +155,7 @@ const keys=[
  ['counterTowerRate','Ambos equipos toman torres','rate'],
  ['soloSplitTowerGames','Partidos con torre de splitpush solitario','rate'],
  ['purchasesPerMatch','Compras de objetos por mapa','num'],
+ ['itemSlotsUsed','Espacios de objetos equipados (30 posibles)','rate'],
  ['equipmentSpentMean','Oro convertido en equipamiento por mapa','num'],
  ['avgFinalLevel','Nivel individual promedio al final','num'],
  ['firstPurchaseMean','Minuto promedio de primera compra','num'],
@@ -172,6 +189,7 @@ export function generate(current,previous,output){
    {label:'Remontadas',value:(assessment.current.comebackRate||0)*100}],{max:100,decimals:0})],
   ['power.svg',bars('Equipamiento: porcentaje de mapas por resultado',[
    {label:'Ambos compran',value:(assessment.current.bothTeamsItemRate||0)*100},
+   {label:'Slots llenos',value:(assessment.current.itemSlotsUsed||0)*100},
    {label:'Sin compras',value:(assessment.current.noItemRate||0)*100}
   ],{max:100,decimals:0})],
   ['previous.svg',bars('Version anterior vs actual: porcentaje de partidas sin Dragon',[
