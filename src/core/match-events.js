@@ -227,6 +227,19 @@
         nextDragon = t + 5;
         totals.dragons[event.teamId]++;
         if (facts.ordinal !== totals.dragons[event.teamId]) fail('Número de dragón incoherente.');
+        if (facts.objectiveVersion === 2) {
+          if (!['take','contest','opportunistic'].includes(facts.plan) ||
+              !Number.isFinite(facts.score) || facts.score < 0)
+            fail('Dragón sin explicación estratégica ni fuerza válida.');
+          if (facts.stolen && (!facts.smite || !facts.smiteBy ||
+              facts.smiteBy !== facts.actorId ||
+              !facts.initiatorTeamId || facts.initiatorTeamId === event.teamId))
+            fail('Robo de dragón sin jungla o equipo contrario real.');
+          if (facts.stolen && (!world.players.find(p=>p.id===facts.actorId&&p.role==='JUN')))
+            fail('Robo de Dragón requiere un JUN con Smite.');
+          if ((facts.opponentPresent||0)>0 && facts.contested !== true)
+            fail('Dragón con rivales presentes marcado como no disputado.');
+        }
       } else if (facts.action === 'baron') {
         const p = actor(facts, event, t);verifyParticipants(event,facts,t);
         if (t < nextBaron) fail('Barón antes de aparecer o reaparecer.');
