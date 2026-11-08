@@ -25,7 +25,10 @@ export function flatten(d){
   noEarlyTowerRate:ratio(m.towers.noEarlyTowerBefore36,m.matches),
   gankGames:ratio(s.gameplay.actionMatches.gank,s.completed),
   averageEvents:s.gameplay.meanEvents,
-  zeroKillRate:ratio(s.gameplay.zeroKills,s.completed)
+  zeroKillRate:ratio(s.gameplay.zeroKills,s.completed),
+  earlyTowerRate:ratio(s.gameplay.earlyTowerMatches||0,s.completed),
+  platesMean:s.gameplay.platesPerMatch||0,
+  comebackRate:ratio(s.gameplay.comebackWins20||0,s.completed)
  };
 }
 export function evaluate(current,previous){
@@ -104,7 +107,10 @@ const keys=[
  ['towersMean','Torres por mapa','num'],['exactlyThreeTowers','Exactamente tres torres','rate'],
  ['noEarlyTowerRate','Sin torre antes del min 36','rate'],
  ['gankGames','Partidos con gank letal','rate'],['averageEvents','Eventos por mapa','num'],
- ['zeroKillRate','Sin bajas','rate']];
+ ['zeroKillRate','Sin bajas','rate'],
+ ['earlyTowerRate','Torres antes del min 36','rate'],
+ ['platesMean','Placas por mapa','num'],
+ ['comebackRate','Remontadas con deficit >=1500 al min 20','rate']];
 const show=(v,type)=>type==='rate'?percent(v):number(v);
 export function generate(current,previous,output){
  mkdirSync(output,{recursive:true});
@@ -126,6 +132,9 @@ export function generate(current,previous,output){
    {label:'Torre',value:s.gameplay.actionMatches.tower}],{max:1100})],
   ['towers.svg',bars('Torres destruidas (espejados)',Object.entries(m.towers.hist)
    .map(([label,value])=>({label:label+' torres',value})),{max:1000})],
+  ['strategy.svg',bars('Indicadores nuevos de presion y remontadas',[
+   {label:'Torres temprano',value:assessment.current.earlyTowerRate*100},
+   {label:'Remontadas',value:assessment.current.comebackRate*100}],{max:100,decimals:0})],
   ['previous.svg',bars('Version anterior vs actual: porcentaje de partidas sin Dragon',[
    {label:previous.version,value:assessment.baseline.noDragonRate*100,color:'#f27e8a'},
    {label:current.version,value:assessment.current.noDragonRate*100,color:'#6de2c1'}],{max:100,decimals:0})]
