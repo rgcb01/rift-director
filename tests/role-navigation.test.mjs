@@ -134,7 +134,11 @@ test('SUP tiene roaming breve después de líneas y regresa junto a su ADC',()=>
        'SUP solo pierde ventana de Barón por riesgo verificable');
     }
     if(t>=1&&t<=13&&carry.alive&&!validRetreat(match,sup,t)){
-     assert.ok(['protect_adc','escort'].includes(p.intent)||p.reason==='low_health'||p.reason==='outnumbered_visible','SUP en early protege o tiene causa para retirarse');
+     assert.ok(['protect_adc','escort'].includes(p.intent)||
+       p.reason==='low_health'||p.reason==='outnumbered_visible'||
+       (t>=11&&p.intent==='objective_setup'&&
+        /^dragon_(take|contest)$/.test(p.reason||'')),
+       'SUP protege al ADC o prepara Dragón desde el minuto 11 con una llamada explícita');
     }
    }
   }
