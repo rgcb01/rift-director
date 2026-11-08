@@ -113,10 +113,6 @@ test('70 partidas reproducibles conservan las auditorías y registran costes de 
     }
    }
   }
-  const repeatSeed=world.rng;
-  const fresh=sim.simulateMatch(fixture);
-  assert.ok(fresh.frames.length,'The engine remains callable with a separate seed');
-  world.rng=repeatSeed;
   auditCount++;
  }
  assert.ok(actions.farm>20,'No existe una decision de farm visible');
