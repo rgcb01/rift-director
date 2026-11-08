@@ -52,6 +52,15 @@ const withReason=(plan,reason)=>({...plan,reason,decisionVersion:1});
 function choose({nav,agent,minute,worldState,context,baseline}){
  if(!context?.health||!context?.positions||!context?.map)return baseline;
  if(minute>=36||!agent.alive)return baseline;
+ if(baseline?.reason?.startsWith('dragon_')){
+  const hp=context.health?.[agent.id]??100;
+  if(hp<45){
+   const side=agent.teamId===nav.a?'blue':'red';
+   return withReason({goal:agent.role==='JUN'?side+'_jungle_lower':
+     side+'_bot_inner',intent:'recover'},'unsafe_objective');
+  }
+  return withReason(baseline,baseline.reason);
+ }
  if(['siege','defend','splitpush','counterpush','counter_siege','shop_recall'].includes(baseline?.intent))
   return withReason(baseline,'siege_commitment');
  const sight=observe({nav,agent,minute,context});
