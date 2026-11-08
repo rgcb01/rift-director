@@ -114,6 +114,11 @@ export function runStandard() {
           soloSplitTowers:m.events.filter(e=>e.facts?.action==='tower'&&e.facts.soloSplitpush).length,
           bothTeamsTowers:m.events.some(e=>e.facts?.action==='tower'&&e.teamId===a)&&
             m.events.some(e=>e.facts?.action==='tower'&&e.teamId===b),
+          macroTurns:Object.fromEntries(['farm','pressure','objective'].map(action=>[
+            action,m.frames.reduce((n,frame)=>n+
+              Object.values(frame.navigation?.before||{}).filter(p=>
+                p.reason==='macro_'+action&&p.intent==='macro_'+action).length,0)
+          ])),
           firstTowerMinute:m.events.find(e=>e.facts?.action==='tower')?.minute??null,
           goldLeader20:(()=>{const at=m.frames.find(f=>f.minute===20)||f;
             return at.gold[a]>at.gold[b]?a:at.gold[b]>at.gold[a]?b:null})(),
@@ -131,6 +136,7 @@ export function runStandard() {
             ...core.NeutralObjectives.audit(m),
             ...core.Shutdowns.audit(m),
             ...core.Counterplay.audit(m),
+            ...core.MacroPolicy.audit(m),
             ...core.TacticalAI.audit(m,world),
             ...core.Encounters.audit(m,world),
             ...core.auditMatch(m,world),
@@ -169,6 +175,9 @@ export function runStandard() {
       firstTowerMean:+avg(rows.filter(r=>r.firstTowerMinute!==null).map(r=>r.firstTowerMinute)).toFixed(2),
       platesPerMatch:+avg(rows.map(r=>r.actions.plate||0)).toFixed(2),
       contestedDragonsPerMatch:+avg(rows.map(r=>r.dragonContests)).toFixed(2),
+      macroFarmTurnsPerMatch:+avg(rows.map(r=>r.macroTurns.farm)).toFixed(2),
+      macroPressureTurnsPerMatch:+avg(rows.map(r=>r.macroTurns.pressure)).toFixed(2),
+      macroObjectiveTurnsPerMatch:+avg(rows.map(r=>r.macroTurns.objective)).toFixed(2),
       shutdownsPerMatch:+avg(rows.map(r=>r.shutdowns)).toFixed(2),
       counterplayFightsPerMatch:+avg(rows.map(r=>r.counterplayFights)).toFixed(2),
       counterplayKillsPerMatch:+avg(rows.map(r=>r.counterplayKills)).toFixed(2),
