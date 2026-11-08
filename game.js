@@ -465,7 +465,8 @@ function simulateMatch(f){
        objectiveVersion:2,plan:strategy,
        contested,stolen:steal,smite:steal,smiteBy:steal?actor.id:null,
        initiatorTeamId:steal?initiator.id:null,
-       score:+winner.score.toFixed(2),opponentPresent:challenger?.agents.length||0});
+       score:+winner.score.toFixed(2),
+       opponentPresent:(steal?initiator:challenger)?.agents.length||0});
     }
    }
   }
