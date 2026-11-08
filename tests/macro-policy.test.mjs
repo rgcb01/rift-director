@@ -202,6 +202,30 @@ test('una defensa física frena oleadas entrantes sin regalar oro ni destruir to
  assert.ok(untouched.lanes.TOP.front<defense.lanes.TOP.front,
   'La defensa desaparece al abandonar físicamente el carril');
 });
+test('sin ventaja verificable, el plan macro no sustituye a la navegación existente',()=>{
+ const {core,nav,state,health,a,clubs}=setup();
+ const top=nav.agents[clubs[0].lineup.TOP];
+ const undecided=core.MacroPolicy.evaluate(nav,state,top,18,health);
+ assert.equal(undecided.action,'farm');
+ assert.equal(core.MacroPolicy.credible(undecided),false);
+ const empty=core.MacroPolicy.plan(nav,state,18,health,{});
+ assert.deepEqual(empty,{},'No forzar farm/pressure solo porque pasó un minuto');
+ state.waves.TOP.front=2.7;
+ state.map.lanes.TOP.pressure[a]=80;
+ state.map.lanes.TOP.vision[a]=89;
+ const clearlyGood=core.MacroPolicy.evaluate(nav,state,top,19,health);
+ assert.equal(clearlyGood.action,'pressure');
+ assert.ok(core.MacroPolicy.credible(clearlyGood));
+ const real=core.MacroPolicy.plan(nav,state,19,health,{});
+ assert.equal(real[top.id].action,'pressure');
+ assert.equal(core.MacroPolicy.movement({...nav,macroPlans:real},top,19).intent,'macro_pressure');
+ // A changed risk situation is allowed to cancel a prior commitment.
+ state.waves.TOP.front=-.2;
+ state.map.lanes.TOP.pressure[a]=50;
+ state.map.lanes.TOP.vision[a]=34;
+ const invalidated=core.MacroPolicy.plan(nav,state,20,health,{});
+ assert.equal(invalidated[top.id],undefined);
+});
 test('70 partidas reproducibles conservan las auditorías y registran costes de oportunidad',()=>{
  const {sim,core,world,fixture}=setup();
  const actions={farm:0,defend:0,pressure:0,objective:0};
