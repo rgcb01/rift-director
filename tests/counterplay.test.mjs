@@ -44,6 +44,25 @@ test('superioridad y visión generan oportunidad, sin visión no hay caza invent
  assert.equal(alone.some(y=>y.targetId===b.lineup.ADC),false,
   'Un duelista sin segundo aliado no recibe pelea favorable gratuita');
 });
+test('un 2v2 visible puede castigar un objetivo herido y alcanzar otros rivales visibles',()=>{
+ const x=setup(),{core,nav,a,b,health}=x;
+ for(const p of Object.values(nav.agents)){
+  p.node=p.teamId===a.id?'blue_fountain':'red_fountain';
+  p.alive=true;p.intent='lane';
+ }
+ for(const id of [a.lineup.ADC,a.lineup.SUP,b.lineup.ADC,b.lineup.SUP])
+  nav.agents[id].node='red_bot_front';
+ health[b.lineup.ADC]=38;health[b.lineup.SUP]=94;
+ x.map.lanes.BOT.vision[a.id]=99;
+ const choices=core.Counterplay.opportunities({nav,minute:20,
+  health,map:x.map,gold:x.gold,shutdowns:x.shutdowns});
+ const opportunity=choices.find(o=>o.teamId===a.id&&
+  o.targetId===b.lineup.ADC&&o.localEdge===0);
+ assert.ok(opportunity,'Un 2v2 con un enemigo herido debe permitir una decisión');
+ assert.ok(opportunity.targetIds.includes(b.lineup.SUP),
+  'Solo otros rivales realmente visibles y cercanos pueden recibir daño grupal');
+ assert.ok(opportunity.targetIds.includes(b.lineup.ADC));
+});
 test('la IA puede perseguir un shutdown real sin garantizar daño ni victoria',()=>{
  const x=setup(),{core,nav,a,b,health}=x;
  for(const p of Object.values(nav.agents)){
