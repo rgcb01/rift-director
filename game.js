@@ -265,6 +265,7 @@ function simulateMatch(f){
  makeEv(0,'Comienza el mapa',`${a.name} y ${b.name} entran a la Grieta. Ambos equipos buscan imponer su plan de juego.`, 'normal');nextSnapshot(0);
  const lastLaneTrade={TOP:-10,MID:-10,BOT:-10};
  const lastGankAttempt=Object.create(null);
+ let lastCounterFight=-10;
  for(let t=1;t<=76&&!m.winner;t++){
   m.minute=t;
   const teamIncome={};
@@ -481,47 +482,58 @@ function simulateMatch(f){
     }
    }
   }
-  // Group encounters share the same HP + escape rules as lanes and ganks.
-  // A hero only dies after enough damage. A nonlethal fight is a real
-  // clash, with hurt heroes and forced retreats, not an unrecorded roll.
-  if(t>=12&&t<57&&chance(t<22?.22:.32)){
-   const chosen=decide(a,b,t);
-   const gather=(team)=>{
-    const fights=nav.engagement(navigation,team.id,2).map(e=>{
-     const comrades=living(team,t).filter(p=>
-       nav.getAgent(navigation,p.id)?.intent!=='retreat'&&
-       nav.combatRange(nav.getAgent(navigation,p.id).node,e.actor.node,1));
-     const targets=e.foes.filter(p=>(m.dead[p.id]||0)<=t&&p.intent!=='retreat');
-     return {comrades,targets};
-    }).filter(x=>x.comrades.length>=2&&x.targets.length);
-    return fights.length?pick(fights):null;
-   };
-   let winner=chosen,battle=gather(chosen);
-   if(!battle){winner=enemy(chosen);battle=gather(winner)}
-   if(battle){
+  // Alpha 0.7.12: each team reads actual visible opponents, local numbers,
+  // HP and bounties. No synthetic kill or winning-team roll is permitted.
+  // The existing damage contract still decides whether a fight kills.
+  if(t>=12&&t<57){
+   const call=RiftCore.Counterplay.choose({
+    nav:navigation,minute:t,health,map:m.map,gold:m.gold,
+    shutdowns,previous:lastCounterFight
+   });
+   if(call){
+    const attacker=club(call.teamId);
     const facts=RiftCore.Encounters.resolveCombat({
      nav:navigation,dead:m.dead,minute:t,
      players:Object.fromEntries([...aP,...bP].map(p=>[p.id,p])),
-     health,seed:commentarySeed,powerState:powerEconomy,mode:'teamfight',teamId:winner.id,
-     attackerIds:battle.comrades.map(p=>p.id),
-     targetIds:battle.targets.map(p=>p.id)
+     health,seed:commentarySeed,powerState:powerEconomy,
+     mode:'teamfight',teamId:attacker.id,
+     attackerIds:call.attackerIds,targetIds:call.targetIds
     });
     if(facts){
+     lastCounterFight=t;
      facts.action=facts.victimIds.length?'teamfight':'clash';
      facts.node=nav.getAgent(navigation,facts.actorId).node;
+     facts.counterplayVersion=1;
+     facts.counterplay={
+      reason:call.reason,targetId:call.targetId,
+      observedNode:call.observedNode,observedHp:call.observedHp,
+      localEdge:call.localEdge,score:call.score,
+      targetStreak:call.streak,bountyAtPlan:call.bounty,
+      goldDeficitAtPlan:call.deficit
+     };
      applyCombat(facts,t);
      facts.multiKill=facts.victimIds.length;
-     facts.ace=facts.victimIds.length>0&&living(enemy(winner),t).length===0;
+     facts.ace=facts.victimIds.length>0&&living(enemy(attacker),t).length===0;
+     const pressure=RiftCore.Counterplay.pressureAfterKill(
+      navigation,facts,t,m);
+     if(pressure)facts.counterPressure={
+      ...pressure,sourceVictims:[...pressure.sourceVictims],
+      allowed:[...pressure.allowed]
+     };
      const multi=facts.victimIds.length===5?'¡PENTAKILL! ':
        facts.victimIds.length===4?'¡CUÁDRUPLE! ':
        facts.victimIds.length===3?'¡TRIPLE KILL! ':'';
-     makeEv(t,multi+(facts.victimIds.length?
-       (facts.ace?'¡Exterminio en la Grieta!':'Pelea de equipos'):
-       facts.outcome==='retreat'?'Pelea que obliga a retroceder':
-       'Intercambio entre equipos'),
-       player(facts.actorId).name+' lidera la escaramuza de '+winner.name+
-       '. '+combatDetails(facts)+(facts.ace?' ¡Todo el rival está fuera de combate!':''),
-       facts.victimIds.length?'fight':'normal',winner,facts);
+     const label=call.reason==='shutdown_hunt'?'¡Cazan al rival con recompensa!':
+      call.reason==='isolated_pick'?'¡Castigan a un rival aislado!':
+      call.reason==='trailing_counterattack'?'¡Contraataque del equipo rezagado!':
+      '¡Pelea por ventaja local!';
+     makeEv(t,multi+(facts.victimIds.length?label:
+       facts.outcome==='retreat'?'Choque que obliga a retroceder':
+       'Combate sin eliminación'),
+       player(facts.actorId).name+' coordina el ataque tras detectar a '+
+       player(call.targetId).name+'. '+combatDetails(facts)+
+       (pressure?' El equipo identifica una oportunidad real de presionar '+pressure.lane+'.':''),
+       facts.victimIds.length?'fight':'normal',attacker,facts);
     }
    }
   }
