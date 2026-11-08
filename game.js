@@ -198,12 +198,18 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
       const stage=m.lanes[target.id][lane]+1;
       if(stage>3)return null;
       const node=nav.towerNode(target.id===a.id?'blue':'red',lane,stage);
-      return {lane,stage,node,present:positioned(c,node)};
-    }).filter(x=>x?.present.length>=2&&
+      const present=positioned(c,node);
+      const wave=RiftCore.LaneEconomy.pressureFor(laneEconomy,c.id,lane);
+      const solo=present.length===1&&
+        ['splitpush','counterpush'].includes(present[0].intent)&&
+        present[0].lane===lane&&wave>=1.45&&
+        positioned(target,node).length===0;
+      return {lane,stage,node,present,solo,wave};
+    }).filter(x=>x&&(x.present.length>=2||x.solo)&&
       RiftCore.LaneEconomy.hasBrokenPlates(laneEconomy,target.id,x.lane,x.stage)&&
       RiftCore.LaneEconomy.canPressureTower(laneEconomy,c.id,x.lane,x.stage,t));
   if(!options.length)return false;
-  const selected=pick(options),{lane,stage,node,present}=selected;
+  const selected=pick(options),{lane,stage,node,present,solo,wave}=selected;
   const priority=lane==='BOT'?'ADC':lane;
   const actor=present.find(q=>q.role===priority)||present[0];
   const who=player(actor.id);
@@ -214,7 +220,7 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
    'goal',c,{action:'tower',actorId:who.id,
      participantIds:presentWith(c,t,who,node,lane==='BOT'?['ADC','SUP']:['TOP','MID']),
      lane,stage,node,firstTower:firstTowerBonus>0,firstTowerBonus,
-     wave:laneEconomy.lanes[lane].front});
+     soloSplitpush:solo,wave});
   return true;
  };
  const nextSnapshot=t=>m.frames.push({minute:t,kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
