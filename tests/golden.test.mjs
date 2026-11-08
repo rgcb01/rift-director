@@ -7,7 +7,7 @@ const hash = value => createHash('sha256').update(JSON.stringify(value)).digest(
 
 // Fingerprints captured from the unmodified Alpha 0.2 (commit 4893edb).
 // Changing one requires deliberate discussion and a migration / balance note.
-test('semilla fija: balance Alpha 0.7.11 reproducible y contabilidad estable', () => {
+test('semilla fija: balance Alpha 0.7.12 reproducible y contabilidad estable', () => {
   const { sim } = boot({ now: 1731111111000 });
   const world = sim.newGame('balanced', 'QA Esports');
   assert.equal(hash(world), 'b3fb6a59ae4ad7748ef4889deec8cc722902340da330beaf6868b557a9ee0330');
@@ -24,6 +24,7 @@ test('semilla fija: balance Alpha 0.7.11 reproducible y contabilidad estable', (
   legacyMatch.speed = 2; // Playback defaults to 1x; sports history before M1.4 used 2x by default.
   delete legacyMatch.playerStats; // Additive M1.2 individual stats do not change match RNG/outcomes.
   // M1.3B changes match outcomes intentionally: movement and proximity now govern all objectives.
+  // Alpha 0.7.12 changes actual visible engagement decisions while the financial/world fixture seed stays stable.
   // Alpha 0.7.10 weighs Baron against Dragon, includes real neutral contests and physically earned trades; sporting fingerprint updated intentionally.
   // Alpha 0.7.9 selects intentional wounded-only shopping recalls, while XP and purchases affect sport.
   // Alpha 0.7.9 changes match XP, wallet and purchased gear. Sporting hashes
@@ -34,7 +35,7 @@ test('semilla fija: balance Alpha 0.7.11 reproducible y contabilidad estable', (
   const matchHash=hash(legacyMatch),worldAfterMatch=hash(world);
   const report=sim.applyMonth();
   const reportHash=hash(report),worldAfterMonth=hash(world);
-  assert.equal(matchHash, '88bd2ce2eae650ab293b7e6afccef83b145e8df72140d68f89b52e728cc4c091');
+  assert.equal(matchHash, 'e87487ce8355fb5e7c224c32304f095d1055dfb700ad41c5442cca1708fb3c21');
   assert.equal(worldAfterMatch, '342aa15055a9fab9e597749e13d099630f73351acb244b4d5c4380068b36caf1');
   assert.equal(reportHash, '63f62558933347e5947cc1b476f9056c23d59aa9e79fce65edd0c7d58372dbd9');
   assert.equal(worldAfterMonth, 'aaa0c74e7c2d45ecf8a1fdc5bfc0016d782b40d546e8b8225f67dcc869d19244');
