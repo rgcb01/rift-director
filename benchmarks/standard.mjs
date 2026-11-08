@@ -11,7 +11,7 @@ const histogram=(values,bounds)=>bounds.map(([lo,hi,label])=>({label,count:value
 const sum=(a,k)=>a.reduce((t,x)=>t+(x[k]||0),0);
 const durationBins=[[0,24,'0–24'],[25,34,'25–34'],[35,44,'35–44'],[45,54,'45–54'],[55,64,'55–64'],[65,75,'65–75'],[76,999,'76+']];
 const killBins=[[0,4,'0–4'],[5,9,'5–9'],[10,14,'10–14'],[15,19,'15–19'],[20,29,'20–29'],[30,999,'30+']];
-const actions=['lane_trade','gank','gank_avoided','teamfight','clash','skirmish','dragon','baron','tower','nexus'];
+const actions=['lane_trade','gank','gank_avoided','teamfight','clash','skirmish','dragon','baron','tower','plate','nexus'];
 export function runStandard() {
   const rows=[], actionTotals=Object.fromEntries(actions.map(k=>[k,0]));
   const actionMatches=Object.fromEntries(actions.map(k=>[k,0]));
@@ -60,7 +60,13 @@ export function runStandard() {
           dragons:(f.dragons[a]||0)+(f.dragons[b]||0),
           barons:(f.barons[a]||0)+(f.barons[b]||0),
           towers:(f.towers[a]||0)+(f.towers[b]||0),
-          baronSteals,actions:actionCounts
+          baronSteals,
+          firstTowerMinute:m.events.find(e=>e.facts?.action==='tower')?.minute??null,
+          goldLeader20:(()=>{const at=m.frames.find(f=>f.minute===20)||f;
+            return at.gold[a]>at.gold[b]?a:at.gold[b]>at.gold[a]?b:null})(),
+          goldLead20:(()=>{const at=m.frames.find(f=>f.minute===20)||f;
+            return Math.abs(at.gold[a]-at.gold[b])})(),
+          actions:actionCounts
         };
         rows.push(row);batchRows.push(row);
         if(true){
@@ -101,6 +107,10 @@ export function runStandard() {
       gamesWithoutBaron:rows.filter(r=>r.barons===0).length},
     gameplay:{meanEvents:+avg(rows.map(r=>r.events)).toFixed(2),
       zeroKills:rows.filter(r=>r.totalKills===0).length,
+      earlyTowerMatches:rows.filter(r=>r.firstTowerMinute!==null&&r.firstTowerMinute<36).length,
+      firstTowerMean:+avg(rows.filter(r=>r.firstTowerMinute!==null).map(r=>r.firstTowerMinute)).toFixed(2),
+      platesPerMatch:+avg(rows.map(r=>r.actions.plate||0)).toFixed(2),
+      comebackWins20:rows.filter(r=>r.goldLead20>=1500&&r.goldLeader20&&r.goldLeader20!==r.winner).length,
       hugeKillMargin15:rows.filter(r=>r.killMargin>=15).length,
       durationAtCap75:rows.filter(r=>r.duration>=75).length,
       actionTotals,actionMatches,tacticReasons},

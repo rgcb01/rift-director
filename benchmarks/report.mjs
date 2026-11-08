@@ -25,7 +25,10 @@ export function flatten(d){
   noEarlyTowerRate:ratio(m.towers.noEarlyTowerBefore36,m.matches),
   gankGames:ratio(s.gameplay.actionMatches.gank,s.completed),
   averageEvents:s.gameplay.meanEvents,
-  zeroKillRate:ratio(s.gameplay.zeroKills,s.completed)
+  zeroKillRate:ratio(s.gameplay.zeroKills,s.completed),
+  earlyTowerRate:s.gameplay.earlyTowerMatches===undefined?null:ratio(s.gameplay.earlyTowerMatches,s.completed),
+  platesMean:s.gameplay.platesPerMatch||0,
+  comebackRate:s.gameplay.comebackWins20===undefined?null:ratio(s.gameplay.comebackWins20,s.completed)
  };
 }
 export function evaluate(current,previous){
@@ -64,6 +67,8 @@ export function evaluate(current,previous){
   'Persiste sesgo de color del lado en partidos espejados');
  warn(v.noDragonRate>.30,'Mas de 30% de los partidos no tienen Dragon');
  warn(v.exactlyThreeTowers>.65,'Mas de 65% de los partidos caen con exactamente tres torres');
+ if(p.exactlyThreeTowers!==null&&v.exactlyThreeTowers-p.exactlyThreeTowers>.05)
+  warnings.push('La proporción de partidas con exactamente tres torres empeoró más de cinco puntos porcentuales');
  warn(v.noEarlyTowerRate>.90,'Mas de 90% de los partidos no derriban torres antes del minuto 36');
  warn(current.standard.duration.min>=35,
   'No hay victorias tempranas (duracion minima 35+): revisar asedio por reloj');
@@ -104,8 +109,11 @@ const keys=[
  ['towersMean','Torres por mapa','num'],['exactlyThreeTowers','Exactamente tres torres','rate'],
  ['noEarlyTowerRate','Sin torre antes del min 36','rate'],
  ['gankGames','Partidos con gank letal','rate'],['averageEvents','Eventos por mapa','num'],
- ['zeroKillRate','Sin bajas','rate']];
-const show=(v,type)=>type==='rate'?percent(v):number(v);
+ ['zeroKillRate','Sin bajas','rate'],
+ ['earlyTowerRate','Torres antes del min 36','rate'],
+ ['platesMean','Placas por mapa','num'],
+ ['comebackRate','Remontadas con deficit >=1500 al min 20','rate']];
+const show=(v,type)=>v==null?'No medido':type==='rate'?percent(v):number(v);
 export function generate(current,previous,output){
  mkdirSync(output,{recursive:true});
  const assessment=evaluate(current,previous);
@@ -126,6 +134,9 @@ export function generate(current,previous,output){
    {label:'Torre',value:s.gameplay.actionMatches.tower}],{max:1100})],
   ['towers.svg',bars('Torres destruidas (espejados)',Object.entries(m.towers.hist)
    .map(([label,value])=>({label:label+' torres',value})),{max:1000})],
+  ['strategy.svg',bars('Indicadores nuevos de presion y remontadas',[
+   {label:'Torres temprano',value:assessment.current.earlyTowerRate*100},
+   {label:'Remontadas',value:assessment.current.comebackRate*100}],{max:100,decimals:0})],
   ['previous.svg',bars('Version anterior vs actual: porcentaje de partidas sin Dragon',[
    {label:previous.version,value:assessment.baseline.noDragonRate*100,color:'#f27e8a'},
    {label:current.version,value:assessment.current.noDragonRate*100,color:'#6de2c1'}],{max:100,decimals:0})]
@@ -133,7 +144,8 @@ export function generate(current,previous,output){
  for(const [name,svg] of graph)writeFileSync(join(output,name),svg+'\n');
  const lines=keys.map(([key,label,type])=>{
   const a=assessment.baseline[key],b=assessment.current[key];
-  const delta=type==='rate'?(100*(b-a)).toFixed(1)+' pp':(b-a).toFixed(2);
+  const delta=a==null||b==null?'No comparable':
+   type==='rate'?(100*(b-a)).toFixed(1)+' pp':(b-a).toFixed(2);
   return '| '+label+' | '+show(a,type)+' | '+show(b,type)+' | '+delta+' |';
  });
  const hdr='# Balance Rift Director — '+current.version+'\n\n'+

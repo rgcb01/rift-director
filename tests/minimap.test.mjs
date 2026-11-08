@@ -76,10 +76,10 @@ test('180 seeds: torres, muertos, territorio y asedio se reconstruyen de eventos
     const winning=Object.values(final.minimap.players).filter(p=>p.teamId===winner&&p.alive);
     if(winning.length===5)allAliveSieges++;
     assert.ok(winning.length>=2);
-    for(const p of winning){
-      const distance=Math.hypot(p.x-nexus.x,p.y-nexus.y);
-      assert.ok(distance<=70,'Ganador vivo no termina junto al nexo: '+distance);
-    }
+    const attackersAtNexus=winning.filter(p=>
+      Math.hypot(p.x-nexus.x,p.y-nexus.y)<=70);
+    assert.ok(attackersAtNexus.length>=2,
+      'El nexo requiere dos atacantes presentes, no todos los supervivientes');
   }
   assert.ok(destruction>0);
   assert.ok(deadFrames>0);

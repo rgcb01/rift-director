@@ -4,6 +4,20 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+## [0.7.7-alpha] — 2026-11-07
+
+### Economía táctica de oleadas y asedio reversible (primer slice)
+- Primer modelo ligero de presión por oleada (momentum agregado por carril, sin simular minions individuales), determinado por prioridad, presencia física y escoltas.
+- El farmeo otorga oro de forma determinista según prioridad local y participación de los laners.
+- Placas con secuencia de daño por estructura y oro al reclamarlas; RiftCast narra estos hechos verificados.
+- Primera torre con recompensa única; las demás requieren placas, oleada y dos profesionales vivos cerca de la estructura.
+- Asedio decidido por ventaja económica, objetivos y oleadas, con compromisos reversibles. No se fija permanentemente al atacante en el minuto 36.
+- El nexo necesita dos atacantes presentes, sin exigir que todos los compañeros vivos se reúnan.
+- Estado de oleadas y oro conservados en snapshots y replays; los eventos de placas no consumen RNG deportivo.
+- Tests nuevos de economía, factualidad y auditoría; benchmark de 1,000 partidos + 1,000 espejados antes de fusionar.
+- **No incluye aún** minions individuales, XP, objetos, inhibidores ni wards/fog of war.
+
+
 ## [0.7.6-alpha] — 2026-11-07
 
 ### IA táctica reactiva por vida, visión y oportunidad

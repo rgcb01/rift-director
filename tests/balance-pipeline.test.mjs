@@ -40,7 +40,7 @@ test('genera un dashboard HTML con graficos SVG sin dependencias',()=>{
   const r=generate(current,baseline,dir);
   assert.equal(r.failures.length,0);
   for(const name of ['index.html','report.md','duration.svg','kills.svg','sides.svg',
-    'objectives.svg','towers.svg','previous.svg','regressions.json']){
+    'objectives.svg','towers.svg','strategy.svg','previous.svg','regressions.json']){
    assert.ok(existsSync(join(dir,name)),name+' no generado');
   }
   assert.match(readFileSync(join(dir,'duration.svg'),'utf8'),/<svg/);

@@ -24,6 +24,7 @@
     const totals = Object.fromEntries(counters.map(k => [k, {[a]:0,[b]:0}]));
     const lanes = {[a]:{TOP:0,MID:0,BOT:0}, [b]:{TOP:0,MID:0,BOT:0}};
     const dead = new Map();
+    const plateCounts={};
     const combatants = [a,b].flatMap(id => core.ROLES.map(role => players.get(clubs.get(id).lineup[role])));
     let stats;
     try { stats = core.createPlayerStats(combatants); }
@@ -182,6 +183,22 @@
             facts.plannedGankVersion!==1 || facts.route!==route)
           fail('Gank fallido sin ruta y carril verificables.');
         // No elimination, structures, gold or player statistics are awarded.
+      } else if (facts.action === 'plate') {
+        actor(facts,event,t);verifyParticipants(event,facts,t);
+        const defender=event.teamId===a?b:a;
+        const lane=facts.lane,stage=facts.stage;
+        if(!['TOP','MID','BOT'].includes(lane)||!integer(stage)||
+           stage!==lanes[defender]?.[lane]+1||stage>3||
+           !integer(facts.plate)||facts.plate>3||
+           !integer(facts.goldReward)||facts.goldReward<55)
+          fail('Placa sin estructura o recompensa válida.');
+        else {
+          const plateKey=defender+'|'+lane+'|'+stage;
+          if(!plateCounts[plateKey])plateCounts[plateKey]=0;
+          plateCounts[plateKey]++;
+          if(plateCounts[plateKey]!==facts.plate)
+            fail('Placa fuera de secuencia.');
+        }
       } else if (facts.action === 'tower') {
         actor(facts, event, t);verifyParticipants(event,facts,t);
         const target = event.teamId === a ? b : a;

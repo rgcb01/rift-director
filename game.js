@@ -112,6 +112,8 @@ function notify(t){let d=document.getElementById('toast');if(d)d.remove();d=docu
 function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.b),aP=teamPlayers(a),bP=teamPlayers(b);
  const m={minute:0,kills:{[a.id]:0,[b.id]:0},gold:{[a.id]:500,[b.id]:500},towers:{[a.id]:0,[b.id]:0},lanes:{[a.id]:{TOP:0,MID:0,BOT:0},[b.id]:{TOP:0,MID:0,BOT:0}},dragons:{[a.id]:0,[b.id]:0},barons:{[a.id]:0,[b.id]:0},dead:{},winner:null,events:[],frames:[],moments:[],nextDragon:5,nextBaron:20,baronBuff:{[a.id]:0,[b.id]:0}};
  const all=[a,b],teams={[a.id]:aP,[b.id]:bP};
+ const laneEconomy=RiftCore.LaneEconomy.create(a.id,b.id);
+ m.waves=laneEconomy.lanes;
  const navigation=RiftCore.Navigation.createNavigation(all,teams,commentarySeed);
  const health=RiftCore.Encounters.create([...aP,...bP]);
  const lastSkirmish={};
@@ -141,7 +143,7 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
   const prior=m.events[m.events.length-1];
   // New encounter timestamps use their own deterministic clock: no additional
   // gameplay RNG is consumed by an incidental 2v1 commentary.
-  const skirmish=facts?.action==='skirmish'||facts?.combatVersion===1;
+  const skirmish=facts?.action==='plate'||facts?.action==='skirmish'||facts?.combatVersion===1;
   const stamp=skirmish?(Math.imul((commentarySeed^minute)>>>0,1664525)+
     Math.imul(m.events.length+1,1013904223))>>>0:0;
   const sec=minute===0?0:prior?.minute===minute?
@@ -156,7 +158,8 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
     kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},
     dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,
     map:RiftCore.cloneMapState(m.map),playerStats:RiftCore.clonePlayerStats(playerStats),
-    health:{...health},navigation:{before:movementBefore,after:nav.snapshot(navigation,m.dead,minute)}});
+    health:{...health},laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
+    navigation:{before:movementBefore,after:nav.snapshot(navigation,m.dead,minute)}});
  };
  const balance=(c,t)=>{let stage=t<12?'early':t<25?'mid':'late';let z=teamPower(c,stage)+(m.gold[c.id]-m.gold[enemy(c).id])/2800+m.barons[c.id]*1.3;
  let pref=c.id===s.userClub?s.style:(c.id.charCodeAt(c.id.length-1)%3===0?'aggressive':c.id.charCodeAt(c.id.length-1)%3===1?'objectives':'scaling');
@@ -196,21 +199,26 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
       if(stage>3)return null;
       const node=nav.towerNode(target.id===a.id?'blue':'red',lane,stage);
       return {lane,stage,node,present:positioned(c,node)};
-    }).filter(x=>x?.present.length>=2);
+    }).filter(x=>x?.present.length>=2&&
+      RiftCore.LaneEconomy.hasBrokenPlates(laneEconomy,target.id,x.lane,x.stage)&&
+      RiftCore.LaneEconomy.canPressureTower(laneEconomy,c.id,x.lane,x.stage,t));
   if(!options.length)return false;
   const selected=pick(options),{lane,stage,node,present}=selected;
   const priority=lane==='BOT'?'ADC':lane;
   const actor=present.find(q=>q.role===priority)||present[0];
   const who=player(actor.id);
-  m.lanes[target.id][lane]++;m.towers[c.id]++;m.gold[c.id]+=690;
+  const firstTowerBonus=RiftCore.LaneEconomy.firstTowerBonus(laneEconomy,c.id,t);
+  m.lanes[target.id][lane]++;m.towers[c.id]++;m.gold[c.id]+=420+firstTowerBonus;
   const place=lane==='BOT'?'inferior':lane==='TOP'?'superior':'central';
   makeEv(t,`¡Cae una torre ${place}!`,`${c.name} derriba la ${['exterior','interior','de base'][stage-1]} del carril ${place}. ${who.name} participa en la presión y su equipo recibe oro adicional.`,
    'goal',c,{action:'tower',actorId:who.id,
      participantIds:presentWith(c,t,who,node,lane==='BOT'?['ADC','SUP']:['TOP','MID']),
-     lane,stage,node});
+     lane,stage,node,firstTower:firstTowerBonus>0,firstTowerBonus,
+     wave:laneEconomy.lanes[lane].front});
   return true;
  };
  const nextSnapshot=t=>m.frames.push({minute:t,kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
+  laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
   playerStats:RiftCore.clonePlayerStats(playerStats),map:RiftCore.cloneMapState(m.map),
   health:{...health},navigation:{before:movementBefore,after:nav.snapshot(navigation,m.dead,t)}});
  makeEv(0,'Comienza el mapa',`${a.name} y ${b.name} entran a la Grieta. Ambos equipos buscan imponer su plan de juego.`, 'normal');nextSnapshot(0);
@@ -221,6 +229,7 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
   for(const c of all){m.gold[c.id]+=ri(790,1080)+Math.round((balance(c,t)-65)*2);if(m.baronBuff[c.id]>0)m.baronBuff[c.id]--}
   nav.advance(navigation,t,m.dead,m,{health,map:m.map});
   RiftCore.Encounters.recover(health,navigation,m.dead,t);
+  RiftCore.LaneEconomy.advance(laneEconomy,{minute:t,nav:navigation,map:m.map,health,gold:m.gold});
   movementBefore=nav.snapshot(navigation,m.dead,t);
   m.map=updateMap(t);
   // Early lane trades are genuine ranged/close combat, including 2v2 bot.
@@ -337,9 +346,34 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
     }
    }
   }
-  // Turrets are tracked by lane, with 3 towers per lane.
-  if(t>=8&&chance(t<20?.29:.41)){
-   let c=decide(a,b,t);if(living(c,t).length>=2)takeTower(c,t)
+  // Wave pressure and nearby professionals, not a random tower roll,
+  // generate incremental plate rewards and finally allow a tower to fall.
+  if(t>=8){
+   for(const lane of ['TOP','MID','BOT']){
+    for(const c of all){
+     const defender=enemy(c),stage=m.lanes[defender.id][lane]+1;
+     if(stage>3)continue;
+     const node=nav.towerNode(defender.id===a.id?'blue':'red',lane,stage);
+     const present=positioned(c,node);
+     if(!present.length)continue;
+     const claim=RiftCore.LaneEconomy.claimPlate(laneEconomy,
+       {teamId:c.id,defenderId:defender.id,lane,stage,minute:t});
+     if(!claim)continue;
+     const leader=player(present[0].id);
+     m.gold[c.id]+=claim.gold;
+     makeEv(t,'¡Placa conquistada en '+lane+'!',
+       c.name+' presiona con una oleada y '+leader.name+
+       ' consigue la placa '+claim.plate+' de la torre '+stage+
+       ' en '+lane+'. El club obtiene '+claim.gold+' de oro.',
+       'goal',c,{action:'plate',actorId:leader.id,
+         participantIds:[leader.id],lane,stage,plate:claim.plate,
+         node,goldReward:claim.gold});
+    }
+   }
+   // Any side can earn tower objectives if wave, damage and the
+   // participants actually match the facts. No clock-selected owner.
+   for(const c of [a,b])for(const lane of ['TOP','MID','BOT'])
+     takeTower(c,t,lane);
   }
   // Dragons have spawn and respawn constraints. A jungler can smite only if alive.
   if(t>=m.nextDragon&&chance(.73)){
@@ -424,16 +458,13 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
    const leader=m.gold[a.id]>m.gold[b.id]?a:b;const dif=Math.abs(m.gold[a.id]-m.gold[b.id]);
    makeEv(t,dif<1800?'Máxima igualdad en la Grieta':'Lectura del mapa',dif<1800?'Los equipos intercambian oleadas y control de visión. La diferencia económica sigue siendo reducida.':`${leader.name} mantiene una ventaja aproximada de ${(dif/1000).toFixed(1)}k de oro. El rival debe elegir cuidadosamente sus próximos objetivos.`,'normal')
   }
-  // Late game is an actual siege: at least two living attackers must stand
-  // by the rival nexus, after three towers have been taken on the same lane.
-  if(t>=36&&!m.winner){
-   const pushing=club(navigation.siegeTeam);
-   if(pushing)takeTower(pushing,t,navigation.siegeLane);
-  }
+  // No forced siege roll. A late push still needs a crashed wave, three
+  // earned plates, living attackers and the corresponding physical tower.
+
   if(t>=29&&!m.winner){
    const eligible=all.filter(c=>Object.values(m.lanes[enemy(c).id]).some(n=>n===3))
     .map(c=>({c,nearNexus:positioned(c,(enemy(c).id===a.id?'blue':'red')+'_nexus') }))
-    .filter(x=>x.nearNexus.length>=2&&x.nearNexus.length===living(x.c,t).length);
+    .filter(x=>x.nearNexus.length>=2);
    if(eligible.length&&(t>=54||chance(t>=46?.66:.16))){
     const w=eligible.length===1?eligible[0].c:decide(eligible[0].c,eligible[1].c,t);
     const selected=eligible.find(x=>x.c.id===w.id).nearNexus;

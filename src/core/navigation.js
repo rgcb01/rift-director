@@ -90,7 +90,8 @@ function createNavigation(clubs,teams,seed){
      intent:'lane',alive:true,route:[node],movedFrom:node};
   }
  }
- return {a,b,agents,teams,seed,siegeTeam:null,siegeLane:null,minute:0};
+ return {a,b,agents,teams,seed,siegeTeam:null,siegeLane:null,
+   siegeChecked:0,siegeUntil:0,minute:0};
 }
 function teamAgents(nav,id){return Object.values(nav.agents).filter(x=>x.teamId===id)}
 function getAgent(nav,id){return nav.agents[id]||null}
@@ -118,22 +119,38 @@ function engagement(nav,teamId,maxHops=1) {
  }
  return candidates.sort((x,y)=>y.foes.length-x.foes.length||x.actor.id.localeCompare(y.actor.id));
 }
-function siegeLane(nav,worldState){
- const opp=enemy(nav,nav.siegeTeam);
- const lanes=worldState.lanes[opp];
- return [...LANES].sort((x,y)=>lanes[y]-lanes[x]||
-   seedHash(nav.seed,nav.siegeTeam,x)%3-seedHash(nav.seed,nav.siegeTeam,y)%3)[0];
+function siegeLane(nav,worldState,team){
+ const opp=enemy(nav,team),lanes=worldState.lanes[opp];
+ const wave=worldState.waves||{};
+ const rank=lane=>lanes[lane]*4+
+   (core.LaneEconomy?.pressureFor({teamIds:[nav.a,nav.b],lanes:wave},team,lane)||0)*1.6+
+   (wave[lane]?.plates?.[opp]?.[lanes[lane]]||0)*1.2;
+ return [...LANES].sort((x,y)=>rank(y)-rank(x)||
+   seedHash(nav.seed,team,x)%3-seedHash(nav.seed,team,y)%3)[0];
 }
-function determineSiege(nav,worldState){
- if(nav.siegeTeam)return;
- // A tactical commitment: once the late-game siege starts, the trailing club
- // defends its base. It can still contest objectives or win fights in defense.
- const score=id=>worldState.gold[id]+worldState.towers[id]*950+
-   worldState.kills[id]*420+worldState.barons[id]*480;
+function determineSiege(nav,worldState,t){
+ if(nav.siegeChecked===t)return;
+ nav.siegeChecked=t;
+ if(t<30)return;
+ // No global minute-36 order. Economic advantage and committed waves
+ // trigger a reversible siege. Long games get an opportunity to break a
+ // stalemate, but the leading team is still chosen by current game state.
+ const score=id=>worldState.gold[id]+worldState.towers[id]*700+
+   worldState.kills[id]*280+worldState.barons[id]*450;
  const delta=score(nav.a)-score(nav.b);
- nav.siegeTeam=Math.abs(delta)<300?(
-   seedHash(nav.seed,'siege')%2?nav.a:nav.b):(delta>0?nav.a:nav.b);
- nav.siegeLane=siegeLane(nav,worldState);
+ const advantage=Math.abs(delta);
+ if(!nav.siegeTeam&&t<44&&advantage<1100)return;
+ const proposed=advantage<100?
+   (seedHash(nav.seed,'siege',Math.floor(t/8))%2?nav.a:nav.b):
+   delta>0?nav.a:nav.b;
+ if(nav.siegeTeam&&t<(nav.siegeUntil||0))return;
+ if(nav.siegeTeam&&t>=60)return; // preserve a long enough final push
+ // The losing side can seize the initiative if its comeback actually
+ // overtakes the opponent; do not ping-pong after tiny market fluctuations.
+ if(nav.siegeTeam&&nav.siegeTeam!==proposed&&advantage<1600)return;
+ nav.siegeTeam=proposed;
+ nav.siegeLane=siegeLane(nav,worldState,proposed);
+ nav.siegeUntil=t+8;
 }
 // Only these regions belong to the JUN's travel network before teamfights.
 // Gank staging nodes are off-lane; simply being in a node adjacent to a lane
@@ -184,10 +201,13 @@ function chooseGoal(nav,agent,t,worldState){
  const partner=role==='SUP'?teamAgents(nav,team).find(p=>p.role==='ADC'&&p.alive):null;
  const followADC=()=>partner?.goal&&adjacency[partner.goal]?partner.goal:anchor('BOT');
 
- // Late game: everyone joins a *reachable* siege or base defense.
- // This remains after the lane phase so the game can still finish legally.
- if(t>=36){
-  determineSiege(nav,worldState);
+ // Only actual economic or wave advantage commits an attacking team.
+ // Junglers preserve their own corridors until minute 36, after which
+ // they can join a coordinated push without teleportation.
+ if(t>=24){
+  determineSiege(nav,worldState,t);
+ }
+ if(nav.siegeTeam&&(role!=='JUN'||t>=36)){
   if(team===nav.siegeTeam){
    const lane=nav.siegeLane,stage=worldState.lanes[foe][lane]+1;
    return {goal:stage<=3?towerNode(getSide(nav,foe),lane,stage):getSide(nav,foe)+'_nexus',intent:'siege'};
@@ -392,6 +412,12 @@ function auditNavigation(match,world){
     }
     if(!direct||!actor||!target||!combatRange(actor.node,target.node,3))
      errs.push('Autor de escaramuza fuera de rango de golpe: '+e.minute);
+   }else if(f.action==='plate'){
+    const node=towerNode(other===match.fixture.a?'blue':'red',f.lane,f.stage);
+    if(!near(f.actorId,node,1))
+      errs.push('Placa cobrada desde otra zona: '+e.minute);
+    for(const id of f.participantIds||[])
+     if(!near(id,node,1))errs.push('Placa con participante ausente: '+id);
    }else if(f.action==='teamfight'){
     for(const id of f.victimIds)if(!together(f.actorId,id,2))
       errs.push('Teamfight desde otra zona: '+e.minute+' / '+id);

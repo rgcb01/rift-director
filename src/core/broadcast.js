@@ -96,6 +96,13 @@ function createBroadcast(match,world,seed) {
       f.attackerCount+' contra '+f.defenderCount+', pero '+target+
       ' retrocede con '+f.hpAfter+'% de vida. No se registra kill.']
    ];
+  }else if(f.action==='plate'){
+   const lane=laneLabel[f.lane];
+   entries=[
+    ['¡Placa para '+club+'!',actor+' obtiene oro por la placa '+f.plate+' de la torre '+f.stage+' en '+lane+'.'],
+    ['Presión rentable en '+lane,club+' aprovecha una oleada y gana '+f.goldReward+' de oro en placas con '+actor+'.'],
+    ['La oleada golpea la estructura',actor+' participa en el daño de la torre de '+lane+' y convierte presión en recompensa.']
+   ];
   }else if(f.action==='tower'){
    const layer=['','exterior','interior','de base'][f.stage],lane=laneLabel[f.lane];
    entries=[
