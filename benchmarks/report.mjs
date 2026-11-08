@@ -34,7 +34,15 @@ export function flatten(d){
   counterTowerRate:s.gameplay.gamesBothTeamsTowers===undefined?null:
     ratio(s.gameplay.gamesBothTeamsTowers,s.completed),
   soloSplitTowerGames:s.gameplay.soloSplitTowerGames===undefined?null:
-    ratio(s.gameplay.soloSplitTowerGames,s.completed)
+    ratio(s.gameplay.soloSplitTowerGames,s.completed),
+  purchasesPerMatch:s.gameplay.purchasesPerMatch??null,
+  equipmentSpentMean:s.gameplay.equipmentGoldPerMatch??null,
+  avgFinalLevel:s.gameplay.avgFinalLevel??null,
+  noItemRate:s.gameplay.noItemGames===undefined?null:
+    ratio(s.gameplay.noItemGames,s.completed),
+  bothTeamsItemRate:s.gameplay.bothTeamsItemGames===undefined?null:
+    ratio(s.gameplay.bothTeamsItemGames,s.completed),
+  firstPurchaseMean:s.gameplay.firstPurchaseMean??null
  };
 }
 export function evaluate(current,previous){
@@ -77,6 +85,10 @@ export function evaluate(current,previous){
   'Menos del 18% de partidas destruyen torres en al menos dos carriles');
  warn(v.counterTowerRate!==null&&v.counterTowerRate<.04,
   'Pocas partidas registran torres destruidas por ambos clubes');
+ warn(v.noItemRate!==null&&v.noItemRate>.25,
+  'Más del 25% de los partidos terminan sin ninguna compra');
+ warn(v.bothTeamsItemRate!==null&&v.bothTeamsItemRate<.50,
+  'Menos del 50% de los mapas tienen compras de ambos equipos');
  if(p.exactlyThreeTowers!==null&&v.exactlyThreeTowers-p.exactlyThreeTowers>.05)
   warnings.push('La proporción de partidas con exactamente tres torres empeoró más de cinco puntos porcentuales');
  warn(v.noEarlyTowerRate>.90,'Mas de 90% de los partidos no derriban torres antes del minuto 36');
@@ -125,7 +137,13 @@ const keys=[
  ['comebackRate','Remontadas con deficit >=1500 al min 20','rate'],
  ['multiLaneRate','Torres en dos o mas carriles','rate'],
  ['counterTowerRate','Ambos equipos toman torres','rate'],
- ['soloSplitTowerGames','Partidos con torre de splitpush solitario','rate']];
+ ['soloSplitTowerGames','Partidos con torre de splitpush solitario','rate'],
+ ['purchasesPerMatch','Compras de objetos por mapa','num'],
+ ['equipmentSpentMean','Oro convertido en equipamiento por mapa','num'],
+ ['avgFinalLevel','Nivel individual promedio al final','num'],
+ ['firstPurchaseMean','Minuto promedio de primera compra','num'],
+ ['noItemRate','Partidos sin ninguna compra','rate'],
+ ['bothTeamsItemRate','Partidos con compras de ambos equipos','rate']];
 const show=(v,type)=>v==null?'No medido':type==='rate'?percent(v):number(v);
 export function generate(current,previous,output){
  mkdirSync(output,{recursive:true});
@@ -152,6 +170,12 @@ export function generate(current,previous,output){
    {label:'Dos carriles',value:(assessment.current.multiLaneRate||0)*100},
    {label:'Ambos toman',value:(assessment.current.counterTowerRate||0)*100},
    {label:'Remontadas',value:(assessment.current.comebackRate||0)*100}],{max:100,decimals:0})],
+  ['power.svg',bars('Compras y progreso: cobertura del nuevo sistema',[
+   {label:'Ambos compran',value:(assessment.current.bothTeamsItemRate||0)*100},
+   {label:'Sin compras',value:(assessment.current.noItemRate||0)*100},
+   {label:'Compras/match',value:(assessment.current.purchasesPerMatch||0)*5},
+   {label:'Nivel final',value:(assessment.current.avgFinalLevel||0)*5}
+  ],{max:100,decimals:0})],
   ['previous.svg',bars('Version anterior vs actual: porcentaje de partidas sin Dragon',[
    {label:previous.version,value:assessment.baseline.noDragonRate*100,color:'#f27e8a'},
    {label:current.version,value:assessment.current.noDragonRate*100,color:'#6de2c1'}],{max:100,decimals:0})]
