@@ -10,7 +10,7 @@ test('XP por experiencia, niveles y economía personal no inventan oro',()=>{
  const {core}=boot();
  const economy=core.PowerEconomy,model=economy.create(testRoster());
  assert.equal(model.entries['a-TOP'].level,1);
- for(let i=0;i<20;i++)economy.rewardEvent(model,{facts:{
+ for(let i=0;i<20;i++)economy.rewardEvent(model,{teamId:'a',facts:{
   action:'tower',actorId:'a-TOP',participantIds:['a-TOP']}});
  assert.ok(model.entries['a-TOP'].level>=8);
  assert.equal(model.entries['a-TOP'].xp>=0,true);
