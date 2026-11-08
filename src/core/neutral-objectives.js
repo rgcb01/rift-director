@@ -115,7 +115,8 @@ function audit(match){
  for(const e of match.events||[]){
   const f=e.facts;
   if(f?.action!=='dragon'||f.objectiveVersion!==2)continue;
-  if(!['take','contest'].includes(f.plan))errors.push('Dragon without active caller plan');
+  if(!['take','contest','opportunistic'].includes(f.plan))
+   errors.push('Dragon without physical opportunity or team call');
   if(!Number.isFinite(f.score)||f.score<0||
     !Array.isArray(f.participantIds)||!f.participantIds.length)
    errors.push('Dragon invalid capture strength');
