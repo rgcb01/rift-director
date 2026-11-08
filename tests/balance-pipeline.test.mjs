@@ -48,7 +48,7 @@ test('genera un dashboard HTML con graficos SVG sin dependencias',()=>{
  }finally{rmSync(dir,{recursive:true,force:true})}
 });
 
-test('CLI del reporte genera HTML, 8 SVG y JSON desde argumentos relativos',()=>{
+test('CLI del reporte genera HTML, 9 SVG y JSON desde argumentos relativos',()=>{
  const dir=mkdtempSync(join(tmpdir(),'rift-cli-report-'));
  try{
   const current=structuredClone(baseline);
