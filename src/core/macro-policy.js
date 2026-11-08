@@ -24,20 +24,25 @@
   const vision=source.vision?.[id]??50;
   const hp=health?.[agent.id]??100;
   const deficit=(world.gold?.[opponent]??0)-(world.gold?.[id]??0);
+  // When behind, declining every visible opportunity can surrender the map.
+  // The underdog may commit to a real fight for territory or a neutral
+  // objective; it receives no artificial gold, damage or comeback roll.
+  const underdog=clamp(deficit/700,0,12);
   const call=nav.neutralPlans?.[id];
   const eligible=lane==='MID'&&['take','contest'].includes(call?.action)&&
    call?.until>=minute&&['dragon_pit','baron_pit'].includes(call.target)&&hp>=66;
   const travel=eligible?core.Navigation.hops(agent.node,call.target):0;
   const farming=45+clamp(-wave,0,2)*11+
-   clamp(deficit/750,0,9)+clamp(100-hp,0,50)*.12+
+   underdog*.35+clamp(100-hp,0,50)*.12+
    clamp(50-vision,0,30)*.16;
   const pushing=32+clamp(wave,0,3)*14+
-   (pressure-50)*.62+(vision-50)*.12-(100-hp)*.20;
+   (pressure-50)*.62+(vision-50)*.12-(100-hp)*.20+
+   underdog*1.65;
   // A real objective call is worth sacrificing lane income only when its
   // local opportunity exceeds the farm or wave-push alternatives.
   const rotating=eligible?58+clamp(call.score??0,-25,25)*.35-
     Math.max(0,travel-1)*3.7-clamp(-wave,0,3)*5+
-    (world.dragons?.[opponent]??0)*.5:-Infinity;
+    (world.dragons?.[opponent]??0)*.5+underdog*3.2:-Infinity;
   const scores={farm:round(farming),pressure:round(pushing),
    objective:eligible?round(rotating):null};
   const action=['farm','pressure',...(eligible?['objective']:[])]
