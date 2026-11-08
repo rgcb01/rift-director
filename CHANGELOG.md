@@ -4,6 +4,18 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+## [0.7.11-alpha] — 2026-11-08
+
+### Remontadas causales: rachas y recompensas por shutdown
+- **Nuevo libro mayor de rachas individuales:** cada profesional acumula bajas consecutivas desde su última muerte; morir reinicia su racha, sin importar el minuto o la diferencia de oro.
+- **Shutdowns comprobables:** eliminar a un rival con 3+ bajas consecutivas concede una recompensa adicional de oro de 150 (racha 3), 240 (racha 4), 330 (racha 5), hasta un máximo de 420. No existe recompensa para rachas menores a tres.
+- La recompensa **solo surge de un combate real con HP en cero**, y se acredita una única vez tanto al oro acumulado del equipo como a la cartera personal del asesino. El oro base por kill (320) sigue igual.
+- Los eventos deportivos guardan la víctima, su racha previa, el bono y el total; una multikill puede cortar varias rachas diferentes. RiftCast y el replay histórico muestran el shutdown; no se inventan kills ni porcentajes de remontada.
+- Nueva auditoría independiente reconstruye cada racha desde los hechos de la partida, detecta recibos falsos, duplicaciones de oro personal y divergencias de instantáneas. Se añaden pruebas de unidad y de simulación multisemilla.
+- **10 gráficas y comparativa por versión:** nuevas métricas de mapas con shutdown, oro total y oro entregado al equipo que continúa perdiendo. Se comparan 1,000 partidas auditadas + 1,000 espejadas contra el baseline verificado de Alpha 0.7.10.
+- **Scope controlado:** no se tocan daño, XP, IA de navegación, decisión de Dragón/Barón ni costes de objetos. Las futuras mecánicas de pelea en objetivos se evaluarán por separado.
+
+
 ## [0.7.10-alpha] — 2026-11-07
 
 ### Decisiones neutrales: Dragón, disputa y presión cruzada
