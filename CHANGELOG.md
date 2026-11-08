@@ -12,6 +12,8 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 - **Tienda de cinco objetos** con costes y estadísticas de ataque, defensa y tempo. La elección se calcula por rol, estado económico e inventario; máximo tres objetos únicos por profesional.
 - **Regreso físico a base** para comprar; la IA puede sacrificar presión por una mejora, pero limita el número de viajeros simultáneos. Las compras quedan registradas con jugador, lugar, coste, nivel y objeto.
 - El combate, las selecciones de objetivos individuales y las peleas consultan ahora niveles y equipo reales; no se otorgan bajas sin el daño necesario.
+- Ajuste de calibración tras 2,000 partidos: coste de objetos más elevado, XP por minuto más contenida y bonificaciones ofensivas/defensivas diferenciadas; oro de placas, torres y grandes objetivos distribuido a las carteras.
+- El jungla puede robar Barón con Smite **sin otro aliado presente** si realmente está en el foso: no se exige un segundo compañero artificial para validar el robo.
 - El reproductor de partidos muestra nivel, oro disponible y equipo por profesional en el momento histórico seleccionado; RiftCast describe las compras como hechos.
 - Reproducción determinista, integridad de oro y auditoría de compras/XP en partidos completos; la contabilidad empresarial y el RNG de partido siguen separados.
 - Benchmark de 1,000 partidos + 500 parejas espejadas, comparado con la **referencia Alpha 0.7.8** congelada y auditada. Reporta compras, niveles, conversiones de oro, remontadas y duración.
