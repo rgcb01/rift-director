@@ -47,7 +47,7 @@ test('70 mapas: compras y power spikes aparecen en hechos y replays causales',()
  const world=sim.newGame('balanced','Power QA');
  const fixture=Object.values(world.fixtures).flat().find(f=>
    f.a===world.userClub||f.b===world.userClub);
- let purchases=0,progressions=0,withItem=0;
+ let purchases=0,progressions=0,withItem=0,recallBuys=0,fountainBuys=0,before30=0,recallTravel=0;
  for(let i=1;i<=70;i++){
   world.rng=i*95117;
   const m=sim.simulateMatch(fixture);
@@ -66,6 +66,14 @@ test('70 mapas: compras y power spikes aparecen en hechos y replays causales',()
   const end=m.frames.at(-1);
   const rows=Object.values(end.powerEconomy.entries);
   purchases+=m.events.filter(e=>e.facts?.action==='item_purchase').length;
+  m.events.forEach((e,i)=>{
+   if(e.facts?.action!=='item_purchase')return;
+   if(e.facts.node.endsWith('_fountain'))fountainBuys++;
+   if(e.minute<30)before30++;
+   if(m.moments[i].navigation.before[e.facts.actorId].intent==='shop_recall')recallBuys++;
+  });
+  for(const fr of m.frames)
+   recallTravel+=Object.values(fr.navigation.before).filter(a=>a.intent==='shop_recall').length;
   if(rows.some(r=>r.level>9))progressions++;
   if(rows.some(r=>r.items.length))withItem++;
   for(const e of m.events.filter(e=>e.facts?.action==='item_purchase')){
@@ -77,7 +85,7 @@ test('70 mapas: compras y power spikes aparecen en hechos y replays causales',()
  assert.ok(purchases>40,'Las compras deben suceder en partidas reales');
  assert.ok(withItem>25,'La tienda jamás se usa');
  assert.ok(progressions>25,'Los profesionales no suben de nivel');
- console.log('POWER_SAMPLE='+JSON.stringify({purchases,withItem,progressions}));
+ console.log('POWER_SAMPLE='+JSON.stringify({purchases,withItem,progressions,recallBuys,fountainBuys,before30,recallTravel}));
 });
 
 test('el oro de objetivos llega a los jugadores y modifica su poder real',()=>{
