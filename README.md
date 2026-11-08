@@ -20,6 +20,10 @@ Los meses impulsan las finanzas y el mundo. Las noticias y los rumores reflejan 
 - No hay instalación de paquetes, cuenta ni backend para jugar.
 - **Guardados:** automáticos en `localStorage` de ese navegador. En **Partida** puedes **exportar/importar JSON**. Los guardados no se sincronizan entre dispositivos; expórtalos antes de borrar datos del navegador.
 
+## Alpha 0.7.14 — Decisiones de recursos del mapa (en validación)
+
+Un TOP/MID evalúa si le conviene **farmear, presionar la oleada o rotar hacia un objetivo anunciado** según visión, oro, vida, distancia y estado de la línea. La opción elegida ocupa tiempo real de desplazamiento: dejar de farmear puede costar oro y experiencia; una torre o Dragón no se obtiene solo por tener un plan. Cada orden tiene una explicación verificable y se incorpora al replay. El benchmark compara minutos por acción contra Alpha 0.7.13 antes de considerar el cambio apto para publicar.
+
 ## Alpha 0.7.13 — Wards y visión imperfecta (integrada)
 
 SUP y JUN pueden colocar wards si llegan físicamente a puntos de río y emboscada. Cada equipo dispone de hasta dos wards activas de ocho minutos; la posición, el propietario, la expiración y el autor aparecen en la repetición y en el minimapa. Una ward permite ver enemigos cercanos al lugar donde fue colocada, pero no revela información global ni crea kills. Este primer corte superó 128/128 pruebas y la regresión de 2,000 partidas sin bloqueos: 6.41 kills por mapa, remontadas 4.5% y un reparto azul espejado del 49.9% (PR #29, ejecución 42460763541).
