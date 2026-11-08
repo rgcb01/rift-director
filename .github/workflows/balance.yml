@@ -77,6 +77,13 @@ jobs:
         if: steps.gate.outputs.should_run == 'true'
         run: node benchmarks/report.mjs .balance-output/summary.json .balance-output/previous.json .balance-output
 
+      - name: Exigir dashboard y seis gráficas antes de subirlo
+        if: steps.gate.outputs.should_run == 'true'
+        run: |
+          for path in .balance-output/summary.json .balance-output/report.md .balance-output/regressions.json .balance-output/index.html .balance-output/{duration,kills,sides,objectives,towers,previous}.svg; do
+            test -s "$path" || { echo "::error::Falta reporte: $path"; exit 1; }
+          done
+
       - name: Adjuntar reportes reproducibles (HTML, SVG, JSON)
         if: always() && steps.gate.outputs.should_run == 'true'
         uses: actions/upload-artifact@v4
