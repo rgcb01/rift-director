@@ -166,6 +166,7 @@
     territory.lowerRiver=territory.upperRiver;
     return {
       minute:t,players:positions,structures:clone(state.towers),
+      wards:(frame.vision?.wards||[]).map(w=>({...w})),
       territory,focus:focused
     };
   }
