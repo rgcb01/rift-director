@@ -27,7 +27,7 @@
   // When behind, declining every visible opportunity can surrender the map.
   // The underdog may commit to a real fight for territory or a neutral
   // objective; it receives no artificial gold, damage or comeback roll.
-  const underdog=clamp(deficit/700,0,12);
+  const underdog=clamp(deficit/700,0,6);
   const call=nav.neutralPlans?.[id];
   const eligible=lane==='MID'&&['take','contest'].includes(call?.action)&&
    call?.until>=minute&&['dragon_pit','baron_pit'].includes(call.target)&&hp>=66;
