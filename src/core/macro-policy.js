@@ -146,8 +146,9 @@
     // a permanent safe staging order. Tactical threat checks still apply.
     const foe=other(nav,id);
     const lead=(world.gold?.[id]??0)-(world.gold?.[foe]??0);
-    const wave=core.LaneEconomy.pressureFor(
-     {teamIds:[nav.a,nav.b],lanes:world.waves},id,role);
+    const wave=world.waves?.[role]?
+     core.LaneEconomy.pressureFor(
+      {teamIds:[nav.a,nav.b],lanes:world.waves},id,role):0;
     if(role==='TOP'&&minute<=28&&lead>1400&&wave>=.65&&
        (health?.[actor.id]??100)>=67){
      delete nav.macroCalls[actor.id];continue;
