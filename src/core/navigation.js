@@ -238,6 +238,11 @@ function chooseGoal(nav,agent,t,worldState,context=null){
  const pressure=core.Counterplay?.followup(nav,agent,t,worldState,context);
  if(pressure)return pressure;
 
+ // Earned farm, wave pressure and optional MID rotation compete for the
+ // same professional's travel time. No outcome is assigned by this order.
+ const resourceChoice=core.MacroPolicy?.movement(nav,agent,t);
+ if(resourceChoice)return resourceChoice;
+
  // Only actual economic or wave advantage commits an attacking team.
  // Junglers preserve their own corridors until minute 36, after which
  // they can join a coordinated push without teleportation.
@@ -340,6 +345,7 @@ function advance(nav,t,dead,worldState,context=null){
  if(t<=nav.minute)throw Error('Navigation minutes must advance');
  nav.minute=t;
  nav.neutralPlans=core.NeutralObjectives?.plan(nav,worldState,t,context?.health)||null;
+ nav.macroPlans=core.MacroPolicy?.plan(nav,worldState,t,context?.health,dead)||{};
  // All tactics inspect the same initial positions (no turn-order advantage).
  const positions=Object.fromEntries(Object.entries(nav.agents).map(([id,a])=>
   [id,{id:a.id,node:a.node,teamId:a.teamId,role:a.role,
