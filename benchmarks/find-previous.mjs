@@ -14,6 +14,7 @@ try{
     /^balance-report-\d+\.\d+\.\d+-alpha$/.test(a.name)&&a.workflow_run?.id)
     .map(a=>({...a,version:a.name.slice('balance-report-'.length)}))
     .filter(a=>compareVersions(a.version,version)<0)
+    .filter(a=>a.workflow_run.head_branch==='main'||/^(?:v)?\d+\.\d+\.\d+(?:-alpha)?$/.test(a.workflow_run.head_branch||''))
     .sort((a,b)=>compareVersions(b.version,a.version)||b.created_at.localeCompare(a.created_at));
   for(const a of candidates){
    try{
