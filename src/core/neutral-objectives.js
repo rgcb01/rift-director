@@ -71,13 +71,13 @@ function plan(nav,world,minute,health){
  }
  return out;
 }
-function movement(nav,agent,minute){
+function movement(nav,agent,minute,worldState){
  const call=nav.neutralPlans?.[agent.teamId];
  if(!call||call.action==='hold'||minute>call.until)return null;
  if(call.action==='trade'){
   if(agent.role!=='TOP')return null;
   const foe=other(nav,agent.teamId);
-  const stage=nav.objectiveState?.lanes?.[foe]?.TOP+1;
+  const stage=(worldState.lanes?.[foe]?.TOP??3)+1;
   if(!Number.isInteger(stage)||stage>3)return null;
   const side=foe===nav.a?'blue':'red';
   return {goal:core.Navigation.towerNode(side,'TOP',stage),
