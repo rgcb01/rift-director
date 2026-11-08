@@ -96,6 +96,12 @@ function createBroadcast(match,world,seed) {
       f.attackerCount+' contra '+f.defenderCount+', pero '+target+
       ' retrocede con '+f.hpAfter+'% de vida. No se registra kill.']
    ];
+  }else if(f.action==='item_purchase'){
+   entries=[
+    [actor+' vuelve con equipamiento',actor+' compra '+f.itemName+' en la base por '+f.goldCost+' de oro.'],
+    ['Nueva inversión de '+club,actor+' convierte su oro en '+f.itemName+'. El próximo duelo tendrá otro balance.'],
+    [actor+' alcanza un pico de poder',club+' invierte en '+f.itemName+' después de regresar físicamente a base.']
+   ];
   }else if(f.action==='plate'){
    const lane=laneLabel[f.lane];
    entries=[
