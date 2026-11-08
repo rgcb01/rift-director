@@ -143,7 +143,7 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
   const prior=m.events[m.events.length-1];
   // New encounter timestamps use their own deterministic clock: no additional
   // gameplay RNG is consumed by an incidental 2v1 commentary.
-  const skirmish=facts?.action==='skirmish'||facts?.combatVersion===1;
+  const skirmish=facts?.action==='plate'||facts?.action==='skirmish'||facts?.combatVersion===1;
   const stamp=skirmish?(Math.imul((commentarySeed^minute)>>>0,1664525)+
     Math.imul(m.events.length+1,1013904223))>>>0:0;
   const sec=minute===0?0:prior?.minute===minute?
