@@ -124,7 +124,9 @@ function simulateMatch(f){
  const m={minute:0,kills:{[a.id]:0,[b.id]:0},gold:{[a.id]:500,[b.id]:500},towers:{[a.id]:0,[b.id]:0},lanes:{[a.id]:{TOP:0,MID:0,BOT:0},[b.id]:{TOP:0,MID:0,BOT:0}},dragons:{[a.id]:0,[b.id]:0},barons:{[a.id]:0,[b.id]:0},dead:{},winner:null,events:[],frames:[],moments:[],nextDragon:5,nextBaron:20,baronBuff:{[a.id]:0,[b.id]:0}};
  const all=[a,b],teams={[a.id]:aP,[b.id]:bP};
  const laneEconomy=RiftCore.LaneEconomy.create(a.id,b.id);
+ const powerEconomy=RiftCore.PowerEconomy.create([...aP,...bP]);
  m.waves=laneEconomy.lanes;
+ m.powerEconomy=powerEconomy;
  const navigation=RiftCore.Navigation.createNavigation(all,teams,commentarySeed);
  const health=RiftCore.Encounters.create([...aP,...bP]);
  const lastSkirmish={};
@@ -154,7 +156,7 @@ function simulateMatch(f){
   const prior=m.events[m.events.length-1];
   // New encounter timestamps use their own deterministic clock: no additional
   // gameplay RNG is consumed by an incidental 2v1 commentary.
-  const skirmish=facts?.action==='plate'||facts?.action==='skirmish'||facts?.combatVersion===1;
+  const skirmish=['plate','item_purchase'].includes(facts?.action)||facts?.action==='skirmish'||facts?.combatVersion===1;
   const stamp=skirmish?(Math.imul((commentarySeed^minute)>>>0,1664525)+
     Math.imul(m.events.length+1,1013904223))>>>0:0;
   const sec=minute===0?0:prior?.minute===minute?
@@ -162,7 +164,8 @@ function simulateMatch(f){
     skirmish?stamp%30:ri(0,29);
   const event={minute,time:`${String(minute).padStart(2,'0')}:${String(sec).padStart(2,'0')}`,
     title,body,kind,teamId:team?.id||null};
-  if(facts){event.facts=facts;RiftCore.applyPlayerEvent(playerStats,event)}
+  if(facts){event.facts=facts;RiftCore.applyPlayerEvent(playerStats,event);
+    RiftCore.PowerEconomy.rewardEvent(powerEconomy,event)}
   m.events.push(event);
   // Snapshot immediately after the actual event: no new RNG or invented kills.
   m.moments.push({minute,time:event.time,eventsCount:m.events.length,
@@ -170,6 +173,7 @@ function simulateMatch(f){
     dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,
     map:RiftCore.cloneMapState(m.map),playerStats:RiftCore.clonePlayerStats(playerStats),
     health:{...health},laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
+    powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
     navigation:{before:movementBefore,after:nav.snapshot(navigation,m.dead,minute)}});
  };
  const balance=(c,t)=>{let stage=t<12?'early':t<25?'mid':'late';let z=teamPower(c,stage)+(m.gold[c.id]-m.gold[enemy(c).id])/2800+m.barons[c.id]*1.3;
@@ -241,6 +245,7 @@ function simulateMatch(f){
  };
  const nextSnapshot=t=>m.frames.push({minute:t,kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
   laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
+  powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
   playerStats:RiftCore.clonePlayerStats(playerStats),map:RiftCore.cloneMapState(m.map),
   health:{...health},navigation:{before:movementBefore,after:nav.snapshot(navigation,m.dead,t)}});
  makeEv(0,'Comienza el mapa',`${a.name} y ${b.name} entran a la Grieta. Ambos equipos buscan imponer su plan de juego.`, 'normal');nextSnapshot(0);
@@ -248,12 +253,35 @@ function simulateMatch(f){
  const lastGankAttempt=Object.create(null);
  for(let t=1;t<=76&&!m.winner;t++){
   m.minute=t;
-  for(const c of all){m.gold[c.id]+=ri(790,1080)+Math.round((balance(c,t)-65)*2);if(m.baronBuff[c.id]>0)m.baronBuff[c.id]--}
+  const teamIncome={};
+  for(const c of all){
+   const earned=ri(790,1080)+Math.round((balance(c,t)-65)*2);
+   teamIncome[c.id]=earned;
+   m.gold[c.id]+=earned;
+   if(m.baronBuff[c.id]>0)m.baronBuff[c.id]--;
+  }
   nav.advance(navigation,t,m.dead,m,{health,map:m.map});
   RiftCore.Encounters.recover(health,navigation,m.dead,t);
-  RiftCore.LaneEconomy.advance(laneEconomy,{minute:t,nav:navigation,map:m.map,health,gold:m.gold});
+  const farmIncome=RiftCore.LaneEconomy.advance(laneEconomy,
+    {minute:t,nav:navigation,map:m.map,health,gold:m.gold});
+  RiftCore.PowerEconomy.advance(powerEconomy,
+    {minute:t,nav:navigation,dead:m.dead,health,teamIncome});
+  for(const earning of farmIncome)
+   RiftCore.PowerEconomy.awardFarm(powerEconomy,earning,navigation,health);
   movementBefore=nav.snapshot(navigation,m.dead,t);
   m.map=updateMap(t);
+  // Every purchase requires a physically present professional at their
+  // own nexus/fountain, a funded personal wallet and an available item slot.
+  for(const agent of Object.values(navigation.agents)){
+   if(!agent.alive||(m.dead[agent.id]||0)>t)continue;
+   const purchase=RiftCore.PowerEconomy.purchase(powerEconomy,navigation,agent,t,m);
+   if(!purchase)continue;
+   const buyer=player(agent.id);
+   makeEv(t,'Compra de equipamiento',
+     buyer.name+' regresa a base y compra '+purchase.itemName+
+     ' por '+purchase.goldCost+' de oro, alcanzando nivel '+purchase.level+'.',
+     'normal',club(agent.teamId),purchase);
+  }
   // Early lane trades are genuine ranged/close combat, including 2v2 bot.
   // The two opposing laners must belong to the narrated lane, be in lane
   // trading range and have enough health to participate. No fake kill rolls.
@@ -267,7 +295,7 @@ function simulateMatch(f){
     if(!offense.length||!defense.length)continue;
     const facts=RiftCore.Encounters.resolveCombat({
      nav:navigation,dead:m.dead,minute:t,players:Object.fromEntries([...aP,...bP].map(p=>[p.id,p])),
-     health,seed:commentarySeed,mode:'lane',teamId:attacker.id,
+     health,seed:commentarySeed,powerState:powerEconomy,mode:'lane',teamId:attacker.id,
      attackerIds:offense.map(p=>p.id),targetIds:defense.map(p=>p.id),lane
     });
     if(!facts)continue;
@@ -308,7 +336,7 @@ function simulateMatch(f){
     const combat=RiftCore.Encounters.resolveCombat({
       nav:navigation,dead:m.dead,minute:t,
       players:Object.fromEntries([...aP,...bP].map(p=>[p.id,p])),
-      health,seed:commentarySeed,mode:'gank',teamId:attacker.id,
+      health,seed:commentarySeed,powerState:powerEconomy,mode:'gank',teamId:attacker.id,
       attackerIds:[j.id,...(helper?[helper.id]:[])],targetIds:[v.id],lane
     });
     if(!combat)throw Error('Gank elegible sin daño resoluble');
@@ -340,7 +368,7 @@ function simulateMatch(f){
     if(zone==='baron_pit'&&t<20)continue;
     const facts=RiftCore.Encounters.resolve({
       nav:navigation,dead:m.dead,minute:t,zone,
-      players:roster,health,seed:commentarySeed,previous:lastSkirmish
+      players:roster,health,seed:commentarySeed,powerState:powerEconomy,previous:lastSkirmish
     });
     if(!facts)continue;
     const attacker=club(facts.teamId),defender=player(facts.targetId);
@@ -433,7 +461,7 @@ function simulateMatch(f){
     const facts=RiftCore.Encounters.resolveCombat({
      nav:navigation,dead:m.dead,minute:t,
      players:Object.fromEntries([...aP,...bP].map(p=>[p.id,p])),
-     health,seed:commentarySeed,mode:'teamfight',teamId:winner.id,
+     health,seed:commentarySeed,powerState:powerEconomy,mode:'teamfight',teamId:winner.id,
      attackerIds:battle.comrades.map(p=>p.id),
      targetIds:battle.targets.map(p=>p.id)
     });
@@ -501,7 +529,7 @@ function simulateMatch(f){
   }
   nextSnapshot(t)
  }
- const report={fixture:{a:f.a,b:f.b,round:f.round,playoff:!!f.playoff},frames:m.frames,events:m.events,moments:m.moments,health:{...health},playerStats:RiftCore.clonePlayerStats(playerStats),elapsed:0,speed:1,running:true,committed:false,winner:m.winner,finished:false};
+ const report={fixture:{a:f.a,b:f.b,round:f.round,playoff:!!f.playoff},frames:m.frames,events:m.events,moments:m.moments,health:{...health},powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),playerStats:RiftCore.clonePlayerStats(playerStats),elapsed:0,speed:1,running:true,committed:false,winner:m.winner,finished:false};
  RiftCore.attachMinimap(report,s);RiftCore.attachBroadcast(report,s,commentarySeed);
  RiftCore.MatchReplay.attachReplay(report,s);return report
 }
