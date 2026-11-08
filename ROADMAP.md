@@ -4,6 +4,21 @@
 
 Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prometidas. Las etapas pueden reordenarse después de probar la diversión y estabilidad del prototipo.
 
+## Estado de release y próximas versiones (2026-11-08)
+
+**Publicada: Alpha 0.7.12** mediante PRs #21–#27 (pruebas de regresión, economía de oleadas, placas/torres, rotaciones, XP/objetos, dragones disputados, shutdowns y contraataques visibles). Comparación 0.7.11→0.7.12 sobre 1,000 mapas auditados y 1,000 espejados: kills 6.86→6.39, remontadas 1.9%→4.2%, shutdowns 8.8%→11%, ventaja azul espejada 51.1%→50.2%. Sin errores de auditoría, bloqueos ni advertencias en el run 42459888783.
+
+**Siguiente: Alpha 0.7.13 (PR #29 en desarrollo).** Wards físicos colocados por JUN/SUP, duración/cooldown, visibilidad local y replays comprobables. Cerrar solo tras CI y benchmarking de 2,000 mapas, sin introducir omnisciencia ni alterar daño/XP/pagos.
+
+**Más adelante (propuesta, sujeta a balance):**
+- **0.7.14:** economía de recursos/mapa y prioridades de farm, presión y objetivos con trade-offs.
+- **0.7.15:** defensa, asedios, inhibidores y conversiones reales de Barón.
+- **0.7.16:** calibración, cobertura de regresión, variedad de snowballs/throws/remontadas sin guiones.
+- **0.8:** campeones ficticios, habilidades, builds y metajuego competitivo.
+- **0.9:** draft, preparación estratégica, picks/bans y series BO3/BO5.
+
+Cualquier cambio deportivo en Alpha x.y.z exige pruebas funcionales, referencia anterior congelada, 1,000 partidos auditados, 500 pares espejados y documentación de resultado en CHANGELOG.
+
 ## Estado
 
 - **Alpha 0.7 — [jugable]:** dos regiones ficticias, club y plantilla, finanzas mensuales, mercado sencillo, partidos narrados, noticias, offseason, SVG y guardado JSON.
@@ -14,7 +29,7 @@ Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prome
 - **M1.4A — [base narrativa integrada]:** cobertura contextual basada en hechos; velocidades 1×/2×/5× retiradas de la interfaz en Alpha 0.7.
 - **M1.5 — [integrado, QA móvil pendiente]:** siguiente evento y final instantáneo, historial clicable, marcador/minimapa sincronizados y último replay guardado.
 - **M1.3B — [primer corte integrado]:** agentes por nodo, desplazamiento previo a eventos, ganks/torres/objetivos/asedio con presencia real y auditoría. Falta ampliar intención autónoma, interpolación y contraestrategias.
-- **M1.3C — [pendiente]:** visión por wards, niebla parcial, rutas de invasión y splitpush avanzado.
+- **M1.3C — [en desarrollo, PR #29]:** wards físicos y visión parcial como primera fase; niebla, invasiones y visión avanzada aún pendientes.
 
 ## Hitos
 
@@ -106,7 +121,7 @@ Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prome
 
 ## Próxima tarea concreta
 
-**M1.1 restante:** probar un guardado histórico exportado del navegador y verificar la reanudación en móvil. El motor de contratos seguirá necesitando reglas de negociación y caducidad más detalladas (M3). Después avanzar a M1.2 (eventos y narración).
+**Alpha 0.7.13:** validar el primer corte de wards y visión causal del PR #29. Mantener pendientes la prueba manual de guardados históricos y móvil (M1.1), la negociación detallada (M3) y la niebla/visión avanzada (M1.3C).
 
 ### M1.3 · Minimap dinámico y navegación espacial
 
