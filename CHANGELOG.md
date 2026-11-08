@@ -4,6 +4,16 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+## [0.7.13-alpha] — 2026-11-08
+
+### Primer corte de wards y visión física imperfecta
+- JUN y SUP pueden colocar wards al visitar puntos de río, fosos y corredores de emboscada; requieren estar vivos y físicamente presentes. Cada equipo mantiene como máximo dos wards activos, con duración de ocho minutos y cooldown de nueve minutos por profesional.
+- Una ward revela rivales dentro de un radio local de 70 unidades SVG para su equipo, sin acceso global a posiciones ocultas. La observación de rango cercano y el reconocimiento probabilístico previos siguen funcionando; este primer corte no implementa visión por paredes ni niebla pixel-perfect.
+- Los eventos `ward_place` incluyen autor, equipo, ubicación y expiración. Frames, historial y minimapa SVG muestran las wards existentes en cada momento; las wards caducadas desaparecen, sin reescribir el pasado.
+- Auditoría de colocación, propiedad, expiración y coherencia del replay, más escenarios controlados y lotes multisemilla. Las decisiones usan la misma semilla determinista y no añaden sorteos al RNG mundial.
+- Alcance limitado a visión: sin alterar directamente daño, oro, XP, objetos, Smite o probabilidades de victoria. **No fusionar antes de comparar 1,000 partidas auditadas y 1,000 espejadas con 0.7.12**.
+
+
 ## [0.7.12-alpha] — 2026-11-08
 
 ### Contraataques basados en visibilidad y presión territorial ganada
