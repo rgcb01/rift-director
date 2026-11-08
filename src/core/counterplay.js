@@ -33,22 +33,32 @@
       o.target.intent!=='retreat'&&(health[o.target.id]??100)>0&&
       navAPI().combatRange(o.target.node,target.node,3));
     const localEdge=attackers.length-foes.length;
-    if(localEdge<1)continue;
+    if(localEdge<0)continue;
     const allyHp=attackers.reduce((n,p)=>n+(health[p.id]??100),0)/attackers.length;
     const foe=actor.teamId===nav.a?nav.b:nav.a;
     const deficit=(gold?.[foe]||0)-(gold?.[actor.teamId]||0);
     const streak=shutdowns?.streaks?.[target.id]||0;
     const bounty=core.Shutdowns.bounty(streak);
+    // Equal-number fights are viable against a visibly wounded rival,
+    // not automatically avoided. The damage engine still decides the kill.
+    if(localEdge===0&&(hp>72||allyHp<hp+22)&&bounty<150)continue;
     const score=14+localEdge*15+(100-hp)*.24+
-      Math.min(bounty/35,11)+
+      Math.min(10,Math.max(0,allyHp-hp)*.22)+Math.min(bounty/35,11)+
       (deficit>1200?Math.min(deficit/600,7):0)-
       Math.max(0,74-allyHp)*.16;
     if(score<30)continue;
     const reason=bounty>=150&&deficit>800?'shutdown_hunt':
       localEdge>=2?'isolated_pick':
       deficit>1200?'trailing_counterattack':'visible_advantage';
+    // A group encounter can affect other actually visible enemies.
+    // Include only opponents the initiator sees and can reach; pick a
+    // primary target at least as vulnerable as any secondary target.
+    const secondary=foes.filter(o=>o.target.id!==target.id&&
+      o.hp>hp&&navAPI().combatRange(actor.node,o.target.node,2))
+      .sort((a,b)=>a.hp-b.hp||a.target.id.localeCompare(b.target.id))
+      .slice(0,2).map(o=>o.target.id);
     out.push({teamId:actor.teamId,actorId:actor.id,targetId:target.id,
-     attackerIds:attackers.map(p=>p.id),targetIds:[target.id],
+     attackerIds:attackers.map(p=>p.id),targetIds:[target.id,...secondary],
      reason,score:+score.toFixed(2),localEdge,bounty,streak,
      observedHp:hp,observedNode:target.node,
      deficit:+deficit.toFixed(0)});
@@ -64,10 +74,20 @@
   if(!options.length)return null;
   // Stateless deterministic check, so adding a scout event cannot alter
   // finances, transfers or a subsequent fixture's world-level RNG.
-  const best=options[0],r=core.TacticalAI.hash(nav.seed,minute,best.teamId,
-   best.actorId,best.targetId,'counterplay')%1000;
-  const chance=clamp(.24+(best.score-30)*.007,.23,.69);
-  return r<chance*1000?best:null;
+  // A declined first opportunity must not suppress every other visible
+  // opening on the map. Try up to three distinct opponents, never unseen
+  // ones, with stable per-opportunity hashes and no gameplay RNG.
+  const seen=new Set();
+  for(const candidate of options){
+   if(seen.has(candidate.targetId))continue;
+   seen.add(candidate.targetId);
+   const r=core.TacticalAI.hash(nav.seed,minute,candidate.teamId,
+    candidate.actorId,candidate.targetId,'counterplay')%1000;
+   const chance=clamp(.24+(candidate.score-30)*.007,.23,.69);
+   if(r<chance*1000)return candidate;
+   if(seen.size>=3)break;
+  }
+  return null;
  }
  function pressureAfterKill(nav,facts,minute,worldState){
   if(!facts?.victimIds?.length||minute>=36)return null;
@@ -128,7 +148,7 @@
    if(!Array.isArray(facts.participantIds)||
       facts.participantIds.length<2||
       !Number.isFinite(p.score)||p.score<30||
-      !Number.isSafeInteger(p.localEdge)||p.localEdge<1)
+      !Number.isSafeInteger(p.localEdge)||p.localEdge<0)
     errors.push('Counterplay without visible numerical opportunity '+i);
    if(facts.counterPressure){
     const w=facts.counterPressure;
