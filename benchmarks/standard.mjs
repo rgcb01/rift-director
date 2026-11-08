@@ -62,6 +62,13 @@ export function runStandard() {
           towers:(f.towers[a]||0)+(f.towers[b]||0),
           baronSteals,
           purchases:m.events.filter(e=>e.facts?.action==='item_purchase').length,
+          recallPurchases:m.events.filter((e,i)=>e.facts?.action==='item_purchase'&&
+            m.moments[i]?.navigation?.before?.[e.facts.actorId]?.intent==='shop_recall').length,
+          fountainPurchases:m.events.filter(e=>e.facts?.action==='item_purchase'&&
+            e.facts.node.endsWith('_fountain')).length,
+          before30Purchases:m.events.filter(e=>e.facts?.action==='item_purchase'&&e.minute<30).length,
+          recallTravelMinutes:m.frames.reduce((n,fr)=>n+
+            Object.values(fr.navigation?.before||{}).filter(a=>a.intent==='shop_recall').length,0),
           totalSpent:Object.values(f.powerEconomy?.entries||{}).reduce((n,p)=>n+p.spent,0),
           meanLevel:avg(Object.values(f.powerEconomy?.entries||{}).map(p=>p.level)),
           maxLevel:Math.max(...Object.values(f.powerEconomy?.entries||{}).map(p=>p.level)),
@@ -131,6 +138,10 @@ export function runStandard() {
       firstTowerMean:+avg(rows.filter(r=>r.firstTowerMinute!==null).map(r=>r.firstTowerMinute)).toFixed(2),
       platesPerMatch:+avg(rows.map(r=>r.actions.plate||0)).toFixed(2),
       purchasesPerMatch:+avg(rows.map(r=>r.purchases)).toFixed(2),
+      recallPurchasesPerMatch:+avg(rows.map(r=>r.recallPurchases)).toFixed(2),
+      fountainPurchasesPerMatch:+avg(rows.map(r=>r.fountainPurchases)).toFixed(2),
+      earlyPurchasesPerMatch:+avg(rows.map(r=>r.before30Purchases)).toFixed(2),
+      recallTravelMinutesPerMatch:+avg(rows.map(r=>r.recallTravelMinutes)).toFixed(2),
       equipmentGoldPerMatch:+avg(rows.map(r=>r.totalSpent)).toFixed(2),
       avgFinalLevel:+avg(rows.map(r=>r.meanLevel)).toFixed(2),
       maxLevelObserved:Math.max(...rows.map(r=>r.maxLevel)),
