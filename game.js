@@ -251,6 +251,10 @@ function simulateMatch(f){
      participantIds:presentWith(c,t,who,node,lane==='BOT'?['ADC','SUP']:['TOP','MID']),
      lane,stage,node,firstTower:firstTowerBonus>0,firstTowerBonus,
      soloSplitpush:solo,wave,
+     earnedFightPressure:!!(navigation.counterPressure?.[c.id]&&
+       navigation.counterPressure[c.id].lane===lane&&
+       t<=navigation.counterPressure[c.id].until&&
+       present.some(p=>p.intent==='counterpush')),
      crossmapTrade:lane==='TOP'&&
        navigation.neutralPlans?.[c.id]?.action==='trade'&&
        t>=m.nextDragon});
@@ -433,6 +437,10 @@ function simulateMatch(f){
        'goal',c,{action:'plate',actorId:leader.id,
          participantIds:[leader.id],lane,stage,plate:claim.plate,
          node,goldReward:claim.gold,
+         earnedFightPressure:!!(navigation.counterPressure?.[c.id]&&
+           navigation.counterPressure[c.id].lane===lane&&
+           t<=navigation.counterPressure[c.id].until&&
+           present.some(p=>p.intent==='counterpush')),
          crossmapTrade:lane==='TOP'&&
            navigation.neutralPlans?.[c.id]?.action==='trade'&&
            t>=m.nextDragon});
