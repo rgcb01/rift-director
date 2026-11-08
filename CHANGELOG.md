@@ -4,6 +4,21 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+## [0.7.10-alpha] — 2026-11-07
+
+### Decisiones neutrales: Dragón, disputa y presión cruzada
+- El Dragón deja de depender de una simple tirada de propietario: los equipos evalúan el objetivo disponible según visión del río, presión de BOT, oleadas, economía, dragones previos y salud real de JUN/SUP.
+- Un equipo puede **preparar Dragón**, **disputarlo** o **ceder el foso para intentar placas y torres en TOP**. Los planes tienen duración y cooldown, pero los premios nunca ocurren sin recorrido físico, participantes presentes, oleadas y validación.
+- JUN/SUP forman el núcleo de la captura, sin teletransporte; se mantienen las responsabilidades de roaming y protección del ADC. Si no pueden llegar o están heridos, puede no haber captura.
+- Cuando ambos clubes están cerca, la captura pasa a depender del número y salud de participantes, del jungla y de la visión. Un JUN rival presente y con suficiente salud puede intentar un **robo con Smite** real.
+- **Barón compite con Dragón** mediante su valor estratégico: cuando ambos están disponibles, economía, torres, objetivos anteriores y avance del mapa determinan la prioridad. El soporte y jungla no abandonan automáticamente Barón por un Dragón disponible.
+- Ajuste de coste de oportunidad: el compromiso de preparar un objetivo neutral dura como máximo cuatro minutos simulados (incluido el minuto de decisión) y el siguiente intento requiere un descanso estratégico de doce minutos desde la llamada, salvo que una captura cambie la aparición disponible. No se modifican el daño ni el respawn del objetivo.
+- RiftCast diferencia un Dragón sin oposición, un Dragón disputado y un robo. Las placas/torres anotadas como presión cruzada exigen recompensa efectivamente conquistada.
+- Se mantienen XP, objetos, precios, reglas de recall y daño de Alpha 0.7.9. Se añaden auditorías y gráficas de Dragones disputados, robos, primer Dragón y trades ganados con oleadas.
+- Se ejecuta benchmark estándar de 1,000 mapas + 500 parejas espejadas (2,000 partidos), comparado con el baseline 0.7.9 verificado.
+- **No incluye** niebla de guerra completa, tipos elementales ni alma de Dragón: el objetivo es validar la decisión causal sin extender el scope.
+
+
 ## [0.7.9-alpha] — 2026-11-07
 
 ### Primer sistema de niveles, compras y picos de poder

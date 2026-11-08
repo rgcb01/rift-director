@@ -1,0 +1,64 @@
+{
+  "version": "0.7.9-alpha",
+  "benchmarkRevision": "fixed-seed-1000-v1",
+  "source": "Verified GitHub Actions run 42451174596; 1,000 primary + 1,000 mirrored; historical metrics curated from run logs",
+  "sourceRun": "https://github.com/rgcb01/rift-director/actions/runs/42451174596",
+  "standard": {
+    "requested": 1000,
+    "completed": 1000,
+    "audited": 1000,
+    "issueCount": 0,
+    "auditFailures": 0,
+    "wins": {
+      "blue": 534,
+      "red": 466,
+      "invalid": 0
+    },
+    "duration": {
+      "mean": 48.96
+    },
+    "kills": {
+      "mean": 7.86
+    },
+    "objectives": {
+      "dragonsAvg": 0.74,
+      "gamesWithoutDragon": 425,
+      "baronsAvg": 1.41,
+      "gamesWithoutBaron": 33,
+      "towersAvg": 4.35
+    },
+    "gameplay": {
+      "actionMatches": {
+        "gank": 252
+      },
+      "meanEvents": 74.22,
+      "zeroKills": 2,
+      "earlyTowerMatches": 516,
+      "platesPerMatch": 16.02,
+      "comebackWins20": 32,
+      "gamesMultipleTowerLanes": 772,
+      "gamesBothTeamsTowers": 230,
+      "soloSplitTowerGames": 589,
+      "purchasesPerMatch": 15.93,
+      "equipmentGoldPerMatch": 58076.55,
+      "avgFinalLevel": 13.57,
+      "noItemGames": 0,
+      "bothTeamsItemGames": 976,
+      "firstPurchaseMean": 12.87,
+      "recallPurchasesPerMatch": 2.92,
+      "recallTravelMinutesPerMatch": 9.93,
+      "earlyPurchasesPerMatch": 5.11
+    }
+  },
+  "mirror": {
+    "matches": 1000,
+    "wins": {
+      "blue": 527,
+      "red": 473
+    },
+    "towers": {
+      "exact3": 252,
+      "noEarlyTowerBefore36": 515
+    }
+  }
+}

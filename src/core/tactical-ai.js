@@ -52,6 +52,17 @@ const withReason=(plan,reason)=>({...plan,reason,decisionVersion:1});
 function choose({nav,agent,minute,worldState,context,baseline}){
  if(!context?.health||!context?.positions||!context?.map)return baseline;
  if(minute>=36||!agent.alive)return baseline;
+ if(/^(dragon|baron)_(take|contest)$/.test(baseline?.reason||'')||
+    baseline?.reason==='dragon_crossmap_trade'){
+  const hp=context.health?.[agent.id]??100;
+  if(hp<45){
+   const side=agent.teamId===nav.a?'blue':'red';
+   const safe=agent.role==='JUN'?side+'_jungle_lower':
+     side+'_'+(agent.role==='TOP'?'top':agent.role==='MID'?'mid':'bot')+'_inner';
+   return withReason({goal:safe,intent:'recover'},'unsafe_objective');
+  }
+  return withReason(baseline,baseline.reason);
+ }
  if(['siege','defend','splitpush','counterpush','counter_siege','shop_recall'].includes(baseline?.intent))
   return withReason(baseline,'siege_commitment');
  const sight=observe({nav,agent,minute,context});

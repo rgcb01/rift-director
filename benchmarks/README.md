@@ -18,7 +18,7 @@ El workflow [`Balance por versión`](../.github/workflows/balance.yml) ejecuta a
 1. `benchmarks/run.mjs`: **1,000 partidos completos** en 10 mundos deterministas, distintos encuentros y seeds. Se aplican **todas** las auditorías a los **1,000 partidos**: navegación, IA táctica, HP, hechos deportivos, minimapa, replay y RiftCast.
 2. El mismo comando ejecuta **1,000 partidos adicionales**, agrupados en 500 pares con equipos/semillas idénticos e inversión de lados. Es el control del sesgo de color, no otra muestra independiente.
 3. `benchmarks/find-previous.mjs`: intenta recuperar el artifact **de la última versión menor** (retención: 90 días). Si ya expiró o no existe, usa la **referencia congelada más reciente que sea anterior a la versión actual**: 0.7.6-alpha se conserva completa y 0.7.7-alpha como resumen de métricas publicadas por GitHub Actions (run 42434225330). Los indicadores nuevos que no existían en la versión anterior se muestran como «No medido», no como cero.
-4. `benchmarks/report.mjs`: genera `summary.json`, `report.md`, `regressions.json`, `index.html` y **8 gráficas SVG**. El resumen aparece además en GitHub Actions; se adjunta el reporte como archivo descargable `balance-report-VERSION`.
+4. `benchmarks/report.mjs`: genera `summary.json`, `report.md`, `regressions.json`, `index.html` y **9 gráficas SVG**. El resumen aparece además en GitHub Actions; se adjunta el reporte como archivo descargable `balance-report-VERSION`.
 5. Un resultado inválido, una auditoría fallida o regresiones graves detienen el workflow. Los defectos históricos aún presentes generan advertencias y no se silencian.
 
 ## Umbrales iniciales y revisión
@@ -42,3 +42,11 @@ node benchmarks/report.mjs .balance-output/summary.json benchmarks/baselines/0.7
 Abre `.balance-output/index.html` para ver todos los gráficos. En GitHub, entra a **Actions → Balance por versión → run → Artifacts** para obtener el dashboard, el JSON reproducible y la tabla de diferencias. El artifact dura hasta 90 días; conserva copias de releases importantes si quieres comparaciones históricas a largo plazo.
 
 **Política de versiones:** el reporte y las pruebas se vuelven a ejecutar con cada `x.y.z-alpha`, **no solo con la próxima Alpha 0.7.7**. La automatización no corrige automáticamente el gameplay: solo protege y señala cambios.
+
+### Nuevas métricas de Alpha 0.7.10
+
+La comparación de objetivos neutrales añade un noveno SVG, `dragon.svg`. Además del porcentaje de partidos sin Dragón, el reporte incluye Dragones realmente disputados en el foso, robos con Smite, minuto de la primera captura, minutos-jugador de compromiso de los profesionales y placas o torres efectivamente ganadas como intercambio de mapa. Las métricas que no existían en Alpha 0.7.9 se muestran como **No medido**, nunca como cero.
+
+El baseline inmediato es `benchmarks/baselines/0.7.9-alpha.json`, congelado a partir del run auditado 42451174596. Las nuevas decisiones conservan la verificación de navegación, replays, oro y KDA; ningún cambio de plan por sí solo cuenta como objetivo.
+
+**Gate de competencia entre objetivos:** Además de `gamesWithoutDragon`, el reporte conserva `gamesWithoutBaron` y advierte cuando Barón pierde más de ocho puntos porcentuales de presencia frente a Alpha 0.7.9. La política no promete ambos objetivos: JUN/SUP deben priorizar uno según oro, estructuras, visión, control de oleadas y recompensas rivales. Una toma o robo solo existe si los profesionales están físicamente en el foso.
