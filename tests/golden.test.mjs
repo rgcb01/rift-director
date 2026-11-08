@@ -7,7 +7,7 @@ const hash = value => createHash('sha256').update(JSON.stringify(value)).digest(
 
 // Fingerprints captured from the unmodified Alpha 0.2 (commit 4893edb).
 // Changing one requires deliberate discussion and a migration / balance note.
-test('semilla fija: Alpha 0.7.13 wards reproducibles y contabilidad estable', () => {
+test('semilla fija: Alpha 0.7.14 macro reproducible y contabilidad estable', () => {
   const { sim } = boot({ now: 1731111111000 });
   const world = sim.newGame('balanced', 'QA Esports');
   assert.equal(hash(world), 'b3fb6a59ae4ad7748ef4889deec8cc722902340da330beaf6868b557a9ee0330');
@@ -37,7 +37,7 @@ test('semilla fija: Alpha 0.7.13 wards reproducibles y contabilidad estable', ()
   const report=sim.applyMonth();
   const reportHash=hash(report),worldAfterMonth=hash(world);
   console.log('GOLDEN_FINGERPRINTS='+JSON.stringify({matchHash,worldAfterMatch,reportHash,worldAfterMonth}));
-  assert.equal(matchHash, 'ca1e928466eb956461d00c0cd2c3e140ddac4d0871704a12af9e4e8f1698e26a');
+  assert.equal(matchHash, '21517a90f1948fb822931280c178d4fcc6487d148d067f6a95404a920bbf80e3');
   assert.equal(worldAfterMatch, '342aa15055a9fab9e597749e13d099630f73351acb244b4d5c4380068b36caf1');
   assert.equal(reportHash, '63f62558933347e5947cc1b476f9056c23d59aa9e79fce65edd0c7d58372dbd9');
   assert.equal(worldAfterMonth, 'aaa0c74e7c2d45ecf8a1fdc5bfc0016d782b40d546e8b8225f67dcc869d19244');
