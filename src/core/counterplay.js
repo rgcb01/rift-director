@@ -20,7 +20,8 @@
    const sight=core.TacticalAI.observe({nav,agent:actor,minute,
     context:{health,map,positions}});
    for(const {target,hp} of sight.opponents){
-    if(!safe(target,health)||!navAPI().combatRange(actor.node,target.node,2))continue;
+    if(!target.alive||target.intent==='retreat'||hp<=0||
+       !navAPI().combatRange(actor.node,target.node,2))continue;
     const attackers=agents.filter(p=>p.teamId===actor.teamId&&safe(p,health)&&
       navAPI().combatRange(p.node,actor.node,1)&&
       navAPI().combatRange(p.node,target.node,3));
