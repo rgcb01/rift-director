@@ -86,7 +86,7 @@ jobs:
       - name: Exigir dashboard y diez gráficas antes de subirlo
         if: always() && steps.gate.outputs.should_run == 'true'
         run: |
-          for path in .balance-output/summary.json .balance-output/report.md .balance-output/regressions.json .balance-output/index.html .balance-output/{duration,kills,sides,objectives,dragon,towers,strategy,power,previous}.svg; do
+          for path in .balance-output/summary.json .balance-output/report.md .balance-output/regressions.json .balance-output/index.html .balance-output/{duration,kills,sides,objectives,dragon,shutdown,towers,strategy,power,previous}.svg; do
             test -s "$path" || { echo "::error::Falta reporte: $path"; exit 1; }
           done
 
