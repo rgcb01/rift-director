@@ -134,6 +134,7 @@ export function runStandard() {
             ...core.LaneEconomy.audit(m),
             ...core.PowerEconomy.audit(m),
             ...core.NeutralObjectives.audit(m),
+            ...core.Vision.audit(m),
             ...core.Shutdowns.audit(m),
             ...core.Counterplay.audit(m),
             ...core.MacroPolicy.audit(m),
