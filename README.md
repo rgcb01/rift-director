@@ -22,6 +22,9 @@ Los meses impulsan las finanzas y el mundo. Las noticias y los rumores reflejan 
 
 ## Alpha 0.7.9 — niveles y compras (en validación)
 
+**Ajuste experimental de resets:** la IA ya no vuelve a tienda simplemente porque tiene oro. Una oportunidad de compra tiene que justificar perder presencia en el mapa: se priorizan profesionales lesionados, no se abandona un asedio con salud alta y se preservan los roams de SUP. Cada jugador puede realizar un regreso voluntario por mapa; las compras al reaparecer no gastan ese regreso. Los reportes miden los minutos-jugador viajando y distinguen compras voluntarias de compras naturales.
+
+
 Los profesionales acumulan **experiencia individual, niveles 1–18 y oro personal**. Un jugador con oro suficiente puede regresar físicamente a su base para comprar uno de cinco objetos abstractos; cada compra afecta el poder de ataque o defensa del profesional en combates posteriores, y queda registrada en el replay y la retransmisión. La pantalla de estadísticas históricas muestra nivel, oro e ítems por jugador. El motor conserva el oro del marcador como oro **ganado**; la cartera individual controla lo **disponible** para compras.
 
 Este es un primer vertical slice de combate/economía: no replica campeones, habilidades activas ni todos los objetos de League of Legends. Se comparan 2,000 mapas frente a la versión previa antes de fusionar.
