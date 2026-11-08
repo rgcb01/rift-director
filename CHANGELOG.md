@@ -4,6 +4,16 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+## [0.7.14-alpha] — 2026-11-08
+
+### Decisiones estratégicas con coste de oportunidad (primer corte)
+- **MacroPolicy determinista y auditable:** TOP/MID pueden priorizar farm seguro, escoltar presión de oleada o (MID) rotar a un Dragón/Barón para el que exista una llamada de equipo real. Se comparan utilidad de oleada, visión local abstracta, diferencial de oro, HP propio, distancia por el grafo y el estado de objetivos.
+- **Compromiso breve:** cada decisión se mantiene hasta tres minutos simulados, salvo una amenaza visible, recuperación urgente, muerte o cancelación de la llamada al objetivo. No se utiliza RNG ni se consulta la ubicación oculta de enemigos.
+- **Trade-offs materiales:** salir de línea puede perder oro y XP de farm; una presión solo acelera la oleada si un profesional está físicamente presente. Rotar no captura objetivos ni genera oro: siguen siendo necesarios los participantes, el alcance, oleadas y la resolución existente.
+- Se añaden decisiones con puntuaciones y evidencias públicas a los frames y momentos de replay, auditoría de planes/órdenes, pruebas de escenarios, 70 seeds y métricas separadas de minutos de farm, presión y objetivo en el benchmark de 1,000 mapas + 1,000 espejados.
+- **En validación:** no fusionar con `main` hasta CI verde, 0 fallos de auditoría y comparación con 0.7.13 en `CHANGELOG`. No se modifican daño, recompensas ni pagos financieros.
+
+
 ## [0.7.13-alpha] — 2026-11-08
 
 ### Primer corte de wards y visión física imperfecta
