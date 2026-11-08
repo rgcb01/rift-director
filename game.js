@@ -203,7 +203,12 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
       const solo=present.length===1&&
         ['splitpush','counterpush'].includes(present[0].intent)&&
         present[0].lane===lane&&wave>=1.45&&
-        positioned(target,node).length===0;
+        // Check the same immutable pre-combat navigation snapshot used
+        // by the spatial auditor. A retreat issued mid-minute must not
+        // retroactively erase a defender who was there for this tick.
+        !Object.values(movementBefore).some(p=>p.teamId===target.id&&
+          p.alive&&p.intent!=='retreat'&&(m.dead[p.id]||0)<=t&&
+          nav.at(navigation,p.id,node));
       return {lane,stage,node,present,solo,wave};
     }).filter(x=>x&&(x.present.length>=2||x.solo)&&
       RiftCore.LaneEconomy.hasBrokenPlates(laneEconomy,target.id,x.lane,x.stage)&&
