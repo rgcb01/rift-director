@@ -22,7 +22,7 @@ Los meses impulsan las finanzas y el mundo. Las noticias y los rumores reflejan 
 
 ## Alpha 0.7.14 — Decisiones de recursos del mapa (en validación)
 
-Un TOP/MID evalúa si le conviene **farmear, presionar la oleada o rotar hacia un objetivo anunciado** según visión, oro, vida, distancia y estado de la línea. La opción elegida ocupa tiempo real de desplazamiento: dejar de farmear puede costar oro y experiencia; una torre o Dragón no se obtiene solo por tener un plan. Cada orden tiene una explicación verificable y se incorpora al replay. El benchmark compara minutos por acción contra Alpha 0.7.13 antes de considerar el cambio apto para publicar.
+Un TOP/MID evalúa si le conviene **farmear, presionar la oleada o rotar hacia un objetivo anunciado** según visión, oro, vida, distancia y estado de la línea. La opción elegida ocupa tiempo real de desplazamiento: dejar de farmear puede costar oro y experiencia; una torre o Dragón no se obtiene solo por tener un plan. Cada orden tiene una explicación verificable y se incorpora al replay. El benchmark incorpora una gráfica de minutos-jugador dedicados a farm, presión y rotación, además de las 11 gráficas de balance previas. Se compara con Alpha 0.7.13 antes de considerar el cambio apto para publicar.
 
 ## Alpha 0.7.13 — Wards y visión imperfecta (integrada)
 
