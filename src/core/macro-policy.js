@@ -113,7 +113,9 @@
     if(!p||a.reason!=='macro_'+p.action||
        a.intent!==a.reason||a.goal!==p.goal||
        a.lane!==p.lane)
-     errors.push('Orden macro sin decisión física registrada: '+id+' min '+frame.minute);
+     errors.push('Orden macro sin decisión física registrada: '+id+' min '+frame.minute+
+       ' actual='+JSON.stringify({reason:a.reason,intent:a.intent,goal:a.goal,lane:a.lane})+
+       ' plan='+JSON.stringify(p&&{action:p.action,goal:p.goal,lane:p.lane,created:p.created,until:p.until}));
    }
   }
   return errors;
