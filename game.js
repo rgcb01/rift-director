@@ -125,6 +125,7 @@ function simulateMatch(f){
  const all=[a,b],teams={[a.id]:aP,[b.id]:bP};
  const laneEconomy=RiftCore.LaneEconomy.create(a.id,b.id);
  const powerEconomy=RiftCore.PowerEconomy.create([...aP,...bP]);
+ const shutdowns=RiftCore.Shutdowns.create([...aP,...bP]);
  m.waves=laneEconomy.lanes;
  m.powerEconomy=powerEconomy;
  const navigation=RiftCore.Navigation.createNavigation(all,teams,commentarySeed);
@@ -164,8 +165,16 @@ function simulateMatch(f){
     skirmish?stamp%30:ri(0,29);
   const event={minute,time:`${String(minute).padStart(2,'0')}:${String(sec).padStart(2,'0')}`,
     title,body,kind,teamId:team?.id||null};
-  if(facts){event.facts=facts;RiftCore.applyPlayerEvent(playerStats,event);
-    RiftCore.PowerEconomy.rewardEvent(powerEconomy,event)}
+  if(facts){
+   event.facts=facts;
+   const bounty=RiftCore.Shutdowns.apply(shutdowns,event);
+   if(bounty>0){
+    m.gold[team.id]+=bounty;
+    event.body+=' ¡Recompensa de '+bounty+' de oro por terminar una racha rival!';
+   }
+   RiftCore.applyPlayerEvent(playerStats,event);
+   RiftCore.PowerEconomy.rewardEvent(powerEconomy,event);
+  }
   m.events.push(event);
   // Snapshot immediately after the actual event: no new RNG or invented kills.
   m.moments.push({minute,time:event.time,eventsCount:m.events.length,
@@ -174,6 +183,7 @@ function simulateMatch(f){
     map:RiftCore.cloneMapState(m.map),playerStats:RiftCore.clonePlayerStats(playerStats),
     health:{...health},laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
     powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
+    shutdowns:RiftCore.Shutdowns.snapshot(shutdowns),
     navigation:{before:movementBefore,after:nav.snapshot(navigation,m.dead,minute)}});
  };
  const balance=(c,t)=>{let stage=t<12?'early':t<25?'mid':'late';let z=teamPower(c,stage)+(m.gold[c.id]-m.gold[enemy(c).id])/2800+m.barons[c.id]*1.3;
@@ -249,6 +259,7 @@ function simulateMatch(f){
  const nextSnapshot=t=>m.frames.push({minute:t,kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
   laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
   powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
+  shutdowns:RiftCore.Shutdowns.snapshot(shutdowns),
   playerStats:RiftCore.clonePlayerStats(playerStats),map:RiftCore.cloneMapState(m.map),
   health:{...health},navigation:{before:movementBefore,after:nav.snapshot(navigation,m.dead,t)}});
  makeEv(0,'Comienza el mapa',`${a.name} y ${b.name} entran a la Grieta. Ambos equipos buscan imponer su plan de juego.`, 'normal');nextSnapshot(0);
@@ -562,7 +573,7 @@ function simulateMatch(f){
   }
   nextSnapshot(t)
  }
- const report={fixture:{a:f.a,b:f.b,round:f.round,playoff:!!f.playoff},frames:m.frames,events:m.events,moments:m.moments,health:{...health},powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),playerStats:RiftCore.clonePlayerStats(playerStats),elapsed:0,speed:1,running:true,committed:false,winner:m.winner,finished:false};
+ const report={fixture:{a:f.a,b:f.b,round:f.round,playoff:!!f.playoff},frames:m.frames,events:m.events,moments:m.moments,health:{...health},powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),shutdowns:RiftCore.Shutdowns.snapshot(shutdowns),playerStats:RiftCore.clonePlayerStats(playerStats),elapsed:0,speed:1,running:true,committed:false,winner:m.winner,finished:false};
  RiftCore.attachMinimap(report,s);RiftCore.attachBroadcast(report,s,commentarySeed);
  RiftCore.MatchReplay.attachReplay(report,s);return report
 }
