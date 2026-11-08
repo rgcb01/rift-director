@@ -79,3 +79,42 @@ test('70 mapas: compras y power spikes aparecen en hechos y replays causales',()
  assert.ok(progressions>25,'Los profesionales no suben de nivel');
  console.log('POWER_SAMPLE='+JSON.stringify({purchases,withItem,progressions}));
 });
+
+test('el oro de objetivos llega a los jugadores y modifica su poder real',()=>{
+ const {core}=boot();
+ const roster=testRoster().map(p=>({...p,a:{mech:62,macro:60,vision:58,comm:56},
+   beh:{agg:50,team:50}}));
+ const model=core.PowerEconomy.create(roster);
+ const before=model.entries['a-TOP'].wallet;
+ core.PowerEconomy.rewardEvent(model,{teamId:'a',facts:{
+  action:'plate',actorId:'a-TOP',participantIds:['a-TOP'],goldReward:125
+ }});
+ assert.equal(model.entries['a-TOP'].wallet,before+125);
+ const walletsBefore=Object.values(model.entries).filter(p=>p.teamId==='a')
+  .reduce((n,p)=>n+p.wallet,0);
+ core.PowerEconomy.rewardEvent(model,{teamId:'a',facts:{
+  action:'tower',actorId:'a-TOP',participantIds:['a-TOP'],
+  firstTowerBonus:300
+ }});
+ const walletsAfter=Object.values(model.entries).filter(p=>p.teamId==='a')
+  .reduce((n,p)=>n+p.wallet,0);
+ assert.equal(walletsAfter-walletsBefore,720,
+  'La primera torre debe distribuir exactamente 420+300 entre el quinteto');
+ const players=Object.fromEntries(roster.map(p=>[p.id,p]));
+ const nav={
+  a:'a',b:'b',
+  agents:{
+   'a-TOP':{id:'a-TOP',teamId:'a',role:'TOP',node:'blue_top_front',alive:true,intent:'lane'},
+   'b-TOP':{id:'b-TOP',teamId:'b',role:'TOP',node:'red_top_front',alive:true,intent:'lane'}
+  }
+ };
+ const args={nav,dead:{},minute:11,players,health:{'a-TOP':100,'b-TOP':100},
+  seed:217,mode:'lane',teamId:'a',attackerIds:['a-TOP'],targetIds:['b-TOP'],lane:'TOP'};
+ const normal=core.Encounters.resolveCombat(args);
+ assert.ok(normal?.impacts?.length,'Sin objetivo real en carril');
+ model.entries['a-TOP'].level=12;
+ model.entries['a-TOP'].items=['blade','focus'];
+ const equipped=core.Encounters.resolveCombat({...args,powerState:model});
+ assert.ok(equipped.impacts[0].damage>normal.impacts[0].damage,
+  'Los niveles e ítems deben cambiar el daño real, no solo la narración');
+});
