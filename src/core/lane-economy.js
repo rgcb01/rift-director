@@ -37,8 +37,15 @@ function advance(model,{minute,nav,map,health,gold}){
   const record=model.lanes[lane],vision=map.lanes[lane];
   const va=presence(nav,a,lane,health),vb=presence(nav,b,lane,health);
   const pa=vision.pressure[a],pb=vision.pressure[b];
-  const difference=(pa-pb)*.035+(va-vb)*.65;
-  const momentum=clamp(difference,-1.2,1.2);
+  // Every living member physically escorting a siege contributes to
+  // pushing a minion wave, regardless of their assigned lane role.
+  // A teamfight that kills the escorts stops this pressure immediately.
+  const escort=id=>Object.values(nav.agents).filter(p=>p.alive&&
+    p.teamId===id&&p.intent==='siege'&&
+    core.Navigation.isLaneNode(p.node,lane)).length;
+  const escortDelta=(escort(a)-escort(b))*.36;
+  const difference=(pa-pb)*.035+(va-vb)*.65+escortDelta;
+  const momentum=clamp(difference,-1.35,1.35);
   // Dissipating momentum: a wave cannot remain permanently won when its
   // pushing team abandons the lane or a defender returns.
   record.front=Math.round(clamp(record.front*.82+momentum,-3.8,3.8)*100)/100;
