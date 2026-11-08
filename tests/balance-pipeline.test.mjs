@@ -81,3 +81,27 @@ test('la comparación 0.7.8→0.7.9 alerta sobre kills, duración, remontadas y 
  assert.ok(assessment.warnings.some(x=>x.includes('remontadas')));
  assert.ok(assessment.warnings.some(x=>x.includes('80%')));
 });
+
+test('Alpha 0.7.10 compara Dragones contra la versión anterior realmente auditada',()=>{
+ const previous=JSON.parse(readFileSync('benchmarks/baselines/0.7.9-alpha.json','utf8'));
+ assert.equal(previous.version,'0.7.9-alpha');
+ assert.equal(previous.standard.completed,1000);
+ assert.equal(previous.mirror.matches,1000);
+ assert.equal(previous.standard.objectives.gamesWithoutDragon,425);
+ assert.equal(previous.mirror.wins.blue,527);
+ const next=structuredClone(previous);
+ next.version='0.7.10-alpha';
+ next.standard.gameplay.contestedDragonGames=130;
+ next.standard.gameplay.contestedDragonsPerMatch=.3;
+ next.standard.gameplay.dragonStealsPer100Maps=7;
+ next.standard.gameplay.firstDragonMean=15.7;
+ next.standard.gameplay.crossmapTradePlatesPerMatch=.8;
+ next.standard.gameplay.crossmapTradeTowerGames=100;
+ next.mirror.failures=[];
+ const result=evaluate(next,previous);
+ assert.equal(result.current.contestedDragonRate,.13);
+ assert.equal(result.baseline.contestedDragonRate,null);
+ assert.equal(result.current.crossmapTowerRate,.1);
+ assert.equal(result.baseline.crossmapTowerRate,null);
+ assert.equal(result.failures.length,0);
+});
