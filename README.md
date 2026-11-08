@@ -20,6 +20,10 @@ Los meses impulsan las finanzas y el mundo. Las noticias y los rumores reflejan 
 - No hay instalación de paquetes, cuenta ni backend para jugar.
 - **Guardados:** automáticos en `localStorage` de ese navegador. En **Partida** puedes **exportar/importar JSON**. Los guardados no se sincronizan entre dispositivos; expórtalos antes de borrar datos del navegador.
 
+## Alpha 0.7.11 — Shutdowns y remontadas (experimental)
+
+Los jugadores con rachas de tres o más kills se convierten en objetivos de valor económico. Si un rival logra matarlos de verdad, su equipo y asesino cobran una recompensa registrada en RiftCast y el replay. Esta mecánica hace posible recuperar oro a través de decisiones y combates reales; no fuerza remontadas ni altera directamente las probabilidades de victoria. Los benchmarks incluyen el oro por shutdown y su reparto entre equipos con y sin ventaja.
+
 ## Alpha 0.7.10 — decisiones por Dragón (experimental)
 
 El jungla y soporte pueden preparar o disputar Dragón en función de visión, salud, prioridad de BOT y economía; un equipo que renuncia al objetivo puede mandar a TOP a presionar estructuras. Las recompensas siguen exigiendo participantes reales cerca del foso o de la torre, y un robo con Smite solo puede producirse si el jungla rival está presente. El benchmark de 2,000 partidos reporta capturas, partidas sin Dragón, objetivos disputados, robos y torres/placas conquistadas como intercambios. Este sistema todavía es abstracto: no pretende reproducir todos los dragones, almas y habilidades de League of Legends.

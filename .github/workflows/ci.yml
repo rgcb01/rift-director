@@ -30,6 +30,7 @@ jobs:
           node --check src/core/lane-economy.js
           node --check src/core/power-economy.js
           node --check src/core/neutral-objectives.js
+          node --check src/core/shutdowns.js
           node --check src/core/navigation.js
           node --check src/core/tactical-ai.js
           node --check src/core/encounters.js

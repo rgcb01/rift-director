@@ -28,6 +28,11 @@ export function flatten(d){
   zeroKillRate:ratio(s.gameplay.zeroKills,s.completed),
   earlyTowerRate:s.gameplay.earlyTowerMatches===undefined?null:ratio(s.gameplay.earlyTowerMatches,s.completed),
   platesMean:s.gameplay.platesPerMatch||0,
+  shutdownsMean:s.gameplay.shutdownsPerMatch??null,
+  shutdownGoldMean:s.gameplay.shutdownGoldPerMatch??null,
+  shutdownGameRate:s.gameplay.shutdownGames===undefined?null:
+    ratio(s.gameplay.shutdownGames,s.completed),
+  underdogShutdownGoldMean:s.gameplay.underdogShutdownGoldPerMatch??null,
   contestedDragonRate:s.gameplay.contestedDragonGames===undefined?null:
     ratio(s.gameplay.contestedDragonGames,s.completed),
   contestedDragonsMean:s.gameplay.contestedDragonsPerMatch??null,
@@ -97,6 +102,8 @@ export function evaluate(current,previous){
  warn(v.pairedBlueWinRate>.55||v.pairedBlueWinRate<.45,
   'Persiste sesgo de color del lado en partidos espejados');
  warn(v.noDragonRate>.30,'Mas de 30% de los partidos no tienen Dragon');
+ warn(v.shutdownGameRate!==null&&v.shutdownGameRate<.08,
+  'Menos del 8% de mapas ofrecen una recompensa por terminar una racha');
  if(previous.version!==current.version){
   warn(v.noBaronRate-p.noBaronRate>.08,
    'Las partidas sin Baron aumentaron más de ocho puntos porcentuales');
@@ -173,6 +180,10 @@ const keys=[
  ['zeroKillRate','Sin bajas','rate'],
  ['earlyTowerRate','Torres antes del min 36','rate'],
  ['platesMean','Placas por mapa','num'],
+ ['shutdownsMean','Rachas eliminadas por mapa','num'],
+ ['shutdownGoldMean','Oro adicional por shutdown por mapa','num'],
+ ['shutdownGameRate','Mapas con al menos un shutdown','rate'],
+ ['underdogShutdownGoldMean','Oro shutdown para equipo en desventaja por mapa','num'],
  ['contestedDragonRate','Mapas con Dragón disputado','rate'],
  ['contestedDragonsMean','Dragones disputados por partida','num'],
  ['dragonStealsPer100','Robos de Dragón por 100 mapas','num'],
@@ -225,6 +236,10 @@ export function generate(current,previous,output){
    {label:'Sin Dragon',value:assessment.current.noDragonRate*100},
    {label:'Disputado',value:(assessment.current.contestedDragonRate||0)*100},
    {label:'Torre de intercambio',value:(assessment.current.crossmapTowerRate||0)*100}
+  ],{max:100,decimals:0})],
+  ['shutdown.svg',bars('Recompensas por cortar rachas (porcentaje de mapas)',[
+   {label:'Con shutdown',value:(assessment.current.shutdownGameRate||0)*100},
+   {label:'Sin shutdown',value:100-(assessment.current.shutdownGameRate||0)*100}
   ],{max:100,decimals:0})],
   ['power.svg',bars('Equipamiento: porcentaje de mapas por resultado',[
    {label:'Ambos compran',value:(assessment.current.bothTeamsItemRate||0)*100},
