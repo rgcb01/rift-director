@@ -52,7 +52,7 @@ const withReason=(plan,reason)=>({...plan,reason,decisionVersion:1});
 function choose({nav,agent,minute,worldState,context,baseline}){
  if(!context?.health||!context?.positions||!context?.map)return baseline;
  if(minute>=36||!agent.alive)return baseline;
- if(['siege','defend'].includes(baseline?.intent))
+ if(['siege','defend','splitpush','counterpush','counter_siege'].includes(baseline?.intent))
   return withReason(baseline,'siege_commitment');
  const sight=observe({nav,agent,minute,context});
  const {side,lane,hp,opponents,allies,localAllies,ownVision}=sight;
