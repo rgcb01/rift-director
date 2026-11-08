@@ -20,6 +20,12 @@ Los meses impulsan las finanzas y el mundo. Las noticias y los rumores reflejan 
 - No hay instalación de paquetes, cuenta ni backend para jugar.
 - **Guardados:** automáticos en `localStorage` de ese navegador. En **Partida** puedes **exportar/importar JSON**. Los guardados no se sincronizan entre dispositivos; expórtalos antes de borrar datos del navegador.
 
+## Alpha 0.7.9 — niveles y compras (en validación)
+
+Los profesionales acumulan **experiencia individual, niveles 1–18 y oro personal**. Un jugador con oro suficiente puede regresar físicamente a su base para comprar uno de cinco objetos abstractos; cada compra afecta el poder de ataque o defensa del profesional en combates posteriores, y queda registrada en el replay y la retransmisión. La pantalla de estadísticas históricas muestra nivel, oro e ítems por jugador. El motor conserva el oro del marcador como oro **ganado**; la cartera individual controla lo **disponible** para compras.
+
+Este es un primer vertical slice de combate/economía: no replica campeones, habilidades activas ni todos los objetos de League of Legends. Se comparan 2,000 mapas frente a la versión previa antes de fusionar.
+
 ## Alpha 0.7.8 — rotaciones y splitpush (en validación)
 
 Los equipos pueden dividir un asedio: un TOP/MID presiona otra línea, y el rival puede responder a la oleada que observa o contraatacar. Una torre lateral sin defensores puede caer con un solo jugador vivo **únicamente** si la oleada y las tres placas lo permiten. El resto del equipo debe desplazarse de manera legal para el asedio principal. Los objetivos del balance son: reducir cierres exclusivamente por una línea, mantener el cierre legal del nexo y conservar las pruebas de 2,000 mapas por versión. El modelo de oleadas sigue siendo agregado.
