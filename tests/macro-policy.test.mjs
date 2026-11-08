@@ -89,7 +89,7 @@ test('el riesgo de empuje se basa en rivales vistos, no en HP o posiciones ocult
  const {core,nav,state,health,a,b,clubs}=setup();
  const us=nav.agents[clubs[0].lineup.TOP];
  const them=nav.agents[clubs[1].lineup.TOP];
- us.node='blue_top_front';them.node='top_corner';
+ us.node='blue_top_front';them.node='blue_top_ambush';
  state.map.lanes.TOP.vision[a]=39;
  state.map.lanes.TOP.pressure[a]=58;
  state.waves.TOP.front=.5;
@@ -137,8 +137,10 @@ test('rotar sin escoltas visibles cuesta más que una rotación realmente coordi
  const mid=nav.agents[clubs[0].lineup.MID];
  nav.neutralPlans={[a]:{action:'contest',target:'dragon_pit',
   reason:'dragon_contest',until:24,score:10}};
- const alone=core.MacroPolicy.evaluate(nav,state,mid,22,health);
  const jun=nav.agents[clubs[0].lineup.JUN];
+ const sup=nav.agents[clubs[0].lineup.SUP];
+ jun.node='blue_top_front';sup.node='blue_top_front';
+ const alone=core.MacroPolicy.evaluate(nav,state,mid,22,health);
  jun.node='lower_river';
  const withEscort=core.MacroPolicy.evaluate(nav,state,mid,22,health);
  assert.ok(withEscort.evidence.objectiveEscortCount>
