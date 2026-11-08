@@ -56,8 +56,9 @@ function choose({nav,agent,minute,worldState,context,baseline}){
   const hp=context.health?.[agent.id]??100;
   if(hp<45){
    const side=agent.teamId===nav.a?'blue':'red';
-   return withReason({goal:agent.role==='JUN'?side+'_jungle_lower':
-     side+'_bot_inner',intent:'recover'},'unsafe_objective');
+   const safe=agent.role==='JUN'?side+'_jungle_lower':
+     side+'_'+(agent.role==='TOP'?'top':agent.role==='MID'?'mid':'bot')+'_inner';
+   return withReason({goal:safe,intent:'recover'},'unsafe_objective');
   }
   return withReason(baseline,baseline.reason);
  }
