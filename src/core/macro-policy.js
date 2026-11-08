@@ -108,7 +108,9 @@
       errors.push('Plan macro inválido: '+id+' min '+frame.minute);
    }
    for(const [id,a] of Object.entries(frame.navigation?.before||{})){
-    if(!a.reason?.startsWith('macro_'))continue;
+    // Dead players may retain historical tactic metadata in legacy snapshots,
+    // but cannot be executing a new macro order while in the fountain.
+    if(!a.alive||!a.reason?.startsWith('macro_'))continue;
     const p=plans[id];
     if(!p||a.reason!=='macro_'+p.action||
        a.intent!==a.reason||a.goal!==p.goal||
