@@ -27,7 +27,10 @@
       navAPI().combatRange(p.node,target.node,3));
     if(attackers.length<2)continue;
     // Only opponents actually seen by this initiator count as nearby defense.
-    const foes=sight.opponents.filter(o=>safe(o.target,health)&&
+    // A wounded enemy still counts as an opposing body until they flee
+    // or die; low HP must not produce a fictitious extra ally advantage.
+    const foes=sight.opponents.filter(o=>o.target.alive&&
+      o.target.intent!=='retreat'&&(health[o.target.id]??100)>0&&
       navAPI().combatRange(o.target.node,target.node,3));
     const localEdge=attackers.length-foes.length;
     if(localEdge<1)continue;
