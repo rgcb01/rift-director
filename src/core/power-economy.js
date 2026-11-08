@@ -17,6 +17,7 @@ const ITEM_CATALOG=Object.freeze([
 const ITEMS=Object.fromEntries(ITEM_CATALOG.map(x=>[x.id,x]));
 const ROW=(p)=>({id:p.id,teamId:p.teamId,role:p.role,level:1,xp:0,
  wallet:500,earned:500,spent:0,items:[],lastPurchaseMinute:-100,
+ voluntaryBuys:0,
  passive:0,farm:0,killGold:0,objectiveGold:0,kills:0});
 function create(players){
  const entries={};
@@ -121,26 +122,43 @@ function nextPurchase(model,id,opponentGoldLead=0){
  const options=candidates(row,opponentGoldLead).filter(c=>c.item.cost<=row.wallet);
  return options[0]?.item||null;
 }
-function shouldRecall(model,nav,agent,minute,worldState){
+// A recall is an opportunity-cost decision, never an automatic consequence
+// of being able to afford another item. Buying after respawn remains free to
+// consider and does not consume the voluntary reset allowance.
+function shouldRecall(model,nav,agent,minute,worldState,context=null){
  const row=model.entries[agent.id];
- if(!row||!agent.alive||minute<31||minute>63||
-    agent.role==='JUN'&&minute<36||row.items.length>=3)return false;
+ if(!row||!agent.alive||minute<13||minute>63||row.items.length>=3)return false;
  const enemy=agent.teamId===nav.a?nav.b:nav.a;
- const lead=(worldState.gold[enemy]||0)-(worldState.gold[agent.teamId]||0);
- const item=nextPurchase(model,agent.id,lead);
- if(!item||row.wallet<item.cost+350)return false;
+ const enemyLead=(worldState.gold[enemy]||0)-(worldState.gold[agent.teamId]||0);
+ const item=nextPurchase(model,agent.id,enemyLead);
+ if(!item||row.wallet<item.cost+450)return false;
+ // Continue a reset already in progress, even if the wave or HP changes
+ // while the professional walks along legal graph edges to the nexus.
  if(agent.intent==='shop_recall')return true;
- // One traveller per team; purchases by professionals already at base don't
- // require the whole squad to return, and fallen players can shop on respawn.
- const same=Object.values(nav.agents).filter(p=>p.teamId===agent.teamId&&p.alive);
- const ongoing=same.find(p=>p.intent==='shop_recall'&&p.id!==agent.id);
- if(ongoing&&nextPurchase(model,ongoing.id,lead))return false;
- const affordable=same.filter(p=>{
-  const entry=model.entries[p.id];
-  const price=nextPurchase(model,p.id,lead)?.cost??Infinity;
-  return entry?.wallet>=price+350&&(p.role!=='JUN'||minute>=36);
- }).sort((a,b)=>a.id.localeCompare(b.id));
- return affordable[0]?.id===agent.id;
+ if(row.voluntaryBuys>=1||minute-row.lastPurchaseMinute<8||
+    agent.role==='JUN'&&minute<36)return false;
+ const hp=id=>context?.health?.[id]??100;
+ const committed=nav.siegeTeam!==null&&minute>=24;
+ const accepted=p=>{
+  const r=model.entries[p.id];
+  if(!r||r.voluntaryBuys>=1||minute-r.lastPurchaseMinute<8||
+     p.role==='JUN'&&minute<36)return false;
+  const buy=nextPurchase(model,p.id,enemyLead);
+  if(!buy||r.wallet<buy.cost+450)return false;
+  const health=hp(p.id);
+  // During an active siege, preserve the squad's map presence. Only a
+  // heavily injured professional may concede pressure to secure an item.
+  if(committed&&health>54)return false;
+  // Before siege, a weakened laner can reset to turn earned money into
+  // an immediate power spike. A trailing team has slightly more latitude.
+  if(!committed&&health>(enemyLead>1800?80:72))return false;
+  return true;
+ };
+ const team=Object.values(nav.agents).filter(p=>p.teamId===agent.teamId&&p.alive);
+ if(team.some(p=>p.id!==agent.id&&p.intent==='shop_recall'))return false;
+ const eligible=team.filter(accepted).sort((a,b)=>
+   hp(a.id)-hp(b.id)||a.id.localeCompare(b.id));
+ return eligible[0]?.id===agent.id;
 }
 function purchase(model,nav,agent,minute,worldState){
  const row=model.entries[agent.id];
@@ -150,11 +168,13 @@ function purchase(model,nav,agent,minute,worldState){
  const enemy=agent.teamId===nav.a?nav.b:nav.a;
  const item=nextPurchase(model,agent.id,worldState.gold[enemy]-worldState.gold[agent.teamId]);
  if(!item)return null;
+ const voluntaryRecall=agent.intent==='shop_recall';
  row.wallet-=item.cost;row.spent+=item.cost;row.items.push(item.id);
  row.lastPurchaseMinute=minute;
+ if(voluntaryRecall)row.voluntaryBuys++;
  return {action:'item_purchase',actorId:agent.id,participantIds:[agent.id],
   node:agent.node,itemId:item.id,itemName:item.name,goldCost:item.cost,
-  level:row.level,slot:row.items.length};
+  level:row.level,slot:row.items.length,voluntaryRecall};
 }
 function boost(model,id,kind='attack'){
  const row=model?.entries[id];if(!row)return 0;
@@ -186,11 +206,14 @@ function audit(match){
       !Number.isSafeInteger(p.earned)||p.earned<500||
       !Number.isSafeInteger(p.spent)||p.spent<0||p.wallet+p.spent!==p.earned||
       !Array.isArray(p.items)||p.items.length>3||new Set(p.items).size!==p.items.length||
-      p.items.some(item=>!ITEMS[item]))
+      p.items.some(item=>!ITEMS[item])||
+      !Number.isSafeInteger(p.voluntaryBuys)||p.voluntaryBuys<0||
+      p.voluntaryBuys>1||p.voluntaryBuys>p.items.length)
     errors.push('Unbalanced personal wallet/items: '+id+'/'+frame.minute);
    const prior=prev?.[id];
    if(prior&&(p.level<prior.level||p.earned<prior.earned||
-     p.spent<prior.spent||p.items.length<prior.items.length))
+     p.spent<prior.spent||p.items.length<prior.items.length||
+     p.voluntaryBuys<prior.voluntaryBuys))
     errors.push('Power progression reversed: '+id+'/'+frame.minute);
   }
   prev=rows;
@@ -203,12 +226,24 @@ function audit(match){
   const spent=events.reduce((n,e)=>n+e.facts.goldCost,0);
   if(spent!==Object.values(last.entries).reduce((n,p)=>n+p.spent,0))
    errors.push('Purchase receipts do not match spending');
+  const recallCounts=Object.fromEntries(Object.keys(last.entries).map(id=>[id,0]));
   for(const event of events){
    const f=event.facts;
+   if(f.voluntaryRecall===true)recallCounts[f.actorId]=(recallCounts[f.actorId]||0)+1;
+   if(typeof f.voluntaryRecall!=='boolean')
+    errors.push('Purchase without recall source: '+f.actorId);
+   const i=match.events.indexOf(event);
+   const declared=match.moments?.[i]?.navigation?.before?.[f.actorId]?.intent==='shop_recall';
+   if(Boolean(f.voluntaryRecall)!==declared)
+    errors.push('Purchase recall source inconsistent with navigation: '+f.actorId);
    const side=f.actorId===undefined?null:match.frames[0].navigation.after[f.actorId]?.teamId===match.fixture.a?'blue':'red';
    if(!ITEMS[f.itemId]||ITEMS[f.itemId].cost!==f.goldCost||
       ![side+'_nexus',side+'_fountain'].includes(f.node))
     errors.push('Purchase receipt outside of fountain or invalid item');
+  }
+  for(const [id,row] of Object.entries(last.entries)){
+   if(recallCounts[id]!==row.voluntaryBuys)
+    errors.push('Voluntary recall ledger differs from recorded purchases: '+id);
   }
  }
  return errors;
