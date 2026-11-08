@@ -52,7 +52,8 @@ const withReason=(plan,reason)=>({...plan,reason,decisionVersion:1});
 function choose({nav,agent,minute,worldState,context,baseline}){
  if(!context?.health||!context?.positions||!context?.map)return baseline;
  if(minute>=36||!agent.alive)return baseline;
- if(baseline?.reason?.startsWith('dragon_')){
+ if(/^(dragon|baron)_(take|contest)$/.test(baseline?.reason||'')||
+    baseline?.reason==='dragon_crossmap_trade'){
   const hp=context.health?.[agent.id]??100;
   if(hp<45){
    const side=agent.teamId===nav.a?'blue':'red';
