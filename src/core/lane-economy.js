@@ -26,7 +26,8 @@ function pressureFor(model,id,lane){
 }
 function presence(nav,team,lane,health){
  return Object.values(nav.agents).filter(p=>p.teamId===team&&p.alive&&
-  roleLane(p.role)===lane&&
+  (roleLane(p.role)===lane||
+   ['siege','splitpush','counterpush','counter_siege'].includes(p.intent))&&
   core.Navigation.isLaneNode(p.node,lane)&&
   (health[p.id]??100)>=26).length;
 }
