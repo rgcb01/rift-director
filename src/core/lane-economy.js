@@ -61,7 +61,7 @@ function canPressureTower(model,id,lane,stage,minute){
  const momentum=pressureFor(model,id,lane);
  // A crashing wave or a genuinely prolonged map siege enables damage.
  // This is not a guaranteed kill/tower: agents must still be present.
- return momentum>=.8||(minute>=45&&momentum>=-.6);
+ return momentum>=.65||(minute>=48&&momentum>=-1.25);
 }
 function claimPlate(model,{teamId,defenderId,lane,stage,minute}){
  if(!canPressureTower(model,teamId,lane,stage,minute))return null;
