@@ -20,6 +20,10 @@ Los meses impulsan las finanzas y el mundo. Las noticias y los rumores reflejan 
 - No hay instalación de paquetes, cuenta ni backend para jugar.
 - **Guardados:** automáticos en `localStorage` de ese navegador. En **Partida** puedes **exportar/importar JSON**. Los guardados no se sincronizan entre dispositivos; expórtalos antes de borrar datos del navegador.
 
+## Alpha 0.7.8 — rotaciones y splitpush (en validación)
+
+Los equipos pueden dividir un asedio: un TOP/MID presiona otra línea, y el rival puede responder a la oleada que observa o contraatacar. Una torre lateral sin defensores puede caer con un solo jugador vivo **únicamente** si la oleada y las tres placas lo permiten. El resto del equipo debe desplazarse de manera legal para el asedio principal. Los objetivos del balance son: reducir cierres exclusivamente por una línea, mantener el cierre legal del nexo y conservar las pruebas de 2,000 mapas por versión. El modelo de oleadas sigue siendo agregado.
+
 ## Alpha 0.7.7 — economía táctica del mapa
 
 La versión experimental introduce una **aproximación agregada de oleadas**, oro por farm, placas y bonificación de primera torre. Los asedios se eligen por presión económica, estructuras y posición de oleadas, y pueden cambiar durante la partida. No es una simulación completa de League of Legends: todavía faltan minions individuales, XP, compras, builds, inhibidores y fog of war.

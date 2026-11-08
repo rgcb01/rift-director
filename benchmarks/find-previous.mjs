@@ -1,4 +1,4 @@
-import {readFileSync,writeFileSync,mkdirSync,existsSync} from 'node:fs';
+import {readFileSync,writeFileSync,mkdirSync,existsSync,readdirSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {compareVersions} from './version.mjs';
 const version=process.argv[2]||'0.7.6-alpha';
@@ -32,8 +32,19 @@ try{
  }
 }catch(e){console.warn('Consulta de artifacts no disponible: '+e.message)}
 if(!previous){
- previous=JSON.parse(readFileSync('benchmarks/baselines/0.7.6-alpha.json','utf8'));
- source='frozen baseline 0.7.6-alpha';
+ // Release candidates not merged into main yet still have an auditable,
+ // versioned predecessor. Never compare a newer alpha to 0.7.6 just
+ // because its 0.7.7 Actions artifact belongs to an unmerged PR.
+ const archived=readdirSync('benchmarks/baselines')
+  .filter(n=>/^\d+\.\d+\.\d+-alpha\.json$/.test(n))
+  .map(n=>({path:'benchmarks/baselines/'+n,version:n.slice(0,-5)}))
+  .filter(x=>compareVersions(x.version,version)<0)
+  .sort((a,b)=>compareVersions(b.version,a.version));
+ if(!archived.length)throw Error('No existe baseline anterior a '+version);
+ const chosen=archived[0];
+ previous=JSON.parse(readFileSync(chosen.path,'utf8'));
+ source='frozen baseline '+chosen.version+
+  (previous.source?' — '+previous.source:'');
 }
 previous.baselineSource=source;
 writeFileSync(dst,JSON.stringify(previous,null,2)+'\n');

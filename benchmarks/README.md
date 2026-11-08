@@ -17,7 +17,7 @@ El workflow [`Balance por versión`](../.github/workflows/balance.yml) ejecuta a
 
 1. `benchmarks/run.mjs`: **1,000 partidos completos** en 10 mundos deterministas, distintos encuentros y seeds. Se aplican **todas** las auditorías a los **1,000 partidos**: navegación, IA táctica, HP, hechos deportivos, minimapa, replay y RiftCast.
 2. El mismo comando ejecuta **1,000 partidos adicionales**, agrupados en 500 pares con equipos/semillas idénticos e inversión de lados. Es el control del sesgo de color, no otra muestra independiente.
-3. `benchmarks/find-previous.mjs`: intenta recuperar el artifact **de la última versión menor** (retención: 90 días). Si ya expiró o no existe, usa la referencia fija **0.7.6-alpha**, procedente de los 2,000 partidos reales de GitHub Actions.
+3. `benchmarks/find-previous.mjs`: intenta recuperar el artifact **de la última versión menor** (retención: 90 días). Si ya expiró o no existe, usa la **referencia congelada más reciente que sea anterior a la versión actual**: 0.7.6-alpha se conserva completa y 0.7.7-alpha como resumen de métricas publicadas por GitHub Actions (run 42434225330). Los indicadores nuevos que no existían en la versión anterior se muestran como «No medido», no como cero.
 4. `benchmarks/report.mjs`: genera `summary.json`, `report.md`, `regressions.json`, `index.html` y **7 gráficas SVG**. El resumen aparece además en GitHub Actions; se adjunta el reporte como archivo descargable `balance-report-VERSION`.
 5. Un resultado inválido, una auditoría fallida o regresiones graves detienen el workflow. Los defectos históricos aún presentes generan advertencias y no se silencian.
 

@@ -61,6 +61,11 @@ export function runStandard() {
           barons:(f.barons[a]||0)+(f.barons[b]||0),
           towers:(f.towers[a]||0)+(f.towers[b]||0),
           baronSteals,
+          towerLanes:[...new Set(m.events.filter(e=>e.facts?.action==='tower')
+            .map(e=>e.facts.lane))].length,
+          soloSplitTowers:m.events.filter(e=>e.facts?.action==='tower'&&e.facts.soloSplitpush).length,
+          bothTeamsTowers:m.events.some(e=>e.facts?.action==='tower'&&e.teamId===a)&&
+            m.events.some(e=>e.facts?.action==='tower'&&e.teamId===b),
           firstTowerMinute:m.events.find(e=>e.facts?.action==='tower')?.minute??null,
           goldLeader20:(()=>{const at=m.frames.find(f=>f.minute===20)||f;
             return at.gold[a]>at.gold[b]?a:at.gold[b]>at.gold[a]?b:null})(),
@@ -73,6 +78,7 @@ export function runStandard() {
           audited++;
           const errors=[
             ...core.Navigation.auditNavigation(m,world),
+            ...core.LaneEconomy.audit(m),
             ...core.TacticalAI.audit(m,world),
             ...core.Encounters.audit(m,world),
             ...core.auditMatch(m,world),
@@ -110,6 +116,10 @@ export function runStandard() {
       earlyTowerMatches:rows.filter(r=>r.firstTowerMinute!==null&&r.firstTowerMinute<36).length,
       firstTowerMean:+avg(rows.filter(r=>r.firstTowerMinute!==null).map(r=>r.firstTowerMinute)).toFixed(2),
       platesPerMatch:+avg(rows.map(r=>r.actions.plate||0)).toFixed(2),
+      gamesMultipleTowerLanes:rows.filter(r=>r.towerLanes>=2).length,
+      gamesBothTeamsTowers:rows.filter(r=>r.bothTeamsTowers).length,
+      soloSplitTowers:sum(rows,'soloSplitTowers'),
+      soloSplitTowerGames:rows.filter(r=>r.soloSplitTowers>0).length,
       comebackWins20:rows.filter(r=>r.goldLead20>=1500&&r.goldLeader20&&r.goldLeader20!==r.winner).length,
       hugeKillMargin15:rows.filter(r=>r.killMargin>=15).length,
       durationAtCap75:rows.filter(r=>r.duration>=75).length,

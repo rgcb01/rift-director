@@ -4,6 +4,18 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+## [0.7.8-alpha] — 2026-11-07
+
+### Rotaciones laterales, splitpush y respuesta defensiva
+- **Planes de asedio divididos:** un especialista TOP/MID puede presionar una línea secundaria mientras el resto del equipo mantiene el asedio principal. La ruta se elige usando estructuras, placas y posición de oleadas, no un evento escrito por tiempo.
+- **Contraasedios:** el rival puede contestar la oleada lateral visible o intentar intercambiar una estructura en el otro lado. Las decisiones se documentan en los estados de navegación de cada minuto.
+- **Splitpush individual verificable:** una torre sin defensores cercanos puede caer con un único profesional presente si su oleada tiene suficiente presión y ya conquistó las tres placas; no se inventan participantes.
+- El oro, el estado de oleadas, la vida, la posición y los recorridos siguen conservándose entre snapshots y replays. RiftCast distingue la torre lograda por un splitpusher individual.
+- Nuevos indicadores de balance: **partidos con torres en múltiples carriles**, estructuras para ambos bandos y torres obtenidas por splitpush; comparación con el benchmark congelado de 0.7.7.
+- **RNG separado por partido:** cada mapa consume una única semilla del mundo y todas las tiradas de combate, placas y narración se resuelven localmente. El número de eventos ya no modifica aleatoriamente el mundo empresarial posterior. El reporte financiero de referencia conserva su huella; se renueva de forma explícita la huella del RNG global.
+- No añade ítems, niveles, campeones ni wards: el cambio está aislado a macroestrategia y auditabilidad.
+
+
 ## [0.7.7-alpha] — 2026-11-07
 
 ### Economía táctica de oleadas y asedio reversible (primer slice)

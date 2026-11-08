@@ -109,7 +109,18 @@ function tagHtml(p){let items=visibleTraits(p).map(([t,k])=>`<span class="tag ${
 function record(sType,amount,note=''){s.history.unshift({year:s.year,month:s.month,type:sType,amount,note});s.history=s.history.slice(0,100)}
 function notify(t){let d=document.getElementById('toast');if(d)d.remove();d=document.createElement('div');d.className='toast';d.id='toast';d.textContent=t;document.body.appendChild(d);clearTimeout(toastTimer);toastTimer=setTimeout(()=>d.remove(),3600)}
 // MATCH ENGINE — deterministic events first; commentary describes validated state.
-function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.b),aP=teamPlayers(a),bP=teamPlayers(b);
+function simulateMatch(f){
+ // One stable world-level draw reserves a fresh match seed. All tactical
+ // rolls are then private to this fixture, so adding plates/rotations
+ // cannot randomly alter future transfers, finances or world news.
+ const commentarySeed=s.rng;
+ RiftCore.nextRandom(s);
+ const matchRandom={rng:commentarySeed};
+ const rnd=()=>RiftCore.nextRandom(matchRandom);
+ const ri=(a,b)=>Math.floor(rnd()*(b-a+1))+a;
+ const chance=p=>rnd()<p;
+ const pick=arr=>arr[Math.floor(rnd()*arr.length)];
+ const a=club(f.a),b=club(f.b),aP=teamPlayers(a),bP=teamPlayers(b);
  const m={minute:0,kills:{[a.id]:0,[b.id]:0},gold:{[a.id]:500,[b.id]:500},towers:{[a.id]:0,[b.id]:0},lanes:{[a.id]:{TOP:0,MID:0,BOT:0},[b.id]:{TOP:0,MID:0,BOT:0}},dragons:{[a.id]:0,[b.id]:0},barons:{[a.id]:0,[b.id]:0},dead:{},winner:null,events:[],frames:[],moments:[],nextDragon:5,nextBaron:20,baronBuff:{[a.id]:0,[b.id]:0}};
  const all=[a,b],teams={[a.id]:aP,[b.id]:bP};
  const laneEconomy=RiftCore.LaneEconomy.create(a.id,b.id);
@@ -198,12 +209,23 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
       const stage=m.lanes[target.id][lane]+1;
       if(stage>3)return null;
       const node=nav.towerNode(target.id===a.id?'blue':'red',lane,stage);
-      return {lane,stage,node,present:positioned(c,node)};
-    }).filter(x=>x?.present.length>=2&&
+      const present=positioned(c,node);
+      const wave=RiftCore.LaneEconomy.pressureFor(laneEconomy,c.id,lane);
+      const solo=present.length===1&&
+        ['splitpush','counterpush'].includes(present[0].intent)&&
+        present[0].lane===lane&&wave>=1.45&&
+        // Check the same immutable pre-combat navigation snapshot used
+        // by the spatial auditor. A retreat issued mid-minute must not
+        // retroactively erase a defender who was there for this tick.
+        !Object.entries(movementBefore).some(([id,p])=>p.teamId===target.id&&
+          p.alive&&p.intent!=='retreat'&&(m.dead[id]||0)<=t&&
+          nav.at(navigation,id,node));
+      return {lane,stage,node,present,solo,wave};
+    }).filter(x=>x&&(x.present.length>=2||x.solo)&&
       RiftCore.LaneEconomy.hasBrokenPlates(laneEconomy,target.id,x.lane,x.stage)&&
       RiftCore.LaneEconomy.canPressureTower(laneEconomy,c.id,x.lane,x.stage,t));
   if(!options.length)return false;
-  const selected=pick(options),{lane,stage,node,present}=selected;
+  const selected=pick(options),{lane,stage,node,present,solo,wave}=selected;
   const priority=lane==='BOT'?'ADC':lane;
   const actor=present.find(q=>q.role===priority)||present[0];
   const who=player(actor.id);
@@ -214,7 +236,7 @@ function simulateMatch(f){const commentarySeed=s.rng;const a=club(f.a),b=club(f.
    'goal',c,{action:'tower',actorId:who.id,
      participantIds:presentWith(c,t,who,node,lane==='BOT'?['ADC','SUP']:['TOP','MID']),
      lane,stage,node,firstTower:firstTowerBonus>0,firstTowerBonus,
-     wave:laneEconomy.lanes[lane].front});
+     soloSplitpush:solo,wave});
   return true;
  };
  const nextSnapshot=t=>m.frames.push({minute:t,kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
