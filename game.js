@@ -157,7 +157,7 @@ function simulateMatch(f){
   const prior=m.events[m.events.length-1];
   // New encounter timestamps use their own deterministic clock: no additional
   // gameplay RNG is consumed by an incidental 2v1 commentary.
-  const skirmish=['plate','item_purchase'].includes(facts?.action)||facts?.action==='skirmish'||facts?.combatVersion===1;
+  const skirmish=['plate','item_purchase','ward_place'].includes(facts?.action)||facts?.action==='skirmish'||facts?.combatVersion===1;
   const stamp=skirmish?(Math.imul((commentarySeed^minute)>>>0,1664525)+
     Math.imul(m.events.length+1,1013904223))>>>0:0;
   const sec=minute===0?0:prior?.minute===minute?
@@ -184,6 +184,7 @@ function simulateMatch(f){
     health:{...health},laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
     powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
     shutdowns:RiftCore.Shutdowns.snapshot(shutdowns),
+    vision:RiftCore.Vision.snapshot(navigation.vision,minute),
     navigation:{before:movementBefore,after:nav.snapshot(navigation,m.dead,minute)}});
  };
  const balance=(c,t)=>{let stage=t<12?'early':t<25?'mid':'late';let z=teamPower(c,stage)+(m.gold[c.id]-m.gold[enemy(c).id])/2800+m.barons[c.id]*1.3;
@@ -264,6 +265,7 @@ function simulateMatch(f){
   laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
   powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
   shutdowns:RiftCore.Shutdowns.snapshot(shutdowns),
+  vision:RiftCore.Vision.snapshot(navigation.vision,t),
   playerStats:RiftCore.clonePlayerStats(playerStats),map:RiftCore.cloneMapState(m.map),
   health:{...health},navigation:{before:movementBefore,after:nav.snapshot(navigation,m.dead,t)}});
  makeEv(0,'Comienza el mapa',`${a.name} y ${b.name} entran a la Grieta. Ambos equipos buscan imponer su plan de juego.`, 'normal');nextSnapshot(0);
@@ -289,6 +291,18 @@ function simulateMatch(f){
    RiftCore.PowerEconomy.awardFarm(powerEconomy,earning,navigation,health);
   movementBefore=nav.snapshot(navigation,m.dead,t);
   m.map=updateMap(t);
+  // Wards are placed by physical, living JUN/SUP agents at contested nodes.
+  // Their sight can inform later decisions but cannot reveal hidden global HP.
+  const wards=RiftCore.Vision.advance(navigation.vision,navigation,t);
+  for(const ward of wards){
+   const owner=club(ward.teamId),actor=player(ward.actorId);
+   makeEv(t,'Visión asegurada',
+    actor.name+' coloca visión para '+owner.name+
+    ' en '+ward.node.replaceAll('_',' ')+'. La cobertura expira en el minuto '+ward.expires+'.',
+    'normal',owner,{action:'ward_place',visionVersion:1,
+     actorId:ward.actorId,participantIds:[ward.actorId],
+     node:ward.node,wardId:ward.id,expires:ward.expires});
+  }
   // Every purchase requires a physically present professional at their
   // own nexus/fountain, a funded personal wallet and an available item slot.
   for(const agent of Object.values(navigation.agents)){
