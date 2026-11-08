@@ -40,7 +40,9 @@ function observe({nav,agent,minute,context}){
   // low vision can miss one enemy until an actual engagement occurs.
   const range=dist(here.node,target.node);
   const chance=clamp(.23+ownVision*.0074-(range/106)*.24,.22,.98);
-  const detected=range<=42||hash(nav.seed,minute,agent.teamId,target.id,'sight')%1000<chance*1000;
+  const wardReveal=core.Vision?.canSee(nav.vision,agent.teamId,target.node,minute)||false;
+  const detected=range<=42||wardReveal||
+   hash(nav.seed,minute,agent.teamId,target.id,'sight')%1000<chance*1000;
   if(detected)opponents.push({target,hp});
  }
  return {agent,here,side,other,lane,ownVision,allies,opponents,
