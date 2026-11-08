@@ -166,7 +166,10 @@ function createBroadcast(match,world,seed) {
    ];
   }else return null;
   const result=choice(entries,seed,i,f.action);
-  return {title:result[0],body:result[1]};
+  const cut=(f.shutdowns||[]).map(x=>who(x.victimId)+' (racha '+x.streakBefore+')').join(', ');
+  const earned=f.bountyGold>0?
+   ' ¡Shutdown! '+cut+' concede '+f.bountyGold+' de oro adicional a '+club+'.':'';
+  return {title:result[0],body:result[1]+earned};
  });
 
  const insights=[],lastTopic=new Map();
