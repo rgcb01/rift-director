@@ -29,6 +29,9 @@ export function flatten(d){
   earlyTowerRate:s.gameplay.earlyTowerMatches===undefined?null:ratio(s.gameplay.earlyTowerMatches,s.completed),
   platesMean:s.gameplay.platesPerMatch||0,
   shutdownsMean:s.gameplay.shutdownsPerMatch??null,
+  macroFarmTurnsMean:s.gameplay.macroFarmTurnsPerMatch??null,
+  macroPressureTurnsMean:s.gameplay.macroPressureTurnsPerMatch??null,
+  macroObjectiveTurnsMean:s.gameplay.macroObjectiveTurnsPerMatch??null,
   counterplayFightsMean:s.gameplay.counterplayFightsPerMatch??null,
   counterplayKillsMean:s.gameplay.counterplayKillsPerMatch??null,
   underdogFightsMean:s.gameplay.underdogFightsPerMatch??null,
@@ -193,6 +196,9 @@ const keys=[
  ['earlyTowerRate','Torres antes del min 36','rate'],
  ['platesMean','Placas por mapa','num'],
  ['shutdownsMean','Rachas eliminadas por mapa','num'],
+ ['macroFarmTurnsMean','Minutos-jugador dedicados a farm macro por mapa','num'],
+ ['macroPressureTurnsMean','Minutos-jugador dedicados a presión macro por mapa','num'],
+ ['macroObjectiveTurnsMean','Minutos-jugador dedicados a rotar por objetivos por mapa','num'],
  ['counterplayFightsMean','Peleas iniciadas por oportunidad visible por mapa','num'],
  ['counterplayKillsMean','Kills por peleas tácticas por mapa','num'],
  ['underdogFightsMean','Contraataques estando atrás por mapa','num'],
@@ -251,6 +257,11 @@ export function generate(current,previous,output){
    {label:'Dos carriles',value:(assessment.current.multiLaneRate||0)*100},
    {label:'Ambos toman',value:(assessment.current.counterTowerRate||0)*100},
    {label:'Remontadas',value:(assessment.current.comebackRate||0)*100}],{max:100,decimals:0})],
+  ['macro.svg',bars('Coste de oportunidad: tiempo en farm, presion y objetivos',[
+   {label:'Farm',value:s.gameplay.macroFarmTurnsPerMatch||0},
+   {label:'Presion',value:s.gameplay.macroPressureTurnsPerMatch||0},
+   {label:'Objetivos',value:s.gameplay.macroObjectiveTurnsPerMatch||0}
+  ])],
   ['dragon.svg',bars('Objetivos neutrales: disputa, intercambios y ausencia',[
    {label:'Sin Dragon',value:assessment.current.noDragonRate*100},
    {label:'Disputado',value:(assessment.current.contestedDragonRate||0)*100},
