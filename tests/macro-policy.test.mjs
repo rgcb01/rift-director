@@ -74,7 +74,7 @@ test('un equipo rezagado considera disputa física en vez de farm automático',(
  state.map.lanes.MID.pressure[a]=40;
  state.map.lanes.MID.vision[a]=45;
  nav.neutralPlans={[a]:{action:'contest',target:'dragon_pit',
-  reason:'dragon_contest',until:24,score:10}};
+  reason:'dragon_contest',until:24,score:-5}};
  const even=core.MacroPolicy.evaluate(nav,state,mid,22,health);
  assert.equal(even.action,'farm','Sin deuda de oro debe proteger la oleada.');
  state.gold[a]=13000;state.gold[b]=15800;
