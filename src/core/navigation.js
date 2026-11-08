@@ -473,6 +473,16 @@ function auditNavigation(match,world){
       errs.push('Teamfight desde otra zona: '+e.minute+' / '+id);
    }else if(f.action==='tower'){
     const target=towerNode(other===match.fixture.a?'blue':'red',f.lane,f.stage);
+    if(f.soloSplitpush){
+     const actor=positions[f.actorId];
+     if(!actor||!['splitpush','counterpush'].includes(actor.intent)||
+        actor.lane!==f.lane||(f.participantIds||[]).length!==1||
+        typeof f.wave!=='number'||f.wave<1.45)
+      errs.push('Splitpush sin oleada real y especialista en el carril: '+e.minute);
+     if(Object.keys(positions).some(id=>positions[id].teamId===other&&
+        active(id)&&near(id,target,1)))
+      errs.push('Splitpush solitario declarado con un defensor presente: '+e.minute);
+    }
     if(!near(f.actorId,target,1))errs.push('Torre derribada desde otra zona: '+e.minute);
     for(const id of f.participantIds)if(!near(id,target,1))
       errs.push('Participante de torre ausente: '+id);
