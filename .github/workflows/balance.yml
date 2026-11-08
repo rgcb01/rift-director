@@ -51,7 +51,13 @@ jobs:
         run: |
           should_run=true
           if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
-            old_version=$(git show HEAD^:CHANGELOG.md 2>/dev/null | grep -m1 -E '^## \[[0-9]+\.[0-9]+\.[0-9]+-alpha\]' | sed -E 's/^## \[([^]]+)\].*/\1/' || true)
+            old_ref="${{ github.event.before }}"
+            if [[ "$old_ref" =~ ^[0-9a-f]{40}$ && "$old_ref" != "0000000000000000000000000000000000000000" ]]; then
+              git fetch --quiet --depth=1 origin "$old_ref" || true
+              old_version=$(git show "$old_ref:CHANGELOG.md" 2>/dev/null | grep -m1 -E '^## \[[0-9]+\.[0-9]+\.[0-9]+-alpha\]' | sed -E 's/^## \[([^]]+)\].*/\1/' || true)
+            else
+              old_version=""
+            fi
             if [[ "$old_version" == "${{ steps.version.outputs.version }}" ]]; then
               should_run=false
               echo "Sin cambio de versión; la batería se reserva para el próximo x.y.z."
