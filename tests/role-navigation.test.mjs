@@ -135,7 +135,8 @@ test('SUP tiene roaming breve después de líneas y regresa junto a su ADC',()=>
     if(t>=22&&t<=27){
      if(p.intent==='objective_setup')seenBaron++;
      else assert.ok(['recover','fallback'].includes(p.intent)&&p.reason,
-       'SUP solo pierde ventana de Barón por riesgo verificable');
+       'SUP solo pierde ventana de Barón por riesgo verificable: seed='+seed+
+       ' t='+t+' team='+teamId+' intent='+p.intent+' reason='+p.reason);
     }
     if(t>=1&&t<=13&&carry.alive&&!validRetreat(match,sup,t)){
      assert.ok(['protect_adc','escort'].includes(p.intent)||
