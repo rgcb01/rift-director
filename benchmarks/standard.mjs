@@ -114,11 +114,25 @@ export function runStandard() {
           soloSplitTowers:m.events.filter(e=>e.facts?.action==='tower'&&e.facts.soloSplitpush).length,
           bothTeamsTowers:m.events.some(e=>e.facts?.action==='tower'&&e.teamId===a)&&
             m.events.some(e=>e.facts?.action==='tower'&&e.teamId===b),
-          macroTurns:Object.fromEntries(['farm','pressure','objective'].map(action=>[
+          macroTurns:Object.fromEntries(['farm','defend','pressure','objective'].map(action=>[
             action,m.frames.reduce((n,frame)=>n+
               Object.values(frame.navigation?.before||{}).filter(p=>
                 p.reason==='macro_'+action&&p.intent==='macro_'+action).length,0)
           ])),
+          macroRisk:(()=>{
+            const counts={exposedPush:0,defendedWave:0,escortedObjective:0};
+            for(const frame of m.frames){
+             for(const [id,p] of Object.entries(frame.macro?.plans||{})){
+              const actor=frame.navigation?.before?.[id];
+              if(!actor?.alive||actor.intent!=='macro_'+p.action)continue;
+              if(p.action==='pressure'&&p.evidence.overextendRisk>=12)counts.exposedPush++;
+              if(p.action==='defend')counts.defendedWave++;
+              if(p.action==='objective'&&p.evidence.objectiveEscortCount>=1)
+               counts.escortedObjective++;
+             }
+            }
+            return counts;
+          })(),
           firstTowerMinute:m.events.find(e=>e.facts?.action==='tower')?.minute??null,
           goldLeader20:(()=>{const at=m.frames.find(f=>f.minute===20)||f;
             return at.gold[a]>at.gold[b]?a:at.gold[b]>at.gold[a]?b:null})(),
@@ -177,8 +191,11 @@ export function runStandard() {
       platesPerMatch:+avg(rows.map(r=>r.actions.plate||0)).toFixed(2),
       contestedDragonsPerMatch:+avg(rows.map(r=>r.dragonContests)).toFixed(2),
       macroFarmTurnsPerMatch:+avg(rows.map(r=>r.macroTurns.farm)).toFixed(2),
+      macroDefendTurnsPerMatch:+avg(rows.map(r=>r.macroTurns.defend)).toFixed(2),
       macroPressureTurnsPerMatch:+avg(rows.map(r=>r.macroTurns.pressure)).toFixed(2),
       macroObjectiveTurnsPerMatch:+avg(rows.map(r=>r.macroTurns.objective)).toFixed(2),
+      macroExposedPushTurnsPerMatch:+avg(rows.map(r=>r.macroRisk.exposedPush)).toFixed(2),
+      macroEscortedObjectiveTurnsPerMatch:+avg(rows.map(r=>r.macroRisk.escortedObjective)).toFixed(2),
       shutdownsPerMatch:+avg(rows.map(r=>r.shutdowns)).toFixed(2),
       counterplayFightsPerMatch:+avg(rows.map(r=>r.counterplayFights)).toFixed(2),
       counterplayKillsPerMatch:+avg(rows.map(r=>r.counterplayKills)).toFixed(2),
