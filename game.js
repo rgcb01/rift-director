@@ -240,7 +240,10 @@ function simulateMatch(f){
    'goal',c,{action:'tower',actorId:who.id,
      participantIds:presentWith(c,t,who,node,lane==='BOT'?['ADC','SUP']:['TOP','MID']),
      lane,stage,node,firstTower:firstTowerBonus>0,firstTowerBonus,
-     soloSplitpush:solo,wave});
+     soloSplitpush:solo,wave,
+     crossmapTrade:lane==='TOP'&&
+       navigation.neutralPlans?.[c.id]?.action==='trade'&&
+       t>=m.nextDragon});
   return true;
  };
  const nextSnapshot=t=>m.frames.push({minute:t,kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
@@ -417,7 +420,10 @@ function simulateMatch(f){
        ' en '+lane+'. El club obtiene '+claim.gold+' de oro.',
        'goal',c,{action:'plate',actorId:leader.id,
          participantIds:[leader.id],lane,stage,plate:claim.plate,
-         node,goldReward:claim.gold});
+         node,goldReward:claim.gold,
+         crossmapTrade:lane==='TOP'&&
+           navigation.neutralPlans?.[c.id]?.action==='trade'&&
+           t>=m.nextDragon});
     }
    }
    // Any side can earn tower objectives if wave, damage and the
@@ -425,20 +431,43 @@ function simulateMatch(f){
    for(const c of [a,b])for(const lane of ['TOP','MID','BOT'])
      takeTower(c,t,lane);
   }
-  // Dragons have spawn and respawn constraints. A jungler can smite only if alive.
-  if(t>=m.nextDragon&&chance(.73)){
-    let owner=decide(a,b,t);
-    const eligible=all.filter(c=>positioned(c,'dragon_pit').length>=2);
-    if(!eligible.includes(owner))owner=eligible.includes(enemy(owner))?enemy(owner):null;
-    if(owner){
-     const available=positioned(owner,'dragon_pit'),jungler=available.find(p=>p.role==='JUN');
-     const actor=player((jungler||available[0]).id);
+  // The Dragon is earned at the actual pit, not by a scheduled owner roll.
+  // Teams choose objective/contest/trade before moving; either can fail to
+  // arrive, and a lone enemy JUN can attempt a physically valid Smite steal.
+  if(t>=m.nextDragon){
+   const candidates=RiftCore.NeutralObjectives.captureCandidates(
+     navigation,m.dead,t,health,(id,node)=>positioned(club(id),node),m);
+   const eligible=candidates.filter(x=>x.eligible);
+   if(eligible.length){
+    const contested=candidates.every(x=>x.agents.length>0);
+    const initiator=eligible.length===2?
+      (chance(clamp(.5+(eligible[0].score-eligible[1].score)*.025,.2,.8))?
+       eligible[0]:eligible[1]):eligible[0];
+    const captureChance=clamp(.65+(initiator.agents.length-2)*.06+
+      (initiator.jungler?.08:-.1)-(contested?.1:0),.35,.9);
+    if(chance(captureChance)){
+     const challenger=candidates.find(x=>x.id!==initiator.id);
+     const steal=Boolean(challenger?.jungler&&
+       chance(clamp(.085+(challenger.lanePressure-50)*.0015,.045,.17)));
+     const winner=steal?challenger:initiator;
+     const actorAgent=steal?challenger.jungler:
+       initiator.jungler||initiator.agents[0];
+     const owner=club(winner.id),actor=player(actorAgent.id);
+     const source=navigation.neutralPlans?.[owner.id]?.action||'hold';
+     const strategy=['take','contest'].includes(source)?source:'opportunistic';
      m.dragons[owner.id]++;m.gold[owner.id]+=230;m.nextDragon=t+5;
-     makeEv(t,'Dragón asegurado',`${owner.name} controla el río. ${actor.name} asegura el dragón número ${m.dragons[owner.id]} de su equipo.`,
+     makeEv(t,steal?'¡ROBO DE DRAGÓN!':'Dragón asegurado',
+      steal?`${club(initiator.id).name} inició el Dragón, pero ${actor.name} llegó al foso y lo robó con Smite.`:
+       `${owner.name} completa la toma del Dragón con jugadores presentes. ${actor.name} participa en el objetivo número ${m.dragons[owner.id]}.`,
       'goal',owner,{action:'dragon',actorId:actor.id,
        participantIds:presentWith(owner,t,actor,'dragon_pit',['JUN','SUP']),
-       ordinal:m.dragons[owner.id],node:'dragon_pit'});
+       ordinal:m.dragons[owner.id],node:'dragon_pit',
+       objectiveVersion:2,plan:strategy,
+       contested,stolen:steal,smite:steal,smiteBy:steal?actor.id:null,
+       initiatorTeamId:steal?initiator.id:null,
+       score:+winner.score.toFixed(2),opponentPresent:challenger?.agents.length||0});
     }
+   }
   }
   // Group encounters share the same HP + escape rules as lanes and ganks.
   // A hero only dies after enough damage. A nonlethal fight is a real
