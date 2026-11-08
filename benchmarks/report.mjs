@@ -170,11 +170,9 @@ export function generate(current,previous,output){
    {label:'Dos carriles',value:(assessment.current.multiLaneRate||0)*100},
    {label:'Ambos toman',value:(assessment.current.counterTowerRate||0)*100},
    {label:'Remontadas',value:(assessment.current.comebackRate||0)*100}],{max:100,decimals:0})],
-  ['power.svg',bars('Compras y progreso: cobertura del nuevo sistema',[
+  ['power.svg',bars('Equipamiento: porcentaje de mapas por resultado',[
    {label:'Ambos compran',value:(assessment.current.bothTeamsItemRate||0)*100},
-   {label:'Sin compras',value:(assessment.current.noItemRate||0)*100},
-   {label:'Compras/match',value:(assessment.current.purchasesPerMatch||0)*5},
-   {label:'Nivel final',value:(assessment.current.avgFinalLevel||0)*5}
+   {label:'Sin compras',value:(assessment.current.noItemRate||0)*100}
   ],{max:100,decimals:0})],
   ['previous.svg',bars('Version anterior vs actual: porcentaje de partidas sin Dragon',[
    {label:previous.version,value:assessment.baseline.noDragonRate*100,color:'#f27e8a'},
