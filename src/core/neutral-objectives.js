@@ -12,25 +12,45 @@ const healthy=(nav,health,id,role)=>{
  return agent?.alive?(health?.[agent.id]??100):0;
 };
 const other=(nav,id)=>id===nav.a?nav.b:nav.a;
-function strategicScore(nav,world,id,health){
+function strategicScore(nav,world,id,health,objective='dragon'){
  const foe=other(nav,id),vision=world.map?.riverVision?.[id]??50;
- const lane=world.map?.lanes?.BOT?.pressure?.[id]??50;
+ const objectiveLane=objective==='baron'?'TOP':'BOT';
+ const lane=world.map?.lanes?.[objectiveLane]?.pressure?.[id]??50;
  const wave=world.waves?core.LaneEconomy.pressureFor(
-  {teamIds:[nav.a,nav.b],lanes:world.waves},id,'BOT'):0;
+  {teamIds:[nav.a,nav.b],lanes:world.waves},id,objectiveLane):0;
  const lead=(world.gold?.[id]??0)-(world.gold?.[foe]??0);
- const drakeDebt=(world.dragons?.[foe]||0)-(world.dragons?.[id]||0);
+ const drakeDebt=objective==='baron'?
+   (world.barons?.[foe]||0)-(world.barons?.[id]||0):
+   (world.dragons?.[foe]||0)-(world.dragons?.[id]||0);
  const hp=(healthy(nav,health,id,'JUN')+healthy(nav,health,id,'SUP'))/2;
  // Only public strategic signals; never the opponent's concealed route.
  return (vision-50)*.24+(lane-50)*.24+
   clamp(lead/950,-8,8)+clamp(wave,-2,2)*2.4+
   drakeDebt*2+clamp((hp-72)*.13,-7,4);
 }
+function objectiveTarget(nav,world,id,minute){
+ const foe=other(nav,id);
+ const dragon=minute>=(world.nextDragon??Infinity)-3;
+ const baron=minute>=20&&minute>=(world.nextBaron??Infinity)-3;
+ if(!dragon&&!baron)return null;
+ if(!baron)return 'dragon';
+ if(!dragon)return 'baron';
+ // Consider the real value of Baron for opening structures rather than
+ // treating every live Dragon as automatically more important.
+ const lead=(world.gold?.[id]||0)-(world.gold?.[foe]||0);
+ const baronValue=5+(world.towers?.[id]||0)*.7+
+   (lead>1700?1.8:0)+(world.barons?.[id]||0)*-.5;
+ const dragonValue=3+(world.dragons?.[foe]||0)*1.6+
+   ((world.dragons?.[id]||0)===0?1:0)+(lead< -1500?1.2:0);
+ return baronValue>=dragonValue?'baron':'dragon';
+}
 function activeCall(nav,world,minute,health){
  // First bot-lane setup completes before the support's 14–21 ward/escort
  // duties. Afterward, timing follows dragon availability and team choices.
  const roleWindow=minute>=11&&minute<=13||minute>=22&&minute<=29||
    minute>=36&&minute<=55;
- if(!roleWindow||minute<(world.nextDragon??Infinity)-3)return false;
+ if(!roleWindow||
+     ![nav.a,nav.b].some(id=>objectiveTarget(nav,world,id,minute)))return false;
  // A late siege is an opportunity cost, not a magical extra objective team.
  if(minute>=36&&nav.siegeTeam&&
     Object.values(world.lanes[other(nav,nav.siegeTeam)]||{})
@@ -42,7 +62,8 @@ function plan(nav,world,minute,health){
  const out={};
  for(const id of [nav.a,nav.b]){
   const old=nav.neutralCalls[id];
-  if(old&&old.targetSpawn!==(world.nextDragon??Infinity)){
+  if(old&&old.targetSpawn!==
+    (old.target==='baron_pit'?world.nextBaron:world.nextDragon)){
    nav.neutralCalls[id]=null;
   }
   const existing=nav.neutralCalls[id];
@@ -55,16 +76,23 @@ function plan(nav,world,minute,health){
   if(!activeCall(nav,world,minute,health)){
    out[id]={action:'hold',reason:'no_dragon_opportunity',until:minute};continue;
   }
-  const foe=other(nav,id),score=strategicScore(nav,world,id,health);
+  const objective=objectiveTarget(nav,world,id,minute);
+  if(!objective){out[id]={action:'hold',reason:'objective_not_ready',until:minute};continue}
+  const foe=other(nav,id),score=strategicScore(nav,world,id,health,objective);
   const hpJ=healthy(nav,health,id,'JUN'),hpS=healthy(nav,health,id,'SUP');
   let action='take';
-  if(hpJ<48||hpS<43)action='trade';
-  else if(score<-5.2)action='trade';
+  if(objective==='dragon'&&(hpJ<48||hpS<43||score<-5.2))action='trade';
+  else if(objective==='baron'&&(hpJ<48||hpS<43))action='hold';
   else if(score<-.5)action='contest';
-  // The team choosing to cross-map actually sends TOP to earn plates
-  // and possible towers; no event claims an exchange without earned damage.
-  const call={action,reason:'dragon_'+action,target:'dragon_pit',
-   targetSpawn:world.nextDragon,score:+score.toFixed(2),
+  if(action==='hold'){
+   out[id]={action:'hold',reason:'baron_unsafe',until:minute};continue;
+  }
+  // A threatened Dragon can be traded for actual TOP pressure; Baron
+  // requires present jungler and support and competes for their time.
+  const call={action,reason:objective+'_'+action,
+   target:objective==='dragon'?'dragon_pit':'baron_pit',
+   targetSpawn:objective==='dragon'?world.nextDragon:world.nextBaron,
+   score:+score.toFixed(2),
    enemyId:foe,created:minute,until:minute+5,cooldownUntil:minute+10};
   nav.neutralCalls[id]=call;
   out[id]=call;
@@ -90,7 +118,7 @@ function movement(nav,agent,minute,worldState){
   // and the 14–21 ward and ADC escort window remains protected.
   if(agent.role==='SUP'&&minute>=14&&minute<=21)return null;
   if(agent.role==='JUN'&&minute>=14&&minute<=19)return null;
-  return {goal:'dragon_pit',intent:'objective_setup',
+  return {goal:call.target,intent:'objective_setup',
    reason:call.reason,decisionVersion:4};
  }
  return null;
@@ -99,9 +127,9 @@ function captureCandidates(nav,dead,minute,health,positioned,world){
  const teams=[nav.a,nav.b];
  return teams.map(id=>{
   const agents=positioned(id,'dragon_pit');
-  const jungler=agents.find(p=>p.role==='JUN');
-  const support=agents.find(p=>p.role==='SUP');
   const ready=agents.filter(p=>(health[p.id]??100)>=31);
+  const jungler=ready.find(p=>p.role==='JUN');
+  const support=ready.find(p=>p.role==='SUP');
   const avgHp=ready.length?ready.reduce((n,p)=>n+(health[p.id]??100),0)/ready.length:0;
   const vision=world.map?.riverVision?.[id]??50;
   const score=ready.length*10+(jungler?8:0)+(support?3:0)+
@@ -130,6 +158,6 @@ function audit(match){
  return errors;
 }
 core.NeutralObjectives=Object.freeze({
- strategicScore,activeCall,plan,movement,captureCandidates,audit
+ strategicScore,objectiveTarget,activeCall,plan,movement,captureCandidates,audit
 });
 })(globalThis);
