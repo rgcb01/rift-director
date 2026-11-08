@@ -219,6 +219,13 @@ function chooseGoal(nav,agent,t,worldState){
  const partner=role==='SUP'?teamAgents(nav,team).find(p=>p.role==='ADC'&&p.alive):null;
  const followADC=()=>partner?.goal&&adjacency[partner.goal]?partner.goal:anchor('BOT');
 
+ // An affordable power spike can justify physically returning to base.
+ // A single professional per squad may recall; there is no teleport/instant buy.
+ if(worldState.powerEconomy&&
+    core.PowerEconomy.shouldRecall(worldState.powerEconomy,nav,agent,t,worldState))
+  return {goal:side+'_nexus',intent:'shop_recall',
+    reason:'affordable_item_spike',decisionVersion:3};
+
  // Only actual economic or wave advantage commits an attacking team.
  // Junglers preserve their own corridors until minute 36, after which
  // they can join a coordinated push without teleportation.
