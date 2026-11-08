@@ -1,0 +1,75 @@
+{
+  "version": "0.7.11-alpha",
+  "benchmarkRevision": "fixed-seed-1000-v1",
+  "source": "Verified GitHub Actions run 42454674583 (rechecked 42454957868), 1,000 fully audited primary games plus 1,000 mirrored games; metrics curated from report.md",
+  "sourceRun": "https://github.com/rgcb01/rift-director/actions/runs/42454674583",
+  "standard": {
+    "requested": 1000,
+    "completed": 1000,
+    "audited": 1000,
+    "issueCount": 0,
+    "auditFailures": 0,
+    "wins": {
+      "blue": 491,
+      "red": 509,
+      "invalid": 0
+    },
+    "duration": {
+      "mean": 48.92
+    },
+    "kills": {
+      "mean": 6.86
+    },
+    "objectives": {
+      "dragonsAvg": 2.86,
+      "gamesWithoutDragon": 13,
+      "baronsAvg": 2.16,
+      "gamesWithoutBaron": 13,
+      "towersAvg": 4.69
+    },
+    "gameplay": {
+      "actionMatches": {
+        "gank": 245
+      },
+      "meanEvents": 79.69,
+      "zeroKills": 1,
+      "earlyTowerMatches": 583,
+      "platesPerMatch": 17.19,
+      "comebackWins20": 19,
+      "gamesMultipleTowerLanes": 833,
+      "gamesBothTeamsTowers": 258,
+      "soloSplitTowerGames": 674,
+      "contestedDragonGames": 543,
+      "contestedDragonsPerMatch": 0.66,
+      "dragonStealsPer100Maps": 2.9,
+      "firstDragonMean": 15.19,
+      "objectiveCommitmentMinutesPerMatch": 27.75,
+      "crossmapTradePlatesPerMatch": 0.82,
+      "crossmapTradeTowerGames": 105,
+      "purchasesPerMatch": 16.1,
+      "recallPurchasesPerMatch": 2.93,
+      "recallTravelMinutesPerMatch": 9.6,
+      "earlyPurchasesPerMatch": 5.52,
+      "equipmentGoldPerMatch": 57885.3,
+      "avgFinalLevel": 13.56,
+      "noItemGames": 0,
+      "bothTeamsItemGames": 969,
+      "firstPurchaseMean": 12.36,
+      "shutdownsPerMatch": 0.09,
+      "shutdownGoldPerMatch": 19.05,
+      "shutdownGames": 88,
+      "underdogShutdownGoldPerMatch": 12.63
+    }
+  },
+  "mirror": {
+    "matches": 1000,
+    "wins": {
+      "blue": 511,
+      "red": 489
+    },
+    "towers": {
+      "exact3": 174,
+      "noEarlyTowerBefore36": 415
+    }
+  }
+}
