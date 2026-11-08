@@ -4,6 +4,18 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+## [0.7.12-alpha] — 2026-11-08
+
+### Contraataques basados en visibilidad y presión territorial ganada
+- **Selección de peleas por oportunidad real:** se reemplaza la selección probabilística del equipo atacante en las peleas grupales por una evaluación determinista de un enemigo realmente visible, el apoyo físico próximo (mínimo dos aliados), salud, aislamiento local, ventaja de oro y racha conocida del objetivo.
+- Las decisiones distinguen **caza de shutdown**, **rival aislado**, **contraataque de equipo rezagado** y **pelea con superioridad visible**. La información de visión es la aproximación existente y no permite revelar siempre enemigos lejanos. Se respeta el enfriamiento entre peleas y no se ejecutan ataques contra muertos o enemigos ya en retirada.
+- **Sin kills artificiales:** la decisión solamente propone un encuentro; daño, alcance, objetivos alcanzados, bajas y retirada siguen resolviéndose por `Encounters.resolveCombat` con las estadísticas existentes. No se sube el daño, la XP, las recompensas ni se crean probabilidades de victoria especiales.
+- **Conversión de una pelea ganada:** después de una baja confirmada, el equipo puede conservar una orden de presión de oleada durante tres minutos, únicamente para quienes participaron y en un carril defendible. Los participantes caminan por el grafo; las placas y torres exigen oleada, recorrido y condición estructural real. Se anotan las estructuras efectivamente ganadas durante esa orden.
+- El replay y los hechos deportivos incluyen motivo, rival visible, salud observada, número de aliados, déficit económico y recompensa potencial cuando hay una pelea táctica. Se audita que autor, rival y asistentes estén en alcance y que una orden de presión proceda de una baja confirmada.
+- Pruebas focalizadas de visibilidad, enemigo aislado, cazas de shutdown, rechazos sin ventaja y seguimiento tras combate; **11 gráficas** y benchmark de **1,000 partidos auditados + 1,000 espejados** frente a Alpha 0.7.11.
+- **Alcance:** no se modifican Smite, Dragón/Barón, precio de objetos, niveles, fórmula de daño o payouts. El objetivo es crear contraataques sin resultados preprogramados.
+
+
 ## [0.7.11-alpha] — 2026-11-08
 
 ### Remontadas causales: rachas y recompensas por shutdown
