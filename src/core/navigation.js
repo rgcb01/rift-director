@@ -333,6 +333,7 @@ function forceRetreat(nav,id,minute,goal){
 function advance(nav,t,dead,worldState,context=null){
  if(t<=nav.minute)throw Error('Navigation minutes must advance');
  nav.minute=t;
+ nav.neutralPlans=core.NeutralObjectives?.plan(nav,worldState,t,context?.health)||null;
  // All tactics inspect the same initial positions (no turn-order advantage).
  const positions=Object.fromEntries(Object.entries(nav.agents).map(([id,a])=>
   [id,{id:a.id,node:a.node,teamId:a.teamId,role:a.role,
