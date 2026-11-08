@@ -89,6 +89,11 @@ test('70 mapas: compras y power spikes aparecen en hechos y replays causales',()
  assert.ok(purchases>40,'Las compras deben suceder en partidas reales');
  assert.ok(withItem>25,'La tienda jamás se usa');
  assert.ok(progressions>25,'Los profesionales no suben de nivel');
+ // Identical 70 seeds before strategy correction: 1,257 recall purchases
+ // and 2,506 player-minutes travelling home. A code change should not
+ // restore that perpetual reset loop accidentally.
+ assert.ok(recallTravel<1500,'Regresión: demasiados minutos-jugador fuera del mapa para comprar');
+ assert.ok(recallBuys<500,'Regresión: exceso de compras mediante recall voluntario');
  console.log('POWER_SAMPLE='+JSON.stringify({purchases,withItem,progressions,recallBuys,fountainBuys,before30,recallTravel}));
 });
 
