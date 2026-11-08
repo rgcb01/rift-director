@@ -34,6 +34,10 @@ test('ítem equipado: solo se compra con cartera suficiente y estando en base',(
  assert.ok(first&&first.goldCost>0);
  assert.equal(first.slot,1);
  assert.equal(first.node,'blue_fountain');
+ assert.equal(first.voluntaryRecall,false);
+ assert.equal(p.voluntaryBuys,0,'Comprar tras reaparecer no consume un reset');
+ assert.equal(economy.shouldRecall(model,nav,a,35,world,{health:{[a.id]:50}}),false,
+  'Un profesional ya en fuente no debe simular una retirada voluntaria');
  assert.equal(p.wallet+p.spent,p.earned);
  assert.ok(economy.boost(model,a.id,'attack')>0);
  assert.equal(economy.purchase(model,nav,a,34,world),null,'No dos compras en el mismo minuto');
