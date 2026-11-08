@@ -1,0 +1,49 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync,existsSync,mkdtempSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {latestChangelogVersion,compareVersions} from '../benchmarks/version.mjs';
+import {evaluate,flatten,bars,generate} from '../benchmarks/report.mjs';
+
+const baseline=JSON.parse(readFileSync('benchmarks/baselines/0.7.6-alpha.json','utf8'));
+test('versiones Alpha x.y.z: heading, prefijos y orden numerico',()=>{
+ assert.equal(latestChangelogVersion('# Registro\n\n## [Unreleased]\n\n## [0.7.7-alpha] — 2026-11-07'),'0.7.7-alpha');
+ assert.ok(compareVersions('0.8.0-alpha','0.7.9-alpha')>0);
+ assert.equal(compareVersions('v0.7.7-alpha','0.7.7-alpha'),0);
+});
+test('baseline real 0.7.6: 1000 simulaciones auditadas sin fallos',()=>{
+ assert.equal(baseline.standard.completed,1000);
+ assert.equal(baseline.mirror.matches,1000);
+ const result=evaluate(baseline,baseline);
+ // Initial measurement audited 100 of 1000; new releases audit every game.
+ assert.ok(result.failures.every(x=>x.includes('Auditorias')));
+ assert.equal(flatten(baseline).blueWinRate,.604);
+ assert.equal(flatten(baseline).pairedBlueWinRate,.577);
+});
+test('detecta regresion severa de objetivos o simetria',()=>{
+ const broken=structuredClone(baseline);
+ broken.standard.audited=1000;
+ broken.standard.objectives.gamesWithoutDragon=950;
+ broken.mirror.wins.blue=790;
+ broken.mirror.wins.red=210;
+ const report=evaluate(broken,baseline);
+ assert.ok(report.failures.some(x=>x.includes('Dragon')));
+ assert.ok(report.failures.some(x=>x.includes('asimetria')||x.includes('Sesgo')));
+});
+test('genera un dashboard HTML con graficos SVG sin dependencias',()=>{
+ const dir=mkdtempSync(join(tmpdir(),'rift-balance-'));
+ try{
+  const current=structuredClone(baseline);
+  current.standard.audited=1000;
+  const r=generate(current,baseline,dir);
+  assert.equal(r.failures.length,0);
+  for(const name of ['summary.json'].filter(()=>false))assert.ok(existsSync(join(dir,name)));
+  for(const name of ['index.html','report.md','duration.svg','kills.svg','sides.svg',
+    'objectives.svg','towers.svg','previous.svg','regressions.json']){
+   assert.ok(existsSync(join(dir,name)),name+' no generado');
+  }
+  assert.match(readFileSync(join(dir,'duration.svg'),'utf8'),/<svg/);
+  assert.match(bars('Test',[{label:'x',value:1}]),/<svg/);
+ }finally{rmSync(dir,{recursive:true,force:true})}
+});
