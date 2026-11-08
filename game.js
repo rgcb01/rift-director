@@ -877,7 +877,10 @@ function renderPlayerScoreboard(match,frame){
    ROLES.map(role=>{
     const q=player(team.lineup[role]),st=frame.playerStats[q.id];
     if(!st)return '';
-    return `<div class="activity" style="gap:8px"><div style="min-width:0;flex:1"><b>${role} · ${esc(q.name)}</b><div class="helper">Torres ${st.towers} · Dragones ${st.dragons} · Barones ${st.barons}${st.pentakills?' · Pentakills '+st.pentakills:''}</div></div><div style="text-align:right"><strong class="num">${st.kills}/${st.deaths}/${st.assists}</strong><div class="helper">KDA ${RiftCore.playerKda(st)}</div></div></div>`;
+    const build=frame.powerEconomy?.entries?.[q.id];
+    const items=build?.items.map(id=>RiftCore.PowerEconomy.ITEM_CATALOG.find(x=>x.id===id)?.name||id)||[];
+    const powerLine=build?`<div class="helper">Nivel ${build.level} · Oro disponible ${build.wallet} · ${items.length?'Ítems: '+items.map(esc).join(', '):'Sin compras'}</div>`:'';
+    return `<div class="activity" style="gap:8px"><div style="min-width:0;flex:1"><b>${role} · ${esc(q.name)}</b>${powerLine}<div class="helper">Torres ${st.towers} · Dragones ${st.dragons} · Barones ${st.barons}${st.pentakills?' · Pentakills '+st.pentakills:''}</div></div><div style="text-align:right"><strong class="num">${st.kills}/${st.deaths}/${st.assists}</strong><div class="helper">KDA ${RiftCore.playerKda(st)}</div></div></div>`;
    }).join('');
  }).join('');
 }
