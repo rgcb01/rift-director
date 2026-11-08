@@ -14,7 +14,7 @@ function bounty(streak){
 function create(players){
  const streaks={};
  for(const p of players){
-  if(!p?.id||Object.hasOwn(streaks,p.id))throw Error('Duplicate shutdown player');
+  if(!p?.id||Object.prototype.hasOwnProperty.call(streaks,p.id))throw Error('Duplicate shutdown player');
   streaks[p.id]=0;
  }
  if(Object.keys(streaks).length!==10)throw Error('Shutdowns require 10 professionals');
@@ -23,12 +23,12 @@ function create(players){
 function apply(state,event){
  const f=event?.facts;
  if(!f||!Array.isArray(f.victimIds)||!f.victimIds.length)return 0;
- if(!Object.hasOwn(state.streaks,f.actorId))throw Error('Unknown shutdown killer');
+ if(!Object.prototype.hasOwnProperty.call(state.streaks,f.actorId))throw Error('Unknown shutdown killer');
  if(new Set(f.victimIds).size!==f.victimIds.length)
   throw Error('Duplicate shutdown victims');
  const receipts=[];
  for(const victimId of f.victimIds){
-  if(!Object.hasOwn(state.streaks,victimId)||victimId===f.actorId)
+  if(!Object.prototype.hasOwnProperty.call(state.streaks,victimId)||victimId===f.actorId)
    throw Error('Invalid shutdown victim');
   const before=state.streaks[victimId],bonus=bounty(before);
   if(bonus)receipts.push({victimId,streakBefore:before,bonusGold:bonus});
@@ -54,7 +54,6 @@ function audit(match){
   if(!moment) {errors.push('Missing shutdown moment '+i);continue;}
   const victims=f?.victimIds;
   if(Array.isArray(victims)&&victims.length){
-   const expected=structuredClone(ledger);
    try{
     apply(expected,{facts:{actorId:f.actorId,victimIds:victims}});
     const replica={facts:{actorId:f.actorId,victimIds:victims}};
