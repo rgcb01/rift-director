@@ -142,7 +142,7 @@
    const attacker=pre[facts.actorId],defender=pre[facts.targetId];
    if(!attacker?.alive||!defender?.alive||
      attacker.teamId!==event.teamId||attacker.teamId===defender.teamId||
-     facts.targetId!==p.targetId||
+     !(p.targetIds||[p.targetId]).includes(facts.targetId)||
      !navAPI().combatRange(attacker.node,defender.node,2))
     errors.push('Counterplay without physical opponent '+i);
    if(!Array.isArray(facts.participantIds)||
