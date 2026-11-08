@@ -82,7 +82,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: balance-report-${{ steps.version.outputs.version }}
-          path: .balance-output/
+          path: |
+            .balance-output/summary.json
+            .balance-output/report.md
+            .balance-output/regressions.json
+            .balance-output/index.html
+            .balance-output/*.svg
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 90
