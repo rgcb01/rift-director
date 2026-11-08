@@ -67,6 +67,24 @@ test('rotación a Dragón compite con oro perdido, sin regalar captura, experien
  assert.equal(movement.decisionVersion,5);
  assert.equal(nav.seed,23519,'La decisión no consume RNG global');
 });
+test('un equipo rezagado considera disputa física en vez de farm automático',()=>{
+ const {core,nav,state,health,a,b,clubs}=setup();
+ const mid=nav.agents[clubs[0].lineup.MID];
+ state.waves.MID.front=-.8;
+ state.map.lanes.MID.pressure[a]=40;
+ state.map.lanes.MID.vision[a]=45;
+ nav.neutralPlans={[a]:{action:'contest',target:'dragon_pit',
+  reason:'dragon_contest',until:24,score:10}};
+ const even=core.MacroPolicy.evaluate(nav,state,mid,22,health);
+ assert.equal(even.action,'farm','Sin deuda de oro debe proteger la oleada.');
+ state.gold[a]=13000;state.gold[b]=15800;
+ const trailing=core.MacroPolicy.evaluate(nav,state,mid,22,health);
+ assert.equal(trailing.action,'objective','El equipo atrasado debe poder disputar la ventana real.');
+ assert.ok(trailing.scores.objective>trailing.scores.farm);
+ assert.equal(trailing.goal,'dragon_pit');
+ assert.equal(health[mid.id],100,'La decisión no genera ni quita HP.');
+ assert.equal(state.gold[a],13000,'Planificar no fabrica oro.');
+});
 test('presión compromete una oleada física; la llamada no concede oro gratis',()=>{
  const {core,nav,state,economy,health,a,b,clubs}=setup();
  for(const agent of Object.values(nav.agents)){
