@@ -61,6 +61,14 @@ export function runStandard() {
           barons:(f.barons[a]||0)+(f.barons[b]||0),
           towers:(f.towers[a]||0)+(f.towers[b]||0),
           baronSteals,
+          dragonContests:m.events.filter(e=>e.facts?.action==='dragon'&&e.facts.contested).length,
+          dragonSteals:m.events.filter(e=>e.facts?.action==='dragon'&&e.facts.stolen).length,
+          firstDragonMinute:m.events.find(e=>e.facts?.action==='dragon')?.minute??null,
+          dragonCallMinutes:m.frames.reduce((n,frame)=>n+
+            Object.values(frame.navigation.before||{}).filter(p=>
+              /^dragon_(take|contest)$/.test(p.reason||'')).length,0),
+          crossmapPlates:m.events.filter(e=>e.facts?.action==='plate'&&e.facts.crossmapTrade).length,
+          crossmapTowers:m.events.filter(e=>e.facts?.action==='tower'&&e.facts.crossmapTrade).length,
           purchases:m.events.filter(e=>e.facts?.action==='item_purchase').length,
           recallPurchases:m.events.filter((e,i)=>e.facts?.action==='item_purchase'&&
             m.moments[i]?.navigation?.before?.[e.facts.actorId]?.intent==='shop_recall').length,
@@ -100,6 +108,7 @@ export function runStandard() {
             ...core.Navigation.auditNavigation(m,world),
             ...core.LaneEconomy.audit(m),
             ...core.PowerEconomy.audit(m),
+            ...core.NeutralObjectives.audit(m),
             ...core.TacticalAI.audit(m,world),
             ...core.Encounters.audit(m,world),
             ...core.auditMatch(m,world),
@@ -137,6 +146,14 @@ export function runStandard() {
       earlyTowerMatches:rows.filter(r=>r.firstTowerMinute!==null&&r.firstTowerMinute<36).length,
       firstTowerMean:+avg(rows.filter(r=>r.firstTowerMinute!==null).map(r=>r.firstTowerMinute)).toFixed(2),
       platesPerMatch:+avg(rows.map(r=>r.actions.plate||0)).toFixed(2),
+      contestedDragonsPerMatch:+avg(rows.map(r=>r.dragonContests)).toFixed(2),
+      dragonStealsPer100Maps:+(sum(rows,'dragonSteals')*100/rows.length).toFixed(2),
+      firstDragonMean:+avg(rows.filter(r=>r.firstDragonMinute!==null)
+        .map(r=>r.firstDragonMinute)).toFixed(2),
+      objectiveCommitmentMinutesPerMatch:+avg(rows.map(r=>r.dragonCallMinutes)).toFixed(2),
+      crossmapTradePlatesPerMatch:+avg(rows.map(r=>r.crossmapPlates)).toFixed(2),
+      crossmapTradeTowerGames:rows.filter(r=>r.crossmapTowers>0).length,
+      contestedDragonGames:rows.filter(r=>r.dragonContests>0).length,
       purchasesPerMatch:+avg(rows.map(r=>r.purchases)).toFixed(2),
       recallPurchasesPerMatch:+avg(rows.map(r=>r.recallPurchases)).toFixed(2),
       fountainPurchasesPerMatch:+avg(rows.map(r=>r.fountainPurchases)).toFixed(2),
