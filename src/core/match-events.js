@@ -183,6 +183,17 @@
             facts.plannedGankVersion!==1 || facts.route!==route)
           fail('Gank fallido sin ruta y carril verificables.');
         // No elimination, structures, gold or player statistics are awarded.
+      } else if (facts.action === 'ward_place') {
+        const observer=actor(facts,event,t);
+        verifyParticipants(event,facts,t);
+        const moment=match.moments?.[match.events.indexOf(event)];
+        if(!observer||!['JUN','SUP'].includes(observer.role)||
+           facts.visionVersion!==1||!core.MiniGraph.nodes[facts.node]||
+           facts.expires!==t+core.Vision.ttl||
+           moment?.navigation?.before?.[facts.actorId]?.node!==facts.node||
+           !moment?.vision?.wards?.some(w=>w.id===facts.wardId&&
+             w.teamId===event.teamId&&w.node===facts.node))
+          fail('Ward inventado, expirado o colocado sin profesional presente.');
       } else if (facts.action === 'item_purchase') {
         const buyer=actor(facts,event,t);
         verifyParticipants(event,facts,t);
