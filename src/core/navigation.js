@@ -91,7 +91,8 @@ function createNavigation(clubs,teams,seed){
   }
  }
  return {a,b,agents,teams,seed,siegeTeam:null,siegeLane:null,
-   sideLane:null,siegeChecked:0,siegeUntil:0,minute:0};
+   sideLane:null,siegeChecked:0,siegeUntil:0,minute:0,
+   vision:core.Vision?.create([a,b])||null};
 }
 function teamAgents(nav,id){return Object.values(nav.agents).filter(x=>x.teamId===id)}
 function getAgent(nav,id){return nav.agents[id]||null}
