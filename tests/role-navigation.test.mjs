@@ -97,8 +97,10 @@ test('JUN sigue corredores de jungla y ventanas de gank sin transitar por MID',(
     assert.ok(['objective_setup','farm_jungle','recover'].includes(all[26].intent),
       'JUN puede evitar Barón solo por riesgo médico');
    if(all[31]?.alive&&!validRetreat(match,id,31))
-    assert.ok(['farm_jungle','recover'].includes(all[31].intent),
-      'JUN retorna a jungla o se recupera');
+    assert.ok(['farm_jungle','recover'].includes(all[31].intent)||
+      (all[31].intent==='objective_setup'&&
+       /^dragon_(take|contest)$/.test(all[31].reason||'')),
+      'JUN farmea, se recupera o termina una llamada de Dragón todavía comprometida');
   }
  }
  assert.ok(gankSetup>70 && farm>300 && objective>65);
