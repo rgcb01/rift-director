@@ -32,6 +32,7 @@ jobs:
           node --check src/core/neutral-objectives.js
           node --check src/core/shutdowns.js
           node --check src/core/navigation.js
+          node --check src/core/vision-wards.js
           node --check src/core/tactical-ai.js
           node --check src/core/counterplay.js
           node --check src/core/encounters.js
