@@ -36,6 +36,12 @@ export function flatten(d){
   soloSplitTowerGames:s.gameplay.soloSplitTowerGames===undefined?null:
     ratio(s.gameplay.soloSplitTowerGames,s.completed),
   purchasesPerMatch:s.gameplay.purchasesPerMatch??null,
+  recallPurchasesMean:s.gameplay.recallPurchasesPerMatch??null,
+  recallTravelMinutesMean:s.gameplay.recallTravelMinutesPerMatch??null,
+  earlyPurchasesMean:s.gameplay.earlyPurchasesPerMatch??null,
+  recallPurchaseShare:s.gameplay.recallPurchasesPerMatch===undefined||
+    !s.gameplay.purchasesPerMatch?null:
+    s.gameplay.recallPurchasesPerMatch/s.gameplay.purchasesPerMatch,
   itemSlotsUsed:s.gameplay.purchasesPerMatch===undefined?null:
     s.gameplay.purchasesPerMatch/30,
   equipmentSpentMean:s.gameplay.equipmentGoldPerMatch??null,
@@ -155,6 +161,10 @@ const keys=[
  ['counterTowerRate','Ambos equipos toman torres','rate'],
  ['soloSplitTowerGames','Partidos con torre de splitpush solitario','rate'],
  ['purchasesPerMatch','Compras de objetos por mapa','num'],
+ ['recallPurchasesMean','Compras por regreso táctico por mapa','num'],
+ ['recallTravelMinutesMean','Minutos-jugador dedicados a volver a comprar','num'],
+ ['earlyPurchasesMean','Compras antes del minuto 30','num'],
+ ['recallPurchaseShare','Porcentaje de compras desde recall','rate'],
  ['itemSlotsUsed','Espacios de objetos equipados (30 posibles)','rate'],
  ['equipmentSpentMean','Oro convertido en equipamiento por mapa','num'],
  ['avgFinalLevel','Nivel individual promedio al final','num'],
@@ -190,6 +200,7 @@ export function generate(current,previous,output){
   ['power.svg',bars('Equipamiento: porcentaje de mapas por resultado',[
    {label:'Ambos compran',value:(assessment.current.bothTeamsItemRate||0)*100},
    {label:'Slots llenos',value:(assessment.current.itemSlotsUsed||0)*100},
+   {label:'Vuelta a tienda',value:(assessment.current.recallPurchaseShare||0)*100},
    {label:'Sin compras',value:(assessment.current.noItemRate||0)*100}
   ],{max:100,decimals:0})],
   ['previous.svg',bars('Version anterior vs actual: porcentaje de partidas sin Dragon',[
