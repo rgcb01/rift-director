@@ -60,6 +60,10 @@ test('objetivo disponible no reemite la misma llamada en cada minuto y se reinic
  const first=core.NeutralObjectives.plan(nav,state,11,health)[a];
  const second=core.NeutralObjectives.plan(nav,state,12,health)[a];
  assert.equal(second.created,first.created);
+ assert.equal(first.until-first.created,3,
+  'La preparación no debe mantener al equipo fuera de líneas por seis minutos');
+ assert.equal(first.cooldownUntil-first.created,12,
+  'El objetivo obliga a reconsiderar el costo de oportunidad antes de insistir');
  const cooling=core.NeutralObjectives.plan(nav,state,17,health)[a];
  assert.equal(cooling.action,'hold');
  state.nextDragon=17;
