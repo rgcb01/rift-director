@@ -42,9 +42,15 @@ function advance(model,{minute,nav,map,health,gold}){
   // pushing a minion wave, regardless of their assigned lane role.
   // A teamfight that kills the escorts stops this pressure immediately.
   const escort=id=>Object.values(nav.agents).filter(p=>p.alive&&
-    p.teamId===id&&['siege','splitpush','counterpush','macro_pressure'].includes(p.intent)&&
+    p.teamId===id&&['siege','splitpush','counterpush'].includes(p.intent)&&
     core.Navigation.isLaneNode(p.node,lane)).length;
-  const escortDelta=(escort(a)-escort(b))*.36;
+  const macroEscort=id=>Object.values(nav.agents).filter(p=>p.alive&&
+    p.teamId===id&&p.intent==='macro_pressure'&&
+    core.Navigation.isLaneNode(p.node,lane)).length;
+  // Macro pushes help a physical wave, but cannot have the siege boost of
+  // a fully committed squad. This limits runaway lane advantages.
+  const escortDelta=(escort(a)-escort(b))*.36+
+    (macroEscort(a)-macroEscort(b))*.16;
   const difference=(pa-pb)*.035+(va-vb)*.65+escortDelta;
   const momentum=clamp(difference,-1.35,1.35);
   // Dissipating momentum: a wave cannot remain permanently won when its
