@@ -28,6 +28,10 @@ test('partidos reproducibles: oro por oleadas, placas causales, replays íntegro
  for(let seed=1;seed<=30;seed++){
   world.rng=seed*26987;
   const match=sim.simulateMatch(fixture);
+  if(!match.winner){const end=match.frames.at(-1);
+   console.log('NO_WIN_DETAIL='+JSON.stringify({seed,minute:end.minute,gold:end.gold,towers:end.towers,
+    waves:end.laneEconomy.lanes,nav:end.navigation.before,events:match.events.slice(-5).map(e=>({m:e.minute,a:e.facts?.action,t:e.teamId}))}));
+  }
   assert.ok(match.winner,'Sin ganador: '+seed);
   const failures=[
     ...core.Navigation.auditNavigation(match,world),
