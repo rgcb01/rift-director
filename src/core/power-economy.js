@@ -8,16 +8,16 @@
 const core=root.RiftCore||(root.RiftCore={});
 const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
 const ITEM_CATALOG=Object.freeze([
- Object.freeze({id:'boots',name:'Botas de desplazamiento',cost:850,attack:1,defense:2,tempo:2}),
- Object.freeze({id:'blade',name:'Filo del duelista',cost:1150,attack:5,defense:0,tempo:0}),
- Object.freeze({id:'mantle',name:'Manto protector',cost:1250,attack:0,defense:6,tempo:0}),
- Object.freeze({id:'focus',name:'Foco de precisión',cost:1650,attack:7,defense:1,tempo:0}),
- Object.freeze({id:'bulwark',name:'Baluarte táctico',cost:1750,attack:1,defense:8,tempo:0})
+ Object.freeze({id:'boots',name:'Botas de desplazamiento',cost:1850,attack:1,defense:2,tempo:2}),
+ Object.freeze({id:'blade',name:'Filo del duelista',cost:2700,attack:5,defense:0,tempo:0}),
+ Object.freeze({id:'mantle',name:'Manto protector',cost:2600,attack:0,defense:6,tempo:0}),
+ Object.freeze({id:'focus',name:'Foco de precisión',cost:4050,attack:7,defense:1,tempo:0}),
+ Object.freeze({id:'bulwark',name:'Baluarte táctico',cost:4200,attack:1,defense:8,tempo:0})
 ]);
 const ITEMS=Object.fromEntries(ITEM_CATALOG.map(x=>[x.id,x]));
 const ROW=(p)=>({id:p.id,teamId:p.teamId,role:p.role,level:1,xp:0,
  wallet:500,earned:500,spent:0,items:[],lastPurchaseMinute:-100,
- passive:0,farm:0,killGold:0,kills:0});
+ passive:0,farm:0,killGold:0,objectiveGold:0,kills:0});
 function create(players){
  const entries={};
  for(const p of players){
@@ -40,7 +40,7 @@ function goldAward(model,id,amount,kind){
  const row=model.entries[id];
  if(!row||!Number.isSafeInteger(amount)||amount<0)throw Error('Invalid personal income');
  row.wallet+=amount;row.earned+=amount;
- if(kind==='passive'||kind==='farm'||kind==='killGold')row[kind]+=amount;
+ if(['passive','farm','killGold','objectiveGold'].includes(kind))row[kind]+=amount;
 }
 function advance(model,{nav,dead,minute,teamIncome,health}){
  const purchasedCount=Object.keys(model.entries).length;
@@ -58,7 +58,7 @@ function advance(model,{nav,dead,minute,teamIncome,health}){
   const inLane=['TOP','MID','BOT'].some(lane=>
     core.Navigation.isLaneNode(a.node,lane));
   const isBase=a.node.endsWith('_fountain')||a.node.endsWith('_nexus');
-  const xp=isBase?14:inLane?70:a.role==='JUN'?52:46;
+  const xp=isBase?10:inLane?51:a.role==='JUN'?41:35;
   xpAward(model,a.id,xp);
  }
 }
@@ -72,16 +72,26 @@ function awardFarm(model,{teamId,lane,gold},nav,health){
  const base=Math.floor(gold/participants.length),extra=gold%participants.length;
  participants.forEach((a,i)=>goldAward(model,a.id,base+(i<extra?1:0),'farm'));
 }
+function teamGoldAward(model,teamId,amount){
+ if(!Number.isSafeInteger(amount)||amount<0)throw Error('Invalid objective payout');
+ const players=Object.values(model.entries).filter(p=>p.teamId===teamId)
+  .sort((a,b)=>a.id.localeCompare(b.id));
+ const shared=Math.floor(amount/players.length),extra=amount%players.length;
+ players.forEach((p,i)=>goldAward(model,p.id,shared+(i<extra?1:0),'objectiveGold'));
+}
 function rewardEvent(model,event){
  const f=event?.facts;if(!f||f.action==='item_purchase')return;
  const participants=[...new Set(f.participantIds||[f.actorId])];
  switch(f.action){
   case 'plate':
-   xpAward(model,f.actorId,24);break;
+   xpAward(model,f.actorId,24);
+   goldAward(model,f.actorId,f.goldReward,'objectiveGold');break;
   case 'tower':
-   participants.forEach(id=>xpAward(model,id,110));break;
+   participants.forEach(id=>xpAward(model,id,110));
+   teamGoldAward(model,event.teamId,420+(f.firstTowerBonus||0));break;
   case 'dragon':case 'baron':
-   participants.forEach(id=>xpAward(model,id,85));break;
+   participants.forEach(id=>xpAward(model,id,85));
+   teamGoldAward(model,event.teamId,f.action==='dragon'?230:450);break;
   default:
    if(Array.isArray(f.victimIds)&&f.victimIds.length){
     const number=f.victimIds.length;
@@ -148,7 +158,7 @@ function purchase(model,nav,agent,minute,worldState){
 function boost(model,id,kind='attack'){
  const row=model?.entries[id];if(!row)return 0;
  const levels=(row.level-1)*1.35;
- const gear=row.items.reduce((sum,item)=>sum+(ITEMS[item]?.[kind]||0)*2,0);
+ const gear=row.items.reduce((sum,item)=>sum+(ITEMS[item]?.[kind]||0)*(kind==='attack'?2.3:1.3),0);
  return levels+gear;
 }
 function teamEquipment(model,teamId){
