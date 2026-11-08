@@ -4,7 +4,7 @@
 
 [**Jugar en el navegador**](https://rgcb01.github.io/rift-director/) · [Roadmap](ROADMAP.md) · [Cambios](CHANGELOG.md) · [Cómo contribuir](CONTRIBUTING.md)
 
-> **Alpha 0.7.7 — prototipo en validación.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
+> **Alpha 0.7.13 — visión física en validación.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
 
 ## La idea
 
@@ -19,6 +19,10 @@ Los meses impulsan las finanzas y el mundo. Las noticias y los rumores reflejan 
 - **Local:** descarga el repositorio y abre `index.html` con tu navegador. Como alternativa, ejecuta `python -m http.server 8080` y visita `http://localhost:8080`.
 - No hay instalación de paquetes, cuenta ni backend para jugar.
 - **Guardados:** automáticos en `localStorage` de ese navegador. En **Partida** puedes **exportar/importar JSON**. Los guardados no se sincronizan entre dispositivos; expórtalos antes de borrar datos del navegador.
+
+## Alpha 0.7.13 — Wards y visión imperfecta (experimental)
+
+SUP y JUN pueden colocar wards si llegan físicamente a puntos de río y emboscada. Cada equipo dispone de hasta dos wards activas de ocho minutos; la posición, el propietario, la expiración y el autor aparecen en la repetición y en el minimapa. Una ward permite ver enemigos cercanos al lugar donde fue colocada, pero no revela información global ni crea kills. Este primer corte requiere las pruebas de regresión de 2,000 partidas antes de incorporarlo a la rama publicada.
 
 ## Alpha 0.7.12 — Contraataques y presión tras pelea (experimental)
 
