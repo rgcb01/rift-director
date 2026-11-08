@@ -4,7 +4,7 @@
 
 [**Jugar en el navegador**](https://rgcb01.github.io/rift-director/) · [Roadmap](ROADMAP.md) · [Cambios](CHANGELOG.md) · [Cómo contribuir](CONTRIBUTING.md)
 
-> **Alpha 0.7.6 — prototipo jugable.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
+> **Alpha 0.7.7 — prototipo en validación.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
 
 ## La idea
 
@@ -19,6 +19,12 @@ Los meses impulsan las finanzas y el mundo. Las noticias y los rumores reflejan 
 - **Local:** descarga el repositorio y abre `index.html` con tu navegador. Como alternativa, ejecuta `python -m http.server 8080` y visita `http://localhost:8080`.
 - No hay instalación de paquetes, cuenta ni backend para jugar.
 - **Guardados:** automáticos en `localStorage` de ese navegador. En **Partida** puedes **exportar/importar JSON**. Los guardados no se sincronizan entre dispositivos; expórtalos antes de borrar datos del navegador.
+
+## Alpha 0.7.7 — economía táctica del mapa
+
+La versión experimental introduce una **aproximación agregada de oleadas**, oro por farm, placas y bonificación de primera torre. Los asedios se eligen por presión económica, estructuras y posición de oleadas, y pueden cambiar durante la partida. No es una simulación completa de League of Legends: todavía faltan minions individuales, XP, compras, builds, inhibidores y fog of war.
+
+La batería reproducible de 1,000 partidos y 500 pares espejados sigue las versiones x.y.z-alpha para detectar regresiones. Esta rama no se considera aprobada hasta pasar ambas CI y la comparación de balance.
 
 ## Qué existe hoy (Alpha 0.7)
 
