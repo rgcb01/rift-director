@@ -46,7 +46,7 @@
     const lanePressure=map?.lanes?.[lane]?.pressure?.[actor.teamId]??50;
     if(localEdge===0&&bounty<150&&
        ((hp>85&&lanePressure<60)||allyHp+12<hp))continue;
-    const score=14+localEdge*15+(100-hp)*.24+
+    const score=18+localEdge*15+(100-hp)*.24+
       Math.min(10,Math.max(0,allyHp-hp)*.22)+
       Math.min(10,Math.max(0,lanePressure-50)*.5)+
       (localEdge===0?5:0)+Math.min(bounty/35,11)+
@@ -75,7 +75,7 @@
    a.targetId.localeCompare(b.targetId));
  }
  function choose({nav,minute,health,map,gold,shutdowns,previous=-10}){
-  if(minute-previous<4)return null;
+  if(minute-previous<3)return null;
   const options=opportunities({nav,minute,health,map,gold,shutdowns});
   if(!options.length)return null;
   // Stateless deterministic check, so adding a scout event cannot alter
@@ -89,7 +89,7 @@
    seen.add(candidate.targetId);
    const r=core.TacticalAI.hash(nav.seed,minute,candidate.teamId,
     candidate.actorId,candidate.targetId,'counterplay')%1000;
-   const chance=clamp(.24+(candidate.score-30)*.007,.23,.69);
+   const chance=clamp(.38+(candidate.score-30)*.010,.34,.85);
    if(r<chance*1000)return candidate;
    if(seen.size>=3)break;
   }
