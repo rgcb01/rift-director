@@ -102,16 +102,28 @@ function row(p,championId,frame){
  <span class="rift-tab-items" role="cell" aria-label="Inventario de ${escape(c.name)}">${Array.from({length:6},(_,i)=>itemSlot(items[i],i)).join('')}</span>
  </div>`;
 }
+function championFor(match,professional){
+ const assigned=match?.champions?.entries?.[professional?.id];
+ if(BY_ID[assigned])return BY_ID[assigned];
+ // Historical matches predate champion selection: deterministic visual-only
+ // reconstruction; never mutate the archived match or its sporting events.
+ const possible=CHAMPIONS.filter(c=>c.role===professional?.role);
+ return professional?.id&&possible.length?possible[hash(professional.id)%possible.length]:null;
+}
+function portraitFor(match,professional){
+ const c=championFor(match,professional);
+ return c?portrait(c):'';
+}
 function render({match,frame,teams}){
- if(!match?.champions?.entries || !frame || !Array.isArray(teams))return '';
+ if(!frame || !Array.isArray(teams))return '';
  const rows=teams.map((team,i)=>`<section class="rift-tab-team ${i===0?'blue':'red'}" aria-label="${escape(team.name)}"><h3>${escape(team.name)}</h3><div role="table" aria-label="Estadísticas de ${escape(team.name)}">${team.players.map(p=>{
-  const chosen=match.champions.entries[p.id];if(!BY_ID[chosen])return '';
-  return row(p,chosen,frame);
+  const chosen=championFor(match,p);if(!chosen)return '';
+  return row(p,chosen.id,frame);
  }).join('')}</div></section>`).join('');
  return `<section class="panel rift-tab-panel" aria-label="Tabla de campeones y objetos del partido">
  <div class="panel-head"><h2>Campeones y builds</h2><span class="chip">TAB · espectador</span></div>
- <p class="helper">Datos del momento seleccionado · Iconos y campeones originales. Los kits y objetos escalados llegarán en próximas versiones.</p>
+ <p class="helper">Datos del momento seleccionado · ${match?.champions?.entries?'Campeones asignados a la partida.':'Replay anterior: campeones reconstruidos solo para mostrar retratos; no representan una elección histórica.'} Los kits y objetos escalados llegarán en próximas versiones.</p>
  <div class="rift-tab-grid">${rows}</div></section>`;
 }
-root.RiftMatchTab=Object.freeze({assign,render,CHAMPIONS,ITEMS});
+root.RiftMatchTab=Object.freeze({assign,render,championFor,portraitFor,CHAMPIONS,ITEMS});
 })(globalThis);
