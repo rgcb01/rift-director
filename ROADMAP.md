@@ -12,6 +12,8 @@ Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prome
 
 **En validación: Alpha 0.7.15A (PR #33, draft):** cierre del mapa mediante HP real del Nexo, defensa y oleadas visibles, sin tirada de ganador por reloj. 144/144 pruebas y 2,000 mapas; duración media 50.21 min y balance espejado 49.4%, con el problema pendiente de victorias tempranas (ninguna antes del minuto 35). La publicación sigue en 0.7.14. Próximos cortes de 0.7.15: inhibidores, asedios tempranos y conversión física del Barón en estructuras.
 
+**En validación: Alpha 0.7.15B (PR #34 apilado sobre #33, draft):** HP persistente de torres 60/72/84, placas asociadas a daño, defensa física y replay de HP. 148/148 tests y 2,000 mapas auditados/espejados. Splitpush 64.9%→70.2% frente a 0.7.14 y múltiples líneas 79.6%→84.1%, pero duración media de 52.10 minutos (50.21 en 0.7.15A). **No fusionar sin cerrar o aceptar los riesgos de duración y asedio temprano.** Próxima etapa: 0.7.15C convierte kills, peleas ganadas y Barón en presión de oleada y estructuras, no en recompensas automáticas.
+
 **Más adelante (propuesta, sujeta a balance):**
 - **0.7.14 [integrada]:** economía de recursos y evaluación de riesgos: farm, defensa, presión y rotaciones con costes de oportunidad.
 - **0.7.15:** defensa, asedios, inhibidores y conversiones reales de Barón.
