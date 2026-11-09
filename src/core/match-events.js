@@ -56,6 +56,8 @@
     }
     let nextDragon = 5, nextBaron = 20, nextEvent = 0, previousMinute = -1;
     let nexusCount = 0, lastEventMinute = 0;
+    const nexusHealth={[a]:core.NexusSiege.MAX_HP,[b]:core.NexusSiege.MAX_HP};
+    let nexusHits=0;
 
     function alive(p, t) { return p && (dead.get(p.id) ?? 0) <= t; }
     function actor(facts, event, minute) {
@@ -259,12 +261,30 @@
         if (facts.stolen && (!p || p.role !== 'JUN' || facts.smite !== true)) fail('Robo con Smite atribuido a alguien que no es jungla.');
         if (facts.smite && (!p || p.role !== 'JUN')) fail('Uso inválido de Smite.');
         if (facts.stolen && (!facts.initiatorTeamId || facts.initiatorTeamId === event.teamId)) fail('Robo sin equipo rival iniciador.');
-      } else if (facts.action === 'nexus') {
-        actor(facts, event, t);
+      } else if (facts.action === 'nexus_damage' || facts.action === 'nexus') {
+        actor(facts, event, t);verifyParticipants(event,facts,t);
         const target = event.teamId === a ? b : a;
-        if (!Object.values(lanes[target]).some(n => n === 3)) fail('Nexo destruido sin una línea abierta.');
-        if (match.winner !== event.teamId) fail('Equipo destructor no coincide con ganador.');
-        nexusCount++;
+        if(!Object.values(lanes[target]).some(n=>n===3)||
+           lanes[target]?.[facts.lane]!==3)
+          fail('Ataque al Nexo sin línea físicamente abierta.');
+        if(facts.siegeVersion!==1||facts.targetTeamId!==target||
+           facts.before!==nexusHealth[target]||
+           !integer(facts.damage)||facts.damage<1||
+           !integer(facts.rawDamage)||facts.rawDamage<facts.damage||
+           !integer(facts.after)||facts.after!==facts.before-facts.damage||
+           facts.after>core.NexusSiege.MAX_HP||
+           !Number.isFinite(facts.wave)||facts.wave<-.25||
+           !['TOP','MID','BOT'].includes(facts.lane)||
+           !Array.isArray(facts.defenderIds))
+          fail('Daño del Nexo sin contabilidad física verificable.');
+        nexusHealth[target]=facts.after;
+        nexusHits++;
+        if(facts.action==='nexus'){
+          if(facts.after!==0||match.winner!==event.teamId)
+            fail('Victoria sin vida cero del Nexo rival.');
+          nexusCount++;
+        }else if(facts.after===0)
+          fail('Nexo destruido sin evento de victoria.');
       } else {
         fail('Tipo de acción desconocido: ' + facts.action);
       }
@@ -314,6 +334,11 @@
           }
         }
       }
+      if(!frame.siege||frame.siege.version!==1||
+         frame.siege.maxHp!==core.NexusSiege.MAX_HP||
+         frame.siege.hits!==nexusHits||
+         [a,b].some(id=>frame.siege.hp?.[id]!==nexusHealth[id]))
+        fail('Vida del Nexo o golpes no corresponden a eventos: minuto '+frame.minute);
       validateRows(frame.playerStats,frame.minute);
     }
     if(match.moments){
