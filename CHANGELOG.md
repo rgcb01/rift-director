@@ -7,6 +7,7 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 ## [0.7.16-alpha] — Candidato en validación
 
 ### Objetos, componentes, recetas y builds ejecutables
+- Iteración de economía: el motor permite una segunda visita voluntaria a la tienda con cartera elevada desde la fase intermedia, respetando desplazamiento físico, cooldown, un solo agente del equipo en regreso y veto de asedio. No se crean recursos ni teletransportes. Se añade prueba de segunda visita y monitorización del impacto en remontadas.
 - Se activan 15 objetos originales con bonos de combate del motor actual y 15 componentes con precio, compra real, ocupación de inventario y uso como ingredientes de mejora. Los 15 objetos declaran recetas de dos componentes; el precio de la mejora descuenta los componentes previamente comprados, sin crear ni duplicar oro.
 - Las compras siguen requiriendo presencia física en fuente/nexo propio; la IA prioriza familias de objetos según su rol, sin nuevos recalls voluntarios para adquirir únicamente componentes. El inventario pasa a seis espacios y las mejoras consumen componentes sin exceder capacidad.
 - El TAB muestra los iconos ya incluidos en Art Pack 2 para componentes y objetos completos, con precios y fallback SVG. El motor todavía usa potencias abstractas de ataque/defensa; las habilidades de campeón, los atributos AD/AP/armadura reales y las pasivas únicas no se simulan aún.
