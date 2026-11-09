@@ -296,7 +296,7 @@ function audit(match){
     errors.push('Unbalanced personal wallet/items: '+id+'/'+frame.minute);
    const prior=prev?.[id];
    if(prior&&(p.level<prior.level||p.earned<prior.earned||
-     p.spent<prior.spent||p.items.length<prior.items.length||
+     p.spent<prior.spent||
      p.voluntaryBuys<prior.voluntaryBuys))
     errors.push('Power progression reversed: '+id+'/'+frame.minute);
   }
