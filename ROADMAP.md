@@ -8,16 +8,31 @@ Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prome
 
 **Publicada: Alpha 0.7.14** mediante PR #32, después de 139/139 pruebas funcionales y 1,000 partidas auditadas más 500 pares espejados. Economía estratégica con decisiones de farm, defensa de oleadas, presión y rotaciones respaldadas por información observada. Frente a 0.7.13: kills 6.41→6.39, remontadas 4.5%→4.2%, victorias azules espejadas 49.9%→49.5%, duración 49.18→49.28 minutos. Cero regresiones bloqueantes y cero advertencias en Actions 42533682794.
 
-**Alpha 0.7.13 cerrada (#29):** wards colocados físicamente por JUN/SUP, visibilidad local limitada y replay auditable; 128/128 pruebas. **Alpha 0.7.14 cerrada (#32):** evaluación de riesgo visible, defensa física, prioridades macro selectivas y costes de oportunidad auditables. **Siguiente: Alpha 0.7.15**, asedios, defensa de estructuras, inhibidores y conversión causal del Barón; recuperar variedad de splitpush y torres multicarril sin favorecer un lado artificialmente.
+**Cambio de prioridad (2026-11-08): campeones → objetos → escalado → habilidades/combate → IA y balance.** La antigua 0.7.15 de defensa, inhibidores y conversión de Barón queda **pospuesta**, no implementada. El motor ya tiene XP y niveles 1–18, cinco objetos abstractos, oro personal y vida normalizada; todavía no hay campeones seleccionables, kits propios ni escalado estadístico por campeón. Esta es una decisión de planificación, **no una funcionalidad entregada**.
 
-**Más adelante (propuesta, sujeta a balance):**
-- **0.7.14 [integrada]:** economía de recursos y evaluación de riesgos: farm, defensa, presión y rotaciones con costes de oportunidad.
-- **0.7.15:** defensa, asedios, inhibidores y conversiones reales de Barón.
-- **0.7.16:** calibración, cobertura de regresión, variedad de snowballs/throws/remontadas sin guiones.
-- **0.8:** campeones ficticios, habilidades, builds y metajuego competitivo.
-- **0.9:** draft, preparación estratégica, picks/bans y series BO3/BO5.
+**Próximas versiones, en orden:**
+- **0.7.15 — Identidad y catálogo de campeones:** registro data-driven, identificadores estables, seis prototipos (tanque, luchador, asesino, mago, tirador y soporte) y ruta hacia un roster inicial de 12 campeones originales. Cada campeón define roles permitidos, alcance, estadísticas base y crecimiento, etiquetas de daño, fortalezas, debilidades y contrato de cuatro habilidades (pasiva/Q/W/E/R o esquema equivalente: una pasiva más cuatro activas). Asignación determinista de un campeón a cada profesional antes del partido; sin picks/bans ni cambios obligatorios de UI. No atribuir kills a habilidades todavía no simuladas.
+- **0.7.16 — Objetos y builds reales:** ampliar paulatinamente de los cinco ítems abstractos a un catálogo objetivo de 20–30 objetos originales con componentes, coste, estadísticas reales, pasivas únicas y condiciones de compra. Construcción de inventario de hasta seis espacios, botas y arquetipos de builds; compras solo en base, cartera/earned/spent auditables, no duplicar oro ganado. Mantener adaptador de compatibilidad para registros y replays históricos.
+- **0.7.17 — Escalado y power spikes:** convertir XP/nivel 1–18 en HP máximo, daño, armadura, resistencia mágica, velocidad de ataque y otras estadísticas efectivas; progresión de rangos de habilidades, puntos de mejora y curvas de daño/tanqueo por campeón. El oro crea picos de poder solo al adquirir objetos; los niveles, al obtener XP. Eliminar doble conteo entre bonus antiguos y atributos nuevos. Medir daño efectivo, time-to-kill (TTK) y ventanas de ventaja en early/mid/late sin buffs artificiales por minuto.
+- **0.7.18 — Kits activos y resolución de combate:** pasiva y Q/W/E/R ejecutadas de forma autónoma en encuentros; cooldowns, coste de recurso cuando proceda, rangos, selección de blanco, daño físico/mágico, armadura, resistencia, penetración, escudos, curación y control de masas. Resolver encuentros en subpasos deterministas locales sin teletransporte entre nodos del grafo, sin RNG global adicional y sin crear kills por guion. Replay auditable con daño/efectos/HP/cooldown.
+- **0.7.19 — IA de campeón, compras y sinergias:** elección de campeones y builds guiada por rol, estilo y competencia del profesional, aliados, rivales observados, economía y estado del mapa; combate con iniciación, protección de carry, flanqueo, peel, retirada y cooldowns. Evitar omnisciencia; conservar identidad entre profesionales, composición y contrajuego. Draft completo se reserva para 0.8.
+- **0.7.20 — Balance y conversión a objetivos:** calibrar variedad de enfrentamientos, frecuencia de kills, duración P50/P90, TTK, bola de nieve, shutdowns, remontadas y sesgo de lado; aprovechar bajas reales para oleadas y estructuras sin imposición por reloj. Solo después reabrir la defensa/asedio/inhibidores y conversión de Barón pospuestos, priorizándolos si siguen siendo el cuello de botella.
+- **0.8 — Draft y metajuego:** picks/bans, maestría o champion pool persistente por profesional, counters y sinergias, estrategias de equipo y cambios de meta con reglas explicables.
+- **0.9 — Competición profunda:** series BO3/BO5 y preparación entre mapas, sobre la base de un simulador deportivo ya equilibrado.
 
-Cualquier cambio deportivo en Alpha x.y.z exige pruebas funcionales, referencia anterior congelada, 1,000 partidos auditados, 500 pares espejados y documentación de resultado en CHANGELOG.
+**Regla de entrega:** no cerrar una versión por el catálogo añadido. Cada 0.7.x exige pruebas funcionales, baseline congelado, 1,000 mapas auditados, 500 pares espejados (1,000 mapas adicionales), documentación en CHANGELOG, reproducción determinista, auditoría de kills/posiciones/oro y comparación con 0.7.14 (6.39 kills, 49.28 min, 4.2% remontadas, 49.5% azul espejado). Las metas de kills y duración se ajustan a partir de la distribución observada, sin forzar victorias, bajas ni un timeout.
+
+### Diseño técnico del sistema de campeones (propuesta pendiente de implementar)
+
+**Separación obligatoria:** `Professional` es la persona contratada con atributos (mecánica, macro, comunicación, visión, comportamiento, traits y futura maestría); `ChampionDefinition` es un personaje ficticio estático, compartido entre partidas; `MatchChampionState` es la instancia efímera del campeón seleccionado por un profesional para un mapa, con nivel, XP, inventario, HP, recursos, cooldowns, efectos y estadísticas efectivas. No convertir al profesional en un campeón permanente ni alterar salarios, contratos o progreso de club.
+
+**Contrato data-driven por campeón:** `id`, `name`, `roles[]`, `archetype`, `rangeType`, `attackRange`, `damageProfile`, `baseStats`, `growthPerLevel`, `resourceType`, `passive`, `abilities.Q/W/E/R` (efecto, targeting, alcance, cooldown, coste, daño/escudo/curación/CC, escalados AD/AP/vida, rangos y condiciones). Catálogo original sin reutilizar propiedad intelectual de otros juegos. JSON/objetos validados al cargar; efectos resueltos por un intérprete de primitivas pequeño, no scripts arbitrarios por campeón.
+
+**Ejecución automática:** `Professional + Champion + Build + Estado de mapa/visión + Plan táctico → decisión de IA → acciones válidas → resolución de encuentro → eventos auditables → narración/replay`. La habilidad del profesional afecta ejecución, timing, objetivos, coordinación y errores; nunca reemplaza la identidad ni estadísticas propias del campeón. El campeón determina lo físicamente posible y el profesional la calidad de la decisión.
+
+**Límites de alcance:** empezar con seis arquetipos y seis kits simples pero completos, después crecer a 12; no construir 100 personajes o 100 ítems antes de validar. Resolver combates en ventanas locales de segundos manteniendo navegación de nodos como autoridad de presencia. Las pasivas y activas deben tener cooldown, rango y recursos verificables; no se permite narrar un stun o ultimate que el estado no ejecutó. La progresión debe surgir de XP y compras reales, no del minuto de juego.
+
+**Aceptación específica:** un tanque resiste más que un asesino en condiciones equivalentes; un asesino tiene ventana de burst pero castigo tras cooldown; un tirador escala con niveles/objetos y requiere protección; un soporte aporta utilidad rastreable. Equipos con el mismo oro pueden rendir distinto por composición, profesional y build. Un matchup ganador nunca garantiza victoria. Los guardados `v2` históricos se siguen leyendo y los replays viejos no se reinterpretan fraudulentamente con nuevos kits.
 
 ## Estado
 
@@ -85,12 +100,13 @@ Cualquier cambio deportivo en Alpha x.y.z exige pruebas funcionales, referencia 
 
 ### M6 · Competición y meta
 
-- Temporadas y playoffs configurables; series BO3/BO5.
-- Campeones ficticios, picks/bans, sinergias, arquetipos y meta cambiante.
-- Cuatro regiones y torneos internacionales con clasificación coherente.
+- **Prerequisito adelantado a Alpha 0.7.15–0.7.20:** campeones ficticios, estadísticas, objetos, habilidades, escalado y balance causal del motor deportivo.
+- En 0.8: picks/bans, maestría por profesional, sinergias de composición, counters y meta cambiante.
+- En 0.9: temporadas y playoffs configurables; series BO3/BO5, preparación entre mapas y eventual ampliación internacional.
+- Cuatro regiones y torneos internacionales con clasificación coherente, después del núcleo competitivo.
 - Preparación táctica que influye en la ejecución sin asegurar victorias.
 
-**Aceptación:** ganar requiere preparación y ejecución; un equipo superior no gana siempre, pero se impone más frecuentemente en series largas.
+**Aceptación:** personajes, builds y composiciones producen ventajas rastreables sin resultados automáticos; un equipo superior se impone más frecuentemente en series largas, pero puede perder.
 
 ### M7 · Calidad web y móvil
 
@@ -121,7 +137,14 @@ Cualquier cambio deportivo en Alpha x.y.z exige pruebas funcionales, referencia 
 
 ## Próxima tarea concreta
 
-**Alpha 0.7.15:** mejorar conversiones de Barón a torres e inhibidores, asedios y defensa física; recuperar splitpush y variedad de líneas sin guiones ni resultados garantizados. Mantener pendientes la prueba manual de guardados históricos y móvil (M1.1), la negociación detallada (M3) y la niebla/visión avanzada (M1.3C).
+**Alpha 0.7.15 — Vertical slice de campeones (sin modificar todavía los resultados por habilidades futuras):**
+1. Introducir `ChampionRegistry` y validar esquemas de seis campeones ficticios con identidad, roles, estadísticas y kits declarativos; diseñar hasta 12 antes de ampliar contenido.
+2. Separar `Professional`, `ChampionDefinition` y `MatchChampionState` sin cambiar la economía del club ni el origen único de eventos. Seleccionar determinísticamente un campeón compatible para cada jugador de los diez.
+3. Exponer campeón elegido, arquetipo y atributos en estadísticas/replay. Añadir pruebas de asignación, integridad del catálogo, invariantes y guardados antiguos.
+4. Mantener compras/vida/daño previos a través de adaptadores mientras el nuevo motor llega en 0.7.16–0.7.18; congelar y comparar el benchmark (1,000 auditados + 500 pares espejados). Documentar los cambios en CHANGELOG.
+5. **No** dar por entregados habilidades ejecutables, ítems escalados o balance hasta sus versiones específicas. Si una mejora del modelo de combate aumenta duración o sesgo, investigar antes de proseguir.
+
+**Dependencias pospuestas pero abiertas:** conversión del Barón a estructuras, inhibidores y defensa física del asedio; QA manual móvil/guardados históricos (M1.1/M1.5), negociación detallada (M3) y visión avanzada (M1.3C). Reabrir asedio cuando el escalado y el daño por campeón sean medibles.
 
 ### M1.3 · Minimap dinámico y navegación espacial
 
