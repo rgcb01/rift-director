@@ -69,7 +69,7 @@ test('40 partidos: auditoría de vida de torres, orden de placas y replay comple
    ...core.MatchReplay.auditMoments(match,world),
    ...core.auditBroadcast(match,world)];
   assert.equal(issues.length,0,'Seed '+seed+': '+issues.slice(0,4).join(' | '));
-  const events=match.events.filter(e=>e.facts?.action==='tower_damage');
+  const events=match.events.filter(e=>['tower_damage','plate'].includes(e.facts?.action)&&e.facts?.towerVersion===1);
   hits+=events.length;
   partial+=events.filter(e=>e.facts.after>0).length;
   for(const f of match.frames){
