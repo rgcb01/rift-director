@@ -8,6 +8,14 @@ test('vida de torre persiste, placas nacen del daño y la oleada es obligatoria'
  assert.deepEqual([...model.lanes.TOP.hp.red],[...e.TOWER_HP]);
  assert.equal(e.damageTower(model,{teamId:'blue',defenderId:'red',
   lane:'TOP',stage:1,minute:12,attackers:2,defenders:0}),null);
+ model.lanes.TOP.front=.34;
+ assert.equal(e.damageTower(model,{teamId:'blue',defenderId:'red',
+  lane:'TOP',stage:1,minute:12,attackers:2,defenders:0}),null);
+ model.lanes.TOP.front=.4;
+ const chip=e.damageTower(model,{teamId:'blue',defenderId:'red',
+  lane:'TOP',stage:1,minute:12,attackers:2,defenders:0});
+ assert.ok(chip?.damage>0,'La presión moderadamente favorable sí produce chip');
+ assert.ok(model.lanes.TOP.hp.red[0]<e.TOWER_HP[0]);
  model.lanes.TOP.front=2;
  const hits=[];
  for(let t=12;t<30&&model.lanes.TOP.hp.red[0]>0;t++){
@@ -16,7 +24,7 @@ test('vida de torre persiste, placas nacen del daño y la oleada es obligatoria'
   assert.ok(h&&h.damage>0&&h.damage<=e.TOWER_HP[0]/3);
   hits.push(h);
  }
- assert.ok(hits.length>=3);
+ assert.ok(hits.length>=2);
  assert.equal(model.lanes.TOP.hp.red[0],0);
  assert.equal(model.lanes.TOP.plates.red[0],3);
  assert.deepEqual(hits.filter(h=>h.plate).map(h=>h.plate),[1,2,3]);
