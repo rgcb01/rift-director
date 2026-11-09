@@ -85,14 +85,24 @@ test('when a recipe has both parts, shopping reserves gold for completion',()=>{
  assert.equal(upgrade?.itemId,undefined);
  assert.equal(upgrade?.id,'spellbook');
 });
-test('a trailing professional converts affordable gold into a completed item',()=>{
+test('a trailing professional completes paid recipe before buying unrelated components',()=>{
  const {core}=boot(),e=core.PowerEconomy;
  const model=e.create(roster()),row=model.entries.a2;
  row.items=['magic_page'];row.wallet=2400;row.spent=700;row.earned=3100;
  const plan=e.nextPurchase(model,'a2',2300);
- assert.equal(plan?.id,'boots');
+ assert.equal(plan?.id,'spellbook');
+ assert.equal(plan?.kind,'combine');
+ assert.deepEqual(Array.from(plan?.consumedIds||[]),['magic_page']);
+ assert.equal(plan?.goldCost,2200);
+});
+test('affordable complete power spike beats a new low-cost component',()=>{
+ const {core}=boot(),e=core.PowerEconomy;
+ const model=e.create(roster()),row=model.entries.a2;
+ row.wallet=2050;row.earned=2050;
+ const plan=e.nextPurchase(model,'a2');
  assert.equal(plan?.kind,'combine');
  assert.equal(plan?.consumedIds.length,0);
+ assert.ok(plan.goldCost<=row.wallet);
 });
 test('role affinity leads to differentiated recipes without randomness',()=>{
  const {core}=boot(),e=core.PowerEconomy;
