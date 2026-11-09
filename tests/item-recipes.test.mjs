@@ -126,6 +126,15 @@ test('stacked completed items have diminishing returns without losing first-item
  row.items=['mantle','bulwark','aegis'];
  assert.ok(e.boost(model,'a3','defense')<=19);
 });
+test('spend sufficient budget on the strongest role-fit finished item',()=>{
+ const {core}=boot(),e=core.PowerEconomy;
+ const model=e.create(roster()),row=model.entries.a2;
+ row.wallet=4200;row.earned=4200;
+ const plan=e.nextPurchase(model,'a2',0);
+ assert.equal(plan?.kind,'combine');
+ assert.equal(plan?.id,'hourglass');
+ assert.ok(plan.goldCost>2900,'Avoid choosing a cheaper, weaker purchase just for efficiency');
+});
 test('role affinity leads to differentiated recipes without randomness',()=>{
  const {core}=boot(),e=core.PowerEconomy;
  const players=roster(),model=e.create(players);
