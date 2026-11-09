@@ -123,7 +123,7 @@ function simulateMatch(f){
  const a=club(f.a),b=club(f.b),aP=teamPlayers(a),bP=teamPlayers(b);
  const champions=RiftMatchTab.assign([...aP,...bP]);
  const m={minute:0,kills:{[a.id]:0,[b.id]:0},gold:{[a.id]:500,[b.id]:500},towers:{[a.id]:0,[b.id]:0},lanes:{[a.id]:{TOP:0,MID:0,BOT:0},[b.id]:{TOP:0,MID:0,BOT:0}},dragons:{[a.id]:0,[b.id]:0},barons:{[a.id]:0,[b.id]:0},dead:{},winner:null,events:[],frames:[],moments:[],nextDragon:5,nextBaron:20,baronBuff:{[a.id]:0,[b.id]:0}};
- m.nexusIntegrity={[a.id]:5,[b.id]:5};
+ m.nexusIntegrity={[a.id]:1,[b.id]:1};
  const all=[a,b],teams={[a.id]:aP,[b.id]:bP};
  const laneEconomy=RiftCore.LaneEconomy.create(a.id,b.id);
  const powerEconomy=RiftCore.PowerEconomy.create([...aP,...bP]);
