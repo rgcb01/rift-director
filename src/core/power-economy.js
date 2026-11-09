@@ -172,6 +172,11 @@ function candidates(row,opponentGoldLead=0){
 function purchaseOptions(row,opponentGoldLead=0){
  if(row.items.length>=6&&!row.items.some(id=>COMPONENTS[id]))return [];
  const choices=candidates(row,opponentGoldLead);
+ // Owning both ingredients is a locked recipe. Save the remaining gold,
+ // never strand it in another recipe while waiting to complete the item.
+ const components=row.items.filter(id=>COMPONENTS[id]);
+ const locked=ITEM_CATALOG.some(item=>!row.items.includes(item.id)&&
+   item.recipe.every(part=>components.includes(part)));
  const full=[];
  const partial=[];
  for(const {item,utility} of choices){
@@ -181,7 +186,7 @@ function purchaseOptions(row,opponentGoldLead=0){
   if(due<=row.wallet&&row.items.length-held.length<6){
    full.push({...item,kind:'combine',targetId:item.id,
     consumedIds:held,goldCost:due,utility});
-  }else if(row.items.length<6){
+  }else if(row.items.length<6&&!locked){
    // Hold at most one unfinished recipe; another unrelated part would strand
    // gold that should instead become a completed item.
    const existing=row.items.some(id=>COMPONENTS[id]);
