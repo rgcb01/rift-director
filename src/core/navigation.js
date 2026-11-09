@@ -149,14 +149,42 @@ function secondaryLane(nav,worldState,team,primary){
 function determineSiege(nav,worldState,t){
  if(nav.siegeChecked===t)return;
  nav.siegeChecked=t;
- if(t<30)return;
- // No global minute-36 order. Economic advantage and committed waves
- // trigger a reversible siege. Long games get an opportunity to break a
- // stalemate, but the leading team is still chosen by current game state.
+ if(t<16)return;
+ // A major *observed* early gold/structure advantage plus a favourable
+ // physical wave may warrant an earlier coordinated rotation. This never
+ // awards plates, tower damage or a winner. It only chooses a destination,
+ // so existing pathfinding and wave/HP combat rules remain authoritative.
+ // Late siege selection below retains its existing balancing logic.
  const score=id=>worldState.gold[id]+worldState.towers[id]*700+
    worldState.kills[id]*280+worldState.barons[id]*450;
  const delta=score(nav.a)-score(nav.b);
  const advantage=Math.abs(delta);
+ if(t<30){
+  if(nav.siegeTeam&&t<(nav.siegeUntil||0))return;
+  const proposed=delta>0?nav.a:nav.b,defender=enemy(nav,proposed);
+  const wave=lane=>core.LaneEconomy.pressureFor(
+   {teamIds:[nav.a,nav.b],lanes:worldState.waves},proposed,lane);
+  const viable=LANES.filter(lane=>
+   (worldState.lanes?.[defender]?.[lane]??3)<3&&wave(lane)>=.8&&
+   // Someone is truly in the lane to initiate; no base-wide order
+   // created from a gold lead while all players contest elsewhere.
+   teamAgents(nav,proposed).some(p=>p.alive&&p.intent!=='retreat'&&
+    isLaneNode(p.node,lane)));
+  if(advantage<1350||!viable.length){
+   if(nav.siegeTeam){
+    nav.siegeTeam=null;nav.siegeLane=null;nav.sideLane=null;
+   }
+   return;
+  }
+  viable.sort((x,y)=>wave(y)-wave(x)||
+   worldState.lanes[defender][y]-worldState.lanes[defender][x]||
+   LANES.indexOf(x)-LANES.indexOf(y));
+  nav.siegeTeam=proposed;
+  nav.siegeLane=viable[0];
+  nav.sideLane=secondaryLane(nav,worldState,proposed,nav.siegeLane);
+  nav.siegeUntil=t+5;
+  return;
+ }
  if(!nav.siegeTeam&&t<44&&advantage<1100)return;
  const proposed=advantage<100?
    (seedHash(nav.seed,'siege',Math.floor(t/8))%2?nav.a:nav.b):
@@ -246,7 +274,7 @@ function chooseGoal(nav,agent,t,worldState,context=null){
  // Only actual economic or wave advantage commits an attacking team.
  // Junglers preserve their own corridors until minute 36, after which
  // they can join a coordinated push without teleportation.
- if(t>=24){
+ if(t>=16){
   determineSiege(nav,worldState,t);
  }
  if(nav.siegeTeam&&(role!=='JUN'||t>=36)){
