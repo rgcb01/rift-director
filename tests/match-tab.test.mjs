@@ -48,8 +48,17 @@ test('ten champion identities render individually faceted silhouettes',()=>{
  for(const id of tab.CHAMPIONS.map(c=>c.name))assert.ok(markup.includes('Campeón '+id));
  assert.match(markup,/fill="#e4bb85"|fill="#c2d5dc"/);
 });
-test('historical replay without champion assignments has no synthetic champions',()=>{
- assert.equal(tab.render({match:{},frame:{},teams}), '');
+test('historical replays show visual-only champions without altering historical matches',()=>{
+ const match={fixture:{a:'a',b:'b'}};
+ const original=JSON.stringify(match);
+ const html=tab.render({match,frame:{},teams});
+ assert.equal((html.match(/class="rift-tab-player"/g)||[]).length,10);
+ assert.equal((html.match(/class="rift-tab-portrait-image"/g)||[]).length,10);
+ assert.match(html,/Replay histórico/);
+ assert.equal(JSON.stringify(match),original);
+ for(const p of players){
+  assert.equal(tab.championFor(match,p).id,tab.championFor(match,p).id);
+ }
 });
 test('portrait manifest matches catalog, ordered atlas cells and PNG dimensions',()=>{
  const manifest=JSON.parse(readFileSync(resolve(dir,'../assets/champions/atlas.json'),'utf8'));
