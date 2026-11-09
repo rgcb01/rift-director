@@ -191,7 +191,9 @@ function determineSiege(nav,worldState,t){
    (seedHash(nav.seed,'siege',Math.floor(t/8))%2?nav.a:nav.b):
    delta>0?nav.a:nav.b;
  if(nav.siegeTeam&&t<(nav.siegeUntil||0))return;
- if(nav.siegeTeam&&t>=60)return; // preserve a long enough final push
+ // A siege can remain committed for its real eight-minute window,
+ // but must not permanently freeze the initially favoured team after
+ // minute 60. Otherwise a earned late comeback cannot redirect a push.
  // The losing side can seize the initiative if its comeback actually
  // overtakes the opponent; do not ping-pong after tiny market fluctuations.
  if(nav.siegeTeam&&nav.siegeTeam!==proposed&&advantage<1600)return;
