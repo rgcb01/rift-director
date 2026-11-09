@@ -47,7 +47,7 @@ test('un defensor reduce daño sin reparar la torre; el Barón no ataca de lejos
  const damage=(defenders,baron=false)=>e.damageValue({
   stage:2,attackers:2,defenders,wave:1.2,baron});
  assert.ok(damage(2)<damage(0));
- assert.ok(damage(0,true)>damage(0));
+ assert.ok(damage(2,true)>damage(2),'El Barón ayuda a vencer defensas presentes');
  const h=e.damageTower(base,{teamId:'blue',defenderId:'red',
   lane:'MID',stage:2,minute:19,attackers:0,defenders:0,baron:true});
  assert.equal(h,null);
