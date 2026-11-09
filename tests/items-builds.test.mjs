@@ -7,7 +7,7 @@ test('15 original items with unique IDs, legacy costs, meaningful stats',()=>{
  const cat=core.PowerEconomy.ITEM_CATALOG;
  assert.equal(cat.length,15);
  assert.equal(new Set(cat.map(x=>x.id)).size,15);
- assert.deepEqual(cat.slice(0,5).map(x=>x.cost),[1850,2700,2600,4050,4200]);
+ assert.deepEqual(Array.from(cat.slice(0,5),x=>x.cost),[1850,2700,2600,4050,4200]);
  for(const item of cat){
   assert.ok(item.name&&item.cost>=1000&&item.unique&&item.shape&&item.color);
   assert.ok(Object.keys(item.stats).length);
