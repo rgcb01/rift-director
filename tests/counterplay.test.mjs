@@ -115,7 +115,7 @@ test('el seguimiento tras matar exige una oleada y no regala torres',()=>{
  }
  assert.equal(core.Counterplay.followup(nav,agent,26,state,{health}),null);
 });
-test('late underdog converts a real kill only with wave, reachable turret and numerical edge',()=>{
+test('late underdog pushes only with an actual wave and local numerical edge',()=>{
  const x=setup(),{core,nav,a,b,health}=x;
  const adc=nav.agents[a.lineup.ADC],sup=nav.agents[a.lineup.SUP];
  const enemyADC=nav.agents[b.lineup.ADC];
@@ -124,23 +124,28 @@ test('late underdog converts a real kill only with wave, reachable turret and nu
  const facts={teamId:a.id,actorId:adc.id,
   participantIds:[adc.id,sup.id],victimIds:[enemyADC.id]};
  const state={gold:{[a.id]:10000,[b.id]:13000},lanes:x.lanes,waves:x.waves};
- const oldPressure=core.LaneEconomy.pressureFor;
- const pressure=()=>core.LaneEconomy.pressureFor(
-  {teamIds:[a.id,b.id],lanes:state.waves},a.id,'BOT');
- // An actual wave is required; mutate only the fixture's lane economy state.
+ state.waves.BOT.front=0;
+ assert.equal(core.Counterplay.pressureAfterKill(nav,facts,40,state),null,
+  'A shutdown does not create a free wave');
+ state.waves.BOT.front=1.2;
  assert.equal(core.Counterplay.pressureAfterKill(nav,facts,40,
-  {...state,waves:null}),null);
- // Find and establish a valid existing wave snapshot with sufficient pressure.
- const wave=state.waves.BOT;
- assert.ok(wave,'The test uses actual lane-wave state');
- // Simulate actual progressive wave state via existing pressure fields.
- const keys=Object.keys(wave);
- assert.ok(keys.length>0);
- // The synthetic test also verifies the late leader cannot create an order.
- assert.equal(core.Counterplay.pressureAfterKill(nav,facts,40,
-  {...state,gold:{[a.id]:15000,[b.id]:13000}}),null);
+  {...state,gold:{[a.id]:15000,[b.id]:13000}}),null,
+  'A late leader must not obtain a free bonus siege');
+ const order=core.Counterplay.pressureAfterKill(nav,facts,40,state);
+ assert.equal(order?.lane,'BOT');
+ assert.equal(order?.until,43);
+ assert.equal(core.Counterplay.followup(nav,adc,41,state,{health})?.goal,goal);
+ enemyADC.alive=true;enemyADC.node=goal;
+ nav.agents[b.lineup.SUP].node=goal;
+ assert.equal(core.Counterplay.followup(nav,adc,41,state,{health}),null,
+  'Do not push an equally defended tower');
+ enemyADC.alive=false;
+ state.waves.BOT.front=0;
+ assert.equal(core.Counterplay.followup(nav,adc,41,state,{health}),null,
+  'Wave disappearance cancels a push');
+ assert.equal(core.Counterplay.followup(nav,adc,44,state,{health}),null,
+  'Expiry cancels an opportunity');
 });
-
 test('90 mapas: peleas de counterplay son causales y los shutdowns siguen auditables',()=>{
  const {sim,core,world,fixture}=setup();
  let fights=0,kills=0,pressure=0,reasons={};
