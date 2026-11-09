@@ -27,8 +27,8 @@ test('vida de torre persiste, placas nacen del daño y la oleada es obligatoria'
  assert.ok(hits.length>=2);
  assert.equal(model.lanes.TOP.hp.red[0],0);
  assert.equal(model.lanes.TOP.plates.red[0],3);
- assert.deepEqual(hits.filter(h=>h.plate).map(h=>h.plate),[1,2,3]);
- assert.equal(hits.filter(h=>h.plate).reduce((n,h)=>n+h.goldReward,0),
+ assert.deepEqual([chip,...hits].filter(h=>h.plate).map(h=>h.plate),[1,2,3]);
+ assert.equal([chip,...hits].filter(h=>h.plate).reduce((n,h)=>n+h.goldReward,0),
   model.income.blue.plates);
  const fresh=e.create('blue','red');
  assert.equal(fresh.lanes.TOP.hp.red[0],e.TOWER_HP[0]);
