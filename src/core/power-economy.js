@@ -157,9 +157,12 @@ function completedItems(row){return row.items.filter(id=>FINISHED[id]);}
 function candidates(row,opponentGoldLead=0){
  const behind=opponentGoldLead>1400;
  const heldParts=row.items.filter(id=>COMPONENTS[id]);
+ const finishable=ITEM_CATALOG.filter(item=>!row.items.includes(item.id)&&
+  item.recipe.every(id=>heldParts.includes(id)));
+ const pool=finishable.length?finishable:ITEM_CATALOG;
  // Prioritize an unfinished recipe: unspent gold cannot be converted into a
  // power spike if every base visit scatters it across unrelated components.
- return ITEM_CATALOG.filter(item=>!row.items.includes(item.id)&&
+ return pool.filter(item=>!row.items.includes(item.id)&&
    (!heldParts.length||item.recipe.some(id=>heldParts.includes(id))))
  .map(item=>{
   const utility=roleAffinity(row.role,item.archetype,behind)*
