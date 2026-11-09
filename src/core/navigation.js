@@ -161,29 +161,48 @@ function determineSiege(nav,worldState,t){
  const advantage=Math.abs(delta);
  if(t<30){
   if(nav.siegeTeam&&t<(nav.siegeUntil||0))return;
-  const proposed=delta>0?nav.a:nav.b,defender=enemy(nav,proposed);
-  const wave=lane=>worldState.waves?.[lane]?
-   core.LaneEconomy.pressureFor(
-    {teamIds:[nav.a,nav.b],lanes:worldState.waves},proposed,lane):null;
-  const viable=LANES.filter(lane=>
-   (worldState.lanes?.[defender]?.[lane]??3)<3&&wave(lane)>=.8&&
-   // Someone is truly in the lane to initiate; no base-wide order
-   // created from a gold lead while all players contest elsewhere.
-   teamAgents(nav,proposed).some(p=>p.alive&&p.intent!=='retreat'&&
-    isLaneNode(p.node,lane)));
-  if(advantage<1350||!viable.length){
-   if(nav.siegeTeam){
-    nav.siegeTeam=null;nav.siegeLane=null;nav.sideLane=null;
+  const proposals=[];
+  // Deaths are public information. Enemy *position* is not. Consider
+  // both clubs instead of always committing the gold leader, allowing an
+  // outnumbered-side counterattack when it wins a visible fight and wave.
+  for(const team of [nav.a,nav.b]){
+   const defender=enemy(nav,team);
+   const lead=score(team)-score(defender);
+   const deadOpp=teamAgents(nav,defender).filter(p=>
+    (worldState.dead?.[p.id]||0)>t).length;
+   const earned=nav.counterPressure?.[team];
+   for(const lane of LANES){
+    if((worldState.lanes?.[defender]?.[lane]??3)>=3||
+       !worldState.waves?.[lane])continue;
+    const wave=core.LaneEconomy.pressureFor(
+     {teamIds:[nav.a,nav.b],lanes:worldState.waves},team,lane);
+    const present=teamAgents(nav,team).filter(p=>
+     (worldState.dead?.[p.id]||0)<=t&&p.alive&&
+     p.intent!=='retreat'&&isLaneNode(p.node,lane)).length;
+    const earnedHere=earned?.lane===lane&&t>earned.created&&
+     t<=earned.until&&earned.sourceVictims?.length>0;
+    const credibleLargeLead=lead>=2200&&wave>=1.0&&present>=2;
+    const credibleFight=lead>=-900&&deadOpp>=1&&wave>=.65&&
+     (present>=2||present>=1&&earnedHere);
+    if(!credibleLargeLead&&!credibleFight)continue;
+    proposals.push({team,lane,wave,present,lead,earnedHere,
+     score:(credibleFight?18:0)+present*5+wave*7+
+       Math.max(-4,Math.min(8,lead/450))});
    }
+  }
+  proposals.sort((x,y)=>y.score-x.score||y.wave-x.wave||
+   LANES.indexOf(x.lane)-LANES.indexOf(y.lane)||
+   x.team.localeCompare(y.team));
+  if(!proposals.length){
+   // No permanent directive from an expired early opportunity.
+   nav.siegeTeam=null;nav.siegeLane=null;nav.sideLane=null;
    return;
   }
-  viable.sort((x,y)=>wave(y)-wave(x)||
-   worldState.lanes[defender][y]-worldState.lanes[defender][x]||
-   LANES.indexOf(x)-LANES.indexOf(y));
-  nav.siegeTeam=proposed;
-  nav.siegeLane=viable[0];
-  nav.sideLane=secondaryLane(nav,worldState,proposed,nav.siegeLane);
-  nav.siegeUntil=t+5;
+  const chosen=proposals[0];
+  nav.siegeTeam=chosen.team;
+  nav.siegeLane=chosen.lane;
+  nav.sideLane=secondaryLane(nav,worldState,chosen.team,chosen.lane);
+  nav.siegeUntil=t+4;
   return;
  }
  if(!nav.siegeTeam&&t<44&&advantage<1100)return;
