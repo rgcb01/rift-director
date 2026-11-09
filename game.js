@@ -247,7 +247,9 @@ function simulateMatch(f){
    participantIds:participants,defenderIds,lane,stage,node,
    before:hit.before,after:hit.after,damage:hit.damage,rawDamage:hit.rawDamage,
    wave:hit.wave,baron,soloAllowed:solo};
-  makeEv(t,'¡Asedio a torre en '+lane+'!',
+  // Plate and its HP damage are one editorial event. Only non-plate chip
+  // damage receives a separate tower_damage event, avoiding duplicate news.
+  if(!hit.plate)makeEv(t,'¡Asedio a torre en '+lane+'!',
    c.name+' golpea la torre '+stage+' de '+lane+' por '+hit.damage+
    ' puntos con '+present.length+' atacantes presentes; conserva '+
    hit.after+' de '+RiftCore.LaneEconomy.TOWER_HP[stage-1]+' de vida.',
@@ -263,9 +265,8 @@ function simulateMatch(f){
    makeEv(t,'¡Placa conquistada en '+lane+'!',
     c.name+' obtiene la placa '+hit.plate+' de la torre '+stage+
     ' en '+lane+' tras daño comprobado. El club recibe '+hit.goldReward+' de oro.',
-    'goal',c,{action:'plate',actorId:who.id,participantIds:[who.id],
-     lane,stage,plate:hit.plate,node,goldReward:hit.goldReward,
-     earnedFightPressure,crossmapTrade});
+    'goal',c,{...facts,action:'plate',plate:hit.plate,
+     goldReward:hit.goldReward,earnedFightPressure,crossmapTrade});
   }
   if(hit.destroyed){
    const bonus=RiftCore.LaneEconomy.firstTowerBonus(laneEconomy,c.id,t);
