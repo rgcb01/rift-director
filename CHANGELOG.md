@@ -4,6 +4,12 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Atlas de retratos PNG para el TAB
+- Diez retratos originales de fantasía low-poly: PNG individuales de 256 × 256 y versiones de 64 × 64, atlas opaco de 1280 × 512 (cinco columnas y dos filas) y JSON de coordenadas con los IDs actuales.
+- El catálogo existente carga los retratos de 64 px en el TAB; los SVG actuales permanecen como fallback inmediato si una imagen no carga. Se mantienen las dimensiones del panel y las etiquetas accesibles.
+- Pipeline reproducible de atlas y vista de revisión a 48 px. Sin cambios en combate, economía, RNG, asignación, guardados ni replays.
+- Validación: suite funcional y checks estáticos correctos; 1.000 mapas auditados y 500 pares espejados sin errores. Chromium verifica los diez PNG, exhibición real, diseño móvil y fallback SVG con las descargas bloqueadas. Evidencias en `docs/art/`.
+
 ### Arte de campeones: Rift Faceted Fantasy (solo presentación)
 - Diez retratos originales SVG facetados con siluetas, cascos, peinados, máscaras, ojos y paletas específicas por campeón, inspirados en la estética low-poly vectorial del scoreboard conceptual.
 - Se conserva la simulación deportiva, los ítems, el oro y el replay sin cambios. La expansión económica de Alpha 0.7.16 permanece experimental en PR #37 por regresiones detectadas en duración y remontadas.

@@ -16,7 +16,7 @@ const CHAMPIONS=Object.freeze([
  {id:'velin',name:'Velin',role:'ADC',archetype:'Tirador',tone:'#adadce',secondary:'#404b73',symbol:'cross'},
  {id:'thessa',name:'Thessa',role:'SUP',archetype:'Encantadora',tone:'#9ddd90',secondary:'#3e6f52',symbol:'leaf'},
  {id:'drathos',name:'Drathos',role:'SUP',archetype:'Guardián',tone:'#d4989e',secondary:'#67414b',symbol:'shield'}
-]);
+].map(c=>Object.freeze({...c,portrait:`assets/champions/${c.id}-64.png`})));
 const BY_ID=Object.fromEntries(CHAMPIONS.map(c=>[c.id,c]));
 const ITEMS=Object.freeze({
  boots:{name:'Botas de desplazamiento',color:'#579edf',shape:'boots'},
@@ -96,7 +96,7 @@ function row(p,championId,frame){
  const kda=stats?`${stats.kills} / ${stats.deaths} / ${stats.assists}`:'— / — / —';
  return `<div class="rift-tab-player" role="row">
  <span class="rift-tab-role" role="cell">${escape(p.role)}</span>
- <span class="rift-tab-portrait" role="cell">${portrait(c)}<span class="rift-tab-level" title="Nivel">${level??'—'}</span></span>
+ <span class="rift-tab-portrait" role="cell">${portrait(c)}<img class="rift-tab-portrait-image" src="${escape(c.portrait)}" width="64" height="64" alt="" aria-hidden="true" onerror="this.remove()"><span class="rift-tab-level" title="Nivel">${level??'—'}</span></span>
  <span class="rift-tab-ident" role="cell"><strong>${escape(c.name)}</strong><small title="${escape(p.name)}">${escape(p.name)}</small></span>
  <span class="rift-tab-kda num" role="cell" title="Kills / muertes / asistencias">${kda}</span>
  <span class="rift-tab-items" role="cell" aria-label="Inventario de ${escape(c.name)}">${Array.from({length:6},(_,i)=>itemSlot(items[i],i)).join('')}</span>

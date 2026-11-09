@@ -50,6 +50,35 @@ test('ten champion identities render individually faceted silhouettes',()=>{
 test('historical replay without champion assignments has no synthetic champions',()=>{
  assert.equal(tab.render({match:{},frame:{},teams}), '');
 });
+test('portrait manifest matches catalog, ordered atlas cells and PNG dimensions',()=>{
+ const manifest=JSON.parse(readFileSync(resolve(dir,'../assets/champions/atlas.json'),'utf8'));
+ assert.deepEqual(manifest.champions.map(c=>c.championId),Array.from(tab.CHAMPIONS,c=>c.id));
+ const size=file=>{
+  const png=readFileSync(resolve(dir,'..',file));
+  assert.equal(png.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
+  return [png.readUInt32BE(16),png.readUInt32BE(20)];
+ };
+ assert.deepEqual(size(manifest.atlas),[1280,512]);
+ for(const [i,c] of manifest.champions.entries()){
+  assert.equal(c.name,tab.CHAMPIONS[i].name);
+  assert.equal(c.icon64,tab.CHAMPIONS[i].portrait);
+  assert.deepEqual([c.x,c.y,c.width,c.height],[i%5*256,Math.floor(i/5)*256,256,256]);
+  assert.deepEqual(size(c.icon),[256,256]);
+  assert.deepEqual(size(c.icon64),[64,64]);
+ }
+});
+test('TAB renders catalog PNGs while preserving labeled SVG fallbacks and snapshot state',()=>{
+ const frame={playerStats:{},powerEconomy:{entries:{}}};
+ const before=JSON.stringify({champions,frame,teams});
+ const html=tab.render({match:{champions},frame,teams});
+ assert.equal((html.match(/class="rift-tab-portrait-image"/g)||[]).length,10);
+ for(const p of players){
+  assert.ok(html.includes(`src="assets/champions/${champions.entries[p.id]}-64.png"`));
+ }
+ assert.equal((html.match(/onerror="this.remove\(\)"/g)||[]).length,10);
+ assert.equal((html.match(/aria-label="Campeón /g)||[]).length,10);
+ assert.equal(JSON.stringify({champions,frame,teams}),before);
+});
 test('no purchase, unavailable XP, and missing KDA never become invented values',()=>{
  const html=tab.render({match:{champions},frame:{playerStats:{}},teams});
  assert.match(html,/— \/ — \/ —/);
