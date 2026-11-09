@@ -96,7 +96,7 @@
   return null;
  }
  function pressureAfterKill(nav,facts,minute,worldState){
-  if(!facts?.victimIds?.length||minute>=36)return null;
+  if(!facts?.victimIds?.length||minute>=59)return null;
   const roster=facts.participantIds.map(id=>nav.agents[id]).filter(Boolean);
   const lanes=['BOT','MID','TOP'].filter(lane=>
    roster.filter(p=>roleLane(p.role)===lane).length>=
@@ -104,20 +104,23 @@
   const lane=lanes.find(lane=>{
    const enemy=facts.teamId===nav.a?nav.b:nav.a;
    const stage=worldState.lanes?.[enemy]?.[lane]??3;
-   return stage<3;
+   return stage<=3;
   });
   if(!lane)return null;
   const allowed=roster.filter(p=>roleLane(p.role)===lane).map(p=>p.id);
   nav.counterPressure??={};
+  // Longer respawns and map paths in the late game justify a short
+  // five-minute post-fight conversion window, never automatic damage.
   const window={teamId:facts.teamId,lane,created:minute,
-   until:minute+3,sourceId:facts.actorId,sourceVictims:[...facts.victimIds],
+   until:minute+(minute>=36?5:3),sourceId:facts.actorId,
+   sourceVictims:[...facts.victimIds],
    allowed};
   nav.counterPressure[facts.teamId]=window;
   return window;
  }
  function followup(nav,agent,minute,worldState,context){
   const w=nav.counterPressure?.[agent.teamId];
-  if(!w||minute>w.until||minute<=w.created||minute>=36||
+  if(!w||minute>w.until||minute<=w.created||minute>=62||
     // SUP may escort an earned BOT-lane 2v1/2v2 pressure window.
     // Other roams/objective plans still outrank unsupported turret travel.
     agent.role==='SUP'&&minute<=29&&w.lane!=='BOT'||
@@ -125,12 +128,12 @@
     (context?.health?.[agent.id]??100)<67)return null;
   const foe=agent.teamId===nav.a?nav.b:nav.a;
   const stage=(worldState.lanes?.[foe]?.[w.lane]??3)+1;
-  if(stage>3)return null;
+  if(stage>4)return null;
   const wave=core.LaneEconomy.pressureFor(
     {teamIds:[nav.a,nav.b],lanes:worldState.waves},agent.teamId,w.lane);
   if(wave<.6)return null; // no magical wave after winning a fight
   const side=foe===nav.a?'blue':'red';
-  return {goal:navAPI().towerNode(side,w.lane,stage),
+  return {goal:stage<=3?navAPI().towerNode(side,w.lane,stage):side+'_nexus',
    intent:'counterpush',lane:w.lane,reason:'earned_fight_pressure',
    decisionVersion:6};
  }
@@ -143,7 +146,8 @@
    if(facts?.counterPressure){
     const w=facts.counterPressure;
     if(!facts.victimIds?.length||w.teamId!==event.teamId||
-       w.created!==event.minute||w.until!==w.created+3||
+       w.created!==event.minute||
+       w.until!==w.created+(event.minute>=36?5:3)||
        w.sourceId!==facts.actorId||
        !['TOP','MID','BOT'].includes(w.lane)||
        !Array.isArray(w.allowed)||!w.allowed.length||
