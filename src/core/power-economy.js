@@ -180,6 +180,8 @@ function purchaseOptions(row,opponentGoldLead=0){
  const full=[],partials=[];
  const heldComponents=row.items.filter(id=>COMPONENTS[id]);
  const hasComplete=row.items.some(id=>FINISHED[id]);
+ const recipeReady=ITEM_CATALOG.some(item=>!row.items.includes(item.id)&&
+  item.recipe.every(id=>heldComponents.includes(id)));
  for(const {item,utility,due,owned} of choices){
   if(due<=row.wallet&&row.items.length-owned.length<6){
    full.push({...item,kind:'combine',targetId:item.id,
@@ -190,13 +192,14 @@ function purchaseOptions(row,opponentGoldLead=0){
  // is always more valuable than an uncompleted component at this shop visit.
  if(full.length){
   return full.sort((a,b)=>
+   ((b.consumedIds.length===2?1:0)-(a.consumedIds.length===2?1:0))||
    (b.utility/Math.sqrt(b.goldCost))-(a.utility/Math.sqrt(a.goldCost))||
    b.consumedIds.length-a.consumedIds.length||a.id.localeCompare(b.id));
  }
  // Preserve any unfinished craft. If there is no affordable completion, buy
  // just its next missing part instead of creating several dead-end recipes.
  // The next return is a real opportunity cost, never free crafting.
- if(!hasComplete&&!heldComponents.length)return [];
+ if(recipeReady||(!hasComplete&&!heldComponents.length))return [];
  if(row.items.length>=6)return [];
  const focused=heldComponents.length?
   choices.filter(c=>c.owned.length).sort((a,b)=>b.owned.length-a.owned.length||
