@@ -4,6 +4,12 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Arreglo de retratos visibles en replays
+- El atlas PNG de campeones se muestra tanto en el TAB de espectador como en el minimapa, conservando sus SVG originales como respaldo.
+- Los replays antiguos sin campeones asignados muestran una identidad visual reconstruida de forma determinista, marcada como ilustrativa, sin alterar el partido histórico ni sus datos.
+- Pruebas de integración para 10 retratos en el TAB y en el minimapa.
+
+
 ### Art Pack 2: ítems y componentes (solo presentación)
 - Dos atlas originales de 640 × 384 px, cinco columnas por tres filas: 15 ítems y 15 componentes, con PNG individuales de 128, 64 y 32 px y manifiestos de coordenadas e IDs estables.
 - El TAB y las listas de equipo del Match Center muestran los iconos de las compras registradas, conservando nombres accesibles y los SVG existentes como fallback. Los nombres de ítems activos se leen de `PowerEconomy.ITEM_CATALOG`.
