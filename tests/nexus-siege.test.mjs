@@ -63,6 +63,31 @@ test('Nexo dañado requiere daño, se defiende y el Barón potencia solo un ased
   'Barón por sí solo no puede atacar desde la fuente');
 });
 
+test('escuadra en el Nexo mantiene la oleada de la línea abierta sin farm gratuito',()=>{
+ const {core,nav,state,health,a,b,clubs}=setup();
+ const adc=nav.agents[clubs[0].lineup.ADC],mid=nav.agents[clubs[0].lineup.MID];
+ adc.node='red_nexus';mid.node='red_nexus';
+ const map={lanes:Object.fromEntries(['TOP','MID','BOT'].map(l=>[l,
+  {pressure:{[a]:50,[b]:50},vision:{[a]:65,[b]:65}}]))};
+ const closed=core.LaneEconomy.create(a,b);
+ const opened=core.LaneEconomy.create(a,b);
+ state.lanes[b].MID=3;
+ const goldClosed={[a]:0,[b]:0},goldOpened={[a]:0,[b]:0};
+ core.LaneEconomy.advance(closed,{minute:40,nav,map,health,gold:goldClosed});
+ core.LaneEconomy.advance(opened,{minute:40,nav,map,health,
+  gold:goldOpened,structures:state.lanes});
+ assert.ok(opened.lanes.MID.front>closed.lanes.MID.front,
+  'El asedio físicamente presente vuelve a escoltar la oleada abierta');
+ assert.equal(goldOpened[a],goldClosed[a],
+  'La presión desde el Nexo no entrega oro de farm sin ocupar la línea');
+ adc.node='blue_fountain';
+ const solo=core.LaneEconomy.create(a,b),goldSolo={[a]:0,[b]:0};
+ core.LaneEconomy.advance(solo,{minute:40,nav,map,health,
+  gold:goldSolo,structures:state.lanes});
+ assert.equal(solo.lanes.MID.front,closed.lanes.MID.front,
+  'Un atacante aislado no escolta una oleada sin compañeros');
+});
+
 test('la vida del Nexo cae por golpes acumulados, nunca por un minuto o tirada',()=>{
  const {core,nav,state,health,dead,a,b,clubs}=setup();
  state.lanes[b].MID=3;
