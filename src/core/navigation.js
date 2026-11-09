@@ -549,6 +549,21 @@ function auditNavigation(match,world){
     if(!near(f.actorId,node,1))errs.push('Nexo destruido sin atacante presente.');
     const attackers=Object.keys(positions).filter(id=>positions[id].teamId===team&&near(id,node,1));
     if(attackers.length<2)errs.push('Nexo destruido sin asedio de dos atacantes.');
+    if(f.nexusVersion===2){
+     const defenders=Object.keys(positions).filter(id=>positions[id].teamId===other&&near(id,node,1));
+     const opened=frame.lanes?.[other]?.[f.lane]===3;
+     const wave=frame.laneEconomy?.lanes?.[f.lane]?.front;
+     const signed=team===match.fixture.a?wave:-wave;
+     if(!['TOP','MID','BOT'].includes(f.lane)||!opened)
+      errs.push('Nexo sin carril abierto verificable.');
+     if(typeof signed!=='number'||Math.abs(signed-f.wave)>.011||
+       signed<(f.localAttackers>=3?-.45:.2))
+      errs.push('Nexo sin oleada verificable.');
+     if(f.localAttackers<2||f.localAttackers<=f.localDefenders||
+       attackers.length<f.localAttackers||defenders.length<f.localDefenders||
+       !f.participantIds?.every(id=>attackers.includes(id)))
+      errs.push('Nexo sin ventaja local de atacantes verificada.');
+    }
    }
    if(f.action==='gank'||f.action==='teamfight'||
       (f.action==='lane_trade'&&f.outcome==='kill')||
