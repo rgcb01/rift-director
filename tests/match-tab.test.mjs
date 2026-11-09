@@ -47,8 +47,13 @@ test('ten champion identities render individually faceted silhouettes',()=>{
  for(const id of tab.CHAMPIONS.map(c=>c.name))assert.ok(markup.includes('Campeón '+id));
  assert.match(markup,/fill="#e4bb85"|fill="#c2d5dc"/);
 });
-test('historical replay without champion assignments has no synthetic champions',()=>{
- assert.equal(tab.render({match:{},frame:{},teams}), '');
+test('legacy replay displays visual-only champions without mutating recorded match',()=>{
+ const match={};
+ const markup=tab.render({match,frame:{},teams});
+ assert.equal((markup.match(/class="rift-tab-player"/g)||[]).length,10);
+ assert.match(markup,/reconstruidos solo para mostrar retratos/);
+ assert.equal(match.champions,undefined);
+ assert.equal(tab.championFor(match,players[0])?.id,champions.entries[players[0].id]);
 });
 test('no purchase, unavailable XP, and missing KDA never become invented values',()=>{
  const html=tab.render({match:{champions},frame:{playerStats:{}},teams});
