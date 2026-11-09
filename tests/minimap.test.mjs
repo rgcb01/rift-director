@@ -95,6 +95,7 @@ test('SVG dibuja diez avatares, dieciocho torres y las bases sin fotografías',(
   assert.equal((start.match(/class="rift-mini-tower/g)||[]).length,18);
   assert.equal((start.match(/class="rift-mini-nexus/g)||[]).length,2);
   assert.match(start,/data-minimap-minute="0"/);
+  assert.equal((start.match(/<image x="-10.5"/g)||[]).length,10);
   const final=match.frames.at(-1);
   const output=minimapUI.render(match,final,world,match.frames.at(-2));
   assert.match(output,/is-destroyed/);
