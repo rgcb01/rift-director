@@ -122,6 +122,29 @@ test('regresión: la semilla 176 de coherencia de ganks también termina',()=>{
  assert.deepEqual(errs,[]);
 });
 
+test('una teamfight ganada después del min 36 permite presión real, incluso en línea abierta',()=>{
+ const {core,nav,state,health,a,b}=setup();
+ state.lanes[b.id].MID=3;
+ state.waves.MID.front=1.1;
+ const facts={teamId:a.id,actorId:a.lineup.MID,
+  participantIds:[a.lineup.MID,a.lineup.JUN],
+  victimIds:[b.lineup.MID]};
+ const plan=core.Counterplay.pressureAfterKill(nav,facts,41,state);
+ assert.ok(plan);
+ assert.equal(plan.lane,'MID');
+ assert.equal(plan.created,41);
+ assert.equal(plan.until,46);
+ const follow=core.Counterplay.followup(nav,nav.agents[a.lineup.MID],
+  43,state,{health});
+ assert.equal(follow?.goal,'red_nexus');
+ assert.equal(follow?.intent,'counterpush');
+ assert.equal(state.lanes[b.id].MID,3,'Una orden no destruye el Nexo');
+ assert.equal(core.Counterplay.followup(nav,nav.agents[a.lineup.MID],
+  47,state,{health}),null);
+ assert.equal(core.Counterplay.pressureAfterKill(nav,
+  {...facts,victimIds:[]},42,state),null);
+});
+
 test('60 matches: post-kill pressure evidence and all physical audits stay consistent',()=>{
  const {sim,core,world,fixture}=setup();
  let laneOrders=0,earlyHits=0;
