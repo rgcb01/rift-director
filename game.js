@@ -129,6 +129,7 @@ function simulateMatch(f){
  m.waves=laneEconomy.lanes;
  m.powerEconomy=powerEconomy;
  const navigation=RiftCore.Navigation.createNavigation(all,teams,commentarySeed);
+ const nexusSiege=RiftCore.NexusSiege.create(a.id,b.id);
  const health=RiftCore.Encounters.create([...aP,...bP]);
  const lastSkirmish={};
  let movementBefore=RiftCore.Navigation.snapshot(navigation,{},0);
@@ -157,7 +158,7 @@ function simulateMatch(f){
   const prior=m.events[m.events.length-1];
   // New encounter timestamps use their own deterministic clock: no additional
   // gameplay RNG is consumed by an incidental 2v1 commentary.
-  const skirmish=['plate','item_purchase','ward_place'].includes(facts?.action)||facts?.action==='skirmish'||facts?.combatVersion===1;
+  const skirmish=['plate','item_purchase','ward_place','nexus_damage','nexus'].includes(facts?.action)||facts?.action==='skirmish'||facts?.combatVersion===1;
   const stamp=skirmish?(Math.imul((commentarySeed^minute)>>>0,1664525)+
     Math.imul(m.events.length+1,1013904223))>>>0:0;
   const sec=minute===0?0:prior?.minute===minute?
@@ -184,6 +185,7 @@ function simulateMatch(f){
     health:{...health},laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
     powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
     shutdowns:RiftCore.Shutdowns.snapshot(shutdowns),
+    siege:RiftCore.NexusSiege.snapshot(nexusSiege),
     vision:RiftCore.Vision.snapshot(navigation.vision,minute),
     macro:RiftCore.MacroPolicy.snapshot(navigation,minute),
     navigation:{before:movementBefore,after:nav.snapshot(navigation,m.dead,minute)}});
@@ -266,6 +268,7 @@ function simulateMatch(f){
   laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
   powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
   shutdowns:RiftCore.Shutdowns.snapshot(shutdowns),
+  siege:RiftCore.NexusSiege.snapshot(nexusSiege),
   vision:RiftCore.Vision.snapshot(navigation.vision,t),
   macro:RiftCore.MacroPolicy.snapshot(navigation,t),
   playerStats:RiftCore.clonePlayerStats(playerStats),map:RiftCore.cloneMapState(m.map),
@@ -589,24 +592,27 @@ function simulateMatch(f){
    const leader=m.gold[a.id]>m.gold[b.id]?a:b;const dif=Math.abs(m.gold[a.id]-m.gold[b.id]);
    makeEv(t,dif<1800?'Máxima igualdad en la Grieta':'Lectura del mapa',dif<1800?'Los equipos intercambian oleadas y control de visión. La diferencia económica sigue siendo reducida.':`${leader.name} mantiene una ventaja aproximada de ${(dif/1000).toFixed(1)}k de oro. El rival debe elegir cuidadosamente sus próximos objetivos.`,'normal')
   }
-  // No forced siege roll. A late push still needs a crashed wave, three
-  // earned plates, living attackers and the corresponding physical tower.
-
-  if(t>=29&&!m.winner){
-   const eligible=all.filter(c=>Object.values(m.lanes[enemy(c).id]).some(n=>n===3))
-    .map(c=>({c,nearNexus:positioned(c,(enemy(c).id===a.id?'blue':'red')+'_nexus') }))
-    .filter(x=>x.nearNexus.length>=2);
-   if(eligible.length&&(t>=54||chance(t>=46?.66:.16))){
-    const w=eligible.length===1?eligible[0].c:decide(eligible[0].c,eligible[1].c,t);
-    const selected=eligible.find(x=>x.c.id===w.id).nearNexus;
-    const closer=player((selected.find(p=>p.role==='ADC')||selected[0]).id);
-    m.winner=w.id;
-    makeEv(t,'¡NEXO DESTRUIDO!',
-     `${w.name} completa el recorrido hasta la base rival. ${closer.name} y los atacantes presentes destruyen el nexo tras ${t} minutos.`,
-     'end',w,{action:'nexus',actorId:closer.id,
-      participantIds:selected.map(p=>p.id),
-      node:(enemy(w).id===a.id?'blue':'red')+'_nexus'});
-   }
+  // The Nexus has its own persistent HP. Only a physically escorted wave
+  // in a broken lane can damage it. No minute-based random winner roll.
+  for(const hit of RiftCore.NexusSiege.advance(
+   nexusSiege,navigation,m,t,health,m.dead)){
+   const winner=club(hit.teamId),actorId=hit.participantIds.find(id=>
+     player(id).role==='ADC')||hit.participantIds[0];
+   const actor=player(actorId);
+   const finished=hit.after===0;
+   if(finished)m.winner=winner.id;
+   const title=finished?'¡NEXO DESTRUIDO!':'¡El Nexo recibe daño!';
+   const body=finished?
+    winner.name+' destruye el Nexo enemigo con un asedio real. '+
+    actor.name+' y los atacantes presentes completan los últimos '+
+    hit.damage+' puntos de daño al minuto '+t+'.':
+    winner.name+' avanza con una oleada en '+hit.lane+' y '+actor.name+
+    ' participa en el asedio. El Nexo pierde '+hit.damage+
+    ' de vida y conserva '+hit.after+' de '+nexusSiege.maxHp+'.';
+   makeEv(t,title,body,finished?'end':'normal',winner,
+    {...hit,action:finished?'nexus':'nexus_damage',
+     actorId,participantIds:hit.participantIds,
+     siegeVersion:1});
   }
   nextSnapshot(t)
  }
