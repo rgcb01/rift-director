@@ -8,6 +8,7 @@ import {runInNewContext} from 'node:vm';
 const dir=dirname(fileURLToPath(import.meta.url));
 const source=readFileSync(resolve(dir,'../src/ui/match-tab.js'),'utf8');
 const scope={};
+for(const file of ['src/core/power-economy.js','src/ui/item-art.js'])runInNewContext(readFileSync(resolve(dir,'..',file),'utf8'),scope);
 runInNewContext(source,scope);
 const tab=scope.RiftMatchTab;
 const roles=['TOP','JUN','MID','ADC','SUP'];

@@ -4,6 +4,13 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Art Pack 2: ítems y componentes (solo presentación)
+- Dos atlas originales de 640 × 384 px, cinco columnas por tres filas: 15 ítems y 15 componentes, con PNG individuales de 128, 64 y 32 px y manifiestos de coordenadas e IDs estables.
+- El TAB y las listas de equipo del Match Center muestran los iconos de las compras registradas, conservando nombres accesibles y los SVG existentes como fallback. Los nombres de ítems activos se leen de `PowerEconomy.ITEM_CATALOG`.
+- Los diez ítems futuros y los quince componentes son exclusivamente recursos visuales: no añaden compras, recetas, estadísticas ni cambios de economía, combate, RNG, duración, balance, guardados o replays.
+- Pipeline y validación de atlas reproducibles; vistas de legibilidad a 24 y 32 px en `docs/art-pack-2/`.
+- Validación: suite funcional completa (30 archivos, cero fallos), checks estáticos, 90 PNG y correspondencia exacta de las 30 celdas. Chromium comprueba compras reales, móvil y fallback. Auditoría de 1.000 mapas y 500 pares espejados sin errores; resultados idénticos al baseline del Art Pack 1.
+
 ### Atlas de retratos PNG para el TAB
 - Diez retratos originales de fantasía low-poly: PNG individuales de 256 × 256 y versiones de 64 × 64, atlas opaco de 1280 × 512 (cinco columnas y dos filas) y JSON de coordenadas con los IDs actuales.
 - El catálogo existente carga los retratos de 64 px en el TAB; los SVG actuales permanecen como fallback inmediato si una imagen no carga. Se mantienen las dimensiones del panel y las etiquetas accesibles.

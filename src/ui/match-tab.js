@@ -84,9 +84,11 @@ function portrait(champion){
   dark+'<path d="M1 1h34v34H1Z" fill="none" stroke="'+c.tone+'" stroke-opacity=".8" stroke-width="1.5"/></svg>';
 }
 function itemSlot(itemId,index){
- const item=ITEMS[itemId];
+ const fallback=Object.hasOwn(ITEMS,itemId)?ITEMS[itemId]:null;
+ const art=root.RiftItemArt?.get(itemId);
+ const item=root.RiftCore?.PowerEconomy?.ITEM_CATALOG.find(x=>x.id===itemId)||fallback||art;
  const title=item?item.name:(itemId?'Objeto desconocido: '+itemId:'Espacio vacío');
- return `<span class="tab-item ${item?'filled':'vacant'}" title="${escape(title)}" aria-label="Objeto ${index+1}: ${escape(title)}">${item?emblem(item.shape,item.color):''}</span>`;
+ return `<span class="tab-item ${item?'filled':'vacant'}" title="${escape(title)}" aria-label="Objeto ${index+1}: ${escape(title)}">${item?emblem(fallback?.shape||'orb',fallback?.color||'#9baac8')+(root.RiftItemArt?.image(itemId)||''):''}</span>`;
 }
 function row(p,championId,frame){
  const c=BY_ID[championId],stats=frame.playerStats?.[p.id];
@@ -113,5 +115,5 @@ function render({match,frame,teams}){
  <p class="helper">Datos del momento seleccionado · Iconos y campeones originales. Los kits y objetos escalados llegarán en próximas versiones.</p>
  <div class="rift-tab-grid">${rows}</div></section>`;
 }
-root.RiftMatchTab=Object.freeze({assign,render,CHAMPIONS,ITEMS});
+root.RiftMatchTab=Object.freeze({assign,render,itemSlot,CHAMPIONS,ITEMS});
 })(globalThis);
