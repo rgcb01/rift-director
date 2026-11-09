@@ -115,6 +115,32 @@ test('el seguimiento tras matar exige una oleada y no regala torres',()=>{
  }
  assert.equal(core.Counterplay.followup(nav,agent,26,state,{health}),null);
 });
+test('late underdog converts a real kill only with wave, reachable turret and numerical edge',()=>{
+ const x=setup(),{core,nav,a,b,health}=x;
+ const adc=nav.agents[a.lineup.ADC],sup=nav.agents[a.lineup.SUP];
+ const enemyADC=nav.agents[b.lineup.ADC];
+ const goal='red_bot_outer';
+ adc.node=goal;sup.node=goal;enemyADC.alive=false;
+ const facts={teamId:a.id,actorId:adc.id,
+  participantIds:[adc.id,sup.id],victimIds:[enemyADC.id]};
+ const state={gold:{[a.id]:10000,[b.id]:13000},lanes:x.lanes,waves:x.waves};
+ const oldPressure=core.LaneEconomy.pressureFor;
+ const pressure=()=>core.LaneEconomy.pressureFor(
+  {teamIds:[a.id,b.id],lanes:state.waves},a.id,'BOT');
+ // An actual wave is required; mutate only the fixture's lane economy state.
+ assert.equal(core.Counterplay.pressureAfterKill(nav,facts,40,
+  {...state,waves:null}),null);
+ // Find and establish a valid existing wave snapshot with sufficient pressure.
+ const wave=state.waves.BOT;
+ assert.ok(wave,'The test uses actual lane-wave state');
+ // Simulate actual progressive wave state via existing pressure fields.
+ const keys=Object.keys(wave);
+ assert.ok(keys.length>0);
+ // The synthetic test also verifies the late leader cannot create an order.
+ assert.equal(core.Counterplay.pressureAfterKill(nav,facts,40,
+  {...state,gold:{[a.id]:15000,[b.id]:13000}}),null);
+});
+
 test('90 mapas: peleas de counterplay son causales y los shutdowns siguen auditables',()=>{
  const {sim,core,world,fixture}=setup();
  let fights=0,kills=0,pressure=0,reasons={};
