@@ -39,12 +39,13 @@ test('shopping only at own fountain, component receipts, upgrade credits and six
  row.wallet=14000-parts.reduce((a,b)=>a+b.cost,0);
  row.spent=parts.reduce((a,b)=>a+b.cost,0);
  row.earned=14000;
- const expected=target.cost-row.spent;
  // Preserve role fitting: the target with already owned ingredients is viable.
  const buy=e.nextPurchase(model,p.id,0);
  assert.ok(buy);
  const finished=e.purchase(model,n,p,5,world);
- assert.ok(finished);
+ assert.equal(finished?.itemId,'bow');
+ assert.equal(finished.itemKind,'complete');
+ assert.deepEqual(Array.from(finished.consumedIds).sort(),Array.from(target.recipe).sort());
  assert.equal(row.wallet+row.spent,row.earned);
  assert.ok(row.items.length<=6);
  if(finished.itemKind==='complete'&&finished.consumedIds.length){
