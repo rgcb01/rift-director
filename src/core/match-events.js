@@ -237,7 +237,7 @@
              !integer(facts.damage)||facts.damage<1||
              facts.damage!==hp-after||
              !Number.isFinite(facts.wave)||
-             (facts.wave<.65&&!(t>=48&&facts.wave>=-1.25))||
+             (facts.wave<.35&&!(t>=48&&facts.wave>=-1.25))||
              !Array.isArray(facts.defenderIds)||
              !Array.isArray(facts.participantIds))
             fail('Daño estructural imposible o HP de torre falsificado.');
