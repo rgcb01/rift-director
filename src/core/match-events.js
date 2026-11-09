@@ -201,7 +201,7 @@
         const item=core.PowerEconomy.ITEM_CATALOG.find(x=>x.id===facts.itemId);
         if(!buyer||!item||item.cost!==facts.goldCost||
            ![side+'_fountain',side+'_nexus'].includes(facts.node)||
-           !integer(facts.slot)||facts.slot<1||facts.slot>3||
+           !integer(facts.slot)||facts.slot<1||facts.slot>6||
            !integer(facts.level)||facts.level<1||facts.level>18)
          fail('Compra sin jugador en base, nivel o precio válido.');
         const moment=match.moments?.[match.events.indexOf(event)];
