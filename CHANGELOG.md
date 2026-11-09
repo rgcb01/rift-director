@@ -4,6 +4,12 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Arte de campeones: Rift Faceted Fantasy (solo presentación)
+- Diez retratos originales SVG facetados con siluetas, cascos, peinados, máscaras, ojos y paletas específicas por campeón, inspirados en la estética low-poly vectorial del scoreboard conceptual.
+- Se conserva la simulación deportiva, los ítems, el oro y el replay sin cambios. La expansión económica de Alpha 0.7.16 permanece experimental en PR #37 por regresiones detectadas en duración y remontadas.
+- Se añaden pruebas de identidad visual, y siguen siendo obligatorias las auditorías de 1,000 mapas y 500 pares espejados.
+
+
 ### Preview de campeones y objetos en Match Center
 - Se añade panel de espectador con dos equipos, 10 retratos low-poly SVG originales, nombre de campeón, profesional, rol, nivel, K/D/A y hasta seis espacios de objeto por fila.
 - Los campeones se asignan determinísticamente y se guardan en el partido; el panel consume XP, compras y estadísticas del instante seleccionado en el replay, sin fabricar compras o KDA. Replays anteriores sin asignación conservan su interfaz histórica.
