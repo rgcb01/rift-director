@@ -28,6 +28,12 @@ export function flatten(d){
   zeroKillRate:ratio(s.gameplay.zeroKills,s.completed),
   earlyTowerRate:s.gameplay.earlyTowerMatches===undefined?null:ratio(s.gameplay.earlyTowerMatches,s.completed),
   platesMean:s.gameplay.platesPerMatch||0,
+  nexusHitsMean:s.gameplay.nexusHitsPerMatch??null,
+  nexusBaronHitsMean:s.gameplay.nexusBaronHitsPerMatch??null,
+  nexusDefendedHitsMean:s.gameplay.nexusContestedHitsPerMatch??null,
+  firstNexusHitMean:s.gameplay.firstNexusHitMean??null,
+  noNexusDamageRate:s.gameplay.gamesWithoutNexusDamage===undefined?null:
+    ratio(s.gameplay.gamesWithoutNexusDamage,s.completed),
   shutdownsMean:s.gameplay.shutdownsPerMatch??null,
   macroFarmTurnsMean:s.gameplay.macroFarmTurnsPerMatch??null,
   macroDefendTurnsMean:s.gameplay.macroDefendTurnsPerMatch??null,
@@ -99,6 +105,8 @@ export function evaluate(current,previous){
  fail(v.noBaronRate>.50,'Mas de 50% de partidas sin Baron');
  fail(v.zeroKillRate>.20,'Mas de 20% de partidos sin bajas');
  fail(v.towersMean<2.9,'Las torres se han reducido por debajo del minimo historico; revisar reglas de nexo');
+ if(v.noNexusDamageRate!==null)
+  fail(v.noNexusDamageRate>0,'Una partida finalizó sin daño causal al Nexo');
  if(previous.version!==current.version){
   fail(Math.abs(v.pairedBlueWinRate-.5)-Math.abs(p.pairedBlueWinRate-.5)>.05,
    'La asimetria espejada empeoro en mas de cinco puntos porcentuales');
@@ -198,6 +206,11 @@ const keys=[
  ['zeroKillRate','Sin bajas','rate'],
  ['earlyTowerRate','Torres antes del min 36','rate'],
  ['platesMean','Placas por mapa','num'],
+ ['nexusHitsMean','Golpes físicos al Nexo por mapa','num'],
+ ['nexusBaronHitsMean','Golpes al Nexo respaldados por Barón por mapa','num'],
+ ['nexusDefendedHitsMean','Golpes al Nexo con defensores presentes por mapa','num'],
+ ['firstNexusHitMean','Minuto promedio del primer daño al Nexo','num'],
+ ['noNexusDamageRate','Partidas sin daño registrado al Nexo','rate'],
  ['shutdownsMean','Rachas eliminadas por mapa','num'],
  ['macroFarmTurnsMean','Minutos-jugador dedicados a farm macro por mapa','num'],
  ['macroDefendTurnsMean','Minutos-jugador dedicados a defender oleadas por mapa','num'],
