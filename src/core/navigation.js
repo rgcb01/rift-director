@@ -386,7 +386,9 @@ function nexusOpportunity(nav,{teamId,lanes,waves,health={},dead={},minute=nav.m
  const healthy=(p,min)=>p.alive&&(dead[p.id]||0)<=minute&&
    (health[p.id]??100)>=min&&at(nav,p.id,node,1);
  const attackers=teamAgents(nav,teamId).filter(p=>p.intent!=='retreat'&&healthy(p,40));
- const defenders=teamAgents(nav,foe).filter(p=>healthy(p,25));
+ // Fountain residents are safe at spawn but not automatically stationed at
+ // the attacked Nexus. They must physically move out to defend it.
+ const defenders=teamAgents(nav,foe).filter(p=>p.node!==foeSide+'_fountain'&&healthy(p,25));
  if(attackers.length<2)return null;
  const candidates=opened.map(lane=>({lane,wave:core.LaneEconomy.pressureFor(
   {teamIds:[nav.a,nav.b],lanes:waves},teamId,lane)}))
