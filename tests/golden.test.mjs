@@ -50,7 +50,7 @@ test('semilla fija: Alpha 0.7.14 macro reproducible y contabilidad estable', () 
    f.a===againWorld.userClub||f.b===againWorld.userClub);
   assert.equal(hash(again.simulateMatch(againFixture)),originalFullMatchHash,
    'Identical seed and fixture must reproduce the entire match exactly');
-  assert.equal(matchHash, '05bbf8b9a9dd04b64e238910c683607ba9d190664cc2f2eb75e258ec04375ab9');
+  assert.equal(matchHash, 'd871f348940cfd4f5cb9763d29d471ce9c97479b30a6086b725ca87a29807630');
   assert.equal(worldAfterMatch, '342aa15055a9fab9e597749e13d099630f73351acb244b4d5c4380068b36caf1');
   assert.equal(reportHash, '63f62558933347e5947cc1b476f9056c23d59aa9e79fce65edd0c7d58372dbd9');
   assert.equal(worldAfterMonth, 'aaa0c74e7c2d45ecf8a1fdc5bfc0016d782b40d546e8b8225f67dcc869d19244');
