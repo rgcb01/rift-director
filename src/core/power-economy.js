@@ -156,19 +156,25 @@ function ingredientIds(row,item){
 function completedItems(row){return row.items.filter(id=>FINISHED[id]);}
 function candidates(row,opponentGoldLead=0){
  const behind=opponentGoldLead>1400;
- return ITEM_CATALOG.filter(item=>!row.items.includes(item.id))
+ const heldParts=row.items.filter(id=>COMPONENTS[id]);
+ // Prioritize an unfinished recipe: unspent gold cannot be converted into a
+ // power spike if every base visit scatters it across unrelated components.
+ return ITEM_CATALOG.filter(item=>!row.items.includes(item.id)&&
+   (!heldParts.length||item.recipe.some(id=>heldParts.includes(id))))
  .map(item=>{
   const utility=roleAffinity(row.role,item.archetype,behind)*
    (item.attack*1.35+item.defense*1.1+item.tempo*1.3+1)+
    (item.id==='boots'&&!row.items.some(id=>id==='boots')?2:0)+
-   (item.recipe.some(id=>row.items.includes(id))?3.5:0);
+   (item.recipe.some(id=>row.items.includes(id))?7:0)+
+   (behind?(4200-item.cost)/420:0);
   return {item,utility};
  }).sort((a,b)=>b.utility-a.utility||a.item.cost-b.item.cost);
 }
 // Return a real next transaction; a component is stored and may later be
 // consumed at its historical paid price when upgrading to a completed item.
 function purchaseOptions(row,opponentGoldLead=0){
- if(row.items.length>=6&&!ITEM_CATALOG.some(x=>x.recipe.every(id=>row.items.includes(id))))return [];
+ if(row.items.length>=6&&!ITEM_CATALOG.some(x=>
+  !row.items.includes(x.id)&&x.recipe.some(id=>row.items.includes(id))))return [];
  return candidates(row,opponentGoldLead).flatMap(({item,utility})=>{
   const owned=item.recipe.filter(id=>row.items.includes(id));
   const invested=owned.reduce((sum,id)=>sum+COMPONENTS[id].cost,0);
