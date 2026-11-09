@@ -1,0 +1,1 @@
+PASS: 90 PNGs, real purchases in TAB/Match Center, 2x images, mobile, failed downloads with SVG fallback, no save writes or JS errors.

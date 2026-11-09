@@ -16,7 +16,7 @@ const CHAMPIONS=Object.freeze([
  {id:'velin',name:'Velin',role:'ADC',archetype:'Tirador',tone:'#adadce',secondary:'#404b73',symbol:'cross'},
  {id:'thessa',name:'Thessa',role:'SUP',archetype:'Encantadora',tone:'#9ddd90',secondary:'#3e6f52',symbol:'leaf'},
  {id:'drathos',name:'Drathos',role:'SUP',archetype:'Guardián',tone:'#d4989e',secondary:'#67414b',symbol:'shield'}
-]);
+].map(c=>Object.freeze({...c,portrait:`assets/champions/${c.id}-64.png`})));
 const BY_ID=Object.fromEntries(CHAMPIONS.map(c=>[c.id,c]));
 const ITEMS=Object.freeze({
  boots:{name:'Botas de desplazamiento',color:'#579edf',shape:'boots'},
@@ -84,9 +84,11 @@ function portrait(champion){
   dark+'<path d="M1 1h34v34H1Z" fill="none" stroke="'+c.tone+'" stroke-opacity=".8" stroke-width="1.5"/></svg>';
 }
 function itemSlot(itemId,index){
- const item=ITEMS[itemId];
+ const fallback=Object.hasOwn(ITEMS,itemId)?ITEMS[itemId]:null;
+ const art=root.RiftItemArt?.get(itemId);
+ const item=root.RiftCore?.PowerEconomy?.ITEM_CATALOG.find(x=>x.id===itemId)||fallback||art;
  const title=item?item.name:(itemId?'Objeto desconocido: '+itemId:'Espacio vacío');
- return `<span class="tab-item ${item?'filled':'vacant'}" title="${escape(title)}" aria-label="Objeto ${index+1}: ${escape(title)}">${item?emblem(item.shape,item.color):''}</span>`;
+ return `<span class="tab-item ${item?'filled':'vacant'}" title="${escape(title)}" aria-label="Objeto ${index+1}: ${escape(title)}">${item?emblem(fallback?.shape||'orb',fallback?.color||'#9baac8')+(root.RiftItemArt?.image(itemId)||''):''}</span>`;
 }
 function row(p,championId,frame){
  const c=BY_ID[championId],stats=frame.playerStats?.[p.id];
@@ -96,7 +98,7 @@ function row(p,championId,frame){
  const kda=stats?`${stats.kills} / ${stats.deaths} / ${stats.assists}`:'— / — / —';
  return `<div class="rift-tab-player" role="row">
  <span class="rift-tab-role" role="cell">${escape(p.role)}</span>
- <span class="rift-tab-portrait" role="cell">${portrait(c)}<span class="rift-tab-level" title="Nivel">${level??'—'}</span></span>
+ <span class="rift-tab-portrait" role="cell">${portrait(c)}<img class="rift-tab-portrait-image" src="${escape(c.portrait)}" width="64" height="64" alt="" aria-hidden="true" onerror="this.remove()"><span class="rift-tab-level" title="Nivel">${level??'—'}</span></span>
  <span class="rift-tab-ident" role="cell"><strong>${escape(c.name)}</strong><small title="${escape(p.name)}">${escape(p.name)}</small></span>
  <span class="rift-tab-kda num" role="cell" title="Kills / muertes / asistencias">${kda}</span>
  <span class="rift-tab-items" role="cell" aria-label="Inventario de ${escape(c.name)}">${Array.from({length:6},(_,i)=>itemSlot(items[i],i)).join('')}</span>
@@ -113,5 +115,5 @@ function render({match,frame,teams}){
  <p class="helper">Datos del momento seleccionado · Iconos y campeones originales. Los kits y objetos escalados llegarán en próximas versiones.</p>
  <div class="rift-tab-grid">${rows}</div></section>`;
 }
-root.RiftMatchTab=Object.freeze({assign,render,CHAMPIONS,ITEMS});
+root.RiftMatchTab=Object.freeze({assign,render,itemSlot,CHAMPIONS,ITEMS});
 })(globalThis);

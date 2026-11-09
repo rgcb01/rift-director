@@ -1,0 +1,34 @@
+const {chromium}=require('playwright');
+const assert=require('node:assert/strict');
+(async()=>{
+ const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox']});
+ const page=await browser.newPage({viewport:{width:1440,height:1000}});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(process.argv[2] || 'http://127.0.0.1:8765/');
+ const catalogImages=await page.evaluate(()=>Promise.all(RiftMatchTab.CHAMPIONS.map(c=>new Promise(resolve=>{
+  const img=new Image();
+  img.onload=()=>resolve({id:c.id,width:img.naturalWidth,height:img.naturalHeight});
+  img.onerror=()=>resolve({id:c.id,width:0,height:0});
+  img.src=c.portrait;
+ }))));
+ assert.equal(catalogImages.length,10);
+ assert.ok(catalogImages.every(c=>c.width===64&&c.height===64));
+ await page.locator('[data-action="demo-start"]').click();
+ const imgs=page.locator('.rift-tab-portrait-image');
+ await page.waitForFunction(()=>document.querySelectorAll('.rift-tab-portrait-image').length===10 && [...document.querySelectorAll('.rift-tab-portrait-image')].every(i=>i.complete&&i.naturalWidth===64));
+ assert.equal(await imgs.count(),10);
+ assert.equal(await page.locator('.rift-tab-portrait>svg').count(),10);
+ await page.locator('.rift-tab-panel').screenshot({path:'docs/art/tab-desktop.png'});
+ await page.setViewportSize({width:390,height:844});
+ assert.equal(await imgs.first().evaluate(el=>el.getBoundingClientRect().width),32);
+ await page.locator('.rift-tab-panel').screenshot({path:'docs/art/tab-mobile.png'});
+ await page.route('**/assets/champions/*-64.png',route=>route.abort());
+ await page.reload();
+ await page.locator('[data-action="demo-start"]').click();
+ await page.waitForFunction(()=>document.querySelectorAll('.rift-tab-portrait').length===10&&document.querySelectorAll('.rift-tab-portrait-image').length===0);
+ assert.equal(await page.locator('.rift-tab-portrait>svg').count(),10);
+ await page.locator('.rift-tab-panel').screenshot({path:'docs/art/tab-fallback.png'});
+ assert.deepEqual(errors,[]);
+ console.log('PASS: real exhibition TAB, ten loaded PNGs, desktop/mobile sizing, forced network failure SVG fallback, no browser errors.');
+ await browser.close();
+})().catch(e=>{console.error(e);process.exit(1)});
