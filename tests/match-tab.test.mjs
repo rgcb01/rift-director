@@ -40,6 +40,13 @@ test('match tab represents precisely the snapshot, six item slots, and escapes p
  assert.doesNotMatch(html,/<TOP>/);
  assert.match(html,/&lt;TOP&gt;/);
 });
+test('ten champion identities render individually faceted silhouettes',()=>{
+ const frame={playerStats:{},powerEconomy:{entries:{}}};
+ const markup=tab.render({match:{champions},frame,teams});
+ assert.equal((markup.match(/aria-label="Campeón /g)||[]).length,10);
+ for(const id of tab.CHAMPIONS.map(c=>c.name))assert.ok(markup.includes('Campeón '+id));
+ assert.match(markup,/fill="#e4bb85"|fill="#c2d5dc"/);
+});
 test('historical replay without champion assignments has no synthetic champions',()=>{
  assert.equal(tab.render({match:{},frame:{},teams}), '');
 });
