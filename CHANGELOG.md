@@ -20,7 +20,10 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 - Las torres tienen 60/72/84 HP (exterior/interior/base); el daño se acumula de forma determinista entre asedios. Las tres placas corresponden a cruces efectivos de un tercio de HP, no a tres ticks de presencia.
 - Se exige oleada y profesionales realmente cercanos para golpear. Las defensas reducen el daño y el Barón potencia solamente atacantes presentes. Un solitario puede desgastar, pero necesita un splitpush acreditado o compañía para destruir el último HP.
 - Cada golpe `tower_damage` registra vida anterior/final, atacantes, defensores, oleada y modificador de Barón. Auditorías verifican estructura, actor, posiciones y umbrales de placas; estadísticas incorporan golpes parciales y el minuto del primer daño.
-- **Gate pendiente:** 144+ pruebas funcionales, 1,000 partidas auditadas y 1,000 espejadas comparadas con 0.7.15A y 0.7.14. No fusionar hasta conocer sesgos, remontadas y duración.
+- **Calibración en dos lotes:** 96/108/120 HP al principio dejó algunos mapas sin ganador; bajamos a 60/72/84 y agrupamos daño + placa en un solo evento para evitar duplicar la narración. Se probó un umbral de presión moderada (0.35) para desgastar antes sin permitir daño con oleada neutral.
+- **Resultado candidato (PR #34, todavía draft):** 148/148 tests, 1,000 partidas completamente auditadas y 1,000 espejadas; cero fallos de ejecución o auditoría, cero regresiones bloqueantes (CI 42550842084, balance 42550842190). Frente a 0.7.15A: duración 50.21→52.10 min, kills 6.53→6.76, remontadas 4.0%→3.9%, victoria azul espejada 49.4%→49.9%, torres 4.54→4.59, torres en dos o más líneas 80.8%→84.1%, splitpush solitario 64.9%→70.2%. Primer daño a torre en 25.91 min, 24.77 golpes por mapa (20.18 parciales, 17.01 defendidos).
+- **Advertencias abiertas, no publicar aún:** la duración empeora +2.82 min frente a 0.7.14; no hay victorias antes del min 35. Adelantar el umbral de oleada apenas redujo 52.14→52.10 min: hace falta conversión de ventajas y objetivos más tempranos, no otra reducción a ciegas. Se conserva el modelo físico y el Match Center muestra HP de la torre activa por línea.
+- **Integridad:** sporting golden candidato `062baa8b50de...` congelado; hashes de mundo y finanzas sin cambios.
 
 ## [0.7.14-alpha] — 2026-11-08
 
