@@ -525,11 +525,16 @@ function auditNavigation(match,world){
       errs.push('Participante de objetivo ausente: '+id);
     if(f.stolen&&(!near(f.actorId,node,1)||f.actorId!==f.smiteBy))
       errs.push('Robo sin jungla presente.');
-   }else if(f.action==='nexus'){
+   }else if(f.action==='nexus'||f.action==='nexus_damage'){
     const node=(other===match.fixture.a?'blue':'red')+'_nexus';
-    if(!near(f.actorId,node,1))errs.push('Nexo destruido sin atacante presente.');
+    if(!near(f.actorId,node,1))errs.push('Nexo atacado sin autor presente.');
     const attackers=Object.keys(positions).filter(id=>positions[id].teamId===team&&near(id,node,1));
-    if(attackers.length<2)errs.push('Nexo destruido sin asedio de dos atacantes.');
+    if(attackers.length<2)errs.push('Nexo atacado sin asedio de dos atacantes.');
+    for(const id of f.participantIds||[])
+      if(!near(id,node,1))errs.push('Nexo atacado por jugador ausente: '+id);
+    for(const id of f.defenderIds||[])
+      if(!near(id,node,1)||positions[id]?.teamId!==other)
+        errs.push('Defensor del Nexo inexistente o fuera de rango: '+id);
    }
    if(f.action==='gank'||f.action==='teamfight'||
       (f.action==='lane_trade'&&f.outcome==='kill')||
