@@ -197,12 +197,14 @@ function purchaseOptions(row,opponentGoldLead=0){
     consumedIds:[],goldCost:part.cost,utility});
   }
  }
- // Every affordable completed purchase beats an extra component, while paid
- // components receive full cost credit. No discounts or comeback injections.
+ // Every affordable complete item beats an extra component. Among completed
+ // items, select the strongest role fit rather than the cheapest utility/gold:
+ // each professional has limited opportunities to visit base.
+ // Owned ingredients remain top priority and receive their exact paid credit.
  if(full.length)return full.sort((a,b)=>
   (b.consumedIds.length-a.consumedIds.length)||
-  (b.utility/b.goldCost-a.utility/a.goldCost)||
-  a.goldCost-b.goldCost||a.id.localeCompare(b.id));
+  (b.utility-a.utility)||
+  b.goldCost-a.goldCost||a.id.localeCompare(b.id));
  // The first investment must produce a real item spike. A first purchase of
  // loose parts costs tempo and strands early gold before the next return.
  // Once the first item is equipped, component recipes are fully available.
