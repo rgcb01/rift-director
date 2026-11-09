@@ -285,8 +285,13 @@ function purchase(model,nav,agent,minute,worldState){
 function boost(model,id,kind='attack'){
  const row=model?.entries[id];if(!row)return 0;
  const levels=(row.level-1)*1.35;
- const gear=Math.min(kind==='attack'?39:25,row.items.reduce((sum,item)=>
-  sum+(ITEMS[item]?.[kind]||0)*(kind==='attack'?2.3:1.3),0));
+ const raw=row.items.reduce((sum,item)=>
+  sum+(ITEMS[item]?.[kind]||0)*(kind==='attack'?2.3:1.3),0);
+ // Preserve the first completed-item spike; curb runaway advantages from
+ // stacking expensive builds. Same curve for every professional and team.
+ const knee=kind==='attack'?14:8;
+ const gear=Math.min(kind==='attack'?32:19,
+  raw<=knee?raw:knee+(raw-knee)*.48);
  return levels+gear;
 }
 function teamEquipment(model,teamId){
