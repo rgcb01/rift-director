@@ -4,6 +4,12 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Repriorización de roadmap (solo planificación, 2026-11-08)
+- Se adelanta el núcleo de **campeones, objetos, escalado, habilidades y builds** a Alpha 0.7.15–0.7.20. La 0.7.15 previamente prevista para asedios, inhibidores y Barón queda pospuesta; **no se presenta esta planificación como gameplay implementado**.
+- Se especifican `Professional` frente a `ChampionDefinition` y `MatchChampionState`, seis arquetipos iniciales, catálogo objetivo de 12 campeones y 20–30 objetos, combate causal y guía de compatibilidad/replays.
+- Cada iteración conservará auditoría de 1,000 mapas y 500 parejas espejadas, pruebas funcionales, comparación de kills/duración/TTK/remontadas/sesgo y registro de resultados antes de continuar.
+
+
 ## [0.7.14-alpha] — 2026-11-08
 
 ### Riesgo y coste de oportunidad verificables
