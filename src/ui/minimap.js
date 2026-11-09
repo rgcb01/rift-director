@@ -58,7 +58,7 @@
         '" stroke-width="1.7"/></g>';
     }).join('');
   }
-  function avatars(map,previous,world,ids){
+  function avatars(map,previous,world,ids,match){
     const roster=new Map(world.players.map(p=>[p.id,p]));
     const motion=typeof root.matchMedia==='function' && !root.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const result=[];
@@ -72,6 +72,11 @@
         (Math.abs(prior.x-p.x)>1||Math.abs(prior.y-p.y)>1)?
         '<animateTransform attributeName="transform" type="translate" from="'+num(prior.x)+' '+num(prior.y)+
         '" to="'+num(p.x)+' '+num(p.y)+'" dur=".45s" fill="freeze"/>':'';
+      const champion=root.RiftMatchTab?.championFor?.(match,player);
+      const championSvg=champion?root.RiftMatchTab.portraitFor(match,player):'';
+      const fallbackPortrait=championSvg.replace('<svg viewBox="0 0 36 36"', '<svg x="-10.5" y="-10.5" width="21" height="21" viewBox="0 0 36 36"');
+      const championImage=champion?.portrait?
+        '<image x="-10.5" y="-10.5" width="21" height="21" href="'+safe(champion.portrait)+'" preserveAspectRatio="xMidYMid slice"/>':'';
       const skin=['#e9b68d','#c68f6e','#b77e5c','#e8c3a0','#c99976'][String(id).length%5];
   const health=Number.isFinite(p.hp)?Math.max(0,Math.min(100,p.hp)):null;
   const lifeBar=health===null?'':'<g data-health="'+health+'"><rect x="-12" y="16" width="24" height="4" rx="2" fill="#07111c"/><rect x="-12" y="16" width="'+num(24*health/100)+'" height="4" rx="2" fill="'+(health<=30?'#ed6974':health<=60?'#e3bd74':'#58d6a9')+'"/></g>';
@@ -84,9 +89,10 @@
           (p.fallen?'#ff9d84':'#ffe4a0')+'" stroke-width="2" stroke-dasharray="'+
           (p.fallen?'2 3':'0')+'"/>':'')+
         '<circle r="12.4" fill="#0c1725" stroke="'+theme+'" stroke-width="2"/>'+
-        '<ellipse cx="0" cy="1" rx="7" ry="7.5" fill="'+skin+'"/>'+
-        '<path d="M-7 -2 Q-6 -11 0 -9 Q7 -10 7 -2 Q3 -7 -1 -5 L-6 -1Z" fill="#283441"/>'+
-        '<circle cx="-2.5" cy="1" r=".8" fill="#16232c"/><circle cx="2.5" cy="1" r=".8" fill="#16232c"/>'+
+        (champion ? fallbackPortrait+championImage :
+          '<ellipse cx="0" cy="1" rx="7" ry="7.5" fill="'+skin+'"/>'+
+          '<path d="M-7 -2 Q-6 -11 0 -9 Q7 -10 7 -2 Q3 -7 -1 -5 L-6 -1Z" fill="#283441"/>'+
+          '<circle cx="-2.5" cy="1" r=".8" fill="#16232c"/><circle cx="2.5" cy="1" r=".8" fill="#16232c"/>')+
         '<rect x="4.6" y="7" rx="3" width="11" height="10" fill="'+theme+'" stroke="#101b2b" stroke-width=".8"/>'+
         '<text x="10" y="14.5" fill="#071522" text-anchor="middle" font-size="8" font-weight="900">'+
         ({TOP:'T',JUN:'J',MID:'M',ADC:'A',SUP:'S'}[p.role]||'?')+'</text>'+
@@ -160,7 +166,7 @@
       '<path d="M60 202L131 128L217 211L273 134" stroke="#738c84" stroke-width="1" stroke-dasharray="4 8" fill="none" opacity=".5"/>'+
       pulses+wardMarkers(map,ids)+
       structures(map,previousFrame?.minimap,ids)+nexus(map,ids)+
-      avatars(map,previousFrame?.minimap,world,ids)+focusMarker(selectedEvent,match)+
+      avatars(map,previousFrame?.minimap,world,ids,match)+focusMarker(selectedEvent,match)+
       '<rect x="12" y="12" width="101" height="24" rx="6" fill="#091720" opacity=".94"/>'+
       '<text x="20" y="29" fill="#e4f0f3" font-size="12" font-weight="700">MAPA · '+safe(selectedEvent?.time||String(frame.minute).padStart(2,'0')+':00')+'</text>'+
       '</svg>'+
