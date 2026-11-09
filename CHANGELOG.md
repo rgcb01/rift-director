@@ -7,8 +7,8 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 ## [0.7.16-alpha] — Candidato en validación
 
 ### Cierre del nexo por condiciones físicas, sin ruleta de reloj
-- Se eliminó el sorteo de destrucción del nexo a partir del minuto 29/46/54. El equipo debe haber destruido tres torres de un carril, haber llegado físicamente al nexo con al menos dos atacantes vivos y sanos, superar en número a sus defensores locales y conservar una oleada no derrotada; una escolta más numerosa permite tolerar una oleada algo menos favorable.
-- Selección determinista cuando ambos equipos cumplen las condiciones; sin RNG adicional ni objetivos gratuitos. Auditoría de carril mediante eventos reales de torres, oleada y presencia, más pruebas específicas de defensa, muertes, retirada y ausencia de oleada. Es un experimento separado cuyo balance se comprueba en 1,000 partidas y 500 pares espejados.
+- Se eliminó el sorteo de destrucción del nexo a partir del minuto 29/46/54. Tras abrir un carril con tres torres destruidas, dos atacantes vivos que alcancen físicamente el nexo pueden reducir su integridad de forma persistente durante varios minutos. Las oleadas, los defensores y el Barón modifican el daño real por minuto; las defensas numerosas retrasan el cierre sin bloquear para siempre una partida. No existe victoria instantánea por un contador global.
+- Selección determinista cuando ambos equipos rompen el nexo en el mismo minuto; sin RNG adicional ni objetivos gratuitos. Auditoría de carril mediante eventos reales de torres, presión de oleada, presencia y registro de integridad, más pruebas de defensores, bajas, retirada y oleadas adversas. Es un experimento separado cuyo balance se comprueba en 1,000 partidas y 500 pares espejados.
 
 ### Conversión territorial tras una pelea real
 - Counterplay puede proponer una presión limitada hasta el minuto 52 solo cuando el equipo realmente va ≥1,200 de oro detrás, ha eliminado a un rival, tiene una oleada de presión ≥0.9 y al menos un atacante puede alcanzar la torre en tres aristas.
