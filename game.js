@@ -158,7 +158,7 @@ function simulateMatch(f){
   const prior=m.events[m.events.length-1];
   // New encounter timestamps use their own deterministic clock: no additional
   // gameplay RNG is consumed by an incidental 2v1 commentary.
-  const skirmish=['plate','item_purchase','ward_place','nexus_damage','nexus'].includes(facts?.action)||facts?.action==='skirmish'||facts?.combatVersion===1;
+  const skirmish=['plate','tower_damage','tower','item_purchase','ward_place','nexus_damage','nexus'].includes(facts?.action)||facts?.action==='skirmish'||facts?.combatVersion===1;
   const stamp=skirmish?(Math.imul((commentarySeed^minute)>>>0,1664525)+
     Math.imul(m.events.length+1,1013904223))>>>0:0;
   const sec=minute===0?0:prior?.minute===minute?
@@ -221,47 +221,65 @@ function simulateMatch(f){
  const combatDetails=(facts)=>affected(facts)+'. '+
     (facts.victimIds.length?'Eliminación confirmada.':
      facts.outcome==='retreat'?'El rival cede espacio y se retira.':'Ambos siguen en el mapa.');
- const takeTower=(c,t,requestedLane=null)=>{
-  const target=enemy(c),options=['TOP','MID','BOT']
-    .filter(l=>!requestedLane||l===requestedLane).map(lane=>{
-      const stage=m.lanes[target.id][lane]+1;
-      if(stage>3)return null;
-      const node=nav.towerNode(target.id===a.id?'blue':'red',lane,stage);
-      const present=positioned(c,node);
-      const wave=RiftCore.LaneEconomy.pressureFor(laneEconomy,c.id,lane);
-      const solo=present.length===1&&
-        ['splitpush','counterpush'].includes(present[0].intent)&&
-        present[0].lane===lane&&wave>=1.45&&
-        // Check the same immutable pre-combat navigation snapshot used
-        // by the spatial auditor. A retreat issued mid-minute must not
-        // retroactively erase a defender who was there for this tick.
-        !Object.entries(movementBefore).some(([id,p])=>p.teamId===target.id&&
-          p.alive&&p.intent!=='retreat'&&(m.dead[id]||0)<=t&&
-          nav.at(navigation,id,node));
-      return {lane,stage,node,present,solo,wave};
-    }).filter(x=>x&&(x.present.length>=2||x.solo)&&
-      RiftCore.LaneEconomy.hasBrokenPlates(laneEconomy,target.id,x.lane,x.stage)&&
-      RiftCore.LaneEconomy.canPressureTower(laneEconomy,c.id,x.lane,x.stage,t));
-  if(!options.length)return false;
-  const selected=pick(options),{lane,stage,node,present,solo,wave}=selected;
+ const attackTower=(c,t,lane)=>{
+  const target=enemy(c),stage=m.lanes[target.id][lane]+1;
+  if(stage>3)return false;
+  const node=nav.towerNode(target.id===a.id?'blue':'red',lane,stage);
+  const present=positioned(c,node);
+  if(!present.length)return false;
+  const defenders=positioned(target,node);
+  const wave=RiftCore.LaneEconomy.pressureFor(laneEconomy,c.id,lane);
+  const solo=present.length===1&&
+   ['splitpush','counterpush'].includes(present[0].intent)&&
+   present[0].lane===lane&&wave>=1.45&&defenders.length===0&&
+   !Object.entries(movementBefore).some(([id,p])=>
+    p.teamId===target.id&&p.alive&&p.intent!=='retreat'&&
+    (m.dead[id]||0)<=t&&nav.at(navigation,id,node));
+  const baron=m.baronBuff[c.id]>0;
+  const hit=RiftCore.LaneEconomy.damageTower(laneEconomy,{
+   teamId:c.id,defenderId:target.id,lane,stage,minute:t,
+   attackers:present.length,defenders:defenders.length,soloAllowed:solo,baron});
+  if(!hit)return false;
   const priority=lane==='BOT'?'ADC':lane;
-  const actor=present.find(q=>q.role===priority)||present[0];
-  const who=player(actor.id);
-  const firstTowerBonus=RiftCore.LaneEconomy.firstTowerBonus(laneEconomy,c.id,t);
-  m.lanes[target.id][lane]++;m.towers[c.id]++;m.gold[c.id]+=420+firstTowerBonus;
-  const place=lane==='BOT'?'inferior':lane==='TOP'?'superior':'central';
-  makeEv(t,`¡Cae una torre ${place}!`,`${c.name} derriba la ${['exterior','interior','de base'][stage-1]} del carril ${place}. ${who.name} participa en la presión y su equipo recibe oro adicional.`,
-   'goal',c,{action:'tower',actorId:who.id,
-     participantIds:presentWith(c,t,who,node,lane==='BOT'?['ADC','SUP']:['TOP','MID']),
-     lane,stage,node,firstTower:firstTowerBonus>0,firstTowerBonus,
-     soloSplitpush:solo,wave,
-     earnedFightPressure:!!(navigation.counterPressure?.[c.id]&&
-       navigation.counterPressure[c.id].lane===lane&&
-       t<=navigation.counterPressure[c.id].until&&
-       present.some(p=>p.intent==='counterpush')),
-     crossmapTrade:lane==='TOP'&&
-       navigation.neutralPlans?.[c.id]?.action==='trade'&&
-       t>=m.nextDragon});
+  const who=player((present.find(p=>p.role===priority)||present[0]).id);
+  const participants=present.map(p=>p.id),defenderIds=defenders.map(p=>p.id);
+  const facts={action:'tower_damage',towerVersion:1,actorId:who.id,
+   participantIds:participants,defenderIds,lane,stage,node,
+   before:hit.before,after:hit.after,damage:hit.damage,rawDamage:hit.rawDamage,
+   wave:hit.wave,baron,soloAllowed:solo};
+  makeEv(t,'¡Asedio a torre en '+lane+'!',
+   c.name+' golpea la torre '+stage+' de '+lane+' por '+hit.damage+
+   ' puntos con '+present.length+' atacantes presentes; conserva '+
+   hit.after+' de '+RiftCore.LaneEconomy.TOWER_HP[stage-1]+' de vida.',
+   'normal',c,facts);
+  const earnedFightPressure=!!(navigation.counterPressure?.[c.id]&&
+   navigation.counterPressure[c.id].lane===lane&&
+   t<=navigation.counterPressure[c.id].until&&
+   present.some(p=>p.intent==='counterpush'));
+  const crossmapTrade=lane==='TOP'&&
+   navigation.neutralPlans?.[c.id]?.action==='trade'&&t>=m.nextDragon;
+  if(hit.plate){
+   m.gold[c.id]+=hit.goldReward;
+   makeEv(t,'¡Placa conquistada en '+lane+'!',
+    c.name+' obtiene la placa '+hit.plate+' de la torre '+stage+
+    ' en '+lane+' tras daño comprobado. El club recibe '+hit.goldReward+' de oro.',
+    'goal',c,{action:'plate',actorId:who.id,participantIds:[who.id],
+     lane,stage,plate:hit.plate,node,goldReward:hit.goldReward,
+     earnedFightPressure,crossmapTrade});
+  }
+  if(hit.destroyed){
+   const bonus=RiftCore.LaneEconomy.firstTowerBonus(laneEconomy,c.id,t);
+   m.lanes[target.id][lane]++;m.towers[c.id]++;m.gold[c.id]+=420+bonus;
+   const place=lane==='BOT'?'inferior':lane==='TOP'?'superior':'central';
+   makeEv(t,'¡Cae una torre '+place+'!',
+    c.name+' derriba la '+['exterior','interior','de base'][stage-1]+
+    ' del carril '+place+' tras daño persistente. '+who.name+' participa.',
+    'goal',c,{action:'tower',actorId:who.id,
+     participantIds:solo?[who.id]:participants,lane,stage,node,
+     firstTower:bonus>0,firstTowerBonus:bonus,
+     soloSplitpush:solo,wave:hit.wave,earnedFightPressure,crossmapTrade,
+     towerVersion:1,towerHpAfter:hit.after});
+  }
   return true;
  };
  const nextSnapshot=t=>m.frames.push({minute:t,kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
@@ -434,42 +452,10 @@ function simulateMatch(f){
     }
    }
   }
-  // Wave pressure and nearby professionals, not a random tower roll,
-  // generate incremental plate rewards and finally allow a tower to fall.
-  if(t>=8){
-   for(const lane of ['TOP','MID','BOT']){
-    for(const c of all){
-     const defender=enemy(c),stage=m.lanes[defender.id][lane]+1;
-     if(stage>3)continue;
-     const node=nav.towerNode(defender.id===a.id?'blue':'red',lane,stage);
-     const present=positioned(c,node);
-     if(!present.length)continue;
-     const claim=RiftCore.LaneEconomy.claimPlate(laneEconomy,
-       {teamId:c.id,defenderId:defender.id,lane,stage,minute:t});
-     if(!claim)continue;
-     const leader=player(present[0].id);
-     m.gold[c.id]+=claim.gold;
-     makeEv(t,'¡Placa conquistada en '+lane+'!',
-       c.name+' presiona con una oleada y '+leader.name+
-       ' consigue la placa '+claim.plate+' de la torre '+stage+
-       ' en '+lane+'. El club obtiene '+claim.gold+' de oro.',
-       'goal',c,{action:'plate',actorId:leader.id,
-         participantIds:[leader.id],lane,stage,plate:claim.plate,
-         node,goldReward:claim.gold,
-         earnedFightPressure:!!(navigation.counterPressure?.[c.id]&&
-           navigation.counterPressure[c.id].lane===lane&&
-           t<=navigation.counterPressure[c.id].until&&
-           present.some(p=>p.intent==='counterpush')),
-         crossmapTrade:lane==='TOP'&&
-           navigation.neutralPlans?.[c.id]?.action==='trade'&&
-           t>=m.nextDragon});
-    }
-   }
-   // Any side can earn tower objectives if wave, damage and the
-   // participants actually match the facts. No clock-selected owner.
-   for(const c of [a,b])for(const lane of ['TOP','MID','BOT'])
-     takeTower(c,t,lane);
-  }
+  // Every tower stores real HP. Damage and plates require wave pressure and
+  // actual players at the structure; no instant destruction or clock roll.
+  if(t>=8)for(const c of [a,b])for(const lane of ['TOP','MID','BOT'])
+   attackTower(c,t,lane);
   // The Dragon is earned at the actual pit, not by a scheduled owner roll.
   // Teams choose objective/contest/trade before moving; either can fail to
   // arrive, and a lone enemy JUN can attempt a physically valid Smite steal.
