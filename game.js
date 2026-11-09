@@ -123,6 +123,7 @@ function simulateMatch(f){
  const a=club(f.a),b=club(f.b),aP=teamPlayers(a),bP=teamPlayers(b);
  const champions=RiftMatchTab.assign([...aP,...bP]);
  const m={minute:0,kills:{[a.id]:0,[b.id]:0},gold:{[a.id]:500,[b.id]:500},towers:{[a.id]:0,[b.id]:0},lanes:{[a.id]:{TOP:0,MID:0,BOT:0},[b.id]:{TOP:0,MID:0,BOT:0}},dragons:{[a.id]:0,[b.id]:0},barons:{[a.id]:0,[b.id]:0},dead:{},winner:null,events:[],frames:[],moments:[],nextDragon:5,nextBaron:20,baronBuff:{[a.id]:0,[b.id]:0}};
+ m.nexusIntegrity={[a.id]:5,[b.id]:5};
  const all=[a,b],teams={[a.id]:aP,[b.id]:bP};
  const laneEconomy=RiftCore.LaneEconomy.create(a.id,b.id);
  const powerEconomy=RiftCore.PowerEconomy.create([...aP,...bP]);
@@ -264,6 +265,7 @@ function simulateMatch(f){
   return true;
  };
  const nextSnapshot=t=>m.frames.push({minute:t,kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
+  nexusIntegrity:{...m.nexusIntegrity},
   laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
   powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
   shutdowns:RiftCore.Shutdowns.snapshot(shutdowns),
@@ -590,26 +592,31 @@ function simulateMatch(f){
    const leader=m.gold[a.id]>m.gold[b.id]?a:b;const dif=Math.abs(m.gold[a.id]-m.gold[b.id]);
    makeEv(t,dif<1800?'Máxima igualdad en la Grieta':'Lectura del mapa',dif<1800?'Los equipos intercambian oleadas y control de visión. La diferencia económica sigue siendo reducida.':`${leader.name} mantiene una ventaja aproximada de ${(dif/1000).toFixed(1)}k de oro. El rival debe elegir cuidadosamente sus próximos objetivos.`,'normal')
   }
-  // A Nexus is destroyed only after three real towers have opened a lane,
-  // living attackers reached the base and a viable wave survives local defense.
-  // No minute threshold, stochastic sudden-death roll or free objectives.
+  // Each real physical siege damages the target Nexus over several minutes.
+  // Real defenders slow damage; a surviving pushed wave and Baron increase it.
+  // No timer lottery, instant guaranteed finish, teleports or free objectives.
   if(!m.winner){
    const opportunities=all.map(c=>({c,plan:RiftCore.Navigation.nexusOpportunity(navigation,{
     teamId:c.id,lanes:m.lanes,waves:m.waves,health,dead:m.dead,minute:t
-   })})).filter(x=>x.plan);
-   if(opportunities.length){
-    const {c:w,plan}=opportunities.sort((x,y)=>
-     (y.plan.attackers.length-y.plan.defenders.length)-
-      (x.plan.attackers.length-x.plan.defenders.length)||
-     y.plan.wave-x.plan.wave||x.c.id.localeCompare(y.c.id))[0];
+   })})).filter(x=>x.plan).map(x=>{
+    const target=enemy(x.c).id,before=m.nexusIntegrity[target];
+    const damage=RiftCore.Navigation.nexusSiegeDamage(x.plan,m.baronBuff[x.c.id]);
+    m.nexusIntegrity[target]=Math.max(0,Math.round((before-damage)*100)/100);
+    return {...x,damage,before,after:m.nexusIntegrity[target]};
+   });
+   const finish=opportunities.filter(x=>x.after===0).sort((x,y)=>
+    y.damage-x.damage||x.c.id.localeCompare(y.c.id));
+   if(finish.length){
+    const {c:w,plan,damage,before,after}=finish[0];
     const present=plan.attackers.map(id=>nav.getAgent(navigation,id));
     const closer=player((present.find(p=>p.role==='ADC')||present[0]).id);
     m.winner=w.id;
     makeEv(t,'¡NEXO DESTRUIDO!',
-     `${w.name} abre el carril ${plan.lane}, escolta la oleada y supera a los defensores del nexo. ${closer.name} confirma la victoria en el minuto ${t}.`,
+     `${w.name} abre el carril ${plan.lane} y mantiene un asedio físico contra la defensa del nexo. ${closer.name} confirma la victoria en el minuto ${t}.`,
      'end',w,{action:'nexus',nexusVersion:2,actorId:closer.id,
       participantIds:plan.attackers,lane:plan.lane,wave:plan.wave,
       localAttackers:plan.attackers.length,localDefenders:plan.defenders.length,
+      integrityBefore:before,siegeDamage:damage,integrityAfter:after,
       node:plan.node});
    }
   }
