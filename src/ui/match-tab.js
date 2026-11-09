@@ -18,13 +18,10 @@ const CHAMPIONS=Object.freeze([
  {id:'drathos',name:'Drathos',role:'SUP',archetype:'Guardián',tone:'#d4989e',secondary:'#67414b',symbol:'shield'}
 ]);
 const BY_ID=Object.fromEntries(CHAMPIONS.map(c=>[c.id,c]));
-const ITEMS=Object.freeze({
- boots:{name:'Botas de desplazamiento',color:'#579edf',shape:'boots'},
- blade:{name:'Filo del duelista',color:'#e29475',shape:'blade'},
- mantle:{name:'Manto protector',color:'#78bbac',shape:'shield'},
- focus:{name:'Foco de precisión',color:'#be9bec',shape:'orb'},
- bulwark:{name:'Baluarte táctico',color:'#e6bd78',shape:'shield'}
-});
+const ITEMS=Object.freeze(Object.fromEntries(
+ (root.RiftCore?.PowerEconomy?.ITEM_CATALOG||[]).map(item=>
+  [item.id,{name:item.name,color:item.color||'#86aafa',shape:item.shape||'gem',stats:item.stats||{},unique:item.unique}])
+));
 const escape=x=>String(x==null?'':x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function hash(value){let h=2166136261>>>0;for(const c of String(value)){h^=c.charCodeAt(0);h=Math.imul(h,16777619)>>>0;}return h>>>0;}
 function assign(players){
@@ -48,6 +45,13 @@ function iconShape(kind,color){
  case 'star':return `<path d="m16 3 4 10 10 3-10 4-4 10-4-10-10-4 10-3Z" fill="${fill}" stroke="#e9d9ff"/>`;
  case 'arrow':return `<path d="M5 27 26 6" stroke="${fill}" stroke-width="3"/><path d="m16 5 11 0v11" fill="none" stroke="#ffead7" stroke-width="2.5"/>`;
  case 'cross':return `<path d="M7 8 24 25M25 7 8 24" stroke="${fill}" stroke-width="4"/><circle cx="16" cy="16" r="4" fill="#e5eaff"/>`;
+ case 'book':return `<path d="M5 6 15 8v20L5 26ZM15 8 27 6v20l-12 2Z" fill="${fill}" stroke="#e6e3ff" stroke-width="1.4"/><path d="M15 8v20M8 12l5 1m5 0 6-1" stroke="#f5eaff" stroke-width="1"/>`;
+ case 'spear':return `<path d="M7 28 22 9" stroke="#e4d4a8" stroke-width="2.8"/><path d="m18 11 9-8-2 12-4 1Z" fill="${fill}" stroke="#ffe7cb" stroke-width="1.2"/>`;
+ case 'gauntlet':return `<path d="M8 27 6 14l4-2 3 4V7l4-2 2 9 4-4 4 5-5 13Z" fill="${fill}" stroke="#ffe3db" stroke-width="1.4"/>`;
+ case 'gem':return `<path d="m16 3 12 11-12 15L4 14Z" fill="${fill}" stroke="#e3f2ff" stroke-width="1.4"/><path d="M4 14h24M16 3l-4 11 4 15 4-15Z" fill="#f1fbff" opacity=".55"/>`;
+ case 'sun':return `<circle cx="16" cy="16" r="7" fill="${fill}" stroke="#fff3c5" stroke-width="2"/><path d="M16 2v6m0 16v6M2 16h6m16 0h6M6 6l4 4m12 12 4 4M26 6l-4 4M10 22l-4 4" stroke="#ffe39c" stroke-width="2"/>`;
+ case 'bow':return `<path d="M8 4c17 7 17 17 0 24M8 4v24M3 16h24m-7-4 7 4-7 4" fill="none" stroke="${fill}" stroke-width="2.4"/>`;
+ case 'hourglass':return `<path d="M6 4h20M6 28h20M9 5v4l6 7-6 7v4h14v-4l-6-7 6-7V5Z" fill="${fill}" stroke="#fff4d1" stroke-width="1.5"/>`;
  case 'leaf':return `<path d="M7 26C5 12 14 6 27 5c0 14-5 21-20 21Z" fill="${fill}" stroke="#e4ffe3" stroke-width="1.5"/><path d="M8 25 24 10" stroke="#365443" stroke-width="2"/>`;
  default:return `<circle cx="16" cy="16" r="11" fill="${fill}"/>`;
  }
@@ -62,7 +66,7 @@ function portrait(champion){
 }
 function itemSlot(itemId,index){
  const item=ITEMS[itemId];
- const title=item?item.name:(itemId?'Objeto desconocido: '+itemId:'Espacio vacío');
+ const title=item?`${item.name} · ${Object.entries(item.stats).map(([key,value])=>key+' +'+value).join(', ')} · ${item.unique}`:(itemId?'Objeto desconocido: '+itemId:'Espacio vacío');
  return `<span class="tab-item ${item?'filled':'vacant'}" title="${escape(title)}" aria-label="Objeto ${index+1}: ${escape(title)}">${item?emblem(item.shape,item.color):''}</span>`;
 }
 function row(p,championId,frame){
@@ -87,7 +91,7 @@ function render({match,frame,teams}){
  }).join('')}</div></section>`).join('');
  return `<section class="panel rift-tab-panel" aria-label="Tabla de campeones y objetos del partido">
  <div class="panel-head"><h2>Campeones y builds</h2><span class="chip">TAB · espectador</span></div>
- <p class="helper">Datos del momento seleccionado · Iconos y campeones originales. Los kits y objetos escalados llegarán en próximas versiones.</p>
+ <p class="helper">Datos del momento seleccionado · Iconos y campeones originales. Objetos con afinidad por rol y stats definidas; combate avanzado y pasivas activas siguen pendientes.</p>
  <div class="rift-tab-grid">${rows}</div></section>`;
 }
 root.RiftMatchTab=Object.freeze({assign,render,CHAMPIONS,ITEMS});
