@@ -551,7 +551,9 @@ function auditNavigation(match,world){
     if(attackers.length<2)errs.push('Nexo destruido sin asedio de dos atacantes.');
     if(f.nexusVersion===2){
      const defenders=Object.keys(positions).filter(id=>positions[id].teamId===other&&near(id,node,1));
-     const opened=frame.lanes?.[other]?.[f.lane]===3;
+     const opened=events.slice(0,frame.eventsCount).some(record=>
+      record.teamId===team&&record.facts?.action==='tower'&&
+      record.facts?.lane===f.lane&&record.facts?.stage===3);
      const wave=frame.laneEconomy?.lanes?.[f.lane]?.front;
      const signed=team===match.fixture.a?wave:-wave;
      if(!['TOP','MID','BOT'].includes(f.lane)||!opened)
