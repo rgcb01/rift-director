@@ -231,6 +231,8 @@ function shouldRecall(model,nav,agent,minute,worldState,context=null){
    [side+'_fountain',side+'_nexus'].includes(agent.node))return false;
  const enemy=agent.teamId===nav.a?nav.b:nav.a;
  const enemyLead=(worldState.gold[enemy]||0)-(worldState.gold[agent.teamId]||0);
+ // Costly second shop trip is for genuine deficit recovery, not leader snowball.
+ if(row.voluntaryBuys>=1&&enemyLead<1600&&agent.intent!=='shop_recall')return false;
  const item=nextPurchase(model,agent.id,enemyLead);
  if(!item||item.kind!=='combine'||row.wallet<item.goldCost+450)return false;
  if(row.voluntaryBuys>=2||minute-row.lastPurchaseMinute<10)return false;
@@ -243,6 +245,7 @@ function shouldRecall(model,nav,agent,minute,worldState,context=null){
  const accepted=p=>{
   const r=model.entries[p.id];
   if(!r||r.voluntaryBuys>=2||minute-r.lastPurchaseMinute<10||
+     (r.voluntaryBuys>=1&&enemyLead<1600)||
      (p.role==='JUN'&&minute<36||p.role==='SUP'&&minute<29))return false;
   const buy=nextPurchase(model,p.id,enemyLead);
   if(!buy||buy.kind!=='combine'||r.wallet<buy.goldCost+450)return false;
