@@ -10,6 +10,8 @@ Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prome
 
 **Alpha 0.7.13 cerrada (#29):** wards colocados físicamente por JUN/SUP, visibilidad local limitada y replay auditable; 128/128 pruebas. **Alpha 0.7.14 cerrada (#32):** evaluación de riesgo visible, defensa física, prioridades macro selectivas y costes de oportunidad auditables. **Siguiente: Alpha 0.7.15**, asedios, defensa de estructuras, inhibidores y conversión causal del Barón; recuperar variedad de splitpush y torres multicarril sin favorecer un lado artificialmente.
 
+**En validación: Alpha 0.7.15A (PR #33, draft):** cierre del mapa mediante HP real del Nexo, defensa y oleadas visibles, sin tirada de ganador por reloj. 144/144 pruebas y 2,000 mapas; duración media 50.21 min y balance espejado 49.4%, con el problema pendiente de victorias tempranas (ninguna antes del minuto 35). La publicación sigue en 0.7.14. Próximos cortes de 0.7.15: inhibidores, asedios tempranos y conversión física del Barón en estructuras.
+
 **Más adelante (propuesta, sujeta a balance):**
 - **0.7.14 [integrada]:** economía de recursos y evaluación de riesgos: farm, defensa, presión y rotaciones con costes de oportunidad.
 - **0.7.15:** defensa, asedios, inhibidores y conversiones reales de Barón.
