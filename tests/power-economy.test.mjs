@@ -183,6 +183,9 @@ test('segundo regreso: oro realmente disponible, viaje físico, cooldown y asedi
  const health=Object.fromEntries(testRoster().map(p=>[p.id,100]));
  row.items=['boots'];row.spent=1850;row.wallet=5600;row.earned=7450;
  row.voluntaryBuys=1;row.lastPurchaseMinute=22;
+ w.gold.b=12500;
+ assert.equal(E.shouldRecall(model,nav,agent,34,w,{health}),false,'Equipo líder no tiene segundo reset');
+ w.gold.b=15500;
  assert.equal(E.shouldRecall(model,nav,agent,30,w,{health}),false,'No reset antes del umbral');
  assert.equal(E.shouldRecall(model,nav,agent,34,w,{health}),true,'Oro acumulado financia segunda compra');
  nav.siegeTeam='a';
