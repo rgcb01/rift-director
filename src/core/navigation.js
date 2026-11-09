@@ -573,7 +573,12 @@ function auditNavigation(match,world){
      if(f.localAttackers<2||
        attackers.length<f.localAttackers||defenders.length<f.localDefenders||
        !f.participantIds?.every(id=>attackers.includes(id)))
-      errs.push('Nexo sin ventaja local de atacantes verificada.');
+      errs.push('Nexo sin presencia física suficiente.');
+     if(!(f.siegeDamage>=.25&&f.siegeDamage<=3)||
+       !(f.integrityBefore>0)||f.integrityAfter!==0||
+       Math.max(0,Math.round((f.integrityBefore-f.siegeDamage)*100)/100)!==0||
+       frame.nexusIntegrity?.[other]!==0)
+      errs.push('Nexo destruido sin daño acumulado verificable.');
     }
    }
    if(f.action==='gank'||f.action==='teamfight'||
