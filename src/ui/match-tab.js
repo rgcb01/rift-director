@@ -55,10 +55,33 @@ function iconShape(kind,color){
 function emblem(kind,color){return `<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">${iconShape(kind,color)}</svg>`;}
 function portrait(champion){
  const c=champion;
- // Distinct geometric headwear, hair and crest; inline SVG stays offline and low-weight.
- const isArmored=['shield','axe','fang'].includes(c.symbol);
- const face=isArmored?'<path d="m12 11 8 0 3 7-3 9h-8l-3-9Z" fill="#bac9d2"/>':'<path d="m12 12 8 0 3 8-3 7h-8l-3-7Z" fill="#e2bda8"/>';
- return `<svg viewBox="0 0 36 36" role="img" aria-label="Campeón ${escape(c.name)}"><rect width="36" height="36" rx="6" fill="#0b1a2a"/><path d="M0 34 8 25 16 29 26 24 36 33v3H0Z" fill="${escape(c.secondary)}"/><path d="M5 17 10 6 17 3 25 7 31 19l-8-6-11-1Z" fill="${escape(c.tone)}"/>${face}<path d="M13 19h3m4 0h3" stroke="#122538" stroke-width="1.5"/><path d="m13 25 4 2 4-2" fill="none" stroke="#784b57" stroke-width="1"/><path d="m4 32 8-5 6 5 6-5 8 5" fill="none" stroke="${escape(c.tone)}" stroke-width="2"/><path d="M1 1h34v34H1Z" fill="none" stroke="${escape(c.tone)}" stroke-opacity=".5" stroke-width="2"/></svg>`;
+ const skin={veyra:'#ddab9e',aeska:'#ddb4bc',elaris:'#e6cbba',nyra:'#e8b69a',velin:'#b3a0a8',thessa:'#d9bba6',hrodan:'#ad7961'}[c.id]||'#b7c6cf';
+ const hair={veyra:'#8a92e8',aeska:'#633e99',elaris:'#cadbfa',nyra:'#c76f42',velin:'#2c334c',thessa:'#4eac77',hrodan:'#78482f'}[c.id]||c.tone;
+ const armor=['korvek','drathos','sereth'].includes(c.id);
+ const variants={
+  veyra:{hair:'<path d="M6 20 4 11 12 4 25 4 32 11 30 26 24 19 24 10 11 10 10 24Z"/>',crest:'<path d="m6 10 4-7 5 4m11-3 5 6-5 1" fill="#dae8ff"/>',eye:'#5ce2f3'},
+  hrodan:{hair:'<path d="M6 18 8 8 16 3 26 6 31 18 25 14 22 9 12 11 11 19Z"/><path d="M11 23 14 31 25 31 27 23 21 27 16 27Z"/>',crest:'<path d="m8 9-3-6 9 2m10-1 7-2-3 8" fill="#e4bb85"/>',eye:'#9ae4d0'},
+  aeska:{hair:'<path d="M5 24 6 8 15 2 27 7 30 23 25 32 24 12 12 10 11 31Z"/>',crest:'<path d="m17 2 5 5-5 3-5-4Z" fill="#dbb6ff"/>',eye:'#cda8ff'},
+  nyra:{hair:'<path d="M5 15 11 5 25 4 30 11 29 25 24 31 23 12 13 10 10 24Z"/>',crest:'<path d="M7 10 3 4 13 6m11 0 8-4-3 10" fill="#ffcd89"/>',eye:'#80daf4'},
+  korvek:{hair:'<path d="M5 14 13 3 26 3 31 14 28 25 22 33 12 32 7 23Z" fill="#879ead"/>',crest:'<path d="M14 5h8l4 8-3 15H12L9 13Z" fill="#c2d5dc"/><path d="m10 17 5-3 3 3 4-3 4 3-3 4-5-1-5 1Z" fill="#163d50"/>',eye:'#50f5e2'},
+  drathos:{hair:'<path d="M6 18 9 4 18 2 28 5 31 18 27 30 9 30Z" fill="#748093"/>',crest:'<path d="m16 4 4 7-2 9h-3l-2-9Z" fill="#d8b1ae"/><path d="m8 20 8-4 10 3-3 5-12 0Z" fill="#293345"/>',eye:'#ff657d'},
+  sereth:{hair:'<path d="M5 17 12 4 22 3 31 13 29 23 24 32 13 30 5 24Z" fill="#29716e"/>',crest:'<path d="m5 12 6-9 4 7m11-6 7 7-8 0m-18 13 6 6 10 0 7-6" fill="#86e0bc"/>',eye:'#f78f8f'},
+  elaris:{hair:'<path d="M4 17 9 6 18 2 28 7 30 22 24 29 25 13 19 9 10 15 10 28Z"/>',crest:'<path d="m12 8 9-6 6 6-10 4Z" fill="#ecf1ff"/>',eye:'#78dcf9'},
+  velin:{hair:'<path d="M5 15 9 7 24 5 31 15 28 28 8 28Z"/>',crest:'<path d="M3 11 12 5h16l5 7-2 4H6Z" fill="#42415e"/><path d="M3 13h30v3H3Z" fill="#a7a7d8"/>',eye:'#ff9fa2'},
+  thessa:{hair:'<path d="M5 25 7 9 16 4 27 7 30 26 25 31 24 13 14 12 11 29Z"/>',crest:'<path d="m7 8-3-5 8 2m14 1 7-3-3 8m-13-5 4 6-5 3-4-4Z" fill="#aaf5a9"/>',eye:'#78edda'}
+ };
+ const v=variants[c.id]||variants.veyra;
+ const face=armor?'<path d="m12 12 12 0 2 14-8 7-9-8Z" fill="#9fb2c1"/>':
+  '<path d="M11 11 25 12 26 22 22 30 15 31 10 23Z" fill="'+skin+'"/>';
+ const eyes='<path d="m12 19 5-1 0 3-4 1Z m6-1 5 1-1 3-4-1Z" fill="'+v.eye+'"/>';
+ const dark='<path d="M0 36 4 27 11 25 18 31 26 25 33 27 36 36Z" fill="'+c.secondary+'"/>';
+ return '<svg viewBox="0 0 36 36" role="img" aria-label="Campeón '+escape(c.name)+'">'+
+  '<rect width="36" height="36" rx="5" fill="#0c1928"/>'+
+  '<path d="M2 32 5 12 13 5 26 5 33 17 34 34Z" fill="'+c.secondary+'"/>'+
+  '<path d="M7 17 11 7 23 5 29 14 27 27 22 33 12 30Z" fill="'+hair+'"/>'+
+  face+'<g fill="'+hair+'">'+v.hair+'</g>'+v.crest+eyes+
+  '<path d="m16 25 3 1 3-1" stroke="#684c54" stroke-width=".8" fill="none"/>'+
+  dark+'<path d="M1 1h34v34H1Z" fill="none" stroke="'+c.tone+'" stroke-opacity=".8" stroke-width="1.5"/></svg>';
 }
 function itemSlot(itemId,index){
  const item=ITEMS[itemId];
