@@ -29,7 +29,7 @@
      !Number.isSafeInteger(defenders)||defenders<0||defenders>5||
      !Number.isFinite(wave)||wave<-.25) return 0;
   // Defenders interrupt physical attacks rather than undoing dealt damage.
-  return Math.max(0,Math.round(attackers*10+clamp(wave,0,3)*3+
+  return Math.max(0,Math.round(attackers*16+clamp(wave,0,3)*3+
    (baron?7:0)-defenders*7));
  }
  function candidates(nav,world,minute,health,dead){
