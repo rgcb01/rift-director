@@ -4,6 +4,12 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Preview de campeones y objetos en Match Center
+- Se añade panel de espectador con dos equipos, 10 retratos low-poly SVG originales, nombre de campeón, profesional, rol, nivel, K/D/A y hasta seis espacios de objeto por fila.
+- Los campeones se asignan determinísticamente y se guardan en el partido; el panel consume XP, compras y estadísticas del instante seleccionado en el replay, sin fabricar compras o KDA. Replays anteriores sin asignación conservan su interfaz histórica.
+- **Solo interfaz:** los campeones todavía no modifican habilidades ni daño, y los cinco objetos vigentes no han sido sustituidos por builds escaladas.
+
+
 ### Repriorización de roadmap (solo planificación, 2026-11-08)
 - Se adelanta el núcleo de **campeones, objetos, escalado, habilidades y builds** a Alpha 0.7.15–0.7.20. La 0.7.15 previamente prevista para asedios, inhibidores y Barón queda pospuesta; **no se presenta esta planificación como gameplay implementado**.
 - Se especifican `Professional` frente a `ChampionDefinition` y `MatchChampionState`, seis arquetipos iniciales, catálogo objetivo de 12 campeones y 20–30 objetos, combate causal y guía de compatibilidad/replays.
