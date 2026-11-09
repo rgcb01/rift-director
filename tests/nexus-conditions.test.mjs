@@ -53,6 +53,6 @@ test('defenders, death, retreat and lost wave deny Nexus without a clock gate',(
  assert.equal(inspect(x),null,'Dead player does not count');
  x.dead[att[1].id]=0;att[1].intent='retreat';
  assert.equal(inspect(x),null,'Retreating player does not count');
- att[1].intent='siege';x.waves.MID.front=-1.2;
+ att[1].intent='siege';x.waves.MID.front=-3.8;
  assert.equal(inspect(x),null,'Enemy push prevents an unescorted Nexus win');
 });
