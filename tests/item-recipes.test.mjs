@@ -85,6 +85,15 @@ test('when a recipe has both parts, shopping reserves gold for completion',()=>{
  assert.equal(upgrade?.itemId,undefined);
  assert.equal(upgrade?.id,'spellbook');
 });
+test('a trailing professional converts affordable gold into a completed item',()=>{
+ const {core}=boot(),e=core.PowerEconomy;
+ const model=e.create(roster()),row=model.entries.a2;
+ row.items=['magic_page'];row.wallet=2400;row.spent=700;row.earned=3100;
+ const plan=e.nextPurchase(model,'a2',2300);
+ assert.equal(plan?.id,'boots');
+ assert.equal(plan?.kind,'combine');
+ assert.equal(plan?.consumedIds.length,0);
+});
 test('role affinity leads to differentiated recipes without randomness',()=>{
  const {core}=boot(),e=core.PowerEconomy;
  const players=roster(),model=e.create(players);
