@@ -14,6 +14,8 @@ Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prome
 
 **En validación: Alpha 0.7.15B (PR #34 apilado sobre #33, draft):** HP persistente de torres 60/72/84, placas asociadas a daño, defensa física y replay de HP. 148/148 tests y 2,000 mapas auditados/espejados. Splitpush 64.9%→70.2% frente a 0.7.14 y múltiples líneas 79.6%→84.1%, pero duración media de 52.10 minutos (50.21 en 0.7.15A). **No fusionar sin cerrar o aceptar los riesgos de duración y asedio temprano.** Próxima etapa: 0.7.15C convierte kills, peleas ganadas y Barón en presión de oleada y estructuras, no en recompensas automáticas.
 
+**En implementación: Alpha 0.7.15C (draft):** corregir el aumento progresivo de duración causado por el bloqueo de asedios antes del minuto 30 y la falta de conversión de kills en presión territorial. Un asedio temprano exige ventaja pública, oleada y presencia; ninguna torre, oro ni victoria se obtiene por el reloj. Exigir mejora contra la duración actual de 52.10 min sin perder remontadas ni simetría. La publicación sigue en 0.7.14.
+
 **Más adelante (propuesta, sujeta a balance):**
 - **0.7.14 [integrada]:** economía de recursos y evaluación de riesgos: farm, defensa, presión y rotaciones con costes de oportunidad.
 - **0.7.15:** defensa, asedios, inhibidores y conversiones reales de Barón.
