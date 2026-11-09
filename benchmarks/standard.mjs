@@ -79,6 +79,15 @@ export function runStandard() {
             e.facts?.counterPressure&&m.events.some(t=>t.facts?.action==='tower'&&
              t.teamId===e.teamId&&t.facts.lane===e.facts.counterPressure.lane&&
              t.minute>=e.minute&&t.minute<=e.minute+5)).length,
+          lateFightOrders:m.events.filter(e=>e.minute>=36&&
+            e.facts?.action==='teamfight'&&e.facts.counterPressure).length,
+          convertedLateFightOrders:m.events.filter(e=>e.minute>=36&&
+            e.facts?.action==='teamfight'&&e.facts.counterPressure&&
+            m.events.some(t=>['tower','nexus'].includes(t.facts?.action)&&
+             t.teamId===e.teamId&&
+             (t.facts.action==='nexus'||
+              t.facts.lane===e.facts.counterPressure.lane)&&
+             t.minute>=e.minute&&t.minute<=e.minute+5)).length,
           nexusHits:m.events.filter(e=>['nexus_damage','nexus'].includes(e.facts?.action)).length,
           nexusBaronHits:m.events.filter(e=>['nexus_damage','nexus'].includes(e.facts?.action)&&
            e.facts.baron).length,
@@ -226,6 +235,8 @@ export function runStandard() {
       earlySiegeMinutesPerMatch:+avg(rows.map(r=>r.earlySiegePlayerMinutes)).toFixed(2),
       earnedLaneKillOrdersPerMatch:+avg(rows.map(r=>r.earnedLaneKillOrders)).toFixed(2),
       convertedLaneKillOrdersPerMatch:+avg(rows.map(r=>r.convertedLaneKillOrders)).toFixed(2),
+      lateFightOrdersPerMatch:+avg(rows.map(r=>r.lateFightOrders)).toFixed(2),
+      convertedLateFightOrdersPerMatch:+avg(rows.map(r=>r.convertedLateFightOrders)).toFixed(2),
       nexusHitsPerMatch:+avg(rows.map(r=>r.nexusHits)).toFixed(2),
       nexusBaronHitsPerMatch:+avg(rows.map(r=>r.nexusBaronHits)).toFixed(2),
       nexusContestedHitsPerMatch:+avg(rows.map(r=>r.nexusDefendedHits)).toFixed(2),
