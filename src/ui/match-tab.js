@@ -63,7 +63,7 @@ function portrait(champion){
 function itemSlot(itemId,index){
  const item=ITEMS[itemId];
  const title=item?item.name:(itemId?'Objeto desconocido: '+itemId:'Espacio vacío');
- return `<span class="tab-item ${item?'filled':'empty'}" title="${escape(title)}" aria-label="Objeto ${index+1}: ${escape(title)}">${item?emblem(item.shape,item.color):''}</span>`;
+ return `<span class="tab-item ${item?'filled':'vacant'}" title="${escape(title)}" aria-label="Objeto ${index+1}: ${escape(title)}">${item?emblem(item.shape,item.color):''}</span>`;
 }
 function row(p,championId,frame){
  const c=BY_ID[championId],stats=frame.playerStats?.[p.id];
