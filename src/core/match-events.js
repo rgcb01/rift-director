@@ -213,7 +213,8 @@
         const moment=match.moments?.[match.events.indexOf(event)];
         if(moment?.navigation?.before?.[facts.actorId]?.node!==facts.node)
          fail('Compra inventada fuera de la base: '+facts.actorId);
-      } else if (facts.action === 'tower_damage') {
+      } else if (facts.action === 'tower_damage'||facts.action === 'plate') {
+        if(facts.towerVersion===1){
         actor(facts,event,t);verifyParticipants(event,facts,t);
         const defender=event.teamId===a?b:a;
         const lane=facts.lane,stage=facts.stage;
@@ -229,20 +230,27 @@
             stage,attackers:facts.participantIds?.length,
             defenders:facts.defenderIds?.length,
             wave:facts.wave,baron:facts.baron});
-          const mayFinish=facts.participantIds.length>=2||facts.soloAllowed===true;
+          const mayFinish=(facts.participantIds?.length||0)>=2||facts.soloAllowed===true;
           const after=Math.max(mayFinish?0:1,hp-raw);
           if(facts.towerVersion!==1||facts.before!==hp||
              facts.rawDamage!==raw||facts.after!==after||
              !integer(facts.damage)||facts.damage<1||
              facts.damage!==hp-after||
-             !Number.isFinite(facts.wave)||facts.wave<-.001-1.25&&t<48||
+             !Number.isFinite(facts.wave)||
+             (facts.wave<.65&&!(t>=48&&facts.wave>=-1.25))||
              !Array.isArray(facts.defenderIds)||
              !Array.isArray(facts.participantIds))
             fail('Daño estructural imposible o HP de torre falsificado.');
+          const front=frame.laneEconomy?.lanes?.[lane]?.front;
+          if(typeof front!=='number'||facts.wave!==(event.teamId===a?front:-front))
+            fail('Golpe de torre no corresponde a la oleada simulada.');
           towerHealth[defender][lane][stage-1]=after;
           lastTowerHit[key]={...facts,minute:t};
         }
-      } else if (facts.action === 'plate') {
+        }else if(frame.laneEconomy?.towerMaxHp){
+          fail('Torre o placa moderna sin daño estructural registrado.');
+        }
+        if(facts.action==='plate'){
         actor(facts,event,t);verifyParticipants(event,facts,t);
         const defender=event.teamId===a?b:a;
         const lane=facts.lane,stage=facts.stage;
@@ -261,8 +269,10 @@
           const hp=core.LaneEconomy.TOWER_HP[stage-1];
           const threshold=Math.floor((hp-hit?.after)*3/hp);
           if(!hit||hit.minute!==t||threshold!==facts.plate||
+             facts.goldReward!==Math.max(55,125-Math.max(0,t-14)*2)||
              hit.actorId!==facts.actorId||hit.node!==facts.node)
             fail('Placa sin un golpe causal a la torre en el mismo minuto.');
+        }
         }
       } else if (facts.action === 'tower') {
         actor(facts, event, t);verifyParticipants(event,facts,t);
