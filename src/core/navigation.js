@@ -494,7 +494,7 @@ function auditNavigation(match,world){
       errs.push('Placa cobrada desde otra zona: '+e.minute);
     for(const id of f.participantIds||[])
      if(!near(id,node,1))errs.push('Torre o placa con participante ausente: '+id);
-    if(f.action==='tower_damage')for(const id of f.defenderIds||[])
+    if((f.action==='tower_damage'||f.towerVersion===1))for(const id of f.defenderIds||[])
      if(!near(id,node,1)||positions[id]?.teamId!==other)
       errs.push('Torre con defensor ausente: '+id);
    }else if(f.action==='teamfight'){
