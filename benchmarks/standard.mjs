@@ -146,6 +146,7 @@ export function runStandard() {
           const errors=[
             ...core.Navigation.auditNavigation(m,world),
             ...core.LaneEconomy.audit(m),
+            ...core.NexusSiege.audit(m),
             ...core.PowerEconomy.audit(m),
             ...core.NeutralObjectives.audit(m),
             ...core.Vision.audit(m),
