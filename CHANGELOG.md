@@ -6,6 +6,11 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [0.7.16-alpha] — Candidato en validación
 
+### Conversión territorial tras una pelea real
+- Counterplay puede proponer una presión limitada hasta el minuto 52 solo cuando el equipo realmente va ≥1,200 de oro detrás, ha eliminado a un rival, tiene una oleada de presión ≥0.9 y al menos un atacante puede alcanzar la torre en tres aristas.
+- El avance se cancela si desaparece la oleada, los defensores locales igualan o superan los escoltas sanos, la ruta es demasiado larga o termina la ventana de tres minutos. No se conceden torres, placas, oro ni teletransportes; los eventos siguen exigiendo sus condiciones habituales.
+- Pruebas de ausencia de oleada, líder, superioridad local defensiva y expiración. Comparar mediante 1,000 partidas auditadas más 500 pares espejados; mantener candidato aislado si empeoran remontadas, kills o duración.
+
 ### Diagnóstico de economía y remontadas (solo observación)
 - Benchmark amplía los indicadores de 1,000 partidas con diferencias de oro, carteras y gasto en equipamiento por equipo a los minutos 20 y 30; tasa de remontadas condicional a tener ≥1,500 de déficit; y ventanas observadas de cinco minutos entre shutdown y objetivos del mismo equipo. Incluye gráfico `economy.svg` y pruebas sintéticas sin alterar partidas.
 - Los eventos posteriores a un shutdown se presentan como asociación temporal, **no causalidad demostrada**. Los valores nuevos no existían en los baselines anteriores y deben mostrarse como no comparables.
