@@ -90,6 +90,18 @@ export function runStandard() {
           crossmapPlates:m.events.filter(e=>e.facts?.action==='plate'&&e.facts.crossmapTrade).length,
           crossmapTowers:m.events.filter(e=>e.facts?.action==='tower'&&e.facts.crossmapTrade).length,
           purchases:m.events.filter(e=>e.facts?.action==='item_purchase').length,
+          completedPurchases:m.events.filter(e=>e.facts?.action==='item_purchase'&&
+            (e.facts.itemKind==='complete'||!e.facts.itemKind)).length,
+          componentPurchases:m.events.filter(e=>e.facts?.action==='item_purchase'&&
+            e.facts.itemKind==='component').length,
+          recipeCompletions:m.events.filter(e=>e.facts?.action==='item_purchase'&&
+            e.facts.consumedIds?.length).length,
+          completedEquipped:Object.values(f.powerEconomy?.entries||{}).reduce((n,p)=>n+
+            p.items.filter(id=>core.PowerEconomy.ITEM_CATALOG.some(item=>item.id===id)).length,0),
+          componentsEquipped:Object.values(f.powerEconomy?.entries||{}).reduce((n,p)=>n+
+            p.items.filter(id=>core.PowerEconomy.COMPONENT_CATALOG?.some(item=>item.id===id)).length,0),
+          slotsOccupied:Object.values(f.powerEconomy?.entries||{}).reduce((n,p)=>n+p.items.length,0),
+          walletUnspent:Object.values(f.powerEconomy?.entries||{}).reduce((n,p)=>n+p.wallet,0),
           recallPurchases:m.events.filter((e,i)=>e.facts?.action==='item_purchase'&&
             m.moments[i]?.navigation?.before?.[e.facts.actorId]?.intent==='shop_recall').length,
           fountainPurchases:m.events.filter(e=>e.facts?.action==='item_purchase'&&
@@ -216,6 +228,13 @@ export function runStandard() {
       crossmapTradeTowerGames:rows.filter(r=>r.crossmapTowers>0).length,
       contestedDragonGames:rows.filter(r=>r.dragonContests>0).length,
       purchasesPerMatch:+avg(rows.map(r=>r.purchases)).toFixed(2),
+      completedPurchasesPerMatch:+avg(rows.map(r=>r.completedPurchases)).toFixed(2),
+      componentPurchasesPerMatch:+avg(rows.map(r=>r.componentPurchases)).toFixed(2),
+      recipeCompletionsPerMatch:+avg(rows.map(r=>r.recipeCompletions)).toFixed(2),
+      completedEquippedPerMatch:+avg(rows.map(r=>r.completedEquipped)).toFixed(2),
+      componentsEquippedPerMatch:+avg(rows.map(r=>r.componentsEquipped)).toFixed(2),
+      occupiedSlotsPerMatch:+avg(rows.map(r=>r.slotsOccupied)).toFixed(2),
+      walletUnspentPerMatch:+avg(rows.map(r=>r.walletUnspent)).toFixed(2),
       recallPurchasesPerMatch:+avg(rows.map(r=>r.recallPurchases)).toFixed(2),
       fountainPurchasesPerMatch:+avg(rows.map(r=>r.fountainPurchases)).toFixed(2),
       earlyPurchasesPerMatch:+avg(rows.map(r=>r.before30Purchases)).toFixed(2),
