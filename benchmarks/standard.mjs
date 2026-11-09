@@ -66,6 +66,19 @@ export function runStandard() {
           towerDefendedHits:m.events.filter(e=>['tower_damage','plate'].includes(e.facts?.action)&&e.facts?.towerVersion===1&&e.facts.defenderIds?.length).length,
           towerBaronHits:m.events.filter(e=>['tower_damage','plate'].includes(e.facts?.action)&&e.facts?.towerVersion===1&&e.facts.baron).length,
           firstTowerHitMinute:m.events.find(e=>['tower_damage','plate'].includes(e.facts?.action)&&e.facts?.towerVersion===1)?.minute??null,
+          firstOpenLaneMinute:m.events.find(e=>
+            e.facts?.action==='tower'&&e.facts.stage===3)?.minute??null,
+          earlySiegePlayerMinutes:m.frames.reduce((n,f)=>n+
+            (f.minute<30?Object.values(f.navigation?.before||{}).filter(p=>
+              p.reason==='primary_siege').length:0),0),
+          earnedLaneKillOrders:m.events.filter(e=>
+            ['gank','lane_trade'].includes(e.facts?.action)&&
+            e.facts?.counterPressure).length,
+          convertedLaneKillOrders:m.events.filter(e=>
+            ['gank','lane_trade'].includes(e.facts?.action)&&
+            e.facts?.counterPressure&&m.events.some(t=>t.facts?.action==='tower'&&
+             t.teamId===e.teamId&&t.facts.lane===e.facts.counterPressure.lane&&
+             t.minute>=e.minute&&t.minute<=e.minute+5)).length,
           nexusHits:m.events.filter(e=>['nexus_damage','nexus'].includes(e.facts?.action)).length,
           nexusBaronHits:m.events.filter(e=>['nexus_damage','nexus'].includes(e.facts?.action)&&
            e.facts.baron).length,
@@ -208,6 +221,11 @@ export function runStandard() {
       towerBaronHitsPerMatch:+avg(rows.map(r=>r.towerBaronHits)).toFixed(2),
       firstTowerHitMean:+avg(rows.filter(r=>r.firstTowerHitMinute!==null)
        .map(r=>r.firstTowerHitMinute)).toFixed(2),
+      firstOpenLaneMean:+avg(rows.filter(r=>r.firstOpenLaneMinute!==null)
+       .map(r=>r.firstOpenLaneMinute)).toFixed(2),
+      earlySiegeMinutesPerMatch:+avg(rows.map(r=>r.earlySiegePlayerMinutes)).toFixed(2),
+      earnedLaneKillOrdersPerMatch:+avg(rows.map(r=>r.earnedLaneKillOrders)).toFixed(2),
+      convertedLaneKillOrdersPerMatch:+avg(rows.map(r=>r.convertedLaneKillOrders)).toFixed(2),
       nexusHitsPerMatch:+avg(rows.map(r=>r.nexusHits)).toFixed(2),
       nexusBaronHitsPerMatch:+avg(rows.map(r=>r.nexusBaronHits)).toFixed(2),
       nexusContestedHitsPerMatch:+avg(rows.map(r=>r.nexusDefendedHits)).toFixed(2),
