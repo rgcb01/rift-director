@@ -162,8 +162,9 @@ function determineSiege(nav,worldState,t){
  if(t<30){
   if(nav.siegeTeam&&t<(nav.siegeUntil||0))return;
   const proposed=delta>0?nav.a:nav.b,defender=enemy(nav,proposed);
-  const wave=lane=>core.LaneEconomy.pressureFor(
-   {teamIds:[nav.a,nav.b],lanes:worldState.waves},proposed,lane);
+  const wave=lane=>worldState.waves?.[lane]?
+   core.LaneEconomy.pressureFor(
+    {teamIds:[nav.a,nav.b],lanes:worldState.waves},proposed,lane):null;
   const viable=LANES.filter(lane=>
    (worldState.lanes?.[defender]?.[lane]??3)<3&&wave(lane)>=.8&&
    // Someone is truly in the lane to initiate; no base-wide order
@@ -277,7 +278,10 @@ function chooseGoal(nav,agent,t,worldState,context=null){
  if(t>=16){
   determineSiege(nav,worldState,t);
  }
- if(nav.siegeTeam&&(role!=='JUN'||t>=36)){
+ // Support keeps the ADC-protection/roaming contract during early lane
+ // phase; it may join an *earned* BOT counterpush via Counterplay above.
+ // A generic gold advantage is not permission to abandon the carry.
+ if(nav.siegeTeam&&(role!=='JUN'||t>=36)&&!(role==='SUP'&&t<30)){
   const main=nav.siegeLane,sideLane=nav.sideLane||'TOP';
   const sideRole=sideLane==='TOP'?'TOP':'MID';
   if(team===nav.siegeTeam){
