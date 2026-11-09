@@ -4,6 +4,13 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Alpha 0.7.16 — primera fase de objetos y builds (experimental)
+- Catálogo ampliado de 5 a 15 objetos ficticios; se conservan IDs y precios de los cinco históricos para no invalidar replays. Cada objeto declara estadísticas futuras, familia de build, icono, color y nombre de pasiva. Estas pasivas son **metadatos**, todavía no se ejecutan en combate.
+- Selector de compras con afinidad determinista por rol y estado económico; seis espacios de inventario; las compras exigen base física y oro disponible y quedan en replay. Continúa el adaptador de bonificaciones de combate existente, sin doble conteo de las estadísticas declarativas.
+- El TAB utiliza ese catálogo como única fuente de objetos y muestra tooltips de estadísticas. Retratos SVG facetados específicos por campeón, siguiendo el estilo **Rift Faceted Fantasy**, sin assets externos ni generación de imágenes durante la partida.
+- Benchmark de 1,000 mapas auditados y 500 parejas espejadas obligatorio antes de cerrar este hito; la fase de componentes comprables y efectos reales de pasivas queda pendiente.
+
+
 ### Preview de campeones y objetos en Match Center
 - Se añade panel de espectador con dos equipos, 10 retratos low-poly SVG originales, nombre de campeón, profesional, rol, nivel, K/D/A y hasta seis espacios de objeto por fila.
 - Los campeones se asignan determinísticamente y se guardan en el partido; el panel consume XP, compras y estadísticas del instante seleccionado en el replay, sin fabricar compras o KDA. Replays anteriores sin asignación conservan su interfaz histórica.
