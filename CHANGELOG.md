@@ -4,6 +4,15 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+## [0.7.16-alpha] — Candidato en validación
+
+### Objetos, componentes, recetas y builds ejecutables
+- Se activan 15 objetos originales con bonos de combate del motor actual y 15 componentes con precio, compra real, ocupación de inventario y uso como ingredientes de mejora. Los 15 objetos declaran recetas de dos componentes; el precio de la mejora descuenta los componentes previamente comprados, sin crear ni duplicar oro.
+- Las compras siguen requiriendo presencia física en fuente/nexo propio; la IA prioriza familias de objetos según su rol, sin nuevos recalls voluntarios para adquirir únicamente componentes. El inventario pasa a seis espacios y las mejoras consumen componentes sin exceder capacidad.
+- El TAB muestra los iconos ya incluidos en Art Pack 2 para componentes y objetos completos, con precios y fallback SVG. El motor todavía usa potencias abstractas de ataque/defensa; las habilidades de campeón, los atributos AD/AP/armadura reales y las pasivas únicas no se simulan aún.
+- Auditorías actualizadas para verificar costo de las recetas, capacidad y coherencia de recibos, pruebas unitarias de recetas y simulación completa de 1,000 partidas y 500 pares espejados requeridos antes de fusionar.
+
+
 ### Arreglo de retratos visibles en replays
 - El atlas PNG de campeones se muestra tanto en el TAB de espectador como en el minimapa, conservando sus SVG originales como respaldo.
 - Los replays antiguos sin campeones asignados muestran una identidad visual reconstruida de forma determinista, marcada como ilustrativa, sin alterar el partido histórico ni sus datos.
