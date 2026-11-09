@@ -17,7 +17,7 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 - **Pendiente dentro de 0.7.15:** inhibidores, conversión del Barón y calibración de asedios/defensa tempranos. No fusionar este primer corte hasta resolver o aprobar expresamente el aviso y cerrar el alcance.
 
 ### 0.7.15B — torres con HP persistente (rama experimental, sin publicación)
-- Las torres tienen 96/108/120 HP (exterior/interior/base); el daño se acumula de forma determinista entre asedios. Las tres placas corresponden a cruces efectivos de un tercio de HP, no a tres ticks de presencia.
+- Las torres tienen 60/72/84 HP (exterior/interior/base); el daño se acumula de forma determinista entre asedios. Las tres placas corresponden a cruces efectivos de un tercio de HP, no a tres ticks de presencia.
 - Se exige oleada y profesionales realmente cercanos para golpear. Las defensas reducen el daño y el Barón potencia solamente atacantes presentes. Un solitario puede desgastar, pero necesita un splitpush acreditado o compañía para destruir el último HP.
 - Cada golpe `tower_damage` registra vida anterior/final, atacantes, defensores, oleada y modificador de Barón. Auditorías verifican estructura, actor, posiciones y umbrales de placas; estadísticas incorporan golpes parciales y el minuto del primer daño.
 - **Gate pendiente:** 144+ pruebas funcionales, 1,000 partidas auditadas y 1,000 espejadas comparadas con 0.7.15A y 0.7.14. No fusionar hasta conocer sesgos, remontadas y duración.
