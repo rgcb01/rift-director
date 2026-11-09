@@ -64,11 +64,7 @@ test('earned bot kill supports a physical ADC+SUP followup but never awards HP d
   victimIds:[b.lineup.ADC]};
  const plan=core.Counterplay.pressureAfterKill(nav,facts,20,state);
  assert.ok(plan&&plan.lane==='BOT');
- const hpBefore=core.LaneEconomy.snapshot(
-  {version:1,teamIds:[a.id,b.id],lanes:state.waves,firstTower:null,
-   income:{[a.id]:{farm:0,plates:0,firstTower:0},
-           [b.id]:{farm:0,plates:0,firstTower:0}}}
- ).lanes.BOT.hp[b.id][0];
+ const hpBefore=state.waves.BOT.hp[b.id][0];
  const sup=core.Counterplay.followup(nav,nav.agents[a.lineup.SUP],21,state,{health});
  const adc=core.Counterplay.followup(nav,nav.agents[a.lineup.ADC],21,state,{health});
  assert.equal(sup?.intent,'counterpush');
