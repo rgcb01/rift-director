@@ -160,10 +160,12 @@ function candidates(row,opponentGoldLead=0){
  const finishable=ITEM_CATALOG.filter(item=>!row.items.includes(item.id)&&
   item.recipe.every(id=>heldParts.includes(id)));
  const pool=finishable.length?finishable:ITEM_CATALOG;
+ const behind=opponentGoldLead>1400;
  // Prioritize an unfinished recipe: unspent gold cannot be converted into a
  // power spike if every base visit scatters it across unrelated components.
  return pool.filter(item=>!row.items.includes(item.id)&&
-   (!heldParts.length||item.recipe.some(id=>heldParts.includes(id))))
+   (!heldParts.length||item.recipe.some(id=>heldParts.includes(id))||
+     (behind&&item.cost<=row.wallet&&roleAffinity(row.role,item.archetype,true)>=1.1)))
  .map(item=>{
   const utility=roleAffinity(row.role,item.archetype,behind)*
    (item.attack*1.35+item.defense*1.1+item.tempo*1.3+1)+
@@ -194,7 +196,19 @@ function purchaseOptions(row,opponentGoldLead=0){
 }
 function nextPurchase(model,id,opponentGoldLead=0){
  const row=model?.entries[id];if(!row)return null;
- return purchaseOptions(row,opponentGoldLead)[0]||null;
+ const plans=purchaseOptions(row,opponentGoldLead);
+ // A trailing team needs to convert its limited money into an actual
+ // completed spike instead of repeatedly buying partial recipes.
+ if(opponentGoldLead>1400&&!row.items.some(id=>COMPONENTS[id]&&
+    ITEM_CATALOG.some(item=>!row.items.includes(item.id)&&
+      item.recipe.every(part=>row.items.includes(part))))){
+  const affordable=plans.filter(plan=>plan.kind==='combine'&&
+   !plan.consumedIds.length&&roleAffinity(row.role,plan.archetype,true)>=1.1)
+   .sort((a,b)=>(b.utility/b.goldCost)-(a.utility/a.goldCost)||
+      a.goldCost-b.goldCost);
+  if(affordable.length)return affordable[0];
+ }
+ return plans[0]||null;
 }
 // A recall is an opportunity-cost decision, never an automatic consequence
 // of being able to afford another item. Buying after respawn remains free to
