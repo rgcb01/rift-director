@@ -25,6 +25,13 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 - **Advertencias abiertas, no publicar aún:** la duración empeora +2.82 min frente a 0.7.14; no hay victorias antes del min 35. Adelantar el umbral de oleada apenas redujo 52.14→52.10 min: hace falta conversión de ventajas y objetivos más tempranos, no otra reducción a ciegas. Se conserva el modelo físico y el Match Center muestra HP de la torre activa por línea.
 - **Integridad:** sporting golden candidato `062baa8b50de...` congelado; hashes de mundo y finanzas sin cambios.
 
+### 0.7.15C — corrección causal del ritmo (experimental)
+- **Hallazgo de diseño:** el asedio coordinado estaba prohibido hasta el minuto 30, sin importar la oleada, las torres ya dañadas o una superioridad económica. Las bajas tempranas en línea/ganks no siempre emitían una orden aprovechable, y el support de BOT no podía acompañar una presión ganada.
+- **Plan temprano revisable:** desde el minuto 16, un equipo puede rotar a una estructura si tiene una ventaja pública acumulada de al menos 1,350, presión real de oleada de al menos 0.8 y un profesional vivo físicamente en ese carril. Se cancela si desaparece la oportunidad, sin teletransportes, daño adicional ni ganador elegido.
+- **Aprovechamiento de combate:** kills verificadas de intercambios de línea y ganks pueden crear una ventana corta de presión. SUP puede escoltar a ADC en BOT si ambos participaron realmente y la oleada lo permite. Cada plan está respaldado por bajas y participantes existentes; estructuras y recompensas siguen dependiendo de presencia física.
+- **Benchmark más estricto:** cualquier incremento de duración de más de 2 minutos frente a la versión publicada es regresión **bloqueante**, no solamente advertencia. Se miden tiempos del primer golpe, primera torre, primera línea abierta, órdenes de asedio tempranas y conversiones de kills en torres.
+- **Gate pendiente:** 148+ pruebas funcionales y 1,000 mapas auditados + 1,000 espejados; congelar hash deportivo y comprobar duración frente a Alpha 0.7.14 (49.28 min), 0.7.15A (50.21) y 0.7.15B (52.10). No fusionar sin mejoría real.
+
 ## [0.7.14-alpha] — 2026-11-08
 
 ### Riesgo y coste de oportunidad verificables
