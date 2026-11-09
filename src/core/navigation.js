@@ -377,6 +377,25 @@ function advance(nav,t,dead,worldState,context=null){
   if(agent.route.length>1)agent.node=agent.route[1];
  }
 }
+// Nexus victory is based on an opened route, physically present attackers,
+// a surviving wave and local defenders, never a minute-indexed coin flip.
+function nexusOpportunity(nav,{teamId,lanes,waves,health={},dead={},minute=nav.minute}){
+ const foe=enemy(nav,teamId),foeSide=getSide(nav,foe),node=foeSide+'_nexus';
+ const opened=['TOP','MID','BOT'].filter(lane=>(lanes?.[foe]?.[lane]||0)>=3);
+ if(!opened.length)return null;
+ const healthy=(p,min)=>p.alive&&(dead[p.id]||0)<=minute&&
+   (health[p.id]??100)>=min&&at(nav,p.id,node,1);
+ const attackers=teamAgents(nav,teamId).filter(p=>p.intent!=='retreat'&&healthy(p,40));
+ const defenders=teamAgents(nav,foe).filter(p=>healthy(p,25));
+ if(attackers.length<2||attackers.length<=defenders.length)return null;
+ const candidates=opened.map(lane=>({lane,wave:core.LaneEconomy.pressureFor(
+  {teamIds:[nav.a,nav.b],lanes:waves},teamId,lane)}))
+  .filter(p=>p.wave>=(attackers.length>=3?-.45:.2))
+  .sort((a,b)=>b.wave-a.wave||a.lane.localeCompare(b.lane));
+ if(!candidates.length)return null;
+ return {teamId,node,lane:candidates[0].lane,wave:candidates[0].wave,
+  attackers:attackers.map(p=>p.id),defenders:defenders.map(p=>p.id)};
+}
 function snapshot(nav,dead,t){
  const out={};
  for(const agent of Object.values(nav.agents)){
@@ -550,5 +569,5 @@ core.Navigation=Object.freeze({links,adjacency,path,hops,adjacent,nearby,combatR
  jungleAllowed,gankPlan,jungleGoal,
  towerNode,createNavigation,teamAgents,getAgent,at,participants,engagement,forceRetreat,
  gankPlanForLane,
- advance,snapshot,auditNavigation});
+ advance,snapshot,nexusOpportunity,auditNavigation});
 })(globalThis);
