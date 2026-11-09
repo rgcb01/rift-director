@@ -25,7 +25,9 @@ test('Art Pack 2 manifests preserve IDs, order, cells and all export sizes',()=>
   const m=JSON.parse(read(`assets/inventory/${kind}_atlas.json`));
   assert.deepEqual([m.width,m.height,m.columns,m.rows],[640,384,5,3]);
   assert.deepEqual(m.entries.map(e=>e.id),expected[kind]);
-  assert.deepEqual(m.entries,JSON.parse(JSON.stringify(RiftItemArt.catalogs[kind])));
+  assert.deepEqual(m.entries.map(({visualOnly,...entry})=>entry),
+   JSON.parse(JSON.stringify(RiftItemArt.catalogs[kind])).map(({visualOnly,...entry})=>entry));
+  assert.ok(RiftItemArt.catalogs[kind].every(e=>e.visualOnly===false));
   assert.deepEqual(size(m.entries[0].atlas),[640,384]);
   for(const [i,e] of m.entries.entries()){
    assert.deepEqual([e.x,e.y,e.width,e.height],[i%5*128,Math.floor(i/5)*128,128,128]);
@@ -33,20 +35,21 @@ test('Art Pack 2 manifests preserve IDs, order, cells and all export sizes',()=>
   }
  }
 });
-test('active economy names are authoritative; art never registers purchases or components',()=>{
+test('active economy names are authoritative; Art Pack 2 covers all playable items and components',()=>{
  const scope={};runInNewContext(read('src/core/power-economy.js'),scope);
  const core=scope.RiftCore.PowerEconomy;
  const before=JSON.stringify(core.ITEM_CATALOG);
  runInNewContext(read('src/ui/item-art.js'),scope);
  assert.equal(core,scope.RiftCore.PowerEconomy);
  assert.equal(JSON.stringify(core.ITEM_CATALOG),before);
- assert.deepEqual(Array.from(core.ITEM_CATALOG,e=>e.id),expected.items.slice(0,5));
+ assert.deepEqual(Array.from(core.ITEM_CATALOG,e=>e.id),expected.items);
+ assert.deepEqual(Array.from(core.COMPONENT_CATALOG,e=>e.id),expected.components);
  for(const item of core.ITEM_CATALOG){
   assert.equal(scope.RiftItemArt.get(item.id).name,item.name);
   assert.equal(scope.RiftItemArt.get(item.id).visualOnly,false);
  }
- assert.ok(scope.RiftItemArt.catalogs.components.every(e=>e.visualOnly));
- assert.ok(scope.RiftItemArt.catalogs.items.slice(5).every(e=>e.visualOnly));
+ assert.ok(scope.RiftItemArt.catalogs.components.every(e=>!e.visualOnly));
+ assert.ok(scope.RiftItemArt.catalogs.items.slice(5).every(e=>!e.visualOnly));
  const renamed={RiftCore:{PowerEconomy:{ITEM_CATALOG:[{id:'boots',name:'Nombre vigente del core'}]}}};
  runInNewContext(read('src/ui/item-art.js'),renamed);
  assert.equal(renamed.RiftItemArt.get('boots').name,'Nombre vigente del core');
@@ -55,7 +58,7 @@ test('item rendering preserves SVGs, labels, empty slots and unknown item safety
  const {RiftMatchTab:tab,RiftItemArt:art}=boot();
  for(const id of expected.items){
   const html=tab.itemSlot(id,0);
-  assert.ok(html.includes(`title="${art.get(id).name}"`));
+  assert.ok(html.includes(`title="${art.get(id).name} · `));
   assert.ok(html.includes(`src="assets/inventory/items/32/${id}.png"`));
   assert.match(html,/<svg/);
   assert.match(html,/onerror="this.remove\(\)"/);
