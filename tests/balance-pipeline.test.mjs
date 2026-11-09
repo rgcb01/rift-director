@@ -75,6 +75,7 @@ test('la comparación 0.7.8→0.7.9 alerta sobre kills, duración, remontadas y 
  current.standard.duration.mean=51.5;
  current.standard.gameplay.comebackWins20=25;
  current.standard.gameplay.purchasesPerMatch=26.9;
+ current.standard.gameplay.occupiedSlotsPerMatch=51; // 85% of 60 actual slots
  const assessment=evaluate(current,previous);
  assert.ok(assessment.warnings.some(x=>x.includes('kills medias')));
  assert.ok(assessment.warnings.some(x=>x.includes('duración media')));
