@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { boot } from '../tests/harness.mjs';
+import {diagnoseMatch,aggregateDiagnostics} from './economy-diagnostics.mjs';
 
 // Alpha 0.7.7 baseline: 1,000 full matches, 10 independently generated
 // worlds, 100 distinct seeds/world, rotating actual league fixtures.
@@ -150,6 +151,7 @@ export function runStandard() {
             return at.gold[a]>at.gold[b]?a:at.gold[b]>at.gold[a]?b:null})(),
           goldLead20:(()=>{const at=m.frames.find(f=>f.minute===20)||f;
             return Math.abs(at.gold[a]-at.gold[b])})(),
+          economyDiagnosis:diagnoseMatch(m,fixture,core.PowerEconomy.ITEM_CATALOG),
           actions:actionCounts
         };
         rows.push(row);batchRows.push(row);
@@ -254,7 +256,8 @@ export function runStandard() {
       comebackWins20:rows.filter(r=>r.goldLead20>=1500&&r.goldLeader20&&r.goldLeader20!==r.winner).length,
       hugeKillMargin15:rows.filter(r=>r.killMargin>=15).length,
       durationAtCap75:rows.filter(r=>r.duration>=75).length,
-      actionTotals,actionMatches,tacticReasons},
+      actionTotals,actionMatches,tacticReasons,
+      economyDiagnostics:aggregateDiagnostics(rows)},
     worlds:worldStats,
     extremes:{
       fastest:[...rows].sort((a,b)=>a.duration-b.duration).slice(0,5).map(({i,world,seed,duration,totalKills,side})=>({i,world,seed,duration,totalKills,side})),
