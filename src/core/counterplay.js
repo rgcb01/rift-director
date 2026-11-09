@@ -138,6 +138,20 @@
   const errors=[];
   for(let i=0;i<(match.events||[]).length;i++){
    const event=match.events[i],facts=event.facts;
+   // Follow-up orders from lane trades and ganks must be just as
+   // reproducible as orders after counterplay teamfights.
+   if(facts?.counterPressure){
+    const w=facts.counterPressure;
+    if(!facts.victimIds?.length||w.teamId!==event.teamId||
+       w.created!==event.minute||w.until!==w.created+3||
+       w.sourceId!==facts.actorId||
+       !['TOP','MID','BOT'].includes(w.lane)||
+       !Array.isArray(w.allowed)||!w.allowed.length||
+       !w.allowed.every(id=>facts.participantIds?.includes(id))||
+       !Array.isArray(w.sourceVictims)||
+       w.sourceVictims.join(',')!==facts.victimIds.join(','))
+     errors.push('Pressure order without a real won fight '+i);
+   }
    if(facts?.counterplayVersion!==1)continue;
    const p=facts.counterplay;
    const pre=match.moments[i]?.navigation?.before;
@@ -156,14 +170,7 @@
       !Number.isFinite(p.score)||p.score<30||
       !Number.isSafeInteger(p.localEdge)||p.localEdge<0)
     errors.push('Counterplay without visible numerical opportunity '+i);
-   if(facts.counterPressure){
-    const w=facts.counterPressure;
-    if(!facts.victimIds?.length||w.teamId!==event.teamId||
-       w.created!==event.minute||w.until!==w.created+3||
-       !['TOP','MID','BOT'].includes(w.lane)||
-       !Array.isArray(w.allowed)||!w.allowed.length)
-     errors.push('Pressure order without a real won fight '+i);
-   }
+
   }
   return errors;
  }
