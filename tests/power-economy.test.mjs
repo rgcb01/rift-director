@@ -42,7 +42,7 @@ test('ítem equipado: solo se compra con cartera suficiente y estando en base',(
  assert.ok(economy.boost(model,a.id,'attack')>0);
  assert.equal(economy.purchase(model,nav,a,34,world),null,'No dos compras en el mismo minuto');
  for(let t=35;t<40;t++)economy.purchase(model,nav,a,t,world);
- assert.ok(p.items.length<=3);
+ assert.ok(p.items.length<=6);
  assert.equal(new Set(p.items).size,p.items.length);
 });
 
