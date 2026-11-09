@@ -289,7 +289,7 @@ function simulateMatch(f){
   nav.advance(navigation,t,m.dead,m,{health,map:m.map});
   RiftCore.Encounters.recover(health,navigation,m.dead,t);
   const farmIncome=RiftCore.LaneEconomy.advance(laneEconomy,
-    {minute:t,nav:navigation,map:m.map,health,gold:m.gold});
+    {minute:t,nav:navigation,map:m.map,health,gold:m.gold,structures:m.lanes});
   RiftCore.PowerEconomy.advance(powerEconomy,
     {minute:t,nav:navigation,dead:m.dead,health,teamIncome});
   for(const earning of farmIncome)
