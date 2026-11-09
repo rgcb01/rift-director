@@ -165,7 +165,7 @@ export function evaluate(current,previous){
   'Más del 80% de los 30 espacios prototipo de objetos están ocupados al terminar');
  warn(v.noEarlyTowerRate>.90,'Mas de 90% de los partidos no derriban torres antes del minuto 36');
  warn(current.standard.duration.min>=35,
-  'No hay victorias tempranas (duracion minima 35+): revisar asedio por reloj');
+  'No hay victorias antes del minuto 35: revisar ritmo de torres, oleadas y acceso físico al Nexo');
  return {failures,warnings,current:v,baseline:p};
 }
 export function bars(title,items,opts={}){
