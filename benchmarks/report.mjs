@@ -33,6 +33,10 @@ export function flatten(d){
   towerDefendedHitsMean:s.gameplay.towerDefendedHitsPerMatch??null,
   towerBaronHitsMean:s.gameplay.towerBaronHitsPerMatch??null,
   firstTowerHitMean:s.gameplay.firstTowerHitMean??null,
+  firstOpenLaneMean:s.gameplay.firstOpenLaneMean??null,
+  earlySiegeMinutesMean:s.gameplay.earlySiegeMinutesPerMatch??null,
+  earnedLaneKillOrdersMean:s.gameplay.earnedLaneKillOrdersPerMatch??null,
+  convertedLaneKillOrdersMean:s.gameplay.convertedLaneKillOrdersPerMatch??null,
   nexusHitsMean:s.gameplay.nexusHitsPerMatch??null,
   nexusBaronHitsMean:s.gameplay.nexusBaronHitsPerMatch??null,
   nexusDefendedHitsMean:s.gameplay.nexusContestedHitsPerMatch??null,
@@ -121,6 +125,10 @@ export function evaluate(current,previous){
    'Kills descendieron mas de 40% frente a la version anterior');
   fail(v.durationMean-p.durationMean>15,
    'Duracion media aumento mas de 15 minutos');
+  // Explicit release gate: a more causal engine must not keep making
+  // matches progressively longer without addressing the actual cause.
+  fail(v.durationMean-p.durationMean>2,
+   'Duracion media aumento mas de dos minutos frente al release anterior');
   fail(v.exactlyThreeTowers>.95&&v.exactlyThreeTowers>p.exactlyThreeTowers+.10,
    '95% de partidos acaban con solo tres torres: nueva regresion grave');
  }
@@ -216,6 +224,10 @@ const keys=[
  ['towerDefendedHitsMean','Golpes a torres con defensa presente por mapa','num'],
  ['towerBaronHitsMean','Golpes a torres respaldados por Barón por mapa','num'],
  ['firstTowerHitMean','Minuto promedio del primer golpe a torre','num'],
+ ['firstOpenLaneMean','Minuto promedio de la primera línea completamente abierta','num'],
+ ['earlySiegeMinutesMean','Minutos-jugador en asedios antes del minuto 30 por mapa','num'],
+ ['earnedLaneKillOrdersMean','Órdenes de presión tras kills en línea/gank por mapa','num'],
+ ['convertedLaneKillOrdersMean','Kills de línea/gank convertidas en torre antes de 5 min por mapa','num'],
  ['nexusHitsMean','Golpes físicos al Nexo por mapa','num'],
  ['nexusBaronHitsMean','Golpes al Nexo respaldados por Barón por mapa','num'],
  ['nexusDefendedHitsMean','Golpes al Nexo con defensores presentes por mapa','num'],
