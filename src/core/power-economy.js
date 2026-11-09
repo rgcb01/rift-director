@@ -154,60 +154,56 @@ function ingredientIds(row,item){
  return item.recipe.filter(id=>!row.items.includes(id));
 }
 function completedItems(row){return row.items.filter(id=>FINISHED[id]);}
+// Item selection values *completed* effects, not transaction count. Component
+// purchases are legal but should never crowd out an affordable power spike.
 function candidates(row,opponentGoldLead=0){
  const behind=opponentGoldLead>1400;
- const heldParts=row.items.filter(id=>COMPONENTS[id]);
- const finishable=ITEM_CATALOG.filter(item=>!row.items.includes(item.id)&&
-  item.recipe.every(id=>heldParts.includes(id)));
- const pool=finishable.length?finishable:ITEM_CATALOG;
- // Prioritize an unfinished recipe: unspent gold cannot be converted into a
- // power spike if every base visit scatters it across unrelated components.
- return pool.filter(item=>!row.items.includes(item.id)&&
-   (!heldParts.length||item.recipe.some(id=>heldParts.includes(id))||
-     (behind&&item.cost<=row.wallet&&roleAffinity(row.role,item.archetype,true)>=1.1)))
- .map(item=>{
+ const components=row.items.filter(id=>COMPONENTS[id]);
+ const pending=ITEM_CATALOG.filter(item=>!row.items.includes(item.id)&&
+   item.recipe.some(id=>components.includes(id)));
+ const pool=pending.length?pending:ITEM_CATALOG.filter(item=>!row.items.includes(item.id));
+ return pool.map(item=>{
   const utility=roleAffinity(row.role,item.archetype,behind)*
    (item.attack*1.35+item.defense*1.1+item.tempo*1.3+1)+
-   (item.id==='boots'&&!row.items.some(id=>id==='boots')?2:0)+
-   (item.recipe.some(id=>row.items.includes(id))?7:0)+
-   (behind?(4200-item.cost)/420:0);
+   (item.id==='boots'&&!row.items.includes('boots')?2:0);
   return {item,utility};
- }).sort((a,b)=>b.utility-a.utility||a.item.cost-b.item.cost);
+ }).sort((a,b)=>b.utility-a.utility||a.item.cost-b.item.cost||a.item.id.localeCompare(b.item.id));
 }
-// Return a real next transaction; a component is stored and may later be
-// consumed at its historical paid price when upgrading to a completed item.
 function purchaseOptions(row,opponentGoldLead=0){
- if(row.items.length>=6&&!ITEM_CATALOG.some(x=>
-  !row.items.includes(x.id)&&x.recipe.some(id=>row.items.includes(id))))return [];
- return candidates(row,opponentGoldLead).flatMap(({item,utility})=>{
-  const owned=item.recipe.filter(id=>row.items.includes(id));
-  const invested=owned.reduce((sum,id)=>sum+COMPONENTS[id].cost,0);
-  const remaining=item.cost-invested;
-  if(remaining<=row.wallet&&row.items.length-owned.length<6)
-   return [{...item,kind:'combine',targetId:item.id,consumedIds:owned,
-    goldCost:remaining,utility:utility+1}];
-  if(row.items.length>=6)return [];
-  const missing=ingredientIds(row,item);
-  const part=missing.map(id=>COMPONENTS[id]).find(x=>x.cost<=row.wallet);
-  return part?[{...part,kind:'component',targetId:item.id,consumedIds:[],
-    goldCost:part.cost,utility:utility*.65}]:[];
- }).sort((a,b)=>b.utility-a.utility||a.goldCost-b.goldCost||a.id.localeCompare(b.id));
+ if(row.items.length>=6&&!row.items.some(id=>COMPONENTS[id]))return [];
+ const choices=candidates(row,opponentGoldLead);
+ const full=[];
+ const partial=[];
+ for(const {item,utility} of choices){
+  const held=item.recipe.filter(id=>row.items.includes(id));
+  const spentOnParts=held.reduce((sum,id)=>sum+COMPONENTS[id].cost,0);
+  const due=item.cost-spentOnParts;
+  if(due<=row.wallet&&row.items.length-held.length<6){
+   full.push({...item,kind:'combine',targetId:item.id,
+    consumedIds:held,goldCost:due,utility});
+  }else if(row.items.length<6){
+   // Hold at most one unfinished recipe; another unrelated part would strand
+   // gold that should instead become a completed item.
+   const existing=row.items.some(id=>COMPONENTS[id]);
+   const missing=item.recipe.filter(id=>!row.items.includes(id));
+   if(existing && !held.length)continue;
+   const part=missing.map(id=>COMPONENTS[id]).find(c=>c.cost<=row.wallet);
+   if(part)partial.push({...part,kind:'component',targetId:item.id,
+    consumedIds:[],goldCost:part.cost,utility});
+  }
+ }
+ // Every affordable completed purchase beats an extra component, while paid
+ // components receive full cost credit. No discounts or comeback injections.
+ if(full.length)return full.sort((a,b)=>
+  (b.consumedIds.length-a.consumedIds.length)||
+  (b.utility/b.goldCost-a.utility/a.goldCost)||
+  a.goldCost-b.goldCost||a.id.localeCompare(b.id));
+ return partial.sort((a,b)=>b.utility-a.utility||
+  a.goldCost-b.goldCost||a.id.localeCompare(b.id));
 }
 function nextPurchase(model,id,opponentGoldLead=0){
  const row=model?.entries[id];if(!row)return null;
- const plans=purchaseOptions(row,opponentGoldLead);
- // A trailing team needs to convert its limited money into an actual
- // completed spike instead of repeatedly buying partial recipes.
- if(opponentGoldLead>1400&&!row.items.some(id=>COMPONENTS[id]&&
-    ITEM_CATALOG.some(item=>!row.items.includes(item.id)&&
-      item.recipe.every(part=>row.items.includes(part))))){
-  const affordable=plans.filter(plan=>plan.kind==='combine'&&
-   !plan.consumedIds.length&&roleAffinity(row.role,plan.archetype,true)>=1.1)
-   .sort((a,b)=>(b.utility/b.goldCost)-(a.utility/a.goldCost)||
-      a.goldCost-b.goldCost);
-  if(affordable.length)return affordable[0];
- }
- return plans[0]||null;
+ return purchaseOptions(row,opponentGoldLead)[0]||null;
 }
 // A recall is an opportunity-cost decision, never an automatic consequence
 // of being able to afford another item. Buying after respawn remains free to
