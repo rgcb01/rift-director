@@ -387,14 +387,23 @@ function nexusOpportunity(nav,{teamId,lanes,waves,health={},dead={},minute=nav.m
    (health[p.id]??100)>=min&&at(nav,p.id,node,1);
  const attackers=teamAgents(nav,teamId).filter(p=>p.intent!=='retreat'&&healthy(p,40));
  const defenders=teamAgents(nav,foe).filter(p=>healthy(p,25));
- if(attackers.length<2||attackers.length<=defenders.length)return null;
+ if(attackers.length<2)return null;
  const candidates=opened.map(lane=>({lane,wave:core.LaneEconomy.pressureFor(
   {teamIds:[nav.a,nav.b],lanes:waves},teamId,lane)}))
-  .filter(p=>p.wave>=(attackers.length>=3?-2.5:-1.25))
   .sort((a,b)=>b.wave-a.wave||a.lane.localeCompare(b.lane));
  if(!candidates.length)return null;
  return {teamId,node,lane:candidates[0].lane,wave:candidates[0].wave,
   attackers:attackers.map(p=>p.id),defenders:defenders.map(p=>p.id)};
+}
+// Physical siege damage accounts for real defenders and wave momentum.
+// Even a defended Nexus can sustain gradual damage from a persistent siege,
+// but weak/isolated attackers cannot damage it at all.
+function nexusSiegeDamage(plan,baronBuff=0){
+ if(!plan||plan.attackers.length<2)return 0;
+ const edge=plan.attackers.length-plan.defenders.length;
+ const wave=Math.max(-.5,Math.min(.5,plan.wave*.15));
+ const value=1+edge*.45+wave+(baronBuff>0?.4:0);
+ return Math.max(.25,Math.min(3,Math.round(value*4)/4));
 }
 function snapshot(nav,dead,t){
  const out={};
@@ -559,9 +568,9 @@ function auditNavigation(match,world){
      if(!['TOP','MID','BOT'].includes(f.lane)||!opened)
       errs.push('Nexo sin carril abierto verificable.');
      if(typeof signed!=='number'||Math.abs(signed-f.wave)>.011||
-       signed<(f.localAttackers>=3?-2.5:-1.25))
+       !Number.isFinite(signed))
       errs.push('Nexo sin oleada verificable.');
-     if(f.localAttackers<2||f.localAttackers<=f.localDefenders||
+     if(f.localAttackers<2||
        attackers.length<f.localAttackers||defenders.length<f.localDefenders||
        !f.participantIds?.every(id=>attackers.includes(id)))
       errs.push('Nexo sin ventaja local de atacantes verificada.');
@@ -586,5 +595,5 @@ core.Navigation=Object.freeze({links,adjacency,path,hops,adjacent,nearby,combatR
  jungleAllowed,gankPlan,jungleGoal,
  towerNode,createNavigation,teamAgents,getAgent,at,participants,engagement,forceRetreat,
  gankPlanForLane,
- advance,snapshot,nexusOpportunity,auditNavigation});
+ advance,snapshot,nexusOpportunity,nexusSiegeDamage,auditNavigation});
 })(globalThis);
