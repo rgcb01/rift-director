@@ -129,6 +129,9 @@ export function evaluate(current,previous){
   // matches progressively longer without addressing the actual cause.
   fail(v.durationMean-p.durationMean>2,
    'Duracion media aumento mas de dos minutos frente al release anterior');
+  fail(v.comebackRate!==null&&p.comebackRate!==null&&
+    p.comebackRate-v.comebackRate>.01,
+   'Remontadas cayeron mas de un punto porcentual: revisar snowball y defensa');
   fail(v.exactlyThreeTowers>.95&&v.exactlyThreeTowers>p.exactlyThreeTowers+.10,
    '95% de partidos acaban con solo tres torres: nueva regresion grave');
  }
