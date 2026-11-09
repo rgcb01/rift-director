@@ -78,8 +78,8 @@ export function flatten(d){
   recallPurchaseShare:s.gameplay.recallPurchasesPerMatch===undefined||
     !s.gameplay.purchasesPerMatch?null:
     s.gameplay.recallPurchasesPerMatch/s.gameplay.purchasesPerMatch,
-  itemSlotsUsed:s.gameplay.purchasesPerMatch===undefined?null:
-    s.gameplay.purchasesPerMatch/30,
+  itemSlotsUsed:s.gameplay.occupiedSlotsPerMatch===undefined?null:
+    s.gameplay.occupiedSlotsPerMatch/60,
   equipmentSpentMean:s.gameplay.equipmentGoldPerMatch??null,
   avgFinalLevel:s.gameplay.avgFinalLevel??null,
   noItemRate:s.gameplay.noItemGames===undefined?null:
@@ -162,7 +162,7 @@ export function evaluate(current,previous){
    'Los mapas con torres para ambos equipos cayeron más de cinco puntos porcentuales');
  }
  warn(v.itemSlotsUsed!==null&&v.itemSlotsUsed>.80,
-  'Más del 80% de los 30 espacios prototipo de objetos están ocupados al terminar');
+  'Más del 80% de los 60 espacios de inventario están ocupados al terminar');
  warn(v.noEarlyTowerRate>.90,'Mas de 90% de los partidos no derriban torres antes del minuto 36');
  warn(current.standard.duration.min>=35,
   'No hay victorias tempranas (duracion minima 35+): revisar asedio por reloj');
