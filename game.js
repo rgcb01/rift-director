@@ -936,12 +936,22 @@ function renderMapTactics(match,frame){
  const map=frame?.map;if(!map)return '<p class="helper">Este mapa fue generado antes del modelo táctico de visión.</p>';
  const a=club(match.fixture.a),b=club(match.fixture.b);
  const names={TOP:'Superior',MID:'Medio',BOT:'Inferior'};
+ const towerHp=(id,lane)=>{
+  const hp=frame.laneEconomy?.lanes?.[lane]?.hp?.[id];
+  if(!Array.isArray(hp))return null; // older replay without tower HP
+  const stage=hp.findIndex(v=>v>0);
+  if(stage<0)return 'todas destruidas';
+  const size=frame.laneEconomy?.towerMaxHp?.[stage]||hp[stage];
+  return ['exterior','interior','de base'][stage]+' '+hp[stage]+'/'+size+' HP';
+ };
  return `<p class="helper" style="margin-top:8px">Estimación abstracta de control por carril; no representa posiciones exactas.</p>`+
    ROLES.filter(r=>r==='TOP'||r==='MID'||r==='ADC').map(r=>{
     const lane=r==='ADC'?'BOT':r,ctx=map.lanes[lane],p=ctx.pressure[a.id];
     return `<div class="activity" style="display:block"><div class="split"><b>${names[lane]}</b><span class="helper">Presión ${esc(a.name)} ${p}% · ${esc(b.name)} ${100-p}%</span></div>
     <div class="track" style="margin-top:5px"><div class="fill" style="width:${p}%"></div></div>
-    <small class="helper">Visión: ${ctx.vision[a.id]} / ${ctx.vision[b.id]}</small></div>`;
+    <small class="helper">Visión: ${ctx.vision[a.id]} / ${ctx.vision[b.id]}</small>`+
+    (towerHp(a.id,lane)?`<div class="helper" style="margin-top:4px">Torres en pie · ${esc(a.name)}: ${esc(towerHp(a.id,lane))} · ${esc(b.name)}: ${esc(towerHp(b.id,lane))}</div>`:'')+
+    `</div>`;
    }).join('')+
    `<div class="helper" style="margin-top:10px"><b>Visión del río:</b> ${esc(a.name)} ${map.riverVision[a.id]}/100 · ${esc(b.name)} ${map.riverVision[b.id]}/100</div>`;
 }
