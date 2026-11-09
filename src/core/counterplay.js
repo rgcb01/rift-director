@@ -118,9 +118,9 @@
  function followup(nav,agent,minute,worldState,context){
   const w=nav.counterPressure?.[agent.teamId];
   if(!w||minute>w.until||minute<=w.created||minute>=36||
-    // ADC protection/roaming and early objective calls outrank opportunistic
-    // turret pressure: a won fight never cancels the SUP's core assignment.
-    agent.role==='SUP'&&minute<=29||
+    // SUP may escort an earned BOT-lane 2v1/2v2 pressure window.
+    // Other roams/objective plans still outrank unsupported turret travel.
+    agent.role==='SUP'&&minute<=29&&w.lane!=='BOT'||
     !w.allowed.includes(agent.id)||!agent.alive||
     (context?.health?.[agent.id]??100)<67)return null;
   const foe=agent.teamId===nav.a?nav.b:nav.a;
