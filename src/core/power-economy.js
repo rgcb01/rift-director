@@ -7,14 +7,50 @@
 'use strict';
 const core=root.RiftCore||(root.RiftCore={});
 const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+// Original Art Pack 02 assets are shared between the UI and the simulator.
+// Component IDs are real inventory occupants, not cosmetic pseudo-purchases.
+// Flat attack/defense/tempo are interim combat adapter values; champion-level
+// AD/AP/armor implementation and ability-specific passives remain later work.
+const COMPONENT_CATALOG=Object.freeze([
+ ['leather_boots','Botas simples',650,0,0,1],
+ ['iron_dagger','Daga de hierro',700,2,0,0],
+ ['chain_vest','Chaleco de malla',800,0,2,0],
+ ['oak_shield','Escudo básico',750,0,2,0],
+ ['magic_page','Página arcana',700,2,0,0],
+ ['mana_orb','Esfera de maná',750,2,0,0],
+ ['ruby_shard','Fragmento carmesí',800,2,0,0],
+ ['azure_crystal','Cristal azul',700,1,1,0],
+ ['hunter_string','Cuerda reforzada',650,2,0,0],
+ ['sun_fragment','Fragmento solar',650,0,1,1],
+ ['ward_totem','Tótem de visión',650,0,1,1],
+ ['bronze_handle','Empuñadura de bronce',600,1,0,0],
+ ['tempered_plate','Placa templada',800,0,2,0],
+ ['focus_lens','Lente focal',850,2,0,0],
+ ['green_charm','Amuleto vital',700,0,2,0]
+].map(([id,name,cost,attack,defense,tempo])=>
+ Object.freeze({id,name,cost,attack,defense,tempo,kind:'component'})));
 const ITEM_CATALOG=Object.freeze([
- Object.freeze({id:'boots',name:'Botas de desplazamiento',cost:1850,attack:1,defense:2,tempo:2}),
- Object.freeze({id:'blade',name:'Filo del duelista',cost:2700,attack:5,defense:0,tempo:0}),
- Object.freeze({id:'mantle',name:'Manto protector',cost:2600,attack:0,defense:6,tempo:0}),
- Object.freeze({id:'focus',name:'Foco de precisión',cost:4050,attack:7,defense:1,tempo:0}),
- Object.freeze({id:'bulwark',name:'Baluarte táctico',cost:4200,attack:1,defense:8,tempo:0})
-]);
-const ITEMS=Object.fromEntries(ITEM_CATALOG.map(x=>[x.id,x]));
+ ['boots','Botas de desplazamiento',1850,1,2,2,'mobility',['leather_boots','bronze_handle']],
+ ['blade','Filo del duelista',2700,5,0,0,'physical',['iron_dagger','bronze_handle']],
+ ['mantle','Manto protector',2600,0,6,0,'tank',['chain_vest','green_charm']],
+ ['focus','Foco de precisión',4050,7,1,0,'physical',['focus_lens','ruby_shard']],
+ ['bulwark','Baluarte táctico',4200,1,8,0,'tank',['oak_shield','tempered_plate']],
+ ['spellbook','Códice astral',2900,5,0,0,'magic',['magic_page','mana_orb']],
+ ['arcane_orb','Orbe de mareas',3550,6,0,0,'magic',['mana_orb','azure_crystal']],
+ ['spear','Lanza de ceniza',3250,6,0,0,'physical',['iron_dagger','bronze_handle']],
+ ['reaver','Guantelete voraz',3500,4,3,0,'bruiser',['ruby_shard','tempered_plate']],
+ ['wardstone','Piedra del vigía',2200,0,3,2,'support',['ward_totem','green_charm']],
+ ['sun_charm','Talismán solar',3100,1,4,1,'support',['sun_fragment','green_charm']],
+ ['aegis','Égida espectral',3750,0,7,0,'tank',['chain_vest','azure_crystal']],
+ ['bow','Arco de tormenta',3650,7,0,0,'marksman',['hunter_string','focus_lens']],
+ ['hourglass','Reloj de arena',3350,3,4,0,'magic',['magic_page','tempered_plate']],
+ ['crystal','Cristal del horizonte',2950,4,2,0,'magic',['azure_crystal','focus_lens']]
+].map(([id,name,cost,attack,defense,tempo,archetype,recipe])=>
+ Object.freeze({id,name,cost,attack,defense,tempo,archetype,
+  recipe:Object.freeze(recipe),kind:'complete'})));
+const ITEMS=Object.fromEntries([...ITEM_CATALOG,...COMPONENT_CATALOG].map(x=>[x.id,x]));
+const COMPONENTS=Object.fromEntries(COMPONENT_CATALOG.map(x=>[x.id,x]));
+const FINISHED=Object.fromEntries(ITEM_CATALOG.map(x=>[x.id,x]));
 const ROW=(p)=>({id:p.id,teamId:p.teamId,role:p.role,level:1,xp:0,
  wallet:500,earned:500,spent:0,items:[],lastPurchaseMinute:-100,
  voluntaryBuys:0,
@@ -103,31 +139,60 @@ function rewardEvent(model,event){
    }
  }
 }
+function roleAffinity(role,family,behind){
+ const preference={
+  TOP:{tank:1.8,bruiser:2,physical:1.35,mobility:1.15,magic:.5,marksman:.3,support:.4},
+  JUN:{tank:1.15,bruiser:1.65,physical:1.7,mobility:1.8,magic:1.1,marksman:.5,support:.6},
+  MID:{tank:.45,bruiser:.6,physical:.6,mobility:1.1,magic:2.25,marksman:.3,support:.6},
+  ADC:{tank:.3,bruiser:.6,physical:2.1,mobility:1.25,magic:.35,marksman:2.4,support:.3},
+  SUP:{tank:1.65,bruiser:.5,physical:.35,mobility:1.1,magic:.7,marksman:.2,support:2.4}
+ };
+ const v=preference[role]?.[family]??1;
+ return behind&&['tank','support'].includes(family)?v*1.1:v;
+}
+function ingredientIds(row,item){
+ return item.recipe.filter(id=>!row.items.includes(id));
+}
+function completedItems(row){return row.items.filter(id=>FINISHED[id]);}
 function candidates(row,opponentGoldLead=0){
+ const behind=opponentGoldLead>1400;
  return ITEM_CATALOG.filter(item=>!row.items.includes(item.id))
  .map(item=>{
-  const role=row.role;
-  const attackRole=['TOP','MID','ADC'].includes(role);
-  const defenseRole=['SUP','JUN'].includes(role);
-  const behind=opponentGoldLead>1400;
-  const utility=item.attack*(attackRole?1.8:1)+
-    item.defense*(defenseRole?1.7:behind?1.4:0.85)+
-    item.tempo*(role==='JUN'?2.4:1)+
-    (row.items.length?item.cost/900:0);
+  const utility=roleAffinity(row.role,item.archetype,behind)*
+   (item.attack*1.35+item.defense*1.1+item.tempo*1.3+1)+
+   (item.id==='boots'&&!row.items.some(id=>id==='boots')?2:0)+
+   (item.recipe.some(id=>row.items.includes(id))?3.5:0);
   return {item,utility};
  }).sort((a,b)=>b.utility-a.utility||a.item.cost-b.item.cost);
 }
+// Return a real next transaction; a component is stored and may later be
+// consumed at its historical paid price when upgrading to a completed item.
+function purchaseOptions(row,opponentGoldLead=0){
+ if(row.items.length>=6&&!ITEM_CATALOG.some(x=>x.recipe.every(id=>row.items.includes(id))))return [];
+ return candidates(row,opponentGoldLead).flatMap(({item,utility})=>{
+  const owned=item.recipe.filter(id=>row.items.includes(id));
+  const invested=owned.reduce((sum,id)=>sum+COMPONENTS[id].cost,0);
+  const remaining=item.cost-invested;
+  if(remaining<=row.wallet&&row.items.length-owned.length<6)
+   return [{...item,kind:'combine',targetId:item.id,consumedIds:owned,
+    goldCost:remaining,utility:utility+1}];
+  if(row.items.length>=6)return [];
+  const missing=ingredientIds(row,item);
+  const part=missing.map(id=>COMPONENTS[id]).find(x=>x.cost<=row.wallet);
+  return part?[{...part,kind:'component',targetId:item.id,consumedIds:[],
+    goldCost:part.cost,utility:utility*.65}]:[];
+ }).sort((a,b)=>b.utility-a.utility||a.goldCost-b.goldCost||a.id.localeCompare(b.id));
+}
 function nextPurchase(model,id,opponentGoldLead=0){
- const row=model.entries[id];if(!row||row.items.length>=3)return null;
- const options=candidates(row,opponentGoldLead).filter(c=>c.item.cost<=row.wallet);
- return options[0]?.item||null;
+ const row=model?.entries[id];if(!row)return null;
+ return purchaseOptions(row,opponentGoldLead)[0]||null;
 }
 // A recall is an opportunity-cost decision, never an automatic consequence
 // of being able to afford another item. Buying after respawn remains free to
 // consider and does not consume the voluntary reset allowance.
 function shouldRecall(model,nav,agent,minute,worldState,context=null){
  const row=model.entries[agent.id];
- if(!row||!agent.alive||minute<13||minute>63||row.items.length>=3)return false;
+ if(!row||!agent.alive||minute<13||minute>63||row.items.length>=6)return false;
  const side=agent.teamId===nav.a?'blue':'red';
  // A professional already at home can buy naturally. Returning from a
  // death timer must not be misclassified as a voluntary strategic recall.
@@ -136,7 +201,7 @@ function shouldRecall(model,nav,agent,minute,worldState,context=null){
  const enemy=agent.teamId===nav.a?nav.b:nav.a;
  const enemyLead=(worldState.gold[enemy]||0)-(worldState.gold[agent.teamId]||0);
  const item=nextPurchase(model,agent.id,enemyLead);
- if(!item||row.wallet<item.cost+450)return false;
+ if(!item||item.kind!=='combine'||row.wallet<item.goldCost+450)return false;
  if(row.voluntaryBuys>=1||minute-row.lastPurchaseMinute<8)return false;
  // Continue a reset already in progress, even if the wave or HP changes
  // while the professional walks along legal graph edges to the nexus.
@@ -149,7 +214,7 @@ function shouldRecall(model,nav,agent,minute,worldState,context=null){
   if(!r||r.voluntaryBuys>=1||minute-r.lastPurchaseMinute<8||
      (p.role==='JUN'&&minute<36||p.role==='SUP'&&minute<29))return false;
   const buy=nextPurchase(model,p.id,enemyLead);
-  if(!buy||r.wallet<buy.cost+450)return false;
+  if(!buy||buy.kind!=='combine'||r.wallet<buy.goldCost+450)return false;
   const health=hp(p.id);
   // During an active siege, preserve the squad's map presence. Only a
   // heavily injured professional may concede pressure to secure an item.
@@ -174,17 +239,31 @@ function purchase(model,nav,agent,minute,worldState){
  const item=nextPurchase(model,agent.id,worldState.gold[enemy]-worldState.gold[agent.teamId]);
  if(!item)return null;
  const voluntaryRecall=agent.intent==='shop_recall';
- row.wallet-=item.cost;row.spent+=item.cost;row.items.push(item.id);
+ const consumedIds=item.consumedIds||[];
+ const goldCost=item.goldCost;
+ const before=[...row.items];
+ if(item.kind==='combine'){
+  for(const ingredient of consumedIds){
+   const slot=row.items.indexOf(ingredient);
+   if(slot<0)throw Error('Missing recipe ingredient');
+   row.items.splice(slot,1);
+  }
+ }
+ if(row.items.length>=6||row.wallet<goldCost)throw Error('Invalid purchase capacity or wallet');
+ row.wallet-=goldCost;row.spent+=goldCost;row.items.push(item.id);
  row.lastPurchaseMinute=minute;
  if(voluntaryRecall)row.voluntaryBuys++;
  return {action:'item_purchase',actorId:agent.id,participantIds:[agent.id],
-  node:agent.node,itemId:item.id,itemName:item.name,goldCost:item.cost,
+  node:agent.node,itemId:item.id,itemName:item.name,goldCost,
+  itemKind:item.kind==='component'?'component':'complete',targetId:item.targetId,
+  consumedIds,inventoryBefore:before.length,
   level:row.level,slot:row.items.length,voluntaryRecall};
 }
 function boost(model,id,kind='attack'){
  const row=model?.entries[id];if(!row)return 0;
  const levels=(row.level-1)*1.35;
- const gear=row.items.reduce((sum,item)=>sum+(ITEMS[item]?.[kind]||0)*(kind==='attack'?2.3:1.3),0);
+ const gear=Math.min(kind==='attack'?39:25,row.items.reduce((sum,item)=>
+  sum+(ITEMS[item]?.[kind]||0)*(kind==='attack'?2.3:1.3),0));
  return levels+gear;
 }
 function teamEquipment(model,teamId){
@@ -210,7 +289,7 @@ function audit(match){
    if(!Number.isSafeInteger(p.wallet)||p.wallet<0||
       !Number.isSafeInteger(p.earned)||p.earned<500||
       !Number.isSafeInteger(p.spent)||p.spent<0||p.wallet+p.spent!==p.earned||
-      !Array.isArray(p.items)||p.items.length>3||new Set(p.items).size!==p.items.length||
+      !Array.isArray(p.items)||p.items.length>6||new Set(p.items).size!==p.items.length||
       p.items.some(item=>!ITEMS[item])||
       !Number.isSafeInteger(p.voluntaryBuys)||p.voluntaryBuys<0||
       p.voluntaryBuys>1||p.voluntaryBuys>p.items.length)
@@ -227,7 +306,8 @@ function audit(match){
  if(last){
   const purchased=Object.values(last.entries).reduce((n,p)=>n+p.items.length,0);
   const events=match.events.filter(e=>e.facts?.action==='item_purchase');
-  if(events.length!==purchased)errors.push('Items bought without events or duplicate purchases');
+  const consumed=events.reduce((n,e)=>n+(e.facts.consumedIds?.length||0),0);
+  if(events.length-consumed!==purchased)errors.push('Items bought without events or duplicate purchases');
   const spent=events.reduce((n,e)=>n+e.facts.goldCost,0);
   if(spent!==Object.values(last.entries).reduce((n,p)=>n+p.spent,0))
    errors.push('Purchase receipts do not match spending');
@@ -242,7 +322,8 @@ function audit(match){
    if(Boolean(f.voluntaryRecall)!==declared)
     errors.push('Purchase recall source inconsistent with navigation: '+f.actorId);
    const side=f.actorId===undefined?null:match.frames[0].navigation.after[f.actorId]?.teamId===match.fixture.a?'blue':'red';
-   if(!ITEMS[f.itemId]||ITEMS[f.itemId].cost!==f.goldCost||
+   const componentCredit=(f.consumedIds||[]).reduce((n,id)=>n+(COMPONENTS[id]?.cost||0),0);
+   if(!ITEMS[f.itemId]||ITEMS[f.itemId].cost-componentCredit!==f.goldCost||
       ![side+'_nexus',side+'_fountain'].includes(f.node))
     errors.push('Purchase receipt outside of fountain or invalid item');
   }
@@ -253,6 +334,6 @@ function audit(match){
  }
  return errors;
 }
-core.PowerEconomy=Object.freeze({create,advance,awardFarm,rewardEvent,nextPurchase,
- shouldRecall,purchase,boost,teamEquipment,snapshot,audit,ITEM_CATALOG,nextLevel});
+core.PowerEconomy=Object.freeze({create,advance,awardFarm,rewardEvent,nextPurchase,roleAffinity,
+ shouldRecall,purchase,boost,teamEquipment,snapshot,audit,ITEM_CATALOG,COMPONENT_CATALOG,nextLevel});
 })(globalThis);
