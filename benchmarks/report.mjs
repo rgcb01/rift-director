@@ -12,6 +12,20 @@ export function flatten(d){
  const s=d.standard,m=d.mirror;
  return {
   matches:s.completed,
+  comebackEligible20:s.gameplay.economyDiagnostics?.eligibleComebacks20??null,
+  conditionalComebackRate:s.gameplay.economyDiagnostics?.conditionalComebackRate??null,
+  earlyGoldGap:s.gameplay.economyDiagnostics?.earlyGoldGapMean??null,
+  earlySpentGap:s.gameplay.economyDiagnostics?.earlySpentGapMean??null,
+  earlyWalletGap:s.gameplay.economyDiagnostics?.earlyWalletGapMean??null,
+  midGoldGap:s.gameplay.economyDiagnostics?.midGoldGapMean??null,
+  midSpentGap:s.gameplay.economyDiagnostics?.midSpentGapMean??null,
+  midWalletGap:s.gameplay.economyDiagnostics?.midWalletGapMean??null,
+  underdogEquipmentGapRate:s.gameplay.economyDiagnostics?.earlyEquipmentAlignedWithGoldLead??null,
+  shutdownConversionRate:s.gameplay.economyDiagnostics?.shutdownToObjective5Rate??null,
+  shutdownTowerRate:s.gameplay.economyDiagnostics?.shutdownToTower5Rate??null,
+  underdogShutdownConversionRate:s.gameplay.economyDiagnostics?.underdogShutdownToObjective5Rate??null,
+  underdogShutdownGapRecovery:s.gameplay.economyDiagnostics?.underdogShutdownGapImprovementMean??null,
+
   blueWinRate:ratio(s.wins.blue,s.completed),
   pairedBlueWinRate:ratio(m.wins.blue,m.matches),
   durationMean:s.duration.mean,
@@ -231,6 +245,19 @@ const keys=[
  ['crossmapPlatesMean','Placas obtenidas como intercambio por Dragón','num'],
  ['crossmapTowerRate','Mapas con torre intercambiada por Dragón','rate'],
  ['comebackRate','Remontadas con deficit >=1500 al min 20','rate'],
+ ['comebackEligible20','Partidos elegibles para remontada en min 20','num'],
+ ['conditionalComebackRate','Remontadas entre partidos con deficit >=1500','rate'],
+ ['earlyGoldGap','Diferencia absoluta de oro min 20','num'],
+ ['earlySpentGap','Diferencia absoluta de oro invertido min 20','num'],
+ ['earlyWalletGap','Diferencia absoluta de cartera min 20','num'],
+ ['midGoldGap','Diferencia absoluta de oro min 30','num'],
+ ['midSpentGap','Diferencia absoluta de oro invertido min 30','num'],
+ ['midWalletGap','Diferencia absoluta de cartera min 30','num'],
+ ['underdogEquipmentGapRate','Rezagado con menos equipamiento min 20','rate'],
+ ['shutdownConversionRate','Shutdown seguido de objetivo propio <=5 min','rate'],
+ ['shutdownTowerRate','Shutdown seguido de torre propia <=5 min','rate'],
+ ['underdogShutdownConversionRate','Shutdown rezagado seguido de objetivo <=5 min','rate'],
+ ['underdogShutdownGapRecovery','Mejora media de brecha de oro tras shutdown rezagado','num'],
  ['multiLaneRate','Torres en dos o mas carriles','rate'],
  ['counterTowerRate','Ambos equipos toman torres','rate'],
  ['soloSplitTowerGames','Partidos con torre de splitpush solitario','rate'],
@@ -304,6 +331,14 @@ export function generate(current,previous,output){
    {label:'Vuelta a tienda',value:(assessment.current.recallPurchaseShare||0)*100},
    {label:'Sin compras',value:(assessment.current.noItemRate||0)*100}
   ],{max:100,decimals:0})],
+  ['economy.svg',bars('Brecha de oro y conversion a poder (minutos 20 y 30)',[
+   {label:'Oro m20',value:s.gameplay.economyDiagnostics?.earlyGoldGapMean||0},
+   {label:'Equipo m20',value:s.gameplay.economyDiagnostics?.earlySpentGapMean||0},
+   {label:'Cartera m20',value:s.gameplay.economyDiagnostics?.earlyWalletGapMean||0},
+   {label:'Oro m30',value:s.gameplay.economyDiagnostics?.midGoldGapMean||0},
+   {label:'Equipo m30',value:s.gameplay.economyDiagnostics?.midSpentGapMean||0},
+   {label:'Cartera m30',value:s.gameplay.economyDiagnostics?.midWalletGapMean||0}
+  ])],
   ['previous.svg',bars('Version anterior vs actual: porcentaje de partidas sin Dragon',[
    {label:previous.version,value:assessment.baseline.noDragonRate*100,color:'#f27e8a'},
    {label:current.version,value:assessment.current.noDragonRate*100,color:'#6de2c1'}],{max:100,decimals:0})]
