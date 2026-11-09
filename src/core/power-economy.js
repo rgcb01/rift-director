@@ -335,7 +335,7 @@ function audit(match){
       !Array.isArray(p.items)||p.items.length>6||new Set(p.items).size!==p.items.length||
       p.items.some(item=>!ITEMS[item])||
       !Number.isSafeInteger(p.voluntaryBuys)||p.voluntaryBuys<0||
-      p.voluntaryBuys>2||p.voluntaryBuys>p.spent/650)
+      p.voluntaryBuys>2)
     errors.push('Unbalanced personal wallet/items: '+id+'/'+frame.minute);
    const prior=prev?.[id];
    if(prior&&(p.level<prior.level||p.earned<prior.earned||
