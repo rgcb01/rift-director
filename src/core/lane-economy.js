@@ -94,9 +94,10 @@ function advance(model,{minute,nav,map,health,gold,structures=null}){
 function canPressureTower(model,id,lane,stage,minute){
  if(!LANES.includes(lane)||stage<1||stage>3)return false;
  const momentum=pressureFor(model,id,lane);
- // A crashing wave or a genuinely prolonged map siege enables damage.
- // This is not a guaranteed kill/tower: agents must still be present.
- return momentum>=.65||(minute>=48&&momentum>=-1.25);
+ // A moderately favourable wave lets players physically chip tower HP,
+ // instead of waiting for a fully crashed wave before any structural damage.
+ // Plates still demand crossing one-third of real HP with agents present.
+ return momentum>=.35||(minute>=48&&momentum>=-1.25);
 }
 // Match-local deterministic HP loss; the caller proves physical presence.
 function damageValue({stage,attackers,defenders,wave,baron}){
