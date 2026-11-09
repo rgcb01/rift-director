@@ -148,7 +148,9 @@ function roleAffinity(role,family,behind){
   SUP:{tank:1.65,bruiser:.5,physical:.35,mobility:1.1,magic:.7,marksman:.2,support:2.4}
  };
  const v=preference[role]?.[family]??1;
- return behind&&['tank','support'].includes(family)?v*1.1:v;
+ // Trailing teams seek an affordable damage/utility spike rather than
+ // automatically favoring expensive defense. No free combat stats are granted.
+ return behind?(v*(['physical','magic','marksman','bruiser'].includes(family)?1.12:1)):v;
 }
 function ingredientIds(row,item){
  return item.recipe.filter(id=>!row.items.includes(id));
@@ -156,61 +158,58 @@ function ingredientIds(row,item){
 function completedItems(row){return row.items.filter(id=>FINISHED[id]);}
 // Item selection values *completed* effects, not transaction count. Component
 // purchases are legal but should never crowd out an affordable power spike.
+// Score complete items using role utility and actual conversion of wallet gold.
+// Partial recipes only start after the first finished item; no off-map upgrades.
 function candidates(row,opponentGoldLead=0){
  const behind=opponentGoldLead>1400;
- const components=row.items.filter(id=>COMPONENTS[id]);
- const pending=ITEM_CATALOG.filter(item=>!row.items.includes(item.id)&&
-   item.recipe.some(id=>components.includes(id)));
- const pool=pending.length?pending:ITEM_CATALOG.filter(item=>!row.items.includes(item.id));
- return pool.map(item=>{
-  const utility=roleAffinity(row.role,item.archetype,behind)*
-   (item.attack*1.35+item.defense*1.1+item.tempo*1.3+1)+
-   (item.id==='boots'&&!row.items.includes('boots')?2:0);
-  return {item,utility};
- }).sort((a,b)=>b.utility-a.utility||a.item.cost-b.item.cost||a.item.id.localeCompare(b.item.id));
+ return ITEM_CATALOG.filter(item=>!row.items.includes(item.id)).map(item=>{
+  const owned=item.recipe.filter(part=>row.items.includes(part));
+  const credit=owned.reduce((total,id)=>total+COMPONENTS[id].cost,0);
+  const due=item.cost-credit;
+  const affinity=roleAffinity(row.role,item.archetype,behind);
+  const effectivePower=item.attack*1.35+item.defense*1.1+item.tempo*1.3+1;
+  // Prior purchases are sunk investment: finishing them matters only when
+  // converting the remaining wallet into immediate completed power.
+  const utility=affinity*effectivePower+(item.id==='boots'?1.8:0);
+  return {item,utility,due,owned};
+ }).sort((a,b)=>b.utility-a.utility||a.due-b.due||a.item.id.localeCompare(b.item.id));
 }
 function purchaseOptions(row,opponentGoldLead=0){
  if(row.items.length>=6&&!row.items.some(id=>COMPONENTS[id]))return [];
  const choices=candidates(row,opponentGoldLead);
- // Owning both ingredients is a locked recipe. Save the remaining gold,
- // never strand it in another recipe while waiting to complete the item.
- const components=row.items.filter(id=>COMPONENTS[id]);
- const locked=ITEM_CATALOG.some(item=>!row.items.includes(item.id)&&
-   item.recipe.every(part=>components.includes(part)));
- const full=[];
- const partial=[];
- for(const {item,utility} of choices){
-  const held=item.recipe.filter(id=>row.items.includes(id));
-  const spentOnParts=held.reduce((sum,id)=>sum+COMPONENTS[id].cost,0);
-  const due=item.cost-spentOnParts;
-  if(due<=row.wallet&&row.items.length-held.length<6){
+ const full=[],partials=[];
+ const heldComponents=row.items.filter(id=>COMPONENTS[id]);
+ const hasComplete=row.items.some(id=>FINISHED[id]);
+ for(const {item,utility,due,owned} of choices){
+  if(due<=row.wallet&&row.items.length-owned.length<6){
    full.push({...item,kind:'combine',targetId:item.id,
-    consumedIds:held,goldCost:due,utility});
-  }else if(row.items.length<6&&!locked){
-   // Hold at most one unfinished recipe; another unrelated part would strand
-   // gold that should instead become a completed item.
-   const existing=row.items.some(id=>COMPONENTS[id]);
-   const missing=item.recipe.filter(id=>!row.items.includes(id));
-   if(existing && !held.length)continue;
-   const part=missing.map(id=>COMPONENTS[id]).find(c=>c.cost<=row.wallet);
-   if(part)partial.push({...part,kind:'component',targetId:item.id,
-    consumedIds:[],goldCost:part.cost,utility});
+    consumedIds:owned,goldCost:due,utility});
   }
  }
- // Every affordable complete item beats an extra component. Among completed
- // items, select the strongest role fit rather than the cheapest utility/gold:
- // each professional has limited opportunities to visit base.
- // Owned ingredients remain top priority and receive their exact paid credit.
- if(full.length)return full.sort((a,b)=>
-  (b.consumedIds.length-a.consumedIds.length)||
-  (b.utility-a.utility)||
-  b.goldCost-a.goldCost||a.id.localeCompare(b.id));
- // The first investment must produce a real item spike. A first purchase of
- // loose parts costs tempo and strands early gold before the next return.
- // Once the first item is equipped, component recipes are fully available.
- if(!row.items.some(id=>FINISHED[id])&&!row.items.some(id=>COMPONENTS[id]))return [];
- return partial.sort((a,b)=>b.utility-a.utility||
-  a.goldCost-b.goldCost||a.id.localeCompare(b.id));
+ // First choose the best affordable power now. An affordable completed item
+ // is always more valuable than an uncompleted component at this shop visit.
+ if(full.length){
+  return full.sort((a,b)=>
+   (b.utility/Math.sqrt(b.goldCost))-(a.utility/Math.sqrt(a.goldCost))||
+   b.consumedIds.length-a.consumedIds.length||a.id.localeCompare(b.id));
+ }
+ // Preserve any unfinished craft. If there is no affordable completion, buy
+ // just its next missing part instead of creating several dead-end recipes.
+ // The next return is a real opportunity cost, never free crafting.
+ if(!hasComplete&&!heldComponents.length)return [];
+ if(row.items.length>=6)return [];
+ const focused=heldComponents.length?
+  choices.filter(c=>c.owned.length).sort((a,b)=>b.owned.length-a.owned.length||
+   b.utility-a.utility):choices;
+ for(const {item,utility,owned} of focused){
+  const missing=item.recipe.filter(id=>!row.items.includes(id));
+  const next=missing.map(id=>COMPONENTS[id]).find(part=>part.cost<=row.wallet);
+  if(!next)continue;
+  partials.push({...next,kind:'component',targetId:item.id,consumedIds:[],
+   goldCost:next.cost,utility});
+ }
+ return partials.sort((a,b)=>b.utility-a.utility||a.goldCost-b.goldCost||
+  a.id.localeCompare(b.id));
 }
 function nextPurchase(model,id,opponentGoldLead=0){
  const row=model?.entries[id];if(!row)return null;
@@ -295,9 +294,9 @@ function boost(model,id,kind='attack'){
   sum+(ITEMS[item]?.[kind]||0)*(kind==='attack'?2.3:1.3),0);
  // Preserve the first completed-item spike; curb runaway advantages from
  // stacking expensive builds. Same curve for every professional and team.
- const knee=kind==='attack'?14:8;
- const gear=Math.min(kind==='attack'?32:19,
-  raw<=knee?raw:knee+(raw-knee)*.48);
+ const knee=kind==='attack'?20:8;
+ const gear=Math.min(kind==='attack'?38:19,
+  raw<=knee?raw:knee+(raw-knee)*(kind==='attack'?.78:.48));
  return levels+gear;
 }
 function teamEquipment(model,teamId){
