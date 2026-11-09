@@ -4,6 +4,12 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Reparación de iconos de campeones en simulador
+- El TAB ahora muestra retratos también en partidas antiguas, reconstruyendo la identidad visual de manera determinista sin editar resultados ni inventar un draft histórico.
+- Los marcadores de profesionales en el minimapa ahora incluyen el retrato SVG del campeón, manteniendo borde de equipo, indicador de rol, vida y estado de muerte.
+- El Art Pack 01 PNG no está presente en el repositorio público; se mantiene el retrato SVG integrado como recurso disponible, sin afirmar que el atlas está publicado.
+
+
 ### Arte de campeones: Rift Faceted Fantasy (solo presentación)
 - Diez retratos originales SVG facetados con siluetas, cascos, peinados, máscaras, ojos y paletas específicas por campeón, inspirados en la estética low-poly vectorial del scoreboard conceptual.
 - Se conserva la simulación deportiva, los ítems, el oro y el replay sin cambios. La expansión económica de Alpha 0.7.16 permanece experimental en PR #37 por regresiones detectadas en duración y remontadas.
