@@ -40,6 +40,10 @@ test('match tab represents precisely the snapshot, six item slots, and escapes p
  assert.doesNotMatch(html,/<TOP>/);
  assert.match(html,/&lt;TOP&gt;/);
 });
+test('item catalogue exposes 15 original icons and real stat metadata',()=>{
+ assert.equal(Object.keys(tab.ITEMS).length,15);
+ for(const item of Object.values(tab.ITEMS))assert.ok(Object.keys(item.stats).length>0);
+});
 test('historical replay without champion assignments has no synthetic champions',()=>{
  assert.equal(tab.render({match:{},frame:{},teams}), '');
 });
