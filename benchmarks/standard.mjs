@@ -61,6 +61,13 @@ export function runStandard() {
           barons:(f.barons[a]||0)+(f.barons[b]||0),
           towers:(f.towers[a]||0)+(f.towers[b]||0),
           baronSteals,
+          nexusHits:m.events.filter(e=>['nexus_damage','nexus'].includes(e.facts?.action)).length,
+          nexusBaronHits:m.events.filter(e=>['nexus_damage','nexus'].includes(e.facts?.action)&&
+           e.facts.baron).length,
+          nexusDefendedHits:m.events.filter(e=>['nexus_damage','nexus'].includes(e.facts?.action)&&
+           e.facts.defenderIds?.length>0).length,
+          firstNexusHitMinute:m.events.find(e=>
+           ['nexus_damage','nexus'].includes(e.facts?.action))?.minute??null,
           counterplayFights:m.events.filter(e=>e.facts?.counterplayVersion===1).length,
           counterplayKills:m.events.reduce((n,e)=>n+
             (e.facts?.counterplayVersion===1?(e.facts?.victimIds?.length||0):0),0),
@@ -190,6 +197,12 @@ export function runStandard() {
       earlyTowerMatches:rows.filter(r=>r.firstTowerMinute!==null&&r.firstTowerMinute<36).length,
       firstTowerMean:+avg(rows.filter(r=>r.firstTowerMinute!==null).map(r=>r.firstTowerMinute)).toFixed(2),
       platesPerMatch:+avg(rows.map(r=>r.actions.plate||0)).toFixed(2),
+      nexusHitsPerMatch:+avg(rows.map(r=>r.nexusHits)).toFixed(2),
+      nexusBaronHitsPerMatch:+avg(rows.map(r=>r.nexusBaronHits)).toFixed(2),
+      nexusContestedHitsPerMatch:+avg(rows.map(r=>r.nexusDefendedHits)).toFixed(2),
+      firstNexusHitMean:+avg(rows.filter(r=>r.firstNexusHitMinute!==null)
+       .map(r=>r.firstNexusHitMinute)).toFixed(2),
+      gamesWithoutNexusDamage:rows.filter(r=>r.nexusHits===0).length,
       contestedDragonsPerMatch:+avg(rows.map(r=>r.dragonContests)).toFixed(2),
       macroFarmTurnsPerMatch:+avg(rows.map(r=>r.macroTurns.farm)).toFixed(2),
       macroDefendTurnsPerMatch:+avg(rows.map(r=>r.macroTurns.defend)).toFixed(2),
