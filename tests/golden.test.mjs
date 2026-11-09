@@ -24,6 +24,7 @@ test('semilla fija: Alpha 0.7.14 macro reproducible y contabilidad estable', () 
   delete legacyMatch.broadcast; // The editorial layer is optional and does not affect game state.
   legacyMatch.speed = 2; // Playback defaults to 1x; sports history before M1.4 used 2x by default.
   delete legacyMatch.playerStats; // Additive M1.2 individual stats do not change match RNG/outcomes.
+  delete legacyMatch.champions; // Additive spectator champion IDs do not change the sporting fingerprint.
   // M1.3B changes match outcomes intentionally: movement and proximity now govern all objectives.
   // Alpha 0.7.13 adds physically placed ward events and team-local sight; this sporting fingerprint changes intentionally while the global/financial hashes stay fixed.
   // Alpha 0.7.12 changes actual visible engagement decisions while the financial/world fixture seed stays stable.

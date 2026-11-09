@@ -33,6 +33,7 @@ export function boot(options = {}) {
   vm.runInNewContext(read('src/ui/minimap.js'), env, { timeout:10000, filename:'src/ui/minimap.js' });
   vm.runInNewContext(read('src/core/broadcast.js'), env, { timeout:10000, filename:'src/core/broadcast.js' });
   vm.runInNewContext(read('src/core/replay.js'), env, { timeout:10000, filename:'src/core/replay.js' });
+  vm.runInNewContext(read('src/ui/match-tab.js'), env, { timeout: 10000, filename: 'src/ui/match-tab.js' });
   // Test-only API injection; game.js remains unmodified in production.
   const source = read('game.js');
   const injection = [
