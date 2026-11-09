@@ -104,6 +104,19 @@ test('affordable complete power spike beats a new low-cost component',()=>{
  assert.equal(plan?.consumedIds.length,0);
  assert.ok(plan.goldCost<=row.wallet);
 });
+test('stacked completed items have diminishing returns without losing first-item spike',()=>{
+ const {core}=boot(),e=core.PowerEconomy;
+ const model=e.create(roster()),row=model.entries.a3;
+ row.items=['blade'];
+ const first=e.boost(model,'a3','attack');
+ row.items=['blade','focus','bow'];
+ const stacked=e.boost(model,'a3','attack');
+ assert.ok(first>0);
+ assert.ok(stacked>first);
+ assert.ok(stacked< (5+7+7)*2.3);
+ row.items=['mantle','bulwark','aegis'];
+ assert.ok(e.boost(model,'a3','defense')<=19);
+});
 test('role affinity leads to differentiated recipes without randomness',()=>{
  const {core}=boot(),e=core.PowerEconomy;
  const players=roster(),model=e.create(players);
