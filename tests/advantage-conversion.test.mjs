@@ -28,7 +28,7 @@ test('early siege requires both visible lead and real favourable lane wave',()=>
  core.Navigation.determineSiege(nav,state,20);
  assert.equal(nav.siegeTeam,a.id);
  assert.equal(nav.siegeLane,'BOT');
- assert.equal(nav.siegeUntil,25);
+ assert.equal(nav.siegeUntil,24);
  assert.equal(state.lanes[b.id].BOT,0,'A siege order must not create tower damage');
  const neutral=setup();
  neutral.state.waves.BOT.front=0;
@@ -54,6 +54,28 @@ test('early siege choice is symmetric and reversible when wave flips',()=>{
  core.Navigation.determineSiege(nav,state,26);
  assert.equal(nav.siegeTeam,b.id);
  assert.equal(nav.siegeLane,'BOT');
+});
+
+test('a trailing club can convert a real public kill into local pressure',()=>{
+ const {core,nav,state,a,b}=setup();
+ state.gold[a.id]=14000;state.gold[b.id]=14500;
+ state.kills[a.id]=0;state.kills[b.id]=0;
+ state.waves.BOT.front=.85;
+ state.dead={[b.lineup.ADC]:22};
+ core.Navigation.determineSiege(nav,state,20);
+ assert.equal(nav.siegeTeam,a.id,
+  'A locally earned window can beat a small global gold deficit');
+ assert.equal(nav.siegeLane,'BOT');
+ assert.equal(state.lanes[b.id].BOT,0,'No tower is granted without real damage');
+ const noDown=setup();
+ noDown.state.gold[noDown.a.id]=14000;
+ noDown.state.gold[noDown.b.id]=14500;
+ noDown.state.kills[noDown.a.id]=0;
+ noDown.state.kills[noDown.b.id]=0;
+ noDown.state.waves.BOT.front=.85;
+ noDown.core.Navigation.determineSiege(noDown.nav,noDown.state,20);
+ assert.equal(noDown.nav.siegeTeam,null,
+  'A deficit and a wave cannot manufacture a public casualty');
 });
 
 test('earned bot kill supports a physical ADC+SUP followup but never awards HP damage',()=>{
