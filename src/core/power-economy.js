@@ -160,7 +160,6 @@ function candidates(row,opponentGoldLead=0){
  const finishable=ITEM_CATALOG.filter(item=>!row.items.includes(item.id)&&
   item.recipe.every(id=>heldParts.includes(id)));
  const pool=finishable.length?finishable:ITEM_CATALOG;
- const behind=opponentGoldLead>1400;
  // Prioritize an unfinished recipe: unspent gold cannot be converted into a
  // power spike if every base visit scatters it across unrelated components.
  return pool.filter(item=>!row.items.includes(item.id)&&
