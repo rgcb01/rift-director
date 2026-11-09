@@ -6,6 +6,10 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [0.7.16-alpha] — Candidato en validación
 
+### Diagnóstico de economía y remontadas (solo observación)
+- Benchmark amplía los indicadores de 1,000 partidas con diferencias de oro, carteras y gasto en equipamiento por equipo a los minutos 20 y 30; tasa de remontadas condicional a tener ≥1,500 de déficit; y ventanas observadas de cinco minutos entre shutdown y objetivos del mismo equipo. Incluye gráfico `economy.svg` y pruebas sintéticas sin alterar partidas.
+- Los eventos posteriores a un shutdown se presentan como asociación temporal, **no causalidad demostrada**. Los valores nuevos no existían en los baselines anteriores y deben mostrarse como no comparables.
+
 ### Objetos, componentes, recetas y builds ejecutables
 - Iteración de economía: el motor permite una segunda visita voluntaria a la tienda con cartera elevada desde la fase intermedia, respetando desplazamiento físico, cooldown, un solo agente del equipo en regreso y veto de asedio. No se crean recursos ni teletransportes. Se añade prueba de segunda visita y monitorización del impacto en remontadas.
 - Se activan 15 objetos originales con bonos de combate del motor actual y 15 componentes con precio, compra real, ocupación de inventario y uso como ingredientes de mejora. Los 15 objetos declaran recetas de dos componentes; el precio de la mejora descuenta los componentes previamente comprados, sin crear ni duplicar oro.
