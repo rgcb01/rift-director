@@ -590,23 +590,27 @@ function simulateMatch(f){
    const leader=m.gold[a.id]>m.gold[b.id]?a:b;const dif=Math.abs(m.gold[a.id]-m.gold[b.id]);
    makeEv(t,dif<1800?'Máxima igualdad en la Grieta':'Lectura del mapa',dif<1800?'Los equipos intercambian oleadas y control de visión. La diferencia económica sigue siendo reducida.':`${leader.name} mantiene una ventaja aproximada de ${(dif/1000).toFixed(1)}k de oro. El rival debe elegir cuidadosamente sus próximos objetivos.`,'normal')
   }
-  // No forced siege roll. A late push still needs a crashed wave, three
-  // earned plates, living attackers and the corresponding physical tower.
-
-  if(t>=29&&!m.winner){
-   const eligible=all.filter(c=>Object.values(m.lanes[enemy(c).id]).some(n=>n===3))
-    .map(c=>({c,nearNexus:positioned(c,(enemy(c).id===a.id?'blue':'red')+'_nexus') }))
-    .filter(x=>x.nearNexus.length>=2);
-   if(eligible.length&&(t>=54||chance(t>=46?.66:.16))){
-    const w=eligible.length===1?eligible[0].c:decide(eligible[0].c,eligible[1].c,t);
-    const selected=eligible.find(x=>x.c.id===w.id).nearNexus;
-    const closer=player((selected.find(p=>p.role==='ADC')||selected[0]).id);
+  // A Nexus is destroyed only after three real towers have opened a lane,
+  // living attackers reached the base and a viable wave survives local defense.
+  // No minute threshold, stochastic sudden-death roll or free objectives.
+  if(!m.winner){
+   const opportunities=all.map(c=>({c,plan:RiftCore.Navigation.nexusOpportunity(navigation,{
+    teamId:c.id,lanes:m.lanes,waves:m.waves,health,dead:m.dead,minute:t
+   })})).filter(x=>x.plan);
+   if(opportunities.length){
+    const {c:w,plan}=opportunities.sort((x,y)=>
+     (y.plan.attackers.length-y.plan.defenders.length)-
+      (x.plan.attackers.length-x.plan.defenders.length)||
+     y.plan.wave-x.plan.wave||x.c.id.localeCompare(y.c.id))[0];
+    const present=plan.attackers.map(id=>nav.getAgent(navigation,id));
+    const closer=player((present.find(p=>p.role==='ADC')||present[0]).id);
     m.winner=w.id;
     makeEv(t,'¡NEXO DESTRUIDO!',
-     `${w.name} completa el recorrido hasta la base rival. ${closer.name} y los atacantes presentes destruyen el nexo tras ${t} minutos.`,
-     'end',w,{action:'nexus',actorId:closer.id,
-      participantIds:selected.map(p=>p.id),
-      node:(enemy(w).id===a.id?'blue':'red')+'_nexus'});
+     `${w.name} abre el carril ${plan.lane}, escolta la oleada y supera a los defensores del nexo. ${closer.name} confirma la victoria en el minuto ${t}.`,
+     'end',w,{action:'nexus',nexusVersion:2,actorId:closer.id,
+      participantIds:plan.attackers,lane:plan.lane,wave:plan.wave,
+      localAttackers:plan.attackers.length,localDefenders:plan.defenders.length,
+      node:plan.node});
    }
   }
   nextSnapshot(t)
