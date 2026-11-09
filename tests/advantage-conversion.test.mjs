@@ -75,6 +75,31 @@ test('earned bot kill supports a physical ADC+SUP followup but never awards HP d
  assert.equal(core.Counterplay.followup(nav,nav.agents[a.lineup.SUP],22,state,{health}),null);
 });
 
+test('regresión: la ventaja puede cambiar de lado tras un asedio comprometido',()=>{
+ const {core,nav,state,a,b}=setup();
+ nav.siegeTeam=a.id;nav.siegeLane='MID';nav.sideLane='TOP';
+ nav.siegeUntil=56;
+ state.gold[a.id]=20000;state.gold[b.id]=32000;
+ state.towers[a.id]=0;state.towers[b.id]=4;
+ core.Navigation.determineSiege(nav,state,63);
+ assert.equal(nav.siegeTeam,b.id,
+  'Después de expirar la orden, un nuevo líder real debe poder atacar');
+ assert.equal(nav.siegeUntil,71);
+});
+
+test('regresión: la semilla 176 de coherencia de ganks también termina',()=>{
+ const {sim,core}=boot({now:1731111111000});
+ const world=sim.newGame('balanced','Gank Coherence QA');
+ const fixture=Object.values(world.fixtures).flat().find(f=>
+  [f.a,f.b].includes(world.userClub));
+ world.rng=176*13131;
+ const m=sim.simulateMatch(fixture);
+ assert.ok(m.winner,'Semilla 176 sin Nexus destruido después de suprimir el freeze');
+ const errs=[...core.auditMatch(m,world),...core.NexusSiege.audit(m),
+  ...core.Navigation.auditNavigation(m,world)];
+ assert.deepEqual(errs,[]);
+});
+
 test('60 matches: post-kill pressure evidence and all physical audits stay consistent',()=>{
  const {sim,core,world,fixture}=setup();
  let laneOrders=0,earlyHits=0;
