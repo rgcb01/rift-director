@@ -47,7 +47,7 @@
    const damage=damageFor(participants.length,defenders.length,wave.wave,baron);
    if(damage<=0)continue;
    output.push({teamId:attacker,targetTeamId:defender,node:target,
-    lane:wave.lane,wave:round(wave.wave),baron,
+    lane:wave.lane,wave:wave.wave,baron,
     participantIds:participants.map(p=>p.id),
     defenderIds:defenders.map(p=>p.id),damage});
   }
