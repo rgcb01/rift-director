@@ -584,7 +584,7 @@ function auditNavigation(match,world){
 }
 core.Navigation=Object.freeze({links,adjacency,path,hops,adjacent,nearby,combatRange,isLaneNode,gankApproach,
  jungleAllowed,gankPlan,jungleGoal,
- towerNode,createNavigation,teamAgents,getAgent,at,participants,engagement,forceRetreat,
+ towerNode,determineSiege,createNavigation,teamAgents,getAgent,at,participants,engagement,forceRetreat,
  gankPlanForLane,
  advance,snapshot,auditNavigation});
 })(globalThis);
