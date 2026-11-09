@@ -390,7 +390,7 @@ function nexusOpportunity(nav,{teamId,lanes,waves,health={},dead={},minute=nav.m
  if(attackers.length<2||attackers.length<=defenders.length)return null;
  const candidates=opened.map(lane=>({lane,wave:core.LaneEconomy.pressureFor(
   {teamIds:[nav.a,nav.b],lanes:waves},teamId,lane)}))
-  .filter(p=>p.wave>=(attackers.length>=3?-.45:.2))
+  .filter(p=>p.wave>=(attackers.length>=3?-2.5:-1.25))
   .sort((a,b)=>b.wave-a.wave||a.lane.localeCompare(b.lane));
  if(!candidates.length)return null;
  return {teamId,node,lane:candidates[0].lane,wave:candidates[0].wave,
@@ -559,7 +559,7 @@ function auditNavigation(match,world){
      if(!['TOP','MID','BOT'].includes(f.lane)||!opened)
       errs.push('Nexo sin carril abierto verificable.');
      if(typeof signed!=='number'||Math.abs(signed-f.wave)>.011||
-       signed<(f.localAttackers>=3?-.45:.2))
+       signed<(f.localAttackers>=3?-2.5:-1.25))
       errs.push('Nexo sin oleada verificable.');
      if(f.localAttackers<2||f.localAttackers<=f.localDefenders||
        attackers.length<f.localAttackers||defenders.length<f.localDefenders||
