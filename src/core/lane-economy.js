@@ -31,7 +31,7 @@ function presence(nav,team,lane,health){
   core.Navigation.isLaneNode(p.node,lane)&&
   (health[p.id]??100)>=26).length;
 }
-function advance(model,{minute,nav,map,health,gold}){
+function advance(model,{minute,nav,map,health,gold,structures=null}){
  const [a,b]=model.teamIds;
  const earnings=[];
  for(const lane of LANES){
@@ -50,11 +50,25 @@ function advance(model,{minute,nav,map,health,gold}){
   const defenseEscort=id=>Object.values(nav.agents).filter(p=>p.alive&&
     p.teamId===id&&p.intent==='macro_defend'&&
     core.Navigation.isLaneNode(p.node,lane)).length;
-  // Both actions require physical presence: a defended incoming wave loses
-  // momentum, while a solo push has less momentum than a squad siege.
+  // Once all three towers of a specific lane are gone, an attacking
+  // squad physically holding the enemy Nexus is still escorting *that*
+  // lane's wave. The old lane-node-only model incorrectly forgot these
+  // four professionals when they entered the opponent's base.
+  // No gold is generated for being at the Nexus: farm still depends on
+  // being in the lane itself. This only affects physically earned momentum.
+  const nexusEscort=id=>{
+   const foe=id===a?b:a;
+   if(structures?.[foe]?.[lane]!==3)return 0;
+   const target=(foe===a?'blue':'red')+'_nexus';
+   const present=core.Navigation.participants(nav,id,target,1).filter(p=>
+    p.alive&&(health[p.id]??100)>=26&&
+    ['siege','splitpush','counterpush'].includes(p.intent));
+   return present.length>=2?present.length:0;
+  };
   const escortDelta=(escort(a)-escort(b))*.36+
     (macroEscort(a)-macroEscort(b))*.16+
-    (defenseEscort(a)-defenseEscort(b))*.12;
+    (defenseEscort(a)-defenseEscort(b))*.12+
+    (nexusEscort(a)-nexusEscort(b))*.29;
   const difference=(pa-pb)*.035+(va-vb)*.65+escortDelta;
   const momentum=clamp(difference,-1.35,1.35);
   // Dissipating momentum: a wave cannot remain permanently won when its
