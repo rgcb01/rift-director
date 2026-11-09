@@ -203,6 +203,10 @@ function purchaseOptions(row,opponentGoldLead=0){
   (b.consumedIds.length-a.consumedIds.length)||
   (b.utility/b.goldCost-a.utility/a.goldCost)||
   a.goldCost-b.goldCost||a.id.localeCompare(b.id));
+ // The first investment must produce a real item spike. A first purchase of
+ // loose parts costs tempo and strands early gold before the next return.
+ // Once the first item is equipped, component recipes are fully available.
+ if(!row.items.some(id=>FINISHED[id])&&!row.items.some(id=>COMPONENTS[id]))return [];
  return partial.sort((a,b)=>b.utility-a.utility||
   a.goldCost-b.goldCost||a.id.localeCompare(b.id));
 }
