@@ -5,7 +5,7 @@ import {boot} from './harness.mjs';
 test('vida de torre persiste, placas nacen del daño y la oleada es obligatoria',()=>{
  const {core}=boot();
  const e=core.LaneEconomy,model=e.create('blue','red');
- assert.deepEqual([...model.lanes.TOP.hp.red],e.TOWER_HP);
+ assert.deepEqual([...model.lanes.TOP.hp.red],[...e.TOWER_HP]);
  assert.equal(e.damageTower(model,{teamId:'blue',defenderId:'red',
   lane:'TOP',stage:1,minute:12,attackers:2,defenders:0}),null);
  model.lanes.TOP.front=2;
