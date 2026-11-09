@@ -233,7 +233,7 @@ function shouldRecall(model,nav,agent,minute,worldState,context=null){
  const enemyLead=(worldState.gold[enemy]||0)-(worldState.gold[agent.teamId]||0);
  const item=nextPurchase(model,agent.id,enemyLead);
  if(!item||item.kind!=='combine'||row.wallet<item.goldCost+450)return false;
- if(row.voluntaryBuys>=1||minute-row.lastPurchaseMinute<8)return false;
+ if(row.voluntaryBuys>=2||minute-row.lastPurchaseMinute<10)return false;
  // Continue a reset already in progress, even if the wave or HP changes
  // while the professional walks along legal graph edges to the nexus.
  if(agent.intent==='shop_recall')return true;
@@ -242,7 +242,7 @@ function shouldRecall(model,nav,agent,minute,worldState,context=null){
  const committed=nav.siegeTeam!==null&&minute>=24;
  const accepted=p=>{
   const r=model.entries[p.id];
-  if(!r||r.voluntaryBuys>=1||minute-r.lastPurchaseMinute<8||
+  if(!r||r.voluntaryBuys>=2||minute-r.lastPurchaseMinute<10||
      (p.role==='JUN'&&minute<36||p.role==='SUP'&&minute<29))return false;
   const buy=nextPurchase(model,p.id,enemyLead);
   if(!buy||buy.kind!=='combine'||r.wallet<buy.goldCost+450)return false;
@@ -252,7 +252,14 @@ function shouldRecall(model,nav,agent,minute,worldState,context=null){
   if(committed&&health>54)return false;
   // Before siege, a weakened laner can reset to turn earned money into
   // an immediate power spike. A trailing team has slightly more latitude.
-  if(!committed&&health>(enemyLead>1800?80:72))return false;
+  if(!committed&&health>(enemyLead>1800?80:72)){
+   // A very large unspent wallet creates a second real shopping opportunity
+   // only after lane phase, with no free teleport, no waived price, and no
+   // withdrawal while the team is sieging. Do not use low gold lead alone.
+   const wealthy=r.wallet>=5200&&minute>=31&&minute<=54&&
+     r.items.length<=4&&(health>=80||enemyLead>1600);
+   if(!wealthy)return false;
+  }
   return true;
  };
  const team=Object.values(nav.agents).filter(p=>p.teamId===agent.teamId&&p.alive);
@@ -328,7 +335,7 @@ function audit(match){
       !Array.isArray(p.items)||p.items.length>6||new Set(p.items).size!==p.items.length||
       p.items.some(item=>!ITEMS[item])||
       !Number.isSafeInteger(p.voluntaryBuys)||p.voluntaryBuys<0||
-      p.voluntaryBuys>1||p.voluntaryBuys>p.items.length)
+      p.voluntaryBuys>2||p.voluntaryBuys>p.spent/650)
     errors.push('Unbalanced personal wallet/items: '+id+'/'+frame.minute);
    const prior=prev?.[id];
    if(prior&&(p.level<prior.level||p.earned<prior.earned||
