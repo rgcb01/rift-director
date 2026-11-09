@@ -25,6 +25,10 @@
     const lanes = {[a]:{TOP:0,MID:0,BOT:0}, [b]:{TOP:0,MID:0,BOT:0}};
     const dead = new Map();
     const plateCounts={};
+    const towerHealth=Object.fromEntries([a,b].map(id=>[id,
+      Object.fromEntries(['TOP','MID','BOT'].map(l=>[l,[...core.LaneEconomy.TOWER_HP]]))]));
+    const lastTowerHit={};
+    const towerKey=(defender,lane,stage)=>defender+'|'+lane+'|'+stage;
     const combatants = [a,b].flatMap(id => core.ROLES.map(role => players.get(clubs.get(id).lineup[role])));
     let stats;
     try { stats = core.createPlayerStats(combatants); }
@@ -209,6 +213,35 @@
         const moment=match.moments?.[match.events.indexOf(event)];
         if(moment?.navigation?.before?.[facts.actorId]?.node!==facts.node)
          fail('Compra inventada fuera de la base: '+facts.actorId);
+      } else if (facts.action === 'tower_damage') {
+        actor(facts,event,t);verifyParticipants(event,facts,t);
+        const defender=event.teamId===a?b:a;
+        const lane=facts.lane,stage=facts.stage;
+        const key=towerKey(defender,lane,stage);
+        const validStage=['TOP','MID','BOT'].includes(lane)&&
+          integer(stage)&&stage>=1&&stage<=3&&
+          stage===lanes[defender]?.[lane]+1;
+        if(!validStage){
+          fail('Golpe sobre torre inexistente o fuera de orden.');
+        }else {
+          const hp=towerHealth[defender][lane][stage-1];
+          const raw=core.LaneEconomy.damageValue({
+            stage,attackers:facts.participantIds?.length,
+            defenders:facts.defenderIds?.length,
+            wave:facts.wave,baron:facts.baron});
+          const mayFinish=facts.participantIds.length>=2||facts.soloAllowed===true;
+          const after=Math.max(mayFinish?0:1,hp-raw);
+          if(facts.towerVersion!==1||facts.before!==hp||
+             facts.rawDamage!==raw||facts.after!==after||
+             !integer(facts.damage)||facts.damage<1||
+             facts.damage!==hp-after||
+             !Number.isFinite(facts.wave)||facts.wave<-.001-1.25&&t<48||
+             !Array.isArray(facts.defenderIds)||
+             !Array.isArray(facts.participantIds))
+            fail('Daño estructural imposible o HP de torre falsificado.');
+          towerHealth[defender][lane][stage-1]=after;
+          lastTowerHit[key]={...facts,minute:t};
+        }
       } else if (facts.action === 'plate') {
         actor(facts,event,t);verifyParticipants(event,facts,t);
         const defender=event.teamId===a?b:a;
@@ -224,6 +257,12 @@
           plateCounts[plateKey]++;
           if(plateCounts[plateKey]!==facts.plate)
             fail('Placa fuera de secuencia.');
+          const hit=lastTowerHit[plateKey];
+          const hp=core.LaneEconomy.TOWER_HP[stage-1];
+          const threshold=Math.floor((hp-hit?.after)*3/hp);
+          if(!hit||hit.minute!==t||threshold!==facts.plate||
+             hit.actorId!==facts.actorId||hit.node!==facts.node)
+            fail('Placa sin un golpe causal a la torre en el mismo minuto.');
         }
       } else if (facts.action === 'tower') {
         actor(facts, event, t);verifyParticipants(event,facts,t);
@@ -232,6 +271,11 @@
         else {
           lanes[target][facts.lane]++;
           if (lanes[target][facts.lane] > 3 || facts.stage !== lanes[target][facts.lane]) fail('Torre fuera de orden.');
+          const key=towerKey(target,facts.lane,facts.stage),hit=lastTowerHit[key];
+          if(!hit||hit.minute!==t||hit.after!==0||
+             towerHealth[target]?.[facts.lane]?.[facts.stage-1]!==0||
+             facts.towerVersion!==1||facts.towerHpAfter!==0)
+            fail('Torre destruida sin HP cero y golpe físico en su estructura.');
           totals.towers[event.teamId]++;
         }
       } else if (facts.action === 'dragon') {
@@ -339,6 +383,15 @@
          frame.siege.hits!==nexusHits||
          [a,b].some(id=>frame.siege.hp?.[id]!==nexusHealth[id]))
         fail('Vida del Nexo o golpes no corresponden a eventos: minuto '+frame.minute);
+      if(frame.laneEconomy?.towerMaxHp){
+        for(const id of [a,b])for(const lane of ['TOP','MID','BOT']){
+          const recorded=frame.laneEconomy.lanes?.[lane]?.hp?.[id];
+          if(!Array.isArray(recorded)||recorded.length!==3||
+             recorded.some((v,i)=>v!==towerHealth[id][lane][i]))
+            fail('Vida de torre distinta al historial de golpes: '+lane+
+             ' / '+id+' min '+frame.minute);
+        }
+      }
       validateRows(frame.playerStats,frame.minute);
     }
     if(match.moments){
