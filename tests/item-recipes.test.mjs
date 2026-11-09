@@ -72,6 +72,19 @@ test('components occupy slots and completing a recipe never credits duplicate go
  assert.equal(row.wallet+row.spent,row.earned);
  assert.equal(new Set(row.items).size,row.items.length);
 });
+test('when a recipe has both parts, shopping reserves gold for completion',()=>{
+ const {core}=boot(),e=core.PowerEconomy;
+ const model=e.create(roster()),row=model.entries.a2;
+ row.items=['magic_page','mana_orb'];
+ row.wallet=800;row.earned=800+1450;row.spent=1450;
+ const next=e.nextPurchase(model,'a2',0);
+ assert.equal(next,null,'Do not buy unrelated components when a recipe is ready');
+ row.wallet=1500;row.earned=2950;
+ const upgrade=e.nextPurchase(model,'a2',0);
+ assert.equal(upgrade?.kind,'combine');
+ assert.equal(upgrade?.itemId,undefined);
+ assert.equal(upgrade?.id,'spellbook');
+});
 test('role affinity leads to differentiated recipes without randomness',()=>{
  const {core}=boot(),e=core.PowerEconomy;
  const players=roster(),model=e.create(players);
