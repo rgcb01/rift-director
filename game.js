@@ -214,6 +214,15 @@ function simulateMatch(f){
      throw Error('Combat retreat without living target');
    }
   }
+  // Lane kills and ganks previously ended in a dead rival but rarely
+  // supplied a tower order. Convert the *observed* kill to a short,
+  // reversible lane plan; no damage, gold or tower is awarded here.
+  // Counterplay teamfights keep their existing followup ownership below.
+  if(facts.victimIds?.length&&['lane','gank'].includes(facts.mode)){
+   const plan=RiftCore.Counterplay.pressureAfterKill(navigation,facts,t,m);
+   if(plan)facts.counterPressure={...plan,
+    sourceVictims:[...plan.sourceVictims],allowed:[...plan.allowed]};
+  }
  };
  const affected=(facts)=>facts.impacts.map(q=>
     player(q.id).name+' '+q.hpBefore+'% → '+q.hpAfter+'%'+
