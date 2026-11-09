@@ -308,6 +308,26 @@ function audit(match){
   const events=match.events.filter(e=>e.facts?.action==='item_purchase');
   const consumed=events.reduce((n,e)=>n+(e.facts.consumedIds?.length||0),0);
   if(events.length-consumed!==purchased)errors.push('Items bought without events or duplicate purchases');
+  // Reconstruct the inventory strictly from receipts. This prevents phantom
+  // upgrade credits, forged consumed components and impossible seventh slots.
+  const inventories=Object.fromEntries(Object.keys(last.entries).map(id=>[id,[]]));
+  for(const event of events){
+   const r=event.facts,inventory=inventories[r.actorId];
+   if(!inventory){errors.push('Purchase by unknown professional: '+r.actorId);continue}
+   for(const ingredient of r.consumedIds||[]){
+    const index=inventory.indexOf(ingredient);
+    if(index<0)errors.push('Recipe used an unequipped component: '+r.actorId+'/'+ingredient);
+    else inventory.splice(index,1);
+   }
+   if(inventory.includes(r.itemId))errors.push('Duplicate item without sale: '+r.actorId+'/'+r.itemId);
+   inventory.push(r.itemId);
+   if(inventory.length>6||inventory.length!==r.slot)
+    errors.push('Purchase slot does not reflect item ledger: '+r.actorId);
+  }
+  for(const [id,p] of Object.entries(last.entries)){
+   if(JSON.stringify(inventories[id])!==JSON.stringify(p.items))
+    errors.push('Final inventory differs from receipts: '+id);
+  }
   const spent=events.reduce((n,e)=>n+e.facts.goldCost,0);
   if(spent!==Object.values(last.entries).reduce((n,p)=>n+p.spent,0))
    errors.push('Purchase receipts do not match spending');
