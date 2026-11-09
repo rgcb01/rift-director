@@ -488,12 +488,15 @@ function auditNavigation(match,world){
     }
     if(!direct||!actor||!target||!combatRange(actor.node,target.node,3))
      errs.push('Autor de escaramuza fuera de rango de golpe: '+e.minute);
-   }else if(f.action==='plate'){
+   }else if(f.action==='plate'||f.action==='tower_damage'){
     const node=towerNode(other===match.fixture.a?'blue':'red',f.lane,f.stage);
     if(!near(f.actorId,node,1))
       errs.push('Placa cobrada desde otra zona: '+e.minute);
     for(const id of f.participantIds||[])
-     if(!near(id,node,1))errs.push('Placa con participante ausente: '+id);
+     if(!near(id,node,1))errs.push('Torre o placa con participante ausente: '+id);
+    if(f.action==='tower_damage')for(const id of f.defenderIds||[])
+     if(!near(id,node,1)||positions[id]?.teamId!==other)
+      errs.push('Torre con defensor ausente: '+id);
    }else if(f.action==='teamfight'){
     for(const id of f.victimIds)if(!together(f.actorId,id,2))
       errs.push('Teamfight desde otra zona: '+e.minute+' / '+id);
