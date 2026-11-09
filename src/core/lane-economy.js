@@ -6,6 +6,8 @@
 'use strict';
 const core=root.RiftCore||(root.RiftCore={});
 const LANES=['TOP','MID','BOT'];
+// A tower yields three plates as it actually loses its three thirds of HP.
+const TOWER_HP=Object.freeze([96,108,120]);
 const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
 const roleLane=r=>r==='ADC'||r==='SUP'?'BOT':r==='TOP'||r==='MID'?r:null;
 const lanesOf=ids=>Object.fromEntries(LANES.map(l=>[l,{
@@ -13,6 +15,7 @@ const lanesOf=ids=>Object.fromEntries(LANES.map(l=>[l,{
   // Each defending team owns up to three physical structures per lane.
   // Their plates are a local measure of partial structural damage.
   plates:Object.fromEntries(ids.map(id=>[id,[0,0,0]])),
+  hp:Object.fromEntries(ids.map(id=>[id,[...TOWER_HP]])),
   farm:Object.fromEntries(ids.map(id=>[id,0]))
 }]));
 function create(a,b){
@@ -95,6 +98,47 @@ function canPressureTower(model,id,lane,stage,minute){
  // This is not a guaranteed kill/tower: agents must still be present.
  return momentum>=.65||(minute>=48&&momentum>=-1.25);
 }
+// Match-local deterministic HP loss; the caller proves physical presence.
+function damageValue({stage,attackers,defenders,wave,baron}){
+ if(!Number.isInteger(stage)||stage<1||stage>3||
+    !Number.isInteger(attackers)||attackers<1||attackers>5||
+    !Number.isInteger(defenders)||defenders<0||defenders>5||
+    !Number.isFinite(wave))return 0;
+ return Math.max(0,Math.min(TOWER_HP[stage-1]/3,
+  Math.round(8+attackers*9+Math.max(0,Math.min(2.5,wave))*4+
+   (baron?7:0)-defenders*6)));
+}
+function damageTower(model,{teamId,defenderId,lane,stage,minute,
+ attackers,defenders,soloAllowed=false,baron=false}){
+ if(!model.teamIds.includes(teamId)||!model.teamIds.includes(defenderId)||
+    teamId===defenderId||!LANES.includes(lane)||stage<1||stage>3||
+    !Number.isInteger(attackers)||attackers<1||attackers>5||
+    !Number.isInteger(defenders)||defenders<0||defenders>5||
+    !canPressureTower(model,teamId,lane,stage,minute))return null;
+ const hp=model.lanes[lane].hp[defenderId],plates=model.lanes[lane].plates[defenderId];
+ const before=hp[stage-1],maximum=TOWER_HP[stage-1];
+ if(before<=0)return null;
+ const wave=pressureFor(model,teamId,lane);
+ const rawDamage=damageValue({stage,attackers,defenders,wave,baron});
+ if(rawDamage<=0)return null;
+ // A solo player can chip tower HP; finishing it requires an escorted push
+ // or a bona fide uncontested splitpush with a strong crashing wave.
+ const mayFinish=attackers>=2||Boolean(soloAllowed);
+ const after=Math.max(mayFinish?0:1,before-rawDamage);
+ const damage=before-after;
+ if(damage<=0)return null;
+ hp[stage-1]=after;
+ const plate=Math.min(3,Math.floor((maximum-after)*3/maximum));
+ const awarded=plate>plates[stage-1];
+ if(awarded&&plate!==plates[stage-1]+1)
+  throw Error('Tower took more than one plate of damage in one tick');
+ if(awarded)plates[stage-1]=plate;
+ const goldReward=awarded?Math.max(55,125-Math.max(0,minute-14)*2):0;
+ model.income[teamId].plates+=goldReward;
+ return {before,after,damage,rawDamage,plate:awarded?plate:null,
+  goldReward,destructible:mayFinish,destroyed:after===0,wave,baron};
+}
+// Legacy helper for prior economic unit tests; the live match uses damageTower.
 function claimPlate(model,{teamId,defenderId,lane,stage,minute}){
  if(!canPressureTower(model,teamId,lane,stage,minute))return null;
  const count=model.lanes[lane].plates[defenderId][stage-1];
@@ -116,10 +160,12 @@ function firstTowerBonus(model,teamId,minute){
 }
 function snapshot(model){
  return {version:model.version,
+  towerMaxHp:[...TOWER_HP],
   firstTower:model.firstTower?{...model.firstTower}:null,
   lanes:Object.fromEntries(LANES.map(l=>[l,{
    front:model.lanes[l].front,
    plates:Object.fromEntries(model.teamIds.map(id=>[id,[...model.lanes[l].plates[id]]])),
+   hp:Object.fromEntries(model.teamIds.map(id=>[id,[...model.lanes[l].hp[id]]])),
    farm:{...model.lanes[l].farm}
   }])),
   income:Object.fromEntries(model.teamIds.map(id=>[id,{...model.income[id]}]))};
@@ -133,6 +179,10 @@ function audit(match){
    const v=l.lanes?.[lane];
    if(!v||!Number.isFinite(v.front)||Math.abs(v.front)>3.8)
     errors.push('Oleada inválida: '+lane+' min '+frame.minute);
+   for(const hp of Object.values(v?.hp||{}))
+    if(!Array.isArray(hp)||hp.length!==3||
+       hp.some((n,i)=>!Number.isSafeInteger(n)||n<0||n>TOWER_HP[i]))
+     errors.push('Vida de torre inválida: '+lane+' min '+frame.minute);
    for(const plates of Object.values(v?.plates||{}))
     if(!Array.isArray(plates)||plates.length!==3||
        plates.some(p=>!Number.isInteger(p)||p<0||p>3))
@@ -141,6 +191,6 @@ function audit(match){
  }
  return errors;
 }
-core.LaneEconomy=Object.freeze({create,advance,presence,pressureFor,
- canPressureTower,claimPlate,hasBrokenPlates,firstTowerBonus,snapshot,audit});
+core.LaneEconomy=Object.freeze({TOWER_HP,create,advance,presence,pressureFor,
+ canPressureTower,damageValue,damageTower,claimPlate,hasBrokenPlates,firstTowerBonus,snapshot,audit});
 })(globalThis);
