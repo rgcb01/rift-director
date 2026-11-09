@@ -35,6 +35,8 @@ test('semilla fija: Alpha 0.7.14 macro reproducible y contabilidad estable', () 
   // The financial report fingerprint remains unchanged. World RNG differs
   // intentionally because each match now consumes one global seed,
   // decoupling sporting decisions from future world economics.
+  // 0.7.16 deliberately changes item purchases and the sporting timeline,
+  // but must preserve determinism and world/finance accounting.
   const matchHash=hash(legacyMatch),worldAfterMatch=hash(world);
   const report=sim.applyMonth();
   const reportHash=hash(report),worldAfterMonth=hash(world);
@@ -48,7 +50,7 @@ test('semilla fija: Alpha 0.7.14 macro reproducible y contabilidad estable', () 
    f.a===againWorld.userClub||f.b===againWorld.userClub);
   assert.equal(hash(again.simulateMatch(againFixture)),originalFullMatchHash,
    'Identical seed and fixture must reproduce the entire match exactly');
-  assert.equal(matchHash, '6b5d60d9d58fab2df6a2b8c8d17b9264a5093efba3d2f2d41c4699796c25a207');
+  assert.equal(matchHash, '4c91b519bb87bb152cf67b955af57f6451de0b6094239aec359717eafd5558e1');
   assert.equal(worldAfterMatch, '342aa15055a9fab9e597749e13d099630f73351acb244b4d5c4380068b36caf1');
   assert.equal(reportHash, '63f62558933347e5947cc1b476f9056c23d59aa9e79fce65edd0c7d58372dbd9');
   assert.equal(worldAfterMonth, 'aaa0c74e7c2d45ecf8a1fdc5bfc0016d782b40d546e8b8225f67dcc869d19244');
