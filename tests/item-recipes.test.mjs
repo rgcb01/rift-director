@@ -60,15 +60,16 @@ test('shopping only at own fountain, component receipts, upgrade credits and six
 test('components occupy slots and completing a recipe never credits duplicate gold',()=>{
  const {core}=boot();const e=core.PowerEconomy,players=roster(),model=e.create(players),n=nav(players);
  const p=n.agents.a2,row=model.entries.a2,world={gold:{a:0,b:0}};
- row.wallet=800;row.earned=800;
+ row.items=['boots'];row.spent=1850;
+ row.wallet=800;row.earned=2650;
  const buy=e.nextPurchase(model,p.id,0);
  assert.ok(buy);
  assert.equal(buy.itemKind,undefined);
  assert.equal(buy.kind,'component');
  const ticket=e.purchase(model,n,p,10,world);
  assert.equal(ticket.itemKind,'component');
- assert.equal(row.items.length,1);
- assert.equal(row.spent,ticket.goldCost);
+ assert.equal(row.items.length,2);
+ assert.equal(row.spent,1850+ticket.goldCost);
  assert.equal(row.wallet+row.spent,row.earned);
  assert.equal(new Set(row.items).size,row.items.length);
 });
@@ -94,6 +95,14 @@ test('a trailing professional completes paid recipe before buying unrelated comp
  assert.equal(plan?.kind,'combine');
  assert.deepEqual(Array.from(plan?.consumedIds||[]),['magic_page']);
  assert.equal(plan?.goldCost,2200);
+});
+test('first purchase never strands gold in loose components',()=>{
+ const {core}=boot(),e=core.PowerEconomy;
+ const model=e.create(roster()),row=model.entries.a2;
+ row.wallet=900;row.earned=900;
+ assert.equal(e.nextPurchase(model,'a2'),null);
+ row.wallet=2050;row.earned=2050;
+ assert.equal(e.nextPurchase(model,'a2')?.kind,'combine');
 });
 test('affordable complete power spike beats a new low-cost component',()=>{
  const {core}=boot(),e=core.PowerEconomy;
