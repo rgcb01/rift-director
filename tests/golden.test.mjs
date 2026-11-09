@@ -39,6 +39,8 @@ test('semilla fija: Alpha 0.7.14 macro reproducible y contabilidad estable', () 
   const report=sim.applyMonth();
   const reportHash=hash(report),worldAfterMonth=hash(world);
   console.log('GOLDEN_FINGERPRINTS='+JSON.stringify({matchHash,worldAfterMatch,reportHash,worldAfterMonth}));
+  // Alpha 0.7.16 recipe/component shopping changes sporting purchases and deliberately
+  // shifts this fingerprint; finances and world state must remain stable.
   // Alpha 0.7.14 risk-based macro decisions intentionally change the
   // sporting fingerprint. Replays remain deterministic and world/finance
   // hashes must stay unchanged against the 0.7.13 reference.
@@ -48,7 +50,7 @@ test('semilla fija: Alpha 0.7.14 macro reproducible y contabilidad estable', () 
    f.a===againWorld.userClub||f.b===againWorld.userClub);
   assert.equal(hash(again.simulateMatch(againFixture)),originalFullMatchHash,
    'Identical seed and fixture must reproduce the entire match exactly');
-  assert.equal(matchHash, '6b5d60d9d58fab2df6a2b8c8d17b9264a5093efba3d2f2d41c4699796c25a207');
+  assert.equal(matchHash, '3d83ca4f4ba1ee93094ec45463889e4a481d4e11fa8e65a2f74632fea688a63b');
   assert.equal(worldAfterMatch, '342aa15055a9fab9e597749e13d099630f73351acb244b4d5c4380068b36caf1');
   assert.equal(reportHash, '63f62558933347e5947cc1b476f9056c23d59aa9e79fce65edd0c7d58372dbd9');
   assert.equal(worldAfterMonth, 'aaa0c74e7c2d45ecf8a1fdc5bfc0016d782b40d546e8b8225f67dcc869d19244');
