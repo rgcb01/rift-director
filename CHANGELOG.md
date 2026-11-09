@@ -4,6 +4,15 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+## [0.7.15-alpha] — 2026-11-08 (experimental)
+
+### Primer corte: daño causal al Nexo
+- El Nexo tiene una vida persistente de 108 puntos, visible en los snapshots de cada minuto y momento histórico. Una victoria requiere reducir la vida del Nexo enemigo a cero; se elimina la probabilidad de cierre que dependía de los minutos 46/54.
+- `NexusSiege` exige una línea con tres torres destruidas, oleada con presión válida y al menos dos atacantes vivos presentes en el área del Nexo. Las defensas reales reducen el daño; el Barón solo potencia un asedio que ya cumpla las condiciones físicas.
+- Cada ataque se registra como `nexus_damage` o `nexus` con participantes, defensores, daño, vida anterior/posterior, línea y presión. Las auditorías comprueban que no haya ataques desde lejos, daños falsificados ni victorias sin vida cero.
+- **Puerta de publicación:** pruebas funcionales completas + 1,000 partidas auditadas y 500 pares espejados, 0 partidas sin ganador y comparación con 0.7.14. Versión experimental sin cambios en `main` hasta completar el balance.
+- **Pendiente dentro de 0.7.15:** inhibidores, conversión del Barón y variedad de asedio/defensa, tras cerrar este primer corte.
+
 ## [0.7.14-alpha] — 2026-11-08
 
 ### Riesgo y coste de oportunidad verificables
