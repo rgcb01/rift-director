@@ -85,9 +85,11 @@ function portrait(champion){
 }
 function itemSlot(itemId,index){
  const fallback=Object.hasOwn(ITEMS,itemId)?ITEMS[itemId]:null;
- const art=root.RiftItemArt?.get(itemId);
- const item=root.RiftCore?.PowerEconomy?.ITEM_CATALOG.find(x=>x.id===itemId)||fallback||art;
- const title=item?item.name:(itemId?'Objeto desconocido: '+itemId:'Espacio vacío');
+ const art=root.RiftItemArt?.get(itemId)||root.RiftItemArt?.get(itemId,'components');
+ const item=root.RiftCore?.PowerEconomy?.ITEM_CATALOG.find(x=>x.id===itemId)||
+  root.RiftCore?.PowerEconomy?.COMPONENT_CATALOG?.find(x=>x.id===itemId)||fallback||art;
+ const title=item?item.name+(item.cost?' · '+item.cost+' oro':''):
+  (itemId?'Objeto desconocido: '+itemId:'Espacio vacío');
  return `<span class="tab-item ${item?'filled':'vacant'}" title="${escape(title)}" aria-label="Objeto ${index+1}: ${escape(title)}">${item?emblem(fallback?.shape||'orb',fallback?.color||'#9baac8')+(root.RiftItemArt?.image(itemId)||''):''}</span>`;
 }
 function row(p,championId,frame){
@@ -124,7 +126,7 @@ function render({match,frame,teams}){
  }).join('')}</div></section>`).join('');
  return `<section class="panel rift-tab-panel" aria-label="Tabla de campeones y objetos del partido">
  <div class="panel-head"><h2>Campeones y builds</h2><span class="chip">TAB · espectador</span></div>
- <p class="helper">Datos del momento seleccionado · ${match?.champions?.entries?'Campeones asignados al partido.':'Replay histórico: identidad de campeón reconstruida únicamente para la presentación.'} Los kits y objetos escalados llegarán en próximas versiones.</p>
+ <p class="helper">Datos del momento seleccionado · ${match?.champions?.entries?'Campeones asignados al partido.':'Replay histórico: identidad de campeón reconstruida únicamente para la presentación.'} Los componentes y objetos usan compras reales; el escalado de atributos y las habilidades llegarán en próximas versiones.</p>
  <div class="rift-tab-grid">${rows}</div></section>`;
 }
 root.RiftMatchTab=Object.freeze({assign,render,itemSlot,championFor,portraitFor,CHAMPIONS,ITEMS});
