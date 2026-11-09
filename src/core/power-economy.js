@@ -7,13 +7,27 @@
 'use strict';
 const core=root.RiftCore||(root.RiftCore={});
 const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+// A small but genuinely differentiated first catalog. Existing five IDs and
+// prices stay stable for historical replay receipts. Each item carries future
+// raw stat metadata; Alpha 0.7.16 still resolves combat via the existing power
+// adapter, never by double-counting raw stats.
 const ITEM_CATALOG=Object.freeze([
- Object.freeze({id:'boots',name:'Botas de desplazamiento',cost:1850,attack:1,defense:2,tempo:2}),
- Object.freeze({id:'blade',name:'Filo del duelista',cost:2700,attack:5,defense:0,tempo:0}),
- Object.freeze({id:'mantle',name:'Manto protector',cost:2600,attack:0,defense:6,tempo:0}),
- Object.freeze({id:'focus',name:'Foco de precisión',cost:4050,attack:7,defense:1,tempo:0}),
- Object.freeze({id:'bulwark',name:'Baluarte táctico',cost:4200,attack:1,defense:8,tempo:0})
-]);
+ {id:'boots',name:'Botas de desplazamiento',cost:1850,attack:1,defense:2,tempo:2,archetype:'mobility',stats:{moveSpeed:35},unique:'Paso ligero',shape:'boots',color:'#579edf'},
+ {id:'blade',name:'Filo del duelista',cost:2700,attack:5,defense:0,tempo:0,archetype:'physical',stats:{attackDamage:45},unique:'Duelo',shape:'blade',color:'#e29475'},
+ {id:'mantle',name:'Manto protector',cost:2600,attack:0,defense:6,tempo:0,archetype:'tank',stats:{armor:40,health:200},unique:'Amparo',shape:'shield',color:'#78bbac'},
+ {id:'focus',name:'Foco de precisión',cost:4050,attack:7,defense:1,tempo:0,archetype:'physical',stats:{attackDamage:55,critChance:15},unique:'Puntería',shape:'orb',color:'#be9bec'},
+ {id:'bulwark',name:'Baluarte táctico',cost:4200,attack:1,defense:8,tempo:0,archetype:'tank',stats:{armor:55,health:350},unique:'Fortaleza',shape:'shield',color:'#e6bd78'},
+ {id:'spellbook',name:'Códice astral',cost:2900,attack:5,defense:1,tempo:0,archetype:'magic',stats:{abilityPower:65},unique:'Concentración',shape:'book',color:'#a78ae8'},
+ {id:'arcane_orb',name:'Orbe de mareas',cost:3550,attack:7,defense:0,tempo:0,archetype:'magic',stats:{abilityPower:80,mana:200},unique:'Flujo',shape:'orb',color:'#6cd2ee'},
+ {id:'spear',name:'Lanza de ceniza',cost:3250,attack:6,defense:1,tempo:0,archetype:'physical',stats:{attackDamage:50,armorPen:15},unique:'Perforación',shape:'spear',color:'#f3a167'},
+ {id:'reaver',name:'Guantelete voraz',cost:3500,attack:5,defense:4,tempo:0,archetype:'bruiser',stats:{attackDamage:35,health:300},unique:'Tenacidad',shape:'gauntlet',color:'#cc7283'},
+ {id:'wardstone',name:'Piedra del vigía',cost:2200,attack:0,defense:4,tempo:3,archetype:'support',stats:{health:250,abilityHaste:15},unique:'Centinela',shape:'gem',color:'#71e5b7'},
+ {id:'sun_charm',name:'Talismán solar',cost:3100,attack:2,defense:6,tempo:1,archetype:'support',stats:{health:200,healShieldPower:12},unique:'Bendición',shape:'sun',color:'#efc267'},
+ {id:'aegis',name:'Égida espectral',cost:3750,attack:1,defense:7,tempo:0,archetype:'tank',stats:{magicResist:55,health:250},unique:'Resguardo',shape:'shield',color:'#82a9d7'},
+ {id:'bow',name:'Arco de tormenta',cost:3650,attack:7,defense:0,tempo:0,archetype:'marksman',stats:{attackSpeed:35,critChance:20},unique:'Cadencia',shape:'bow',color:'#7ccde2'},
+ {id:'hourglass',name:'Reloj de arena',cost:3350,attack:3,defense:5,tempo:0,archetype:'magic',stats:{abilityPower:55,armor:25},unique:'Pausa',shape:'hourglass',color:'#e6ce82'},
+ {id:'crystal',name:'Cristal del horizonte',cost:2950,attack:4,defense:3,tempo:0,archetype:'magic',stats:{abilityPower:55,health:175},unique:'Resonancia',shape:'gem',color:'#8da5fa'}
+].map(x=>Object.freeze({...x,stats:Object.freeze(x.stats)})));
 const ITEMS=Object.fromEntries(ITEM_CATALOG.map(x=>[x.id,x]));
 const ROW=(p)=>({id:p.id,teamId:p.teamId,role:p.role,level:1,xp:0,
  wallet:500,earned:500,spent:0,items:[],lastPurchaseMinute:-100,
@@ -25,7 +39,7 @@ function create(players){
   if(!p?.id||entries[p.id])throw Error('Duplicate power economy player');
   entries[p.id]=ROW(p);
  }
- return {version:1,entries};
+ return {version:2,entries};
 }
 function nextLevel(level){return 100+(level-1)*15;}
 function xpAward(model,id,amount){
@@ -103,22 +117,33 @@ function rewardEvent(model,event){
    }
  }
 }
+function buildPreference(role,archetype,behind){
+ const matrix={
+  TOP:{physical:1.45,bruiser:2.4,tank:2,mobility:1,support:.2,magic:.5,marksman:.3},
+  JUN:{physical:1.6,bruiser:1.8,tank:1.25,mobility:1.8,support:.65,magic:1.3,marksman:.55},
+  MID:{physical:.5,bruiser:.3,tank:.4,mobility:1.1,support:.65,magic:2.5,marksman:.3},
+  ADC:{physical:2.1,bruiser:.4,tank:.25,mobility:1.4,support:.2,magic:.15,marksman:2.6},
+  SUP:{physical:.2,bruiser:.35,tank:1.55,mobility:1.2,support:2.7,magic:.8,marksman:.1}
+ };
+ const affinity=matrix[role]?.[archetype]??1;
+ return behind && ['tank','support','bruiser'].includes(archetype)?affinity*1.18:affinity;
+}
 function candidates(row,opponentGoldLead=0){
+ const behind=opponentGoldLead>1400;
+ const ownedBoots=row.items.includes('boots');
  return ITEM_CATALOG.filter(item=>!row.items.includes(item.id))
  .map(item=>{
-  const role=row.role;
-  const attackRole=['TOP','MID','ADC'].includes(role);
-  const defenseRole=['SUP','JUN'].includes(role);
-  const behind=opponentGoldLead>1400;
-  const utility=item.attack*(attackRole?1.8:1)+
-    item.defense*(defenseRole?1.7:behind?1.4:0.85)+
-    item.tempo*(role==='JUN'?2.4:1)+
-    (row.items.length?item.cost/900:0);
+  // Preserve strategic trade-offs: role fit and affordable power both matter.
+  // Never grant an item before an actual base purchase.
+  const roleMatch=buildPreference(row.role,item.archetype,behind);
+  const base=item.attack*1.3+item.defense*.95+item.tempo*1.45;
+  const utility=base*roleMatch+(item.id==='boots'&&!ownedBoots?3:0)
+    +(row.items.length?item.cost/1400:0);
   return {item,utility};
- }).sort((a,b)=>b.utility-a.utility||a.item.cost-b.item.cost);
+ }).sort((a,b)=>b.utility-a.utility||a.item.cost-b.item.cost||a.item.id.localeCompare(b.item.id));
 }
 function nextPurchase(model,id,opponentGoldLead=0){
- const row=model.entries[id];if(!row||row.items.length>=3)return null;
+ const row=model.entries[id];if(!row||row.items.length>=6)return null;
  const options=candidates(row,opponentGoldLead).filter(c=>c.item.cost<=row.wallet);
  return options[0]?.item||null;
 }
@@ -127,7 +152,7 @@ function nextPurchase(model,id,opponentGoldLead=0){
 // consider and does not consume the voluntary reset allowance.
 function shouldRecall(model,nav,agent,minute,worldState,context=null){
  const row=model.entries[agent.id];
- if(!row||!agent.alive||minute<13||minute>63||row.items.length>=3)return false;
+ if(!row||!agent.alive||minute<13||minute>63||row.items.length>=6)return false;
  const side=agent.teamId===nav.a?'blue':'red';
  // A professional already at home can buy naturally. Returning from a
  // death timer must not be misclassified as a voluntary strategic recall.
@@ -210,7 +235,7 @@ function audit(match){
    if(!Number.isSafeInteger(p.wallet)||p.wallet<0||
       !Number.isSafeInteger(p.earned)||p.earned<500||
       !Number.isSafeInteger(p.spent)||p.spent<0||p.wallet+p.spent!==p.earned||
-      !Array.isArray(p.items)||p.items.length>3||new Set(p.items).size!==p.items.length||
+      !Array.isArray(p.items)||p.items.length>6||new Set(p.items).size!==p.items.length||
       p.items.some(item=>!ITEMS[item])||
       !Number.isSafeInteger(p.voluntaryBuys)||p.voluntaryBuys<0||
       p.voluntaryBuys>1||p.voluntaryBuys>p.items.length)
@@ -253,6 +278,6 @@ function audit(match){
  }
  return errors;
 }
-core.PowerEconomy=Object.freeze({create,advance,awardFarm,rewardEvent,nextPurchase,
+core.PowerEconomy=Object.freeze({create,advance,awardFarm,rewardEvent,nextPurchase,buildPreference,
  shouldRecall,purchase,boost,teamEquipment,snapshot,audit,ITEM_CATALOG,nextLevel});
 })(globalThis);
