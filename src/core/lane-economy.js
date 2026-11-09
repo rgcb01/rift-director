@@ -7,7 +7,7 @@
 const core=root.RiftCore||(root.RiftCore={});
 const LANES=['TOP','MID','BOT'];
 // A tower yields three plates as it actually loses its three thirds of HP.
-const TOWER_HP=Object.freeze([96,108,120]);
+const TOWER_HP=Object.freeze([60,72,84]);
 const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
 const roleLane=r=>r==='ADC'||r==='SUP'?'BOT':r==='TOP'||r==='MID'?r:null;
 const lanesOf=ids=>Object.fromEntries(LANES.map(l=>[l,{
