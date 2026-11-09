@@ -135,8 +135,9 @@ test('late underdog pushes only with an actual wave and local numerical edge',()
  assert.equal(order?.lane,'BOT');
  assert.equal(order?.until,43);
  assert.equal(core.Counterplay.followup(nav,adc,41,state,{health})?.goal,goal);
- enemyADC.alive=true;enemyADC.node=goal;
- nav.agents[b.lineup.SUP].node=goal;
+ for(const defender of Object.values(nav.agents).filter(p=>p.teamId===b.id)){
+  defender.alive=true;defender.node=goal;
+ }
  assert.equal(core.Counterplay.followup(nav,adc,41,state,{health}),null,
   'Do not push an equally defended tower');
  enemyADC.alive=false;
