@@ -136,3 +136,28 @@ test('falsifying mana/cooldown, position or microsteps is detected',()=>{
  const damage=clone(match);damage.events[i].facts.impacts[0].microSteps[0].hpAfter=101;
  assert.ok(core.ChampionKits.audit(damage).length>0);
 });
+
+test('objective skirmish cannot forge five-second damage, healing or local TTK',()=>{
+ const x=setup(),{core,sim,world,fixture}=x;
+ let found=null;
+ for(let seed=1;seed<=75&&!found;seed++){
+  world.rng=seed*92877;
+  const match=sim.simulateMatch(fixture);
+  const i=match.events.findIndex(e=>e.facts?.action==='skirmish'&&
+   Array.isArray(e.facts.microSteps)&&e.facts.microSteps.length===5);
+  if(i>=0)found={match,i};
+ }
+ assert.ok(found,'Need a true contested neutral encounter');
+ const {match,i}=found;
+ assert.equal(core.ChampionKits.audit(match).length,0);
+ const step=clone(match);
+ step.events[i].facts.microSteps[1].spell+=2;
+ assert.ok(core.ChampionKits.audit(step).length>0,
+  'Artificial damage in Baron/Dragon must be detected');
+ const heal=clone(match);
+ heal.events[i].facts.healed+=1;
+ assert.ok(core.ChampionKits.audit(heal).length>0);
+ const ttk=clone(match);
+ ttk.events[i].facts.ttkSeconds=99;
+ assert.ok(core.ChampionKits.audit(ttk).length>0);
+});
