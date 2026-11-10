@@ -122,3 +122,23 @@ test('0.7.17 shows earned effective stats without inventing historical values',(
  const old=tab.render({match:{},frame:{playerStats:{},powerEconomy:{entries:{}}},teams});
  assert.doesNotMatch(old,/rift-tab-effective/,'No fabricated legacy attributes');
 });
+
+test('0.7.18 TAB shows earned resources and QWER cooldowns without rewriting history',()=>{
+ const frame={minute:22,playerStats:{},
+  powerEconomy:{entries:Object.fromEntries(players.map(p=>[p.id,{level:8,items:[]}]))},
+  abilityState:{entries:Object.fromEntries(players.map(p=>[p.id,{
+   championId:champions.entries[p.id],resource:63,lastAt:21*60,
+   cooldowns:{Q:22*60+90,W:0,E:0,R:22*60+15},
+   casts:{Q:3,W:1,E:0,R:1}
+  }]))}
+ };
+ const before=JSON.stringify(frame);
+ const html=tab.render({match:{champions},frame,teams});
+ assert.equal((html.match(/Habilidades y recursos activos/g)||[]).length,10);
+ assert.match(html,/Recurso 63\/100/);
+ assert.match(html,/Q:2m/);
+ assert.match(html,/W:lista/);
+ assert.equal(JSON.stringify(frame),before,'TAB may not mutate replay');
+ const historical=tab.render({match:{},frame:{minute:20,playerStats:{}},teams});
+ assert.doesNotMatch(historical,/Habilidades y recursos activos/);
+});
