@@ -104,3 +104,21 @@ test('historical replay portraits and club identity render together without chan
  assert.equal(typeof tab.portraitFor,'function');
  assert.equal(JSON.stringify({match,frame,teams}),before);
 });
+
+test('0.7.17 shows earned effective stats without inventing historical values',()=>{
+ const frame={playerStats:{},powerEconomy:{entries:Object.fromEntries(players.map(p=>[
+  p.id,{level:12,items:['boots'],effectiveStats:{maxHp:1723,
+   attackDamage:108,armor:65,magicResist:46,attackSpeed:.91,abilityPower:0}}
+ ]))}};
+ const before=JSON.stringify(frame);
+ const html=tab.render({match:{champions},frame,teams});
+ assert.equal((html.match(/class="rift-tab-effective"/g)||[]).length,10);
+ assert.match(html,/HP 1723/);
+ assert.match(html,/DA 108/);
+ assert.match(html,/Arm 65/);
+ assert.match(html,/RM 46/);
+ assert.match(html,/VA 0\.91/);
+ assert.equal(JSON.stringify(frame),before,'Spectator must not mutate snapshots');
+ const old=tab.render({match:{},frame:{playerStats:{},powerEconomy:{entries:{}}},teams});
+ assert.doesNotMatch(old,/rift-tab-effective/,'No fabricated legacy attributes');
+});

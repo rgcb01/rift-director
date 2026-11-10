@@ -6,14 +6,16 @@ Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prome
 
 ## Estado de release y próximas versiones (2026-11-09)
 
-**Publicada: Alpha 0.7.16** mediante PR #44, con 198/198 pruebas y 2,000 mapas (1,000 auditados + 500 pares espejados). Integración de Nexo y torres físicos, objetos/recetas, contraasedios y recompensas por bajas reales del rezagado. Versus 0.7.14: remontadas 4.2%→4.1%, kills 6.39→6.44, duración 49.28→49.78 y azul espejado 49.5%→49.0%. Cero regresiones bloqueantes.
+**Predecesora publicada: Alpha 0.7.16** mediante PR #44, con 198/198 pruebas y 2,000 mapas (1,000 auditados + 500 pares espejados). Integración de Nexo y torres físicos, objetos/recetas, contraasedios y recompensas por bajas reales del rezagado. Versus 0.7.14: remontadas 4.2%→4.1%, kills 6.39→6.44, duración 49.28→49.78 y azul espejado 49.5%→49.0%. Cero regresiones bloqueantes.
 
-**Histórico de prioridad (2026-11-08): campeones → objetos → escalado → habilidades/combate → IA y balance.** La antigua 0.7.15 de defensa, inhibidores y conversión de Barón queda **pospuesta**, no implementada. El motor ya tiene XP y niveles 1–18, cinco objetos abstractos, oro personal y vida normalizada; todavía no hay campeones seleccionables, kits propios ni escalado estadístico por campeón. Esta es una decisión de planificación, **no una funcionalidad entregada**.
+**Publicada: Alpha 0.7.17** mediante PR #46: crecimiento real por campeón, XP 1–18, HP máximo/AD/armadura/MR/AS/AP, rangos pasivos Q/W/E/R y builds con compras físicas; atributos efectivos en TAB y replay. 205/205 pruebas y 2,000 mapas con cero regresiones bloqueantes: remontadas 4.1%→4.6%, kills 6.44→6.50, duración 49.78→49.48. Nuevas métricas de daño, HP y TTK proxy en minutos simulados. Las habilidades activas no están implementadas.
+
+**Prioridad:** terminar escalado y observabilidad 0.7.17 → habilidades ejecutables 0.7.18 → IA de kits/builds 0.7.19 → balance profundo 0.7.20. La defensa de asedios, inhibidores y conversión del Barón que se pospusieron siguen pendientes.
 
 **Pendientes del roadmap original (numeración por reordenar después de 0.7.16):**
 - **Catálogo ampliado de campeones (pendiente):** registro data-driven, identificadores estables, seis prototipos (tanque, luchador, asesino, mago, tirador y soporte) y ruta hacia un roster inicial de 12 campeones originales. Cada campeón define roles permitidos, alcance, estadísticas base y crecimiento, etiquetas de daño, fortalezas, debilidades y contrato de cuatro habilidades (pasiva/Q/W/E/R o esquema equivalente: una pasiva más cuatro activas). Asignación determinista de un campeón a cada profesional antes del partido; sin picks/bans ni cambios obligatorios de UI. No atribuir kills a habilidades todavía no simuladas.
 - **Pasivas y objetos avanzados (pendiente):** ampliar los 15 objetos completos y 15 componentes ya integrados hacia 20–30 objetos con estadísticas reales, pasivas únicas y condiciones de compra. Construcción de inventario de hasta seis espacios, botas y arquetipos de builds; compras solo en base, cartera/earned/spent auditables, no duplicar oro ganado. Mantener adaptador de compatibilidad para registros y replays históricos.
-- **0.7.17 — Escalado y power spikes:** convertir XP/nivel 1–18 en HP máximo, daño, armadura, resistencia mágica, velocidad de ataque y otras estadísticas efectivas; progresión de rangos de habilidades, puntos de mejora y curvas de daño/tanqueo por campeón. El oro crea picos de poder solo al adquirir objetos; los niveles, al obtener XP. Eliminar doble conteo entre bonus antiguos y atributos nuevos. Medir daño efectivo, time-to-kill (TTK) y ventanas de ventaja en early/mid/late sin buffs artificiales por minuto.
+- **0.7.17 — Escalado y power spikes [publicada]:** convertir XP/nivel 1–18 en HP máximo, daño, armadura, resistencia mágica, velocidad de ataque y otras estadísticas efectivas; progresión de rangos de habilidades, puntos de mejora y curvas de daño/tanqueo por campeón. El oro crea picos de poder solo al adquirir objetos; los niveles, al obtener XP. Eliminar doble conteo entre bonus antiguos y atributos nuevos. Medir daño efectivo, time-to-kill (TTK) y ventanas de ventaja en early/mid/late sin buffs artificiales por minuto.
 - **0.7.18 — Kits activos y resolución de combate:** pasiva y Q/W/E/R ejecutadas de forma autónoma en encuentros; cooldowns, coste de recurso cuando proceda, rangos, selección de blanco, daño físico/mágico, armadura, resistencia, penetración, escudos, curación y control de masas. Resolver encuentros en subpasos deterministas locales sin teletransporte entre nodos del grafo, sin RNG global adicional y sin crear kills por guion. Replay auditable con daño/efectos/HP/cooldown.
 - **0.7.19 — IA de campeón, compras y sinergias:** elección de campeones y builds guiada por rol, estilo y competencia del profesional, aliados, rivales observados, economía y estado del mapa; combate con iniciación, protección de carry, flanqueo, peel, retirada y cooldowns. Evitar omnisciencia; conservar identidad entre profesionales, composición y contrajuego. Draft completo se reserva para 0.8.
 - **0.7.20 — Balance y conversión a objetivos:** calibrar variedad de enfrentamientos, frecuencia de kills, duración P50/P90, TTK, bola de nieve, shutdowns, remontadas y sesgo de lado; aprovechar bajas reales para oleadas y estructuras sin imposición por reloj. Solo después reabrir la defensa/asedio/inhibidores y conversión de Barón pospuestos, priorizándolos si siguen siendo el cuello de botella.
@@ -137,14 +139,11 @@ Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prome
 
 ## Próxima tarea concreta
 
-**Alpha 0.7.15 — Vertical slice de campeones (sin modificar todavía los resultados por habilidades futuras):**
-1. Introducir `ChampionRegistry` y validar esquemas de seis campeones ficticios con identidad, roles, estadísticas y kits declarativos; diseñar hasta 12 antes de ampliar contenido.
-2. Separar `Professional`, `ChampionDefinition` y `MatchChampionState` sin cambiar la economía del club ni el origen único de eventos. Seleccionar determinísticamente un campeón compatible para cada jugador de los diez.
-3. Exponer campeón elegido, arquetipo y atributos en estadísticas/replay. Añadir pruebas de asignación, integridad del catálogo, invariantes y guardados antiguos.
-4. Mantener compras/vida/daño previos a través de adaptadores mientras el nuevo motor llega en 0.7.16–0.7.18; congelar y comparar el benchmark (1,000 auditados + 500 pares espejados). Documentar los cambios en CHANGELOG.
-5. **No** dar por entregados habilidades ejecutables, ítems escalados o balance hasta sus versiones específicas. Si una mejora del modelo de combate aumenta duración o sesgo, investigar antes de proseguir.
-
-**Dependencias pospuestas pero abiertas:** conversión del Barón a estructuras, inhibidores y defensa física del asedio; QA manual móvil/guardados históricos (M1.1/M1.5), negociación detallada (M3) y visión avanzada (M1.3C). Reabrir asedio cuando el escalado y el daño por campeón sean medibles.
+**Alpha 0.7.18 — kits de campeón activos y combate por subpasos:**
+1. Modelar pasivas, Q/W/E/R, cooldowns, recursos y rangos válidos por campeón.
+2. Resolver daño físico/mágico, resistencias, escudos, curaciones y control de masas mediante subpasos locales deterministicos; sin desplazamiento instantáneo ni kills narradas sin HP 0.
+3. Auditar el uso de cada habilidad y su estado en replay; medir TTK real en segundos de encuentro y comparar con el proxy de 0.7.17.
+4. Exigir 1,000 mapas auditados + 500 pares espejados por cambio y conservar las remontadas/tiempos de Alpha 0.7.17.
 
 ### M1.3 · Minimap dinámico y navegación espacial
 

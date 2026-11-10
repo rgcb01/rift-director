@@ -12,6 +12,16 @@ export function flatten(d){
  const s=d.standard,m=d.mirror;
  return {
   matches:s.completed,
+  hpDamageMean:s.gameplay.championDiagnostics?.hpDamagePerMatch??null,
+  observedTTKMean:s.gameplay.championDiagnostics?.observedTtkMinutes??null,
+  mitigationMean:s.gameplay.championDiagnostics?.meanMitigation??null,
+  championHP20:s.gameplay.championDiagnostics?.hp20??null,
+  championHPEnd:s.gameplay.championDiagnostics?.hpEnd??null,
+  championAD20:s.gameplay.championDiagnostics?.ad20??null,
+  championADEnd:s.gameplay.championDiagnostics?.adEnd??null,
+  championArmorEnd:s.gameplay.championDiagnostics?.armorEnd??null,
+  championMREnd:s.gameplay.championDiagnostics?.mrEnd??null,
+  championASEnd:s.gameplay.championDiagnostics?.asEnd??null,
   comebackEligible20:s.gameplay.economyDiagnostics?.eligibleComebacks20??null,
   conditionalComebackRate:s.gameplay.economyDiagnostics?.conditionalComebackRate??null,
   earlyGoldGap:s.gameplay.economyDiagnostics?.earlyGoldGapMean??null,
@@ -314,6 +324,16 @@ const keys=[
  ['itemSlotsUsed','Transacciones/30 (indicador legado, no slots reales)','rate'],
  ['equipmentSpentMean','Oro convertido en equipamiento por mapa','num'],
  ['avgFinalLevel','Nivel individual promedio al final','num'],
+ ['hpDamageMean','Daño efectivo de HP normalizada por mapa','num'],
+ ['observedTTKMean','TTK observable en minutos simulados (proxy)','num'],
+ ['mitigationMean','Factor medio de vida y resistencia aplicado al daño','num'],
+ ['championHP20','HP máximo medio de campeón min 20','num'],
+ ['championHPEnd','HP máximo medio de campeón al finalizar','num'],
+ ['championAD20','DA medio de campeón min 20','num'],
+ ['championADEnd','DA medio de campeón al finalizar','num'],
+ ['championArmorEnd','Armadura media de campeón al finalizar','num'],
+ ['championMREnd','Resistencia mágica media al finalizar','num'],
+ ['championASEnd','Velocidad de ataque media al finalizar','num'],
  ['firstPurchaseMean','Minuto promedio de primera compra','num'],
  ['noItemRate','Partidos sin ninguna compra','rate'],
  ['bothTeamsItemRate','Partidos con compras de ambos equipos','rate']];
@@ -376,6 +396,17 @@ export function generate(current,previous,output){
    {label:'Oro m30',value:s.gameplay.economyDiagnostics?.midGoldGapMean||0},
    {label:'Equipo m30',value:s.gameplay.economyDiagnostics?.midSpentGapMean||0},
    {label:'Cartera m30',value:s.gameplay.economyDiagnostics?.midWalletGapMean||0}
+  ])],
+  ['champion-hp.svg',bars('HP maximo de campeones: minuto 20 y final',[
+   {label:'Minuto 20',value:assessment.current.championHP20||0},
+   {label:'Final',value:assessment.current.championHPEnd||0}
+  ])],
+  ['champion-ad.svg',bars('Dano de ataque de campeones: minuto 20 y final',[
+   {label:'Minuto 20',value:assessment.current.championAD20||0},
+   {label:'Final',value:assessment.current.championADEnd||0}
+  ])],
+  ['champion-ttk.svg',bars('TTK observado: minutos simulados desde primera herida',[
+   {label:'Minutos',value:assessment.current.observedTTKMean||0}
   ])],
   ['previous.svg',bars('Version anterior vs actual: porcentaje de partidas sin Dragon',[
    {label:previous.version,value:assessment.baseline.noDragonRate*100,color:'#f27e8a'},
