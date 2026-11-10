@@ -4,6 +4,16 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+## [0.7.17-alpha] — candidato de escalado (sin publicación)
+
+### Primer vertical slice: escalado real de los diez campeones
+- Nuevo registro determinista de diez identidades de campeón con HP máximo, daño de ataque, armadura, resistencia mágica, velocidad de ataque, crecimiento por nivel (1–18), tipo de daño y distribución de rangos Q/W/E/R. Las activas no lanzan habilidades: eso queda para Alpha 0.7.18.
+- Las compras físicas de componentes/objetos convierten la cartera personal en estadísticas; acumular oro sin comprar no aporta daño. Los niveles solo se ganan mediante el ledger de XP, y el personaje/profesional siguen siendo entidades separadas.
+- `Encounters` utiliza la progresión efectiva del campeón en el combate real, aplicando resistencia/vida efectiva de forma acotada a la vida histórica normalizada (0–100%). El bono anterior por nivel/objeto queda reemplazado, nunca duplicado, en partidas nuevas con campeón asignado; adaptador legado para pruebas/replays sintéticos.
+- Replay registra `championId`, `effectiveStats` y rangos de habilidades, comprobables por auditoría determinista. No se alteran sueldos, club, persistencia económica, selección visual, ni se introduce RNG global.
+- **Aceptación pendiente:** pruebas CI, comparación oficial de 1,000 partidas auditadas + 500 pares espejados contra 0.7.16 y revisión de remontadas, kills y duración; no fusionar si hay regresión.
+
+
 ## [0.7.16-alpha] — 2026-11-09 (release consolidada)
 
 ### Seguimiento físico ganado tras kills — validado
