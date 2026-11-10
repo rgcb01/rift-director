@@ -263,9 +263,14 @@ function simulateMatch(f){
  const affected=(facts)=>facts.impacts.map(q=>
     player(q.id).name+' '+q.hpBefore+'% → '+q.hpAfter+'%'+
     (q.hpAfter===0?' (eliminado)':q.retreat?' (se retira)':'')).join('; ');
+ const abilityNotes=facts=>(facts.abilityCasts?.length?
+   ' Habilidades ejecutadas: '+facts.abilityCasts.map(c=>
+    player(c.casterId).name+' usa '+c.name+' ('+c.slot+', '+c.kind+
+    ', recurso '+c.resourceBefore+'→'+c.resourceAfter+')').join('; ')+'.':'');
  const combatDetails=(facts)=>affected(facts)+'. '+
     (facts.victimIds.length?'Eliminación confirmada.':
-     facts.outcome==='retreat'?'El rival cede espacio y se retira.':'Ambos siguen en el mapa.');
+     facts.outcome==='retreat'?'El rival cede espacio y se retira.':'Ambos siguen en el mapa.')+
+    abilityNotes(facts);
  const attackTower=(c,t,lane)=>{
   const target=enemy(c),stage=m.lanes[target.id][lane]+1;
   if(stage>3)return false;
@@ -486,7 +491,7 @@ function simulateMatch(f){
       makeEv(t,'¡Escaramuza ganada en '+zoneName+'!',
         attacker.name+' sorprende a '+defender.name+' con '+facts.attackerCount+
         ' atacantes contra '+facts.defenderCount+
-        '. '+leader.name+' consigue la eliminación cerca de '+zoneName+'.',
+        '. '+leader.name+' consigue la eliminación cerca de '+zoneName+'.'+abilityNotes(facts),
         'fight',attacker,facts);
     }else{
       health[defender.id]=facts.hpAfter;
@@ -496,7 +501,7 @@ function simulateMatch(f){
         attacker.name+' presiona con '+facts.attackerCount+' profesionales contra '+
         facts.defenderCount+'. '+defender.name+' recibe '+facts.damage+
         ' de daño, sobrevive con '+facts.hpAfter+
-        '% de vida y se retira; no se registra una eliminación.',
+        '% de vida y se retira; no se registra una eliminación.'+abilityNotes(facts),
         'fight',attacker,facts);
     }
    }
