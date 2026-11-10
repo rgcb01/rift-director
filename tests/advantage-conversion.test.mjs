@@ -97,6 +97,54 @@ test('earned bot kill supports a physical ADC+SUP followup but never awards HP d
  assert.equal(core.Counterplay.followup(nav,nav.agents[a.lineup.SUP],22,state,{health}),null);
 });
 
+test('a real late kill and escorted wave let an underdog redirect siege temporarily',()=>{
+ const {core,nav,state,a,b}=setup();
+ state.gold[a.id]=11000;state.gold[b.id]=18000;
+ state.waves.BOT.front=1.25;
+ state.dead={[b.lineup.ADC]:44};
+ for(const id of [a.lineup.ADC,a.lineup.SUP]){
+  nav.agents[id].node='blue_bot_front';
+  nav.agents[id].alive=true;
+  nav.agents[id].intent='lane';
+ }
+ const goldBefore={...state.gold};
+ const towersBefore=JSON.stringify(state.lanes);
+ core.Navigation.determineSiege(nav,state,41);
+ assert.equal(nav.siegeTeam,a.id,'El rezagado debe aprovechar una baja confirmada');
+ assert.equal(nav.siegeLane,'BOT');
+ assert.equal(nav.siegeUntil,44,'El contraasedio tiene una ventana corta');
+ assert.deepEqual(state.gold,goldBefore,'No debe regalarse oro');
+ assert.equal(JSON.stringify(state.lanes),towersBefore,'No debe otorgarse daño estructural');
+ core.Navigation.determineSiege(nav,state,45);
+ assert.equal(nav.siegeTeam,b.id,'Sin la baja activa regresa el plan basado en el mapa');
+});
+
+test('no late counter-siege without both a killed opponent and real wave escorts',()=>{
+ const make=()=>{const x=setup();
+  x.state.gold[x.a.id]=11000;x.state.gold[x.b.id]=18000;
+  x.state.waves.BOT.front=1.25;
+  for(const id of [x.a.lineup.ADC,x.a.lineup.SUP]){
+   x.nav.agents[id].node='blue_bot_front';
+   x.nav.agents[id].intent='lane';
+  }
+  return x;
+ };
+ const noKill=make();
+ noKill.core.Navigation.determineSiege(noKill.nav,noKill.state,41);
+ assert.equal(noKill.nav.siegeTeam,noKill.b.id,'Una oleada sola no revierte el asedio');
+ const noWave=make();
+ noWave.state.dead={[noWave.b.lineup.ADC]:44};
+ noWave.state.waves.BOT.front=0;
+ noWave.core.Navigation.determineSiege(noWave.nav,noWave.state,41);
+ assert.equal(noWave.nav.siegeTeam,noWave.b.id,'Una baja no crea oleada gratis');
+ const noEscorts=make();
+ noEscorts.state.dead={[noEscorts.b.lineup.ADC]:44};
+ noEscorts.nav.agents[noEscorts.a.lineup.ADC].node='blue_fountain';
+ noEscorts.nav.agents[noEscorts.a.lineup.SUP].node='blue_fountain';
+ noEscorts.core.Navigation.determineSiege(noEscorts.nav,noEscorts.state,41);
+ assert.equal(noEscorts.nav.siegeTeam,noEscorts.b.id,'No se ordena un asedio sin presencia');
+});
+
 test('regresión: la ventaja puede cambiar de lado tras un asedio comprometido',()=>{
  const {core,nav,state,a,b}=setup();
  nav.siegeTeam=a.id;nav.siegeLane='MID';nav.sideLane='TOP';
