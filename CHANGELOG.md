@@ -4,13 +4,20 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
-### Experimento aislado: seguimiento físico de una eliminación tardía
-- Para una kill confirmada desde el minuto 36, la presión posterior puede ser escoltada por dos jugadores vivos que realmente participaron y están a cinco aristas o menos de una estructura, incluyendo combinaciones MID/JUN, siempre que uno esté a tres aristas o menos.
-- Siguen siendo obligatorios déficit verificable de 1,200 de oro para atacar torres, oleada ≥0.85, mayor presencia atacante que defensiva para ejecutar la orden y desplazamiento legal de una arista por minuto. La ventana de seguimiento es de cinco minutos y no concede oro ni daño por sí sola.
-- Propuesta experimental separada para comprobar 1,000 partidas auditadas y 500 pares espejados frente al candidato integrado y la release 0.7.14; sin aprobación de merge hasta medir las remontadas.
+### Seguimiento físico ganado tras kills — validado
+- Las peleas ganadas desde el minuto 36 pueden originar un contraavance de hasta cinco minutos cuando al menos dos participantes vivos están a cinco aristas o menos del objetivo, uno a tres o menos y existe una oleada real ≥0.85. La selección de escoltas usa posiciones físicas, no solo el rol: MID/JUN pueden avanzar tras una pelea en el río.
+- Se mantiene el déficit mínimo de 1,200 de oro para presionar torres, la comprobación de superioridad local y el daño a estructuras exclusivamente con atacantes presentes, sin movimiento instantáneo ni recompensas gratuitas.
+- Comparación con Alpha 0.7.14: 198/198 pruebas, 1,000 mapas auditados y 500 pares espejados (2,000 simulaciones), cero regresiones bloqueantes; remontadas 4.2%→4.1%, kills 6.39→6.44, torres 4.48→4.72, duración 49.28→49.78 min y azul espejado 49.5%→49.0%.
+
+## [0.7.16-alpha] — 2026-11-09 (release consolidada)
+
+### Resultado final de integración y balance — PR #44
+- Se integran Nexo y torres con HP físico, progreso y placas, presión territorial, 15 objetos, 15 componentes, recetas reales de dos piezas y builds de seis espacios, Art Pack 03 y retratos en replays.
+- Una baja real obtenida estando al menos 1,500 de oro atrás otorga una recompensa de recuperación limitada a 300–1,000 de oro por eliminación. El déficit público y el pago quedan registrados y auditados; no existen ayudas por reloj, derrotas o acciones no realizadas.
+- Validación reproducible: 197/197 pruebas, 1,000 partidas auditadas y 500 pares espejados (2,000 mapas), cero regresiones bloqueantes y cero advertencias. Frente a Alpha 0.7.14: duración 49.28→49.92 minutos, kills 6.39→6.50, remontadas 4.2%→3.7%, azul espejado 49.5%→48.6% y torres 4.48→4.66.
+- Se descartaron el recall defensivo indiscriminado (remontadas 1.5%) y la defensa excesiva de Nexo (54.67 minutos, remontadas 1.7%). Las secciones inferiores conservan resultados históricos de candidatos descartados.
 
 
-## [0.7.16-alpha] — Candidato en validación
 
 ### Cierre del nexo por condiciones físicas, sin ruleta de reloj
 - Se eliminó el sorteo de destrucción del nexo a partir del minuto 29/46/54. Tras abrir un carril con tres torres destruidas, dos atacantes vivos que alcancen físicamente el nexo pueden reducir su integridad de forma persistente durante varios minutos. Las oleadas, los defensores y el Barón modifican el daño real por minuto; las defensas numerosas retrasan el cierre sin bloquear para siempre una partida. No existe victoria instantánea por un contador global.
