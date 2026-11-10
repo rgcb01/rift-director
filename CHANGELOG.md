@@ -4,6 +4,12 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimento aislado: seguimiento físico de una eliminación tardía
+- Para una kill confirmada desde el minuto 36, la presión posterior puede ser escoltada por dos jugadores vivos que realmente participaron y están a cinco aristas o menos de una estructura, incluyendo combinaciones MID/JUN, siempre que uno esté a tres aristas o menos.
+- Siguen siendo obligatorios déficit verificable de 1,200 de oro para atacar torres, oleada ≥0.85, mayor presencia atacante que defensiva para ejecutar la orden y desplazamiento legal de una arista por minuto. La ventana de seguimiento es de cinco minutos y no concede oro ni daño por sí sola.
+- Propuesta experimental separada para comprobar 1,000 partidas auditadas y 500 pares espejados frente al candidato integrado y la release 0.7.14; sin aprobación de merge hasta medir las remontadas.
+
+
 ## [0.7.16-alpha] — Candidato en validación
 
 ### Cierre del nexo por condiciones físicas, sin ruleta de reloj
