@@ -91,6 +91,9 @@
  // Convert effective max HP and defenses to a bounded percent-HP damage
  // modifier. No HP is created, healed or teleported by the calculation.
  function mitigation(attackerRow,defenderRow,catalog=[]){
+  // Historical/synthetic ledgers without explicit champion IDs preserve
+  // their old combat contract, even when their role happens to match one.
+  if(!attackerRow?.championId||!defenderRow?.championId)return 1;
   const target=effective(defenderRow,catalog);
   const attack=effective(attackerRow,catalog);
   if(!target||!attack)return 1;
