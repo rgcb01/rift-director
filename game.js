@@ -143,7 +143,7 @@ function simulateMatch(f){
  m.nexusIntegrity={[a.id]:1,[b.id]:1};
  const all=[a,b],teams={[a.id]:aP,[b.id]:bP};
  const laneEconomy=RiftCore.LaneEconomy.create(a.id,b.id);
- const powerEconomy=RiftCore.PowerEconomy.create([...aP,...bP]);
+ const powerEconomy=RiftCore.PowerEconomy.create([...aP,...bP],champions);
  const shutdowns=RiftCore.Shutdowns.create([...aP,...bP]);
  m.waves=laneEconomy.lanes;
  m.powerEconomy=powerEconomy;
