@@ -241,7 +241,10 @@ function shouldRecall(model,nav,agent,minute,worldState,context=null){
  if(agent.intent==='shop_recall')return true;
  if(agent.role==='JUN'&&minute<36||agent.role==='SUP'&&minute<29)return false;
  const hp=id=>context?.health?.[id]??100;
- const committed=nav.siegeTeam!==null&&minute>=24;
+ // Only the club performing a coordinated siege must preserve its attackers.
+ // Treating an enemy siege as our own previously blocked defenders from
+ // physically returning to spend earned gold and contest the push.
+ const committed=nav.siegeTeam===agent.teamId&&minute>=24;
  const accepted=p=>{
   const r=model.entries[p.id];
   if(!r||r.voluntaryBuys>=2||minute-r.lastPurchaseMinute<10||
