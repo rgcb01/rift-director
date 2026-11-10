@@ -96,48 +96,100 @@
   return null;
  }
  function pressureAfterKill(nav,facts,minute,worldState){
-  if(!facts?.victimIds?.length||minute>=36)return null;
-  const roster=facts.participantIds.map(id=>nav.agents[id]).filter(Boolean);
-  const lanes=['BOT','MID','TOP'].filter(lane=>
-   roster.filter(p=>roleLane(p.role)===lane).length>=
-     (lane==='BOT'?2:1));
-  const lane=lanes.find(lane=>{
-   const enemy=facts.teamId===nav.a?nav.b:nav.a;
-   const stage=worldState.lanes?.[enemy]?.[lane]??3;
-   return stage<3;
-  });
-  if(!lane)return null;
-  const allowed=roster.filter(p=>roleLane(p.role)===lane).map(p=>p.id);
+  if(!facts?.victimIds?.length||minute>=59)return null;
+  const opponent=facts.teamId===nav.a?nav.b:nav.a;
+  const deficit=(worldState.gold?.[opponent]||0)-(worldState.gold?.[facts.teamId]||0);
+  const roster=(facts.participantIds||[]).map(id=>nav.agents[id])
+   .filter(p=>p&&p.teamId===facts.teamId&&p.alive&&
+    (worldState.dead?.[p.id]||0)<=minute&&p.intent!=='retreat');
+  const roleEscorts=lane=>roster.filter(p=>roleLane(p.role)===lane);
+  const late=minute>=36;
+  // Early lane phase keeps role responsibilities. In late teamfights,
+  // support comes from living, real participants near the actual structure
+  // rather than a rigid role label (JUN/MID can escort after a river fight).
+  const proposals=[];
+  for(const lane of ['BOT','MID','TOP']){
+   const stage=worldState.lanes?.[opponent]?.[lane]??3;
+   if(stage>3)continue;
+   const traditional=roleEscorts(lane);
+   if(!late){
+    if(traditional.length<(lane==='BOT'?2:1))continue;
+    proposals.push({lane,allowed:traditional.map(p=>p.id),rank:0,stage});
+    continue;
+   }
+   if(stage<3&&deficit<=1200)continue;
+   const wave=core.LaneEconomy.pressureFor(
+    {teamIds:[nav.a,nav.b],lanes:worldState.waves},facts.teamId,lane);
+   if(wave<.85)continue;
+   const targetSide=opponent===nav.a?'blue':'red';
+   const goal=stage<3?navAPI().towerNode(targetSide,lane,stage+1):targetSide+'_nexus';
+   const nearby=roster.map(p=>({p,distance:navAPI().hops(p.node,goal)}))
+    .filter(x=>x.distance<=5);
+   if(nearby.length<2||!nearby.some(x=>x.distance<=3))continue;
+   const allowed=nearby.map(x=>x.p.id);
+   const minimumDistance=Math.min(...nearby.map(x=>x.distance));
+   proposals.push({lane,allowed,stage,
+    rank:nearby.length*5+wave*4-minimumDistance});
+  }
+  if(!proposals.length)return null;
+  proposals.sort((a,b)=>b.rank-a.rank||
+   ['BOT','MID','TOP'].indexOf(a.lane)-['BOT','MID','TOP'].indexOf(b.lane));
+  const chosen=proposals[0],lane=chosen.lane;
   nav.counterPressure??={};
   const window={teamId:facts.teamId,lane,created:minute,
-   until:minute+3,sourceId:facts.actorId,sourceVictims:[...facts.victimIds],
-   allowed};
+   until:minute+(late?5:3),sourceId:facts.actorId,
+   sourceVictims:[...facts.victimIds],allowed:chosen.allowed};
   nav.counterPressure[facts.teamId]=window;
   return window;
  }
  function followup(nav,agent,minute,worldState,context){
   const w=nav.counterPressure?.[agent.teamId];
-  if(!w||minute>w.until||minute<=w.created||minute>=36||
-    // ADC protection/roaming and early objective calls outrank opportunistic
-    // turret pressure: a won fight never cancels the SUP's core assignment.
-    agent.role==='SUP'&&minute<=29||
+  if(!w||minute>w.until||minute<=w.created||minute>=62||
+    agent.role==='SUP'&&minute<=29&&w.lane!=='BOT'||
     !w.allowed.includes(agent.id)||!agent.alive||
     (context?.health?.[agent.id]??100)<67)return null;
   const foe=agent.teamId===nav.a?nav.b:nav.a;
   const stage=(worldState.lanes?.[foe]?.[w.lane]??3)+1;
-  if(stage>3)return null;
+  if(stage>4)return null;
   const wave=core.LaneEconomy.pressureFor(
     {teamIds:[nav.a,nav.b],lanes:worldState.waves},agent.teamId,w.lane);
-  if(wave<.6)return null; // no magical wave after winning a fight
+  if(wave<(w.created>=36?.9:.6))return null;
   const side=foe===nav.a?'blue':'red';
-  return {goal:navAPI().towerNode(side,w.lane,stage),
-   intent:'counterpush',lane:w.lane,reason:'earned_fight_pressure',
+  const goal=stage<=3?navAPI().towerNode(side,w.lane,stage):side+'_nexus';
+  if(w.created>=36&&stage<=3){
+   // A won river fight may need several legal graph steps to reach a tower.
+   // Keep its window only if escorting players can actually reach the target.
+   if(navAPI().hops(agent.node,goal)>5)return null;
+   const defenders=Object.values(nav.agents).filter(p=>p.alive&&
+    p.teamId===foe&&navAPI().hops(p.node,goal)<=1);
+   const escorts=Object.values(nav.agents).filter(p=>p.alive&&
+    p.teamId===agent.teamId&&w.allowed.includes(p.id)&&
+    navAPI().hops(p.node,goal)<=5&&
+    (context?.health?.[p.id]??100)>=55);
+   if(escorts.length<2||defenders.length>=escorts.length)return null;
+  }
+  return {goal,intent:'counterpush',lane:w.lane,reason:'earned_fight_pressure',
    decisionVersion:6};
  }
  function audit(match){
   const errors=[];
   for(let i=0;i<(match.events||[]).length;i++){
    const event=match.events[i],facts=event.facts;
+   // Follow-up orders from lane trades and ganks must be just as
+   // reproducible as orders after counterplay teamfights.
+   if(facts?.counterPressure){
+    const w=facts.counterPressure;
+    if(!facts.victimIds?.length||w.teamId!==event.teamId||
+       w.created!==event.minute||
+       !(w.until===w.created+3||w.created>=36&&w.until===w.created+5)||
+       w.sourceId!==facts.actorId||
+       !['TOP','MID','BOT'].includes(w.lane)||
+       !Array.isArray(w.allowed)||!w.allowed.length||
+       !w.allowed.every(id=>facts.participantIds?.includes(id))||
+       !Array.isArray(w.sourceVictims)||
+       w.sourceVictims.join(',')!==facts.victimIds.join(','))
+     errors.push('Pressure order without a real won fight '+i);
+   }
    if(facts?.counterplayVersion!==1)continue;
    const p=facts.counterplay;
    const pre=match.moments[i]?.navigation?.before;
@@ -156,14 +208,7 @@
       !Number.isFinite(p.score)||p.score<30||
       !Number.isSafeInteger(p.localEdge)||p.localEdge<0)
     errors.push('Counterplay without visible numerical opportunity '+i);
-   if(facts.counterPressure){
-    const w=facts.counterPressure;
-    if(!facts.victimIds?.length||w.teamId!==event.teamId||
-       w.created!==event.minute||w.until!==w.created+3||
-       !['TOP','MID','BOT'].includes(w.lane)||
-       !Array.isArray(w.allowed)||!w.allowed.length)
-     errors.push('Pressure order without a real won fight '+i);
-   }
+
   }
   return errors;
  }

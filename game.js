@@ -140,6 +140,7 @@ function simulateMatch(f){
  const a=club(f.a),b=club(f.b),aP=teamPlayers(a),bP=teamPlayers(b);
  const champions=RiftMatchTab.assign([...aP,...bP]);
  const m={minute:0,kills:{[a.id]:0,[b.id]:0},gold:{[a.id]:500,[b.id]:500},towers:{[a.id]:0,[b.id]:0},lanes:{[a.id]:{TOP:0,MID:0,BOT:0},[b.id]:{TOP:0,MID:0,BOT:0}},dragons:{[a.id]:0,[b.id]:0},barons:{[a.id]:0,[b.id]:0},dead:{},winner:null,events:[],frames:[],moments:[],nextDragon:5,nextBaron:20,baronBuff:{[a.id]:0,[b.id]:0}};
+ m.nexusIntegrity={[a.id]:1,[b.id]:1};
  const all=[a,b],teams={[a.id]:aP,[b.id]:bP};
  const laneEconomy=RiftCore.LaneEconomy.create(a.id,b.id);
  const powerEconomy=RiftCore.PowerEconomy.create([...aP,...bP]);
@@ -147,6 +148,7 @@ function simulateMatch(f){
  m.waves=laneEconomy.lanes;
  m.powerEconomy=powerEconomy;
  const navigation=RiftCore.Navigation.createNavigation(all,teams,commentarySeed);
+ const nexusSiege=RiftCore.NexusSiege.create(a.id,b.id);
  const health=RiftCore.Encounters.create([...aP,...bP]);
  const lastSkirmish={};
  let movementBefore=RiftCore.Navigation.snapshot(navigation,{},0);
@@ -175,7 +177,7 @@ function simulateMatch(f){
   const prior=m.events[m.events.length-1];
   // New encounter timestamps use their own deterministic clock: no additional
   // gameplay RNG is consumed by an incidental 2v1 commentary.
-  const skirmish=['plate','item_purchase','ward_place'].includes(facts?.action)||facts?.action==='skirmish'||facts?.combatVersion===1;
+  const skirmish=['plate','tower_damage','tower','item_purchase','ward_place','nexus_damage','nexus'].includes(facts?.action)||facts?.action==='skirmish'||facts?.combatVersion===1;
   const stamp=skirmish?(Math.imul((commentarySeed^minute)>>>0,1664525)+
     Math.imul(m.events.length+1,1013904223))>>>0:0;
   const sec=minute===0?0:prior?.minute===minute?
@@ -190,6 +192,19 @@ function simulateMatch(f){
     m.gold[team.id]+=bounty;
     event.body+=' ¡Recompensa de '+bounty+' de oro por terminar una racha rival!';
    }
+   // A verified kill against a richer club may carry an earned comeback
+   // bounty. The exact public deficit and paid amount are replay-auditable;
+   // no gold is created by a plan, retreat, wall-clock or unconfirmed fight.
+   if(facts.victimIds?.length){
+    facts.comebackDeficit=m.gold[enemy(team).id]-m.gold[team.id];
+    facts.comebackGold=RiftCore.Shutdowns.comebackBounty(
+     facts.comebackDeficit,facts.victimIds.length);
+    if(facts.comebackGold>0){
+     m.gold[team.id]+=facts.comebackGold;
+     event.body+=' ¡Bonificación de '+facts.comebackGold+
+      ' de oro por una eliminación real estando en desventaja!';
+    }
+   }
    RiftCore.applyPlayerEvent(playerStats,event);
    RiftCore.PowerEconomy.rewardEvent(powerEconomy,event);
   }
@@ -202,6 +217,7 @@ function simulateMatch(f){
     health:{...health},laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
     powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
     shutdowns:RiftCore.Shutdowns.snapshot(shutdowns),
+    siege:RiftCore.NexusSiege.snapshot(nexusSiege),
     vision:RiftCore.Vision.snapshot(navigation.vision,minute),
     macro:RiftCore.MacroPolicy.snapshot(navigation,minute),
     navigation:{before:movementBefore,after:nav.snapshot(navigation,m.dead,minute)}});
@@ -230,6 +246,15 @@ function simulateMatch(f){
      throw Error('Combat retreat without living target');
    }
   }
+  // Lane kills and ganks previously ended in a dead rival but rarely
+  // supplied a tower order. Convert the *observed* kill to a short,
+  // reversible lane plan; no damage, gold or tower is awarded here.
+  // Counterplay teamfights keep their existing followup ownership below.
+  if(facts.victimIds?.length&&['lane','gank'].includes(facts.mode)){
+   const plan=RiftCore.Counterplay.pressureAfterKill(navigation,facts,t,m);
+   if(plan)facts.counterPressure={...plan,
+    sourceVictims:[...plan.sourceVictims],allowed:[...plan.allowed]};
+  }
  };
  const affected=(facts)=>facts.impacts.map(q=>
     player(q.id).name+' '+q.hpBefore+'% → '+q.hpAfter+'%'+
@@ -237,53 +262,74 @@ function simulateMatch(f){
  const combatDetails=(facts)=>affected(facts)+'. '+
     (facts.victimIds.length?'Eliminación confirmada.':
      facts.outcome==='retreat'?'El rival cede espacio y se retira.':'Ambos siguen en el mapa.');
- const takeTower=(c,t,requestedLane=null)=>{
-  const target=enemy(c),options=['TOP','MID','BOT']
-    .filter(l=>!requestedLane||l===requestedLane).map(lane=>{
-      const stage=m.lanes[target.id][lane]+1;
-      if(stage>3)return null;
-      const node=nav.towerNode(target.id===a.id?'blue':'red',lane,stage);
-      const present=positioned(c,node);
-      const wave=RiftCore.LaneEconomy.pressureFor(laneEconomy,c.id,lane);
-      const solo=present.length===1&&
-        ['splitpush','counterpush'].includes(present[0].intent)&&
-        present[0].lane===lane&&wave>=1.45&&
-        // Check the same immutable pre-combat navigation snapshot used
-        // by the spatial auditor. A retreat issued mid-minute must not
-        // retroactively erase a defender who was there for this tick.
-        !Object.entries(movementBefore).some(([id,p])=>p.teamId===target.id&&
-          p.alive&&p.intent!=='retreat'&&(m.dead[id]||0)<=t&&
-          nav.at(navigation,id,node));
-      return {lane,stage,node,present,solo,wave};
-    }).filter(x=>x&&(x.present.length>=2||x.solo)&&
-      RiftCore.LaneEconomy.hasBrokenPlates(laneEconomy,target.id,x.lane,x.stage)&&
-      RiftCore.LaneEconomy.canPressureTower(laneEconomy,c.id,x.lane,x.stage,t));
-  if(!options.length)return false;
-  const selected=pick(options),{lane,stage,node,present,solo,wave}=selected;
+ const attackTower=(c,t,lane)=>{
+  const target=enemy(c),stage=m.lanes[target.id][lane]+1;
+  if(stage>3)return false;
+  const node=nav.towerNode(target.id===a.id?'blue':'red',lane,stage);
+  const present=positioned(c,node);
+  if(!present.length)return false;
+  const defenders=positioned(target,node);
+  const wave=RiftCore.LaneEconomy.pressureFor(laneEconomy,c.id,lane);
+  const solo=present.length===1&&
+   ['splitpush','counterpush'].includes(present[0].intent)&&
+   present[0].lane===lane&&wave>=1.45&&defenders.length===0&&
+   !Object.entries(movementBefore).some(([id,p])=>
+    p.teamId===target.id&&p.alive&&p.intent!=='retreat'&&
+    (m.dead[id]||0)<=t&&nav.at(navigation,id,node));
+  const baron=m.baronBuff[c.id]>0;
+  const hit=RiftCore.LaneEconomy.damageTower(laneEconomy,{
+   teamId:c.id,defenderId:target.id,lane,stage,minute:t,
+   attackers:present.length,defenders:defenders.length,soloAllowed:solo,baron});
+  if(!hit)return false;
   const priority=lane==='BOT'?'ADC':lane;
-  const actor=present.find(q=>q.role===priority)||present[0];
-  const who=player(actor.id);
-  const firstTowerBonus=RiftCore.LaneEconomy.firstTowerBonus(laneEconomy,c.id,t);
-  m.lanes[target.id][lane]++;m.towers[c.id]++;m.gold[c.id]+=420+firstTowerBonus;
-  const place=lane==='BOT'?'inferior':lane==='TOP'?'superior':'central';
-  makeEv(t,`¡Cae una torre ${place}!`,`${c.name} derriba la ${['exterior','interior','de base'][stage-1]} del carril ${place}. ${who.name} participa en la presión y su equipo recibe oro adicional.`,
-   'goal',c,{action:'tower',actorId:who.id,
-     participantIds:presentWith(c,t,who,node,lane==='BOT'?['ADC','SUP']:['TOP','MID']),
-     lane,stage,node,firstTower:firstTowerBonus>0,firstTowerBonus,
-     soloSplitpush:solo,wave,
-     earnedFightPressure:!!(navigation.counterPressure?.[c.id]&&
-       navigation.counterPressure[c.id].lane===lane&&
-       t<=navigation.counterPressure[c.id].until&&
-       present.some(p=>p.intent==='counterpush')),
-     crossmapTrade:lane==='TOP'&&
-       navigation.neutralPlans?.[c.id]?.action==='trade'&&
-       t>=m.nextDragon});
+  const who=player((present.find(p=>p.role===priority)||present[0]).id);
+  const participants=present.map(p=>p.id),defenderIds=defenders.map(p=>p.id);
+  const facts={action:'tower_damage',towerVersion:1,actorId:who.id,
+   participantIds:participants,defenderIds,lane,stage,node,
+   before:hit.before,after:hit.after,damage:hit.damage,rawDamage:hit.rawDamage,
+   wave:hit.wave,baron,soloAllowed:solo};
+  // Plate and its HP damage are one editorial event. Only non-plate chip
+  // damage receives a separate tower_damage event, avoiding duplicate news.
+  if(!hit.plate)makeEv(t,'¡Asedio a torre en '+lane+'!',
+   c.name+' golpea la torre '+stage+' de '+lane+' por '+hit.damage+
+   ' puntos con '+present.length+' atacantes presentes; conserva '+
+   hit.after+' de '+RiftCore.LaneEconomy.TOWER_HP[stage-1]+' de vida.',
+   'normal',c,facts);
+  const earnedFightPressure=!!(navigation.counterPressure?.[c.id]&&
+   navigation.counterPressure[c.id].lane===lane&&
+   t<=navigation.counterPressure[c.id].until&&
+   present.some(p=>p.intent==='counterpush'));
+  const crossmapTrade=lane==='TOP'&&
+   navigation.neutralPlans?.[c.id]?.action==='trade'&&t>=m.nextDragon;
+  if(hit.plate){
+   m.gold[c.id]+=hit.goldReward;
+   makeEv(t,'¡Placa conquistada en '+lane+'!',
+    c.name+' obtiene la placa '+hit.plate+' de la torre '+stage+
+    ' en '+lane+' tras daño comprobado. El club recibe '+hit.goldReward+' de oro.',
+    'goal',c,{...facts,action:'plate',plate:hit.plate,
+     goldReward:hit.goldReward,earnedFightPressure,crossmapTrade});
+  }
+  if(hit.destroyed){
+   const bonus=RiftCore.LaneEconomy.firstTowerBonus(laneEconomy,c.id,t);
+   m.lanes[target.id][lane]++;m.towers[c.id]++;m.gold[c.id]+=420+bonus;
+   const place=lane==='BOT'?'inferior':lane==='TOP'?'superior':'central';
+   makeEv(t,'¡Cae una torre '+place+'!',
+    c.name+' derriba la '+['exterior','interior','de base'][stage-1]+
+    ' del carril '+place+' tras daño persistente. '+who.name+' participa.',
+    'goal',c,{action:'tower',actorId:who.id,
+     participantIds:solo?[who.id]:participants,lane,stage,node,
+     firstTower:bonus>0,firstTowerBonus:bonus,
+     soloSplitpush:solo,wave:hit.wave,earnedFightPressure,crossmapTrade,
+     towerVersion:1,towerHpAfter:hit.after});
+  }
   return true;
  };
  const nextSnapshot=t=>m.frames.push({minute:t,kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
+  nexusIntegrity:{...m.nexusIntegrity},
   laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
   powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
   shutdowns:RiftCore.Shutdowns.snapshot(shutdowns),
+  siege:RiftCore.NexusSiege.snapshot(nexusSiege),
   vision:RiftCore.Vision.snapshot(navigation.vision,t),
   macro:RiftCore.MacroPolicy.snapshot(navigation,t),
   playerStats:RiftCore.clonePlayerStats(playerStats),map:RiftCore.cloneMapState(m.map),
@@ -304,7 +350,7 @@ function simulateMatch(f){
   nav.advance(navigation,t,m.dead,m,{health,map:m.map});
   RiftCore.Encounters.recover(health,navigation,m.dead,t);
   const farmIncome=RiftCore.LaneEconomy.advance(laneEconomy,
-    {minute:t,nav:navigation,map:m.map,health,gold:m.gold});
+    {minute:t,nav:navigation,map:m.map,health,gold:m.gold,structures:m.lanes});
   RiftCore.PowerEconomy.advance(powerEconomy,
     {minute:t,nav:navigation,dead:m.dead,health,teamIncome});
   for(const earning of farmIncome)
@@ -449,42 +495,10 @@ function simulateMatch(f){
     }
    }
   }
-  // Wave pressure and nearby professionals, not a random tower roll,
-  // generate incremental plate rewards and finally allow a tower to fall.
-  if(t>=8){
-   for(const lane of ['TOP','MID','BOT']){
-    for(const c of all){
-     const defender=enemy(c),stage=m.lanes[defender.id][lane]+1;
-     if(stage>3)continue;
-     const node=nav.towerNode(defender.id===a.id?'blue':'red',lane,stage);
-     const present=positioned(c,node);
-     if(!present.length)continue;
-     const claim=RiftCore.LaneEconomy.claimPlate(laneEconomy,
-       {teamId:c.id,defenderId:defender.id,lane,stage,minute:t});
-     if(!claim)continue;
-     const leader=player(present[0].id);
-     m.gold[c.id]+=claim.gold;
-     makeEv(t,'¡Placa conquistada en '+lane+'!',
-       c.name+' presiona con una oleada y '+leader.name+
-       ' consigue la placa '+claim.plate+' de la torre '+stage+
-       ' en '+lane+'. El club obtiene '+claim.gold+' de oro.',
-       'goal',c,{action:'plate',actorId:leader.id,
-         participantIds:[leader.id],lane,stage,plate:claim.plate,
-         node,goldReward:claim.gold,
-         earnedFightPressure:!!(navigation.counterPressure?.[c.id]&&
-           navigation.counterPressure[c.id].lane===lane&&
-           t<=navigation.counterPressure[c.id].until&&
-           present.some(p=>p.intent==='counterpush')),
-         crossmapTrade:lane==='TOP'&&
-           navigation.neutralPlans?.[c.id]?.action==='trade'&&
-           t>=m.nextDragon});
-    }
-   }
-   // Any side can earn tower objectives if wave, damage and the
-   // participants actually match the facts. No clock-selected owner.
-   for(const c of [a,b])for(const lane of ['TOP','MID','BOT'])
-     takeTower(c,t,lane);
-  }
+  // Every tower stores real HP. Damage and plates require wave pressure and
+  // actual players at the structure; no instant destruction or clock roll.
+  if(t>=8)for(const c of [a,b])for(const lane of ['TOP','MID','BOT'])
+   attackTower(c,t,lane);
   // The Dragon is earned at the actual pit, not by a scheduled owner roll.
   // Teams choose objective/contest/trade before moving; either can fail to
   // arrive, and a lone enemy JUN can attempt a physically valid Smite steal.
@@ -607,24 +621,27 @@ function simulateMatch(f){
    const leader=m.gold[a.id]>m.gold[b.id]?a:b;const dif=Math.abs(m.gold[a.id]-m.gold[b.id]);
    makeEv(t,dif<1800?'Máxima igualdad en la Grieta':'Lectura del mapa',dif<1800?'Los equipos intercambian oleadas y control de visión. La diferencia económica sigue siendo reducida.':`${leader.name} mantiene una ventaja aproximada de ${(dif/1000).toFixed(1)}k de oro. El rival debe elegir cuidadosamente sus próximos objetivos.`,'normal')
   }
-  // No forced siege roll. A late push still needs a crashed wave, three
-  // earned plates, living attackers and the corresponding physical tower.
-
-  if(t>=29&&!m.winner){
-   const eligible=all.filter(c=>Object.values(m.lanes[enemy(c).id]).some(n=>n===3))
-    .map(c=>({c,nearNexus:positioned(c,(enemy(c).id===a.id?'blue':'red')+'_nexus') }))
-    .filter(x=>x.nearNexus.length>=2);
-   if(eligible.length&&(t>=54||chance(t>=46?.66:.16))){
-    const w=eligible.length===1?eligible[0].c:decide(eligible[0].c,eligible[1].c,t);
-    const selected=eligible.find(x=>x.c.id===w.id).nearNexus;
-    const closer=player((selected.find(p=>p.role==='ADC')||selected[0]).id);
-    m.winner=w.id;
-    makeEv(t,'¡NEXO DESTRUIDO!',
-     `${w.name} completa el recorrido hasta la base rival. ${closer.name} y los atacantes presentes destruyen el nexo tras ${t} minutos.`,
-     'end',w,{action:'nexus',actorId:closer.id,
-      participantIds:selected.map(p=>p.id),
-      node:(enemy(w).id===a.id?'blue':'red')+'_nexus'});
-   }
+  // The Nexus has its own persistent HP. Only a physically escorted wave
+  // in a broken lane can damage it. No minute-based random winner roll.
+  for(const hit of RiftCore.NexusSiege.advance(
+   nexusSiege,navigation,m,t,health,m.dead)){
+   const winner=club(hit.teamId),actorId=hit.participantIds.find(id=>
+     player(id).role==='ADC')||hit.participantIds[0];
+   const actor=player(actorId);
+   const finished=hit.after===0;
+   if(finished)m.winner=winner.id;
+   const title=finished?'¡NEXO DESTRUIDO!':'¡El Nexo recibe daño!';
+   const body=finished?
+    winner.name+' destruye el Nexo enemigo con un asedio real. '+
+    actor.name+' y los atacantes presentes completan los últimos '+
+    hit.damage+' puntos de daño al minuto '+t+'.':
+    winner.name+' avanza con una oleada en '+hit.lane+' y '+actor.name+
+    ' participa en el asedio. El Nexo pierde '+hit.damage+
+    ' de vida y conserva '+hit.after+' de '+nexusSiege.maxHp+'.';
+   makeEv(t,title,body,finished?'end':'normal',winner,
+    {...hit,action:finished?'nexus':'nexus_damage',
+     actorId,participantIds:hit.participantIds,
+     siegeVersion:1});
   }
   nextSnapshot(t)
  }
@@ -961,12 +978,22 @@ function renderMapTactics(match,frame){
  const map=frame?.map;if(!map)return '<p class="helper">Este mapa fue generado antes del modelo táctico de visión.</p>';
  const a=club(match.fixture.a),b=club(match.fixture.b);
  const names={TOP:'Superior',MID:'Medio',BOT:'Inferior'};
+ const towerHp=(id,lane)=>{
+  const hp=frame.laneEconomy?.lanes?.[lane]?.hp?.[id];
+  if(!Array.isArray(hp))return null; // older replay without tower HP
+  const stage=hp.findIndex(v=>v>0);
+  if(stage<0)return 'todas destruidas';
+  const size=frame.laneEconomy?.towerMaxHp?.[stage]||hp[stage];
+  return ['exterior','interior','de base'][stage]+' '+hp[stage]+'/'+size+' HP';
+ };
  return `<p class="helper" style="margin-top:8px">Estimación abstracta de control por carril; no representa posiciones exactas.</p>`+
    ROLES.filter(r=>r==='TOP'||r==='MID'||r==='ADC').map(r=>{
     const lane=r==='ADC'?'BOT':r,ctx=map.lanes[lane],p=ctx.pressure[a.id];
     return `<div class="activity" style="display:block"><div class="split"><b>${names[lane]}</b><span class="helper">Presión ${esc(a.name)} ${p}% · ${esc(b.name)} ${100-p}%</span></div>
     <div class="track" style="margin-top:5px"><div class="fill" style="width:${p}%"></div></div>
-    <small class="helper">Visión: ${ctx.vision[a.id]} / ${ctx.vision[b.id]}</small></div>`;
+    <small class="helper">Visión: ${ctx.vision[a.id]} / ${ctx.vision[b.id]}</small>`+
+    (towerHp(a.id,lane)?`<div class="helper" style="margin-top:4px">Torres en pie · ${esc(a.name)}: ${esc(towerHp(a.id,lane))} · ${esc(b.name)}: ${esc(towerHp(b.id,lane))}</div>`:'')+
+    `</div>`;
    }).join('')+
    `<div class="helper" style="margin-top:10px"><b>Visión del río:</b> ${esc(a.name)} ${map.riverVision[a.id]}/100 · ${esc(b.name)} ${map.riverVision[b.id]}/100</div>`;
 }
@@ -1006,7 +1033,7 @@ function renderMatch(){const c=currentClub(),l=s.live;
  ${RiftMatchTab.render({match:l,frame,renderCrest:crest,teams:[a,b].map(t=>({id:t.id,name:t.name,color:t.color,logo:t.logo,secondaryColor:t.secondaryColor,branding:t.branding,players:ROLES.map(role=>player(t.lineup[role]))}))})}
  <div class="cols"><div><section class="panel"><div class="scoreboard"><div class="split"><span class="eyebrow">${demoBackup?brand('rift_league'):competition(f)} ${demoBackup?'Exhibición de prueba':f.playoff?'Playoffs':'Liga regular'} · ${MONTHS[s.month-1]} ${s.year}</span><span class="chip ${ended?'gold':'green'}">${esc(selectedEvent?.time||String(frame.minute).padStart(2,'0')+':00')}</span></div>
  <div class="split" style="margin-top:12px;gap:6px"><div class="flex">${crest(a,41)}<div class="scoreteam">${esc(a.name)}</div></div><div class="scoreline num">${frame.kills[a.id]} : ${frame.kills[b.id]}</div><div class="flex"><div class="scoreteam">${esc(b.name)}</div>${crest(b,41)}</div></div>
- <div class="scoregrid"><div><small>ORO</small><strong>${(frame.gold[a.id]/1000).toFixed(1)}k · ${(frame.gold[b.id]/1000).toFixed(1)}k</strong></div><div><small>TORRES</small><strong>${frame.towers[a.id]} · ${frame.towers[b.id]}</strong></div><div><small>DRAGONES</small><strong>${frame.dragons[a.id]} · ${frame.dragons[b.id]}</strong></div><div><small>BARÓN</small><strong>${frame.barons[a.id]} · ${frame.barons[b.id]}</strong></div><div><small>FASE</small><strong>${frame.minute<13?'Early':frame.minute<26?'Mid':'Late'}</strong></div><div><small>STATUS</small><strong>${viewingFinal?'Finalizado':ended?'Revisión histórica':'Por jugar'}</strong></div></div>
+ <div class="scoregrid"><div><small>ORO</small><strong>${(frame.gold[a.id]/1000).toFixed(1)}k · ${(frame.gold[b.id]/1000).toFixed(1)}k</strong></div><div><small>TORRES</small><strong>${frame.towers[a.id]} · ${frame.towers[b.id]}</strong></div><div><small>DRAGONES</small><strong>${frame.dragons[a.id]} · ${frame.dragons[b.id]}</strong></div><div><small>BARÓN</small><strong>${frame.barons[a.id]} · ${frame.barons[b.id]}</strong></div><div title="Vida restante de cada Nexo"><small>VIDA NEXOS</small><strong>${frame.siege?.hp?`${frame.siege.hp[a.id]} · ${frame.siege.hp[b.id]}`:'—'}</strong></div><div><small>FASE</small><strong>${frame.minute<13?'Early':frame.minute<26?'Mid':'Late'}</strong></div><div><small>STATUS</small><strong>${viewingFinal?'Finalizado':ended?'Revisión histórica':'Por jugar'}</strong></div></div>
  </div><div class="buttons" style="margin-top:13px">
  <button class="btn" data-action="replay-next" ${replay.cursor>=timeline.length-1?'disabled':''}>${icon('play',14)} Siguiente evento</button>
  <button class="btn secondary" data-action="instant" ${ended?'disabled':''}>Terminar partida</button>
@@ -1097,7 +1124,7 @@ function render(){if(!s){document.getElementById('app').innerHTML=renderModal();
  <nav class="nav" aria-label="Navegación">${demoBackup?navButton('match','match','Exhibición'):`${navButton('home','home','Inicio')}${navButton('roster','users','Plantilla')}${navButton('market','market','Mercado')}${navButton('match','match','Partidos')}${navButton('finance','money','Finanzas')}${navButton('world','world','Mundo')}${navButton('settings','settings','Partida')}`}</nav>
  <div class="sidebar-foot"><div class="eyebrow">TEMPORADA ${s.season}</div><div style="margin-top:5px;font-weight:800">${MONTHS[s.month-1]} ${s.year}</div><div class="chip">${s.clubs.length} clubes · ${s.players.filter(p=>!p.retired).length} profesionales</div></div></aside>
  <main class="main"><header class="topbar"><div class="clubhead">${crest(c,46)}<div><div class="clubtitle">${esc(c.name)}</div><div class="helper">${brand('rift_director_symbol',20)} ${esc(s.leagueName)} · Club ${c.kind==='user'?'bajo tu dirección':'autónomo'}</div></div></div><div class="top-actions">${demoBackup?`<span class="chip">MODO PRUEBA</span><button class="btn small secondary" data-action="demo-exit">Volver</button>`:`<span class="chip">${icon('calendar',14)} ${MONTHS[s.month-1]} ${s.year}</span><span class="chip ${c.cash<250000?'red':'green'}">${icon('money',14)} ${fmt(c.cash)}</span><button class="btn small" data-action="close-month" ${s.over?'disabled':''}>Siguiente mes</button>`}</div></header>${body}
- <div class="footer">Rift Director Alpha 0.7.6 · Universo y retratos ficticios · Guardado local · Simulador independiente no afiliado a Riot Games</div></main></div>${renderModal()}${s.over?`<div class="modal-layer"><div class="modal end-screen"><div class="eyebrow">FIN DE PARTIDA</div><h1>Insolvencia.</h1><p>Tu club se quedó sin efectivo. El mundo sigue su historia, pero esta gestión termina aquí. Recuerda: ganar torneos nunca fue la única forma de triunfar.</p><div class="buttons" style="justify-content:center"><button class="btn" data-action="export">Exportar historia</button><button class="btn danger" data-action="reset">Nueva organización</button></div></div></div>`:''}`;
+ <div class="footer">Rift Director Alpha 0.7.16 · Universo y retratos ficticios · Guardado local · Simulador independiente no afiliado a Riot Games</div></main></div>${renderModal()}${s.over?`<div class="modal-layer"><div class="modal end-screen"><div class="eyebrow">FIN DE PARTIDA</div><h1>Insolvencia.</h1><p>Tu club se quedó sin efectivo. El mundo sigue su historia, pero esta gestión termina aquí. Recuerda: ganar torneos nunca fue la única forma de triunfar.</p><div class="buttons" style="justify-content:center"><button class="btn" data-action="export">Exportar historia</button><button class="btn danger" data-action="reset">Nueva organización</button></div></div></div>`:''}`;
  if(view==='match'&&s.live){const log=document.getElementById('eventlog');const selected=log?.querySelector('.is-selected');if(selected&&typeof selected.scrollIntoView==='function')selected.scrollIntoView({block:'nearest'})}
 }
 function updatePlan(id,delta){if(s.live&&!s.live.finished)return notify('Finaliza el partido para modificar la agenda.');if(!Object.hasOwn(s.plan,id))return;let x=s.plan[id]+delta;if(x<0||x>4||delta>0&&sumPlan()>=8)return;s.plan[id]=x;save();render()}

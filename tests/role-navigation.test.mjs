@@ -122,6 +122,17 @@ test('SUP tiene roaming breve después de líneas y regresa junto a su ADC',()=>
      assert.ok(validRetreat(match,sup,t),'SUP se retiró sin combate previo');
      continue;
     }
+    if(p.intent==='counterpush'&&t<30){
+     assert.equal(p.reason,'earned_fight_pressure',
+      'SUP no abandona a ADC por una orden genérica de asedio');
+     const source=match.events.find(e=>e.teamId===teamId&&
+      e.facts?.counterPressure?.lane==='BOT'&&
+      e.facts.counterPressure.allowed.includes(sup)&&
+      e.minute<t&&e.minute+3>=t&&
+      e.facts.victimIds?.length>0);
+     assert.ok(source,'La presión de SUP debe venir de una kill real con ADC');
+     continue;
+    }
     if(t>=14&&t<=17) {
      if(p.intent==='ward_roam')seenRoam++;
      else assert.ok(['escort','recover','fallback'].includes(p.intent)&&p.reason,

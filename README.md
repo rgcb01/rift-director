@@ -4,7 +4,7 @@
 
 [**Jugar en el navegador**](https://rgcb01.github.io/rift-director/) · [Roadmap](ROADMAP.md) · [Cambios](CHANGELOG.md) · [Cómo contribuir](CONTRIBUTING.md)
 
-> **Alpha 0.7.14 — publicada en main tras 139/139 pruebas y 2,000 partidas auditadas/espejadas.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
+> **Alpha 0.7.16 — consolidación validada tras 198/198 pruebas y 2,000 partidas auditadas/espejadas.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
 
 ## La idea
 
@@ -19,6 +19,26 @@ Los meses impulsan las finanzas y el mundo. Las noticias y los rumores reflejan 
 - **Local:** descarga el repositorio y abre `index.html` con tu navegador. Como alternativa, ejecuta `python -m http.server 8080` y visita `http://localhost:8080`.
 - No hay instalación de paquetes, cuenta ni backend para jugar.
 - **Guardados:** automáticos en `localStorage` de ese navegador. En **Partida** puedes **exportar/importar JSON**. Los guardados no se sincronizan entre dispositivos; expórtalos antes de borrar datos del navegador.
+
+## Alpha 0.7.16 — Integración de experimentos
+
+Incluye nexo y torres físicos, placas acumulativas, oleadas y contraasedios causales, 15 objetos completos y 15 componentes con recetas, seis espacios de inventario, Art Pack 03 y retratos originales en los replays. El oro extra para remontar se paga **únicamente tras una eliminación verificada del equipo rezagado** y queda auditado junto a la cartera y el marcador.
+
+**Resultado en 2,000 mapas:** 197/197 pruebas; 49.78 min, 6.44 kills, 4.1% remontadas, 49.0% azul espejado y cero regresiones bloqueantes. [Benchmark reproducible](https://github.com/rgcb01/rift-director/actions/runs/42751443138).
+
+Los apartados 0.7.15A/B siguientes documentan experimentos históricos incorporados después a esta release.
+
+## Alpha 0.7.15B — Vida persistente de torres (PR #34, histórico experimental)
+
+Las torres exteriores/interiores/de base cuentan con **60/72/84 HP**, respectivamente. Los golpes se acumulan incluso si la escuadra se retira, y cada placa corresponde a un tercio de la vida de la torre efectivamente perdido. Un defensor presente reduce el daño, Barón refuerza asedios físicos y un splitpusher solo puede rematar si tiene una oleada fuerte y no existe defensa cercana. El panel de control de mapa muestra la vida de la siguiente torre en cada línea, también en el replay.
+
+**Benchmark inicial de 2,000 mapas:** 148/148 tests; 52.10 minutos, 6.76 kills, 3.9% remontadas, azul espejado 49.9%. Mejor variedad de splitpush y carriles, pero **duración peor que 0.7.15A y ningún mapa antes de 35 minutos**: sigue en borrador para corregir la conversión de ventajas en 0.7.15C. No se publicó por separado: su contenido se consolidó en 0.7.16.
+
+## Alpha 0.7.15A — Cierre físico del Nexo (en PR #33, no publicado)
+
+El Nexo dispone de **108 puntos de vida**. Tras destruir las tres torres de una línea, una oleada con presión real y al menos dos profesionales presentes puede atacar el Nexo; defensores y Barón modifican el daño, pero no asignan el resultado. Cada golpe queda registrado en el replay y la barra de vida está disponible en el marcador de nuevas partidas. Ningún minuto activa una victoria aleatoria.
+
+**Candidato probado:** 144/144 pruebas y 2,000 partidas; duración media 50.21 minutos, kills 6.53, remontadas 4.0%, azul espejado 49.4%; 0 regresiones bloqueantes. **Pendiente de revisión:** no hubo victorias antes del minuto 35. El PR #33 se cerró como experimento histórico y su contenido se consolidó en 0.7.16.
 
 ## Alpha 0.7.14 — Riesgo y decisiones macro (integrada)
 

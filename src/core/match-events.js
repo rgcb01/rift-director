@@ -25,6 +25,10 @@
     const lanes = {[a]:{TOP:0,MID:0,BOT:0}, [b]:{TOP:0,MID:0,BOT:0}};
     const dead = new Map();
     const plateCounts={};
+    const towerHealth=Object.fromEntries([a,b].map(id=>[id,
+      Object.fromEntries(['TOP','MID','BOT'].map(l=>[l,[...core.LaneEconomy.TOWER_HP]]))]));
+    const lastTowerHit={};
+    const towerKey=(defender,lane,stage)=>defender+'|'+lane+'|'+stage;
     const combatants = [a,b].flatMap(id => core.ROLES.map(role => players.get(clubs.get(id).lineup[role])));
     let stats;
     try { stats = core.createPlayerStats(combatants); }
@@ -56,6 +60,8 @@
     }
     let nextDragon = 5, nextBaron = 20, nextEvent = 0, previousMinute = -1;
     let nexusCount = 0, lastEventMinute = 0;
+    const nexusHealth={[a]:core.NexusSiege.MAX_HP,[b]:core.NexusSiege.MAX_HP};
+    let nexusHits=0;
 
     function alive(p, t) { return p && (dead.get(p.id) ?? 0) <= t; }
     function actor(facts, event, minute) {
@@ -198,16 +204,62 @@
         const buyer=actor(facts,event,t);
         verifyParticipants(event,facts,t);
         const side=event.teamId===a?'blue':'red';
-        const item=core.PowerEconomy.ITEM_CATALOG.find(x=>x.id===facts.itemId);
-        if(!buyer||!item||item.cost!==facts.goldCost||
+        const item=[...core.PowerEconomy.ITEM_CATALOG,
+          ...core.PowerEconomy.COMPONENT_CATALOG].find(x=>x.id===facts.itemId);
+        const ingredients=facts.consumedIds||[];
+        const componentCatalog=core.PowerEconomy.COMPONENT_CATALOG;
+        const credit=ingredients.reduce((n,id)=>n+
+          (componentCatalog.find(x=>x.id===id)?.cost||0),0);
+        const recipeValid=!ingredients.length||
+          (item?.recipe&&ingredients.every(id=>item.recipe.includes(id))&&
+            new Set(ingredients).size===ingredients.length);
+        if(!buyer||!item||!recipeValid||item.cost-credit!==facts.goldCost||
+           (facts.itemKind==='component')!==(item.kind==='component')||
            ![side+'_fountain',side+'_nexus'].includes(facts.node)||
-           !integer(facts.slot)||facts.slot<1||facts.slot>3||
+           !integer(facts.slot)||facts.slot<1||facts.slot>6||
            !integer(facts.level)||facts.level<1||facts.level>18)
          fail('Compra sin jugador en base, nivel o precio válido.');
         const moment=match.moments?.[match.events.indexOf(event)];
         if(moment?.navigation?.before?.[facts.actorId]?.node!==facts.node)
          fail('Compra inventada fuera de la base: '+facts.actorId);
-      } else if (facts.action === 'plate') {
+      } else if (facts.action === 'tower_damage'||facts.action === 'plate') {
+        if(facts.towerVersion===1){
+        actor(facts,event,t);verifyParticipants(event,facts,t);
+        const defender=event.teamId===a?b:a;
+        const lane=facts.lane,stage=facts.stage;
+        const key=towerKey(defender,lane,stage);
+        const validStage=['TOP','MID','BOT'].includes(lane)&&
+          integer(stage)&&stage>=1&&stage<=3&&
+          stage===lanes[defender]?.[lane]+1;
+        if(!validStage){
+          fail('Golpe sobre torre inexistente o fuera de orden.');
+        }else {
+          const hp=towerHealth[defender][lane][stage-1];
+          const raw=core.LaneEconomy.damageValue({
+            stage,attackers:facts.participantIds?.length,
+            defenders:facts.defenderIds?.length,
+            wave:facts.wave,baron:facts.baron});
+          const mayFinish=(facts.participantIds?.length||0)>=2||facts.soloAllowed===true;
+          const after=Math.max(mayFinish?0:1,hp-raw);
+          if(facts.towerVersion!==1||facts.before!==hp||
+             facts.rawDamage!==raw||facts.after!==after||
+             !integer(facts.damage)||facts.damage<1||
+             facts.damage!==hp-after||
+             !Number.isFinite(facts.wave)||
+             (facts.wave<.35&&!(t>=48&&facts.wave>=-1.25))||
+             !Array.isArray(facts.defenderIds)||
+             !Array.isArray(facts.participantIds))
+            fail('Daño estructural imposible o HP de torre falsificado.');
+          const front=frame.laneEconomy?.lanes?.[lane]?.front;
+          if(typeof front!=='number'||facts.wave!==(event.teamId===a?front:-front))
+            fail('Golpe de torre no corresponde a la oleada simulada.');
+          towerHealth[defender][lane][stage-1]=after;
+          lastTowerHit[key]={...facts,minute:t};
+        }
+        }else if(frame.laneEconomy?.towerMaxHp){
+          fail('Torre o placa moderna sin daño estructural registrado.');
+        }
+        if(facts.action==='plate'){
         actor(facts,event,t);verifyParticipants(event,facts,t);
         const defender=event.teamId===a?b:a;
         const lane=facts.lane,stage=facts.stage;
@@ -222,6 +274,14 @@
           plateCounts[plateKey]++;
           if(plateCounts[plateKey]!==facts.plate)
             fail('Placa fuera de secuencia.');
+          const hit=lastTowerHit[plateKey];
+          const hp=core.LaneEconomy.TOWER_HP[stage-1];
+          const threshold=Math.floor((hp-hit?.after)*3/hp);
+          if(!hit||hit.minute!==t||threshold!==facts.plate||
+             facts.goldReward!==Math.max(55,125-Math.max(0,t-14)*2)||
+             hit.actorId!==facts.actorId||hit.node!==facts.node)
+            fail('Placa sin un golpe causal a la torre en el mismo minuto.');
+        }
         }
       } else if (facts.action === 'tower') {
         actor(facts, event, t);verifyParticipants(event,facts,t);
@@ -230,6 +290,11 @@
         else {
           lanes[target][facts.lane]++;
           if (lanes[target][facts.lane] > 3 || facts.stage !== lanes[target][facts.lane]) fail('Torre fuera de orden.');
+          const key=towerKey(target,facts.lane,facts.stage),hit=lastTowerHit[key];
+          if(!hit||hit.minute!==t||hit.after!==0||
+             towerHealth[target]?.[facts.lane]?.[facts.stage-1]!==0||
+             facts.towerVersion!==1||facts.towerHpAfter!==0)
+            fail('Torre destruida sin HP cero y golpe físico en su estructura.');
           totals.towers[event.teamId]++;
         }
       } else if (facts.action === 'dragon') {
@@ -259,12 +324,30 @@
         if (facts.stolen && (!p || p.role !== 'JUN' || facts.smite !== true)) fail('Robo con Smite atribuido a alguien que no es jungla.');
         if (facts.smite && (!p || p.role !== 'JUN')) fail('Uso inválido de Smite.');
         if (facts.stolen && (!facts.initiatorTeamId || facts.initiatorTeamId === event.teamId)) fail('Robo sin equipo rival iniciador.');
-      } else if (facts.action === 'nexus') {
-        actor(facts, event, t);
+      } else if (facts.action === 'nexus_damage' || facts.action === 'nexus') {
+        actor(facts, event, t);verifyParticipants(event,facts,t);
         const target = event.teamId === a ? b : a;
-        if (!Object.values(lanes[target]).some(n => n === 3)) fail('Nexo destruido sin una línea abierta.');
-        if (match.winner !== event.teamId) fail('Equipo destructor no coincide con ganador.');
-        nexusCount++;
+        if(!Object.values(lanes[target]).some(n=>n===3)||
+           lanes[target]?.[facts.lane]!==3)
+          fail('Ataque al Nexo sin línea físicamente abierta.');
+        if(facts.siegeVersion!==1||facts.targetTeamId!==target||
+           facts.before!==nexusHealth[target]||
+           !integer(facts.damage)||facts.damage<1||
+           !integer(facts.rawDamage)||facts.rawDamage<facts.damage||
+           !integer(facts.after)||facts.after!==facts.before-facts.damage||
+           facts.after>core.NexusSiege.MAX_HP||
+           !Number.isFinite(facts.wave)||facts.wave<-.25||
+           !['TOP','MID','BOT'].includes(facts.lane)||
+           !Array.isArray(facts.defenderIds))
+          fail('Daño del Nexo sin contabilidad física verificable.');
+        nexusHealth[target]=facts.after;
+        nexusHits++;
+        if(facts.action==='nexus'){
+          if(facts.after!==0||match.winner!==event.teamId)
+            fail('Victoria sin vida cero del Nexo rival.');
+          nexusCount++;
+        }else if(facts.after===0)
+          fail('Nexo destruido sin evento de victoria.');
       } else {
         fail('Tipo de acción desconocido: ' + facts.action);
       }
@@ -312,6 +395,20 @@
           if (!isRecord(frame[k]) || !integer(frame[k][id]) || frame[k][id] !== totals[k][id]) {
             fail('Marcador no coincide con eventos: ' + k + ' ' + id + ' min ' + frame.minute);
           }
+        }
+      }
+      if(!frame.siege||frame.siege.version!==1||
+         frame.siege.maxHp!==core.NexusSiege.MAX_HP||
+         frame.siege.hits!==nexusHits||
+         [a,b].some(id=>frame.siege.hp?.[id]!==nexusHealth[id]))
+        fail('Vida del Nexo o golpes no corresponden a eventos: minuto '+frame.minute);
+      if(frame.laneEconomy?.towerMaxHp){
+        for(const id of [a,b])for(const lane of ['TOP','MID','BOT']){
+          const recorded=frame.laneEconomy.lanes?.[lane]?.hp?.[id];
+          if(!Array.isArray(recorded)||recorded.length!==3||
+             recorded.some((v,i)=>v!==towerHealth[id][lane][i]))
+            fail('Vida de torre distinta al historial de golpes: '+lane+
+             ' / '+id+' min '+frame.minute);
         }
       }
       validateRows(frame.playerStats,frame.minute);

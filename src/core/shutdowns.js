@@ -11,6 +11,16 @@ function bounty(streak){
  if(!Number.isSafeInteger(streak)||streak<0)throw Error('Invalid kill streak');
  return streak<3?0:Math.min(420,150+(streak-3)*90);
 }
+// This is an earned underdog kill bounty, never a passive clock bonus.
+// Only an actual confirmed elimination pays it and the public gold deficit
+// determines its amount. The cap prevents a single kill from erasing a match.
+function comebackBounty(deficit,confirmedKills){
+ if(!Number.isFinite(deficit)||!Number.isSafeInteger(confirmedKills)||
+    confirmedKills<0||confirmedKills>5)throw Error('Invalid comeback bounty inputs');
+ if(deficit<1500||confirmedKills===0)return 0;
+ const perKill=Math.min(1000,300+Math.floor((deficit-1500)/600)*100);
+ return perKill*confirmedKills;
+}
 function create(players){
  const streaks={};
  for(const p of players){
@@ -61,11 +71,17 @@ function audit(match){
        replica.facts.bountyGold!==f.bountyGold)
      errors.push('Forged or missing shutdown receipt at event '+i);
     const winner=moment.powerEconomy?.entries?.[f.actorId];
-    const expectedGold=320*victims.length+replica.facts.bountyGold;
+    const calculatedComeback=comebackBounty(f.comebackDeficit,victims.length);
+    const opposing=event.teamId===match.fixture.a?match.fixture.b:match.fixture.a;
+    if(f.comebackGold!==calculatedComeback||
+       (moment.gold?.[opposing]??NaN)-(moment.gold?.[event.teamId]??NaN)!==
+         f.comebackDeficit-f.comebackGold)
+     errors.push('Invalid comeback gold/deficit receipt at event '+i);
+    const expectedGold=320*victims.length+replica.facts.bountyGold+calculatedComeback;
     if(winner&&winner.killGold-previousKillGold[f.actorId]!==expectedGold)
      errors.push('Shutdown payout missing or duplicated from personal wallet '+i);
    }catch(e){errors.push('Invalid shutdown ledger at event '+i+': '+e.message);}
-  }else if(f?.bountyGold||f?.shutdowns?.length){
+  }else if(f?.bountyGold||f?.shutdowns?.length||f?.comebackGold||f?.comebackDeficit){
    errors.push('Bounty without a real kill '+i);
   }
   const actual=moment.shutdowns?.streaks;
@@ -76,5 +92,5 @@ function audit(match){
  }
  return errors;
 }
-core.Shutdowns=Object.freeze({create,bounty,apply,snapshot,audit});
+core.Shutdowns=Object.freeze({create,bounty,comebackBounty,apply,snapshot,audit});
 })(globalThis);

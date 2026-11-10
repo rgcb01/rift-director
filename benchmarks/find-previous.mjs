@@ -5,10 +5,17 @@ const version=process.argv[2]||'0.7.6-alpha';
 const out=process.argv[3]||'.balance-output';
 mkdirSync(out,{recursive:true});
 const dst=out+'/previous.json';
+// Experimental draft headings are not published release baselines.
+// Prefer the last published predecessor instead of requiring skipped 0.7.x versions.
+const publishedHeadings=[...readFileSync('CHANGELOG.md','utf8')
+ .matchAll(/^## \[(\d+\.\d+\.\d+-alpha)\]([^\n]*)/gm)]
+ .filter(m=>!/experimental|candidato|draft|borrador/i.test(m[2]))
+ .map(m=>m[1]).filter(v=>compareVersions(v,version)<0);
+const immediate=publishedHeadings.sort((a,b)=>compareVersions(b,a))[0];
 let previous=null,source='frozen baseline 0.7.6-alpha';
 try{
  if(process.env.GH_TOKEN&&process.env.GITHUB_REPOSITORY){
-  const cmd=path=>JSON.parse(execFileSync('gh',['api',path],{encoding:'utf8',timeout:60000}));
+  const cmd=path=>JSON.parse(execFileSync('gh',['api',path],{encoding:'utf8',timeout:60000,maxBuffer:20*1024*1024}));
   const found=cmd('/repos/'+process.env.GITHUB_REPOSITORY+'/actions/artifacts?per_page=100');
   const released=new Map();
   const isPublished=a=>{
@@ -31,7 +38,7 @@ try{
   const candidates=(found.artifacts||[]).filter(a=>!a.expired&&
     /^balance-report-\d+\.\d+\.\d+-alpha$/.test(a.name)&&a.workflow_run?.id)
     .map(a=>({...a,version:a.name.slice('balance-report-'.length)}))
-    .filter(a=>compareVersions(a.version,version)<0)
+    .filter(a=>compareVersions(a.version,version)<0&&(!immediate||a.version===immediate))
     .sort((a,b)=>compareVersions(b.version,a.version)||b.created_at.localeCompare(a.created_at))
     .filter(isPublished);
   for(const a of candidates){
@@ -66,9 +73,7 @@ if(!previous){
 }
 // Fail closed: a newer version must not silently compare against an older
 // available artifact if its immediate released predecessor is missing.
-const headings=[...readFileSync('CHANGELOG.md','utf8').matchAll(/^## \[(\d+\.\d+\.\d+-alpha)\]/gm)]
- .map(x=>x[1]).filter(v=>compareVersions(v,version)<0);
-const immediate=headings.sort((a,b)=>compareVersions(b,a))[0];
+// The required predecessor comes from published, not experimental, headings.
 if(immediate&&previous.version!==immediate)
  throw Error('Se exige baseline inmediatamente anterior '+immediate+
   ', pero solo se encontro '+previous.version+' ('+source+')');

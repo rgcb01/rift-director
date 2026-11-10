@@ -105,6 +105,17 @@ function createBroadcast(match,world,seed) {
     [actor+' alcanza un pico de poder',club+' invierte en '+f.itemName+
       (f.voluntaryRecall?' después de regresar desde el mapa.':' mientras ya estaba en base.')]
    ];
+  }else if(f.action==='tower_damage'){
+   const lane=laneLabel[f.lane];
+   entries=[
+    ['¡La torre aguanta en '+lane+'!',actor+' y '+club+
+      ' golpean la torre '+f.stage+' por '+f.damage+
+      ' puntos. Le quedan '+f.after+' de vida; todavía no está destruida.'],
+    ['Presión real sobre la estructura',club+' consigue daño persistente en '+lane+
+      '. '+actor+' participa; quedan '+f.after+' puntos de vida a la torre.'],
+    ['Asedio en curso',actor+' y sus compañeros atacan la estructura de '+lane+
+      ' y acumulan '+f.damage+' puntos de daño verificable.']
+   ];
   }else if(f.action==='plate'){
    const lane=laneLabel[f.lane];
    entries=[

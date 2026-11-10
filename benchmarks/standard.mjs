@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { boot } from '../tests/harness.mjs';
+import {diagnoseMatch,aggregateDiagnostics} from './economy-diagnostics.mjs';
 
 // Alpha 0.7.7 baseline: 1,000 full matches, 10 independently generated
 // worlds, 100 distinct seeds/world, rotating actual league fixtures.
@@ -61,6 +62,40 @@ export function runStandard() {
           barons:(f.barons[a]||0)+(f.barons[b]||0),
           towers:(f.towers[a]||0)+(f.towers[b]||0),
           baronSteals,
+          towerHits:m.events.filter(e=>['tower_damage','plate'].includes(e.facts?.action)&&e.facts?.towerVersion===1).length,
+          towerPartialHits:m.events.filter(e=>['tower_damage','plate'].includes(e.facts?.action)&&e.facts?.towerVersion===1&&e.facts.after>0).length,
+          towerDefendedHits:m.events.filter(e=>['tower_damage','plate'].includes(e.facts?.action)&&e.facts?.towerVersion===1&&e.facts.defenderIds?.length).length,
+          towerBaronHits:m.events.filter(e=>['tower_damage','plate'].includes(e.facts?.action)&&e.facts?.towerVersion===1&&e.facts.baron).length,
+          firstTowerHitMinute:m.events.find(e=>['tower_damage','plate'].includes(e.facts?.action)&&e.facts?.towerVersion===1)?.minute??null,
+          firstOpenLaneMinute:m.events.find(e=>
+            e.facts?.action==='tower'&&e.facts.stage===3)?.minute??null,
+          earlySiegePlayerMinutes:m.frames.reduce((n,f)=>n+
+            (f.minute<30?Object.values(f.navigation?.before||{}).filter(p=>
+              p.reason==='primary_siege').length:0),0),
+          earnedLaneKillOrders:m.events.filter(e=>
+            ['gank','lane_trade'].includes(e.facts?.action)&&
+            e.facts?.counterPressure).length,
+          convertedLaneKillOrders:m.events.filter(e=>
+            ['gank','lane_trade'].includes(e.facts?.action)&&
+            e.facts?.counterPressure&&m.events.some(t=>t.facts?.action==='tower'&&
+             t.teamId===e.teamId&&t.facts.lane===e.facts.counterPressure.lane&&
+             t.minute>=e.minute&&t.minute<=e.minute+5)).length,
+          lateFightOrders:m.events.filter(e=>e.minute>=36&&
+            e.facts?.action==='teamfight'&&e.facts.counterPressure).length,
+          convertedLateFightOrders:m.events.filter(e=>e.minute>=36&&
+            e.facts?.action==='teamfight'&&e.facts.counterPressure&&
+            m.events.some(t=>['tower','nexus'].includes(t.facts?.action)&&
+             t.teamId===e.teamId&&
+             (t.facts.action==='nexus'||
+              t.facts.lane===e.facts.counterPressure.lane)&&
+             t.minute>=e.minute&&t.minute<=e.minute+5)).length,
+          nexusHits:m.events.filter(e=>['nexus_damage','nexus'].includes(e.facts?.action)).length,
+          nexusBaronHits:m.events.filter(e=>['nexus_damage','nexus'].includes(e.facts?.action)&&
+           e.facts.baron).length,
+          nexusDefendedHits:m.events.filter(e=>['nexus_damage','nexus'].includes(e.facts?.action)&&
+           e.facts.defenderIds?.length>0).length,
+          firstNexusHitMinute:m.events.find(e=>
+           ['nexus_damage','nexus'].includes(e.facts?.action))?.minute??null,
           counterplayFights:m.events.filter(e=>e.facts?.counterplayVersion===1).length,
           counterplayKills:m.events.reduce((n,e)=>n+
             (e.facts?.counterplayVersion===1?(e.facts?.victimIds?.length||0):0),0),
@@ -90,6 +125,18 @@ export function runStandard() {
           crossmapPlates:m.events.filter(e=>e.facts?.action==='plate'&&e.facts.crossmapTrade).length,
           crossmapTowers:m.events.filter(e=>e.facts?.action==='tower'&&e.facts.crossmapTrade).length,
           purchases:m.events.filter(e=>e.facts?.action==='item_purchase').length,
+          completedPurchases:m.events.filter(e=>e.facts?.action==='item_purchase'&&
+            (e.facts.itemKind==='complete'||!e.facts.itemKind)).length,
+          componentPurchases:m.events.filter(e=>e.facts?.action==='item_purchase'&&
+            e.facts.itemKind==='component').length,
+          recipeCompletions:m.events.filter(e=>e.facts?.action==='item_purchase'&&
+            e.facts.consumedIds?.length).length,
+          completedEquipped:Object.values(f.powerEconomy?.entries||{}).reduce((n,p)=>n+
+            p.items.filter(id=>core.PowerEconomy.ITEM_CATALOG.some(item=>item.id===id)).length,0),
+          componentsEquipped:Object.values(f.powerEconomy?.entries||{}).reduce((n,p)=>n+
+            p.items.filter(id=>core.PowerEconomy.COMPONENT_CATALOG?.some(item=>item.id===id)).length,0),
+          slotsOccupied:Object.values(f.powerEconomy?.entries||{}).reduce((n,p)=>n+p.items.length,0),
+          walletUnspent:Object.values(f.powerEconomy?.entries||{}).reduce((n,p)=>n+p.wallet,0),
           recallPurchases:m.events.filter((e,i)=>e.facts?.action==='item_purchase'&&
             m.moments[i]?.navigation?.before?.[e.facts.actorId]?.intent==='shop_recall').length,
           fountainPurchases:m.events.filter(e=>e.facts?.action==='item_purchase'&&
@@ -138,6 +185,7 @@ export function runStandard() {
             return at.gold[a]>at.gold[b]?a:at.gold[b]>at.gold[a]?b:null})(),
           goldLead20:(()=>{const at=m.frames.find(f=>f.minute===20)||f;
             return Math.abs(at.gold[a]-at.gold[b])})(),
+          economyDiagnosis:diagnoseMatch(m,fixture,core.PowerEconomy.ITEM_CATALOG),
           actions:actionCounts
         };
         rows.push(row);batchRows.push(row);
@@ -146,6 +194,7 @@ export function runStandard() {
           const errors=[
             ...core.Navigation.auditNavigation(m,world),
             ...core.LaneEconomy.audit(m),
+            ...core.NexusSiege.audit(m),
             ...core.PowerEconomy.audit(m),
             ...core.NeutralObjectives.audit(m),
             ...core.Vision.audit(m),
@@ -189,6 +238,25 @@ export function runStandard() {
       earlyTowerMatches:rows.filter(r=>r.firstTowerMinute!==null&&r.firstTowerMinute<36).length,
       firstTowerMean:+avg(rows.filter(r=>r.firstTowerMinute!==null).map(r=>r.firstTowerMinute)).toFixed(2),
       platesPerMatch:+avg(rows.map(r=>r.actions.plate||0)).toFixed(2),
+      towerHitsPerMatch:+avg(rows.map(r=>r.towerHits)).toFixed(2),
+      towerPartialHitsPerMatch:+avg(rows.map(r=>r.towerPartialHits)).toFixed(2),
+      towerDefendedHitsPerMatch:+avg(rows.map(r=>r.towerDefendedHits)).toFixed(2),
+      towerBaronHitsPerMatch:+avg(rows.map(r=>r.towerBaronHits)).toFixed(2),
+      firstTowerHitMean:+avg(rows.filter(r=>r.firstTowerHitMinute!==null)
+       .map(r=>r.firstTowerHitMinute)).toFixed(2),
+      firstOpenLaneMean:+avg(rows.filter(r=>r.firstOpenLaneMinute!==null)
+       .map(r=>r.firstOpenLaneMinute)).toFixed(2),
+      earlySiegeMinutesPerMatch:+avg(rows.map(r=>r.earlySiegePlayerMinutes)).toFixed(2),
+      earnedLaneKillOrdersPerMatch:+avg(rows.map(r=>r.earnedLaneKillOrders)).toFixed(2),
+      convertedLaneKillOrdersPerMatch:+avg(rows.map(r=>r.convertedLaneKillOrders)).toFixed(2),
+      lateFightOrdersPerMatch:+avg(rows.map(r=>r.lateFightOrders)).toFixed(2),
+      convertedLateFightOrdersPerMatch:+avg(rows.map(r=>r.convertedLateFightOrders)).toFixed(2),
+      nexusHitsPerMatch:+avg(rows.map(r=>r.nexusHits)).toFixed(2),
+      nexusBaronHitsPerMatch:+avg(rows.map(r=>r.nexusBaronHits)).toFixed(2),
+      nexusContestedHitsPerMatch:+avg(rows.map(r=>r.nexusDefendedHits)).toFixed(2),
+      firstNexusHitMean:+avg(rows.filter(r=>r.firstNexusHitMinute!==null)
+       .map(r=>r.firstNexusHitMinute)).toFixed(2),
+      gamesWithoutNexusDamage:rows.filter(r=>r.nexusHits===0).length,
       contestedDragonsPerMatch:+avg(rows.map(r=>r.dragonContests)).toFixed(2),
       macroFarmTurnsPerMatch:+avg(rows.map(r=>r.macroTurns.farm)).toFixed(2),
       macroDefendTurnsPerMatch:+avg(rows.map(r=>r.macroTurns.defend)).toFixed(2),
@@ -216,6 +284,13 @@ export function runStandard() {
       crossmapTradeTowerGames:rows.filter(r=>r.crossmapTowers>0).length,
       contestedDragonGames:rows.filter(r=>r.dragonContests>0).length,
       purchasesPerMatch:+avg(rows.map(r=>r.purchases)).toFixed(2),
+      completedPurchasesPerMatch:+avg(rows.map(r=>r.completedPurchases)).toFixed(2),
+      componentPurchasesPerMatch:+avg(rows.map(r=>r.componentPurchases)).toFixed(2),
+      recipeCompletionsPerMatch:+avg(rows.map(r=>r.recipeCompletions)).toFixed(2),
+      completedEquippedPerMatch:+avg(rows.map(r=>r.completedEquipped)).toFixed(2),
+      componentsEquippedPerMatch:+avg(rows.map(r=>r.componentsEquipped)).toFixed(2),
+      occupiedSlotsPerMatch:+avg(rows.map(r=>r.slotsOccupied)).toFixed(2),
+      walletUnspentPerMatch:+avg(rows.map(r=>r.walletUnspent)).toFixed(2),
       recallPurchasesPerMatch:+avg(rows.map(r=>r.recallPurchases)).toFixed(2),
       fountainPurchasesPerMatch:+avg(rows.map(r=>r.fountainPurchases)).toFixed(2),
       earlyPurchasesPerMatch:+avg(rows.map(r=>r.before30Purchases)).toFixed(2),
@@ -235,7 +310,8 @@ export function runStandard() {
       comebackWins20:rows.filter(r=>r.goldLead20>=1500&&r.goldLeader20&&r.goldLeader20!==r.winner).length,
       hugeKillMargin15:rows.filter(r=>r.killMargin>=15).length,
       durationAtCap75:rows.filter(r=>r.duration>=75).length,
-      actionTotals,actionMatches,tacticReasons},
+      actionTotals,actionMatches,tacticReasons,
+      economyDiagnostics:aggregateDiagnostics(rows)},
     worlds:worldStats,
     extremes:{
       fastest:[...rows].sort((a,b)=>a.duration-b.duration).slice(0,5).map(({i,world,seed,duration,totalKills,side})=>({i,world,seed,duration,totalKills,side})),

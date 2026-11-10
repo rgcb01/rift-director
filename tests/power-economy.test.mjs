@@ -42,7 +42,7 @@ test('ítem equipado: solo se compra con cartera suficiente y estando en base',(
  assert.ok(economy.boost(model,a.id,'attack')>0);
  assert.equal(economy.purchase(model,nav,a,34,world),null,'No dos compras en el mismo minuto');
  for(let t=35;t<40;t++)economy.purchase(model,nav,a,t,world);
- assert.ok(p.items.length<=3);
+ assert.ok(p.items.length<=6);
  assert.equal(new Set(p.items).size,p.items.length);
 });
 
@@ -171,4 +171,30 @@ test('regreso táctico: lesión y compra justifican el viaje, no el mero oro acu
  nav.siegeTeam='b';health[other.id]=67;
  assert.equal(E.shouldRecall(model,nav,other,42,world,{health}),false,
   'Un asedio activo no debe perder un jugador suficientemente sano');
+});
+
+test('segundo regreso: oro realmente disponible, viaje físico, cooldown y asedio',()=>{
+ const {core}=boot();
+ const E=core.PowerEconomy,model=E.create(testRoster());
+ const nav={a:'a',b:'b',siegeTeam:null,agents:Object.fromEntries(testRoster().map(p=>
+  [p.id,{...p,alive:true,intent:'lane',
+   node:p.teamId==='a'?'blue_top_front':'red_top_front'}]))};
+ const w={gold:{a:13000,b:15500}},agent=nav.agents['a-TOP'],row=model.entries[agent.id];
+ const health=Object.fromEntries(testRoster().map(p=>[p.id,100]));
+ row.items=['boots'];row.spent=1850;row.wallet=5600;row.earned=7450;
+ row.voluntaryBuys=1;row.lastPurchaseMinute=22;
+ w.gold.b=12500;
+ assert.equal(E.shouldRecall(model,nav,agent,34,w,{health}),false,'Equipo líder no tiene segundo reset');
+ w.gold.b=15500;
+ assert.equal(E.shouldRecall(model,nav,agent,30,w,{health}),false,'No reset antes del umbral');
+ assert.equal(E.shouldRecall(model,nav,agent,34,w,{health}),true,'Oro acumulado financia segunda compra');
+ nav.siegeTeam='a';
+ assert.equal(E.shouldRecall(model,nav,agent,34,w,{health}),false,'No abandonar asedio activo sano');
+ nav.siegeTeam=null;agent.intent='shop_recall';agent.node='blue_nexus';
+ const ticket=E.purchase(model,nav,agent,35,w);
+ assert.equal(ticket?.voluntaryRecall,true);
+ assert.equal(row.voluntaryBuys,2);
+ agent.intent='lane';agent.node='blue_top_front';health[agent.id]=30;
+ assert.equal(E.shouldRecall(model,nav,agent,51,w,{health}),false,'No tercer reset');
+ assert.equal(row.wallet+row.spent,row.earned);
 });

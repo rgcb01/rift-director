@@ -40,7 +40,7 @@ test('genera un dashboard HTML con graficos SVG sin dependencias',()=>{
   const r=generate(current,baseline,dir);
   assert.equal(r.failures.length,0);
   for(const name of ['index.html','report.md','duration.svg','kills.svg','sides.svg',
-    'objectives.svg','dragon.svg','shutdown.svg','counterplay.svg','towers.svg','strategy.svg','macro.svg','power.svg','previous.svg','regressions.json']){
+    'objectives.svg','dragon.svg','shutdown.svg','counterplay.svg','towers.svg','strategy.svg','macro.svg','power.svg','economy.svg','previous.svg','regressions.json']){
    assert.ok(existsSync(join(dir,name)),name+' no generado');
   }
   assert.match(readFileSync(join(dir,'duration.svg'),'utf8'),/<svg/);
@@ -60,7 +60,7 @@ test('CLI del reporte genera HTML, 12 SVG y JSON desde argumentos relativos',()=
     {encoding:'utf8',timeout:20000});
   assert.equal(run.status,0,'Report CLI: '+run.stderr);
   for(const name of ['index.html','report.md','regressions.json','duration.svg','kills.svg',
-    'sides.svg','objectives.svg','dragon.svg','shutdown.svg','counterplay.svg','towers.svg','strategy.svg','macro.svg','power.svg','previous.svg']){
+    'sides.svg','objectives.svg','dragon.svg','shutdown.svg','counterplay.svg','towers.svg','strategy.svg','macro.svg','power.svg','economy.svg','previous.svg']){
    assert.ok(existsSync(join(dir,name)),name+' ausente en invocacion CLI');
   }
  }finally{rmSync(dir,{recursive:true,force:true})}
@@ -75,6 +75,7 @@ test('la comparación 0.7.8→0.7.9 alerta sobre kills, duración, remontadas y 
  current.standard.duration.mean=51.5;
  current.standard.gameplay.comebackWins20=25;
  current.standard.gameplay.purchasesPerMatch=26.9;
+ current.standard.gameplay.occupiedSlotsPerMatch=51; // 85% of 60 actual slots
  const assessment=evaluate(current,previous);
  assert.ok(assessment.warnings.some(x=>x.includes('kills medias')));
  assert.ok(assessment.warnings.some(x=>x.includes('duración media')));

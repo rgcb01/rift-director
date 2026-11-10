@@ -19,7 +19,7 @@ test('compatibilidad: los intervalos históricos siguen disponibles, sin manejar
 
 test('más de 150 mapas: noticias contextuales diversas sin alterar ni una acción deportiva',()=>{
  const {sim,core,world,fixture}=setup();
- const topics=new Set(),headlines=new Set(),kindCount={insight:0,sports:0,ward:0};
+ const topics=new Set(),headlines=new Set(),kindCount={insight:0,sports:0,ward:0,chip:0};
  let totalInsights=0,low=Infinity;
  for(let seed=1;seed<=150;seed++){
   world.rng=seed*12571;
@@ -50,6 +50,10 @@ test('más de 150 mapas: noticias contextuales diversas sin alterar ni una acci�
     const frame=match.frames.find(f=>f.minute===entry.minute);
     assert.ok(frame && !frame.winner);
    }else if(entry.facts?.action==='ward_place')kindCount.ward++;
+   // A non-plate HP tick is physical history for audit/replay, but
+   // it is not a new headline-scale sporting event. Keep the editorial
+   // diversity ratio measured against actual highlights instead.
+   else if(entry.facts?.action==='tower_damage')kindCount.chip++;
    else kindCount.sports++;
   }
   const insightTotal=match.broadcast.insights.length;

@@ -66,7 +66,7 @@ function choose({nav,agent,minute,worldState,context,baseline}){
   return withReason(baseline,baseline.reason);
  }
  if(['siege','defend','splitpush','counterpush','counter_siege','shop_recall'].includes(baseline?.intent))
-  return withReason(baseline,'siege_commitment');
+  return withReason(baseline,baseline.reason||'siege_commitment');
  const sight=observe({nav,agent,minute,context});
  const {side,lane,hp,opponents,allies,localAllies,ownVision}=sight;
  const ownJungle=side+'_jungle_lower';
