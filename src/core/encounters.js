@@ -73,7 +73,7 @@ function candidate(nav,health,players,side,enemy,zone,powerState=null){
  }
  return candidates.sort((a,b)=>b.score-a.score||a.defender.id.localeCompare(b.defender.id))[0]||null;
 }
-function resolve({nav,dead,minute,zone,players,health,seed,previous={},powerState=null}){
+function resolve({nav,dead,minute,zone,players,health,seed,previous={},powerState=null,abilityState=null}){
  if(!['dragon_pit','baron_pit'].includes(zone))return null;
  if(minute-(previous[zone]??-20)<4)return null;
  const groups=locate(nav,dead,minute,zone);
@@ -102,8 +102,12 @@ function resolve({nav,dead,minute,zone,players,health,seed,previous={},powerStat
  const mitigation=core.ChampionScaling?.mitigation(
    powerState?.entries?.[killer.id],powerState?.entries?.[defender.id],
    [...(core.PowerEconomy?.ITEM_CATALOG||[]),...(core.PowerEconomy?.COMPONENT_CATALOG||[])])??1;
- const damage=clamp(Math.round(rawDamage*mitigation),18,120);
- const after=Math.max(0,before-damage);
+ const oldDamage=clamp(Math.round(rawDamage*mitigation),18,120);
+ const window=abilityState&&core.ChampionKits?.impact({
+  model:abilityState,powerState,nav,actorId:killer.id,targetId:defender.id,
+  minute,mode:'skirmish',before,base:oldDamage,minDamage:18});
+ const damage=window?.damage??oldDamage;
+ const after=window?.hpAfter??Math.max(0,before-damage);
  const killed=after<=0;
  const side=defender.teamId===nav.a?'blue':'red';
  const retreatGoal=defender.role==='JUN'?side+'_jungle_lower':
@@ -117,6 +121,10 @@ function resolve({nav,dead,minute,zone,players,health,seed,previous={},powerStat
   opponentIds:nearbyAllies.map(x=>x.id),
   attackerCount:attackers.length,defenderCount:1+nearbyAllies.length,
   damage,mitigation,hpBefore:before,hpAfter:after,retreatGoal,
+  ...(window?{abilityCasts:window.abilityCasts,microSteps:window.microSteps,
+   shieldAbsorbed:window.shieldAbsorbed,healed:window.healed,
+   passiveDamage:window.passiveDamage,passiveGuard:window.passiveGuard,
+   controlSeconds:window.controlSeconds,ttkSeconds:window.ttkSeconds}:{}),
   healthVersion:1};
 }
 // Alpha 0.7.5 — One damage and retreat contract for lanes, ganks and fights.
@@ -136,7 +144,7 @@ function retreatDestination(nav,agent,minute){
  const lane=agent.role==='ADC'||agent.role==='SUP'?'bot':agent.role.toLowerCase();
  return side+'_'+lane+'_inner';
 }
-function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attackerIds,targetIds,lane=null,powerState=null}){
+function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attackerIds,targetIds,lane=null,powerState=null,abilityState=null}){
  if(!['lane','gank','teamfight'].includes(mode)||![nav.a,nav.b].includes(teamId))
   throw Error('Invalid combat mode/team');
  const get=id=>nav.agents[id],alive=id=>get(id)?.alive&&
@@ -161,7 +169,7 @@ function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attacker
  const comrades=attackers.filter(a=>chosen.some(d=>
    threat(null,a,d)||hitRange(a,d,mode,lane))).sort(rank);
  const participants=[leader.id,...comrades.filter(a=>a.id!==leader.id).map(a=>a.id)];
- const impacts=[];
+ const impacts=[],abilityCasts=[];
  for(const target of chosen){
   if(!hitRange(leader,target,mode,lane))continue;
   const allies=attackers.filter(a=>threat(null,a,target)||hitRange(a,target,mode,lane));
@@ -176,11 +184,22 @@ function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attacker
   const mitigation=core.ChampionScaling?.mitigation(
     powerState?.entries?.[leader.id],powerState?.entries?.[target.id],
     [...(core.PowerEconomy?.ITEM_CATALOG||[]),...(core.PowerEconomy?.COMPONENT_CATALOG||[])])??1;
-  const damage=clamp(Math.round(rawDamage*mitigation),12,120);
-  const after=Math.max(0,before-damage);
+  const oldDamage=clamp(Math.round(rawDamage*mitigation),12,120);
+  // One primary target per encounter may receive a local ability window;
+  // secondary hits remain normal physical impacts, never cloned spells.
+  const window=abilityState&&impacts.length===0&&core.ChampionKits?.impact({
+   model:abilityState,powerState,nav,actorId:leader.id,targetId:target.id,
+   minute,mode,before,base:oldDamage,minDamage:12});
+  const damage=window?.damage??oldDamage;
+  const after=window?.hpAfter??Math.max(0,before-damage);
   const retreat=after>0&&(after<48||(allies.length>defenders.length&&after<72));
+  if(window)abilityCasts.push(...window.abilityCasts);
   impacts.push({id:target.id,node:target.node,hpBefore:before,hpAfter:after,
-   damage,mitigation,retreat,retreatGoal:retreat?retreatDestination(nav,target,minute):null});
+   damage,mitigation,retreat,retreatGoal:retreat?retreatDestination(nav,target,minute):null,
+   ...(window?{microSteps:window.microSteps,shieldAbsorbed:window.shieldAbsorbed,
+    healed:window.healed,passiveDamage:window.passiveDamage,
+    passiveGuard:window.passiveGuard,controlSeconds:window.controlSeconds,
+    ttkSeconds:window.ttkSeconds}:{})});
  }
  if(!impacts.length)return null;
  const victims=impacts.filter(p=>p.hpAfter===0).map(p=>p.id);
@@ -191,6 +210,7 @@ function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attacker
    participants.filter(id=>id!==leader.id).slice(0,2):[],
   victimIds:victims,impacts,targetId:impacts[0].id,targetNode:impacts[0].node,
   attackerCount:participants.length,defenderCount:defenders.length,
+  ...(abilityState?{abilityCasts}:{}),
   ...(lane?{lane}:{}),
  };
 }
