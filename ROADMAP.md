@@ -6,7 +6,7 @@ Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prome
 
 ## Estado de release y próximas versiones (2026-11-09)
 
-**Publicada: Alpha 0.7.16** mediante PR #44, con 197/197 pruebas y 2,000 mapas (1,000 auditados + 500 pares espejados). Integración de Nexo y torres físicos, objetos/recetas, contraasedios y recompensas por bajas reales del rezagado. Versus 0.7.14: remontadas 4.2%→3.7%, kills 6.39→6.50, duración 49.28→49.92 y azul espejado 49.5%→48.6%. Cero regresiones bloqueantes.
+**Publicada: Alpha 0.7.16** mediante PR #44, con 198/198 pruebas y 2,000 mapas (1,000 auditados + 500 pares espejados). Integración de Nexo y torres físicos, objetos/recetas, contraasedios y recompensas por bajas reales del rezagado. Versus 0.7.14: remontadas 4.2%→4.1%, kills 6.39→6.44, duración 49.28→49.78 y azul espejado 49.5%→49.0%. Cero regresiones bloqueantes.
 
 **Histórico de prioridad (2026-11-08): campeones → objetos → escalado → habilidades/combate → IA y balance.** La antigua 0.7.15 de defensa, inhibidores y conversión de Barón queda **pospuesta**, no implementada. El motor ya tiene XP y niveles 1–18, cinco objetos abstractos, oro personal y vida normalizada; todavía no hay campeones seleccionables, kits propios ni escalado estadístico por campeón. Esta es una decisión de planificación, **no una funcionalidad entregada**.
 

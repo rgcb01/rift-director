@@ -4,7 +4,7 @@
 
 [**Jugar en el navegador**](https://rgcb01.github.io/rift-director/) · [Roadmap](ROADMAP.md) · [Cambios](CHANGELOG.md) · [Cómo contribuir](CONTRIBUTING.md)
 
-> **Alpha 0.7.16 — consolidación validada tras 197/197 pruebas y 2,000 partidas auditadas/espejadas.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
+> **Alpha 0.7.16 — consolidación validada tras 198/198 pruebas y 2,000 partidas auditadas/espejadas.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
 
 ## La idea
 
@@ -24,7 +24,7 @@ Los meses impulsan las finanzas y el mundo. Las noticias y los rumores reflejan 
 
 Incluye nexo y torres físicos, placas acumulativas, oleadas y contraasedios causales, 15 objetos completos y 15 componentes con recetas, seis espacios de inventario, Art Pack 03 y retratos originales en los replays. El oro extra para remontar se paga **únicamente tras una eliminación verificada del equipo rezagado** y queda auditado junto a la cartera y el marcador.
 
-**Resultado en 2,000 mapas:** 197/197 pruebas; 49.92 min, 6.50 kills, 3.7% remontadas, 48.6% azul espejado y cero regresiones bloqueantes. [Benchmark reproducible](https://github.com/rgcb01/rift-director/actions/runs/42750943716).
+**Resultado en 2,000 mapas:** 197/197 pruebas; 49.78 min, 6.44 kills, 4.1% remontadas, 49.0% azul espejado y cero regresiones bloqueantes. [Benchmark reproducible](https://github.com/rgcb01/rift-director/actions/runs/42751443138).
 
 Los apartados 0.7.15A/B siguientes documentan experimentos históricos incorporados después a esta release.
 
