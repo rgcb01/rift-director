@@ -1034,12 +1034,18 @@ function renderMatch(){const c=currentClub(),l=s.live;
  <div class="cols"><div><section class="panel"><div class="scoreboard"><div class="split"><span class="eyebrow">${demoBackup?brand('rift_league'):competition(f)} ${demoBackup?'Exhibición de prueba':f.playoff?'Playoffs':'Liga regular'} · ${MONTHS[s.month-1]} ${s.year}</span><span class="chip ${ended?'gold':'green'}">${esc(selectedEvent?.time||String(frame.minute).padStart(2,'0')+':00')}</span></div>
  <div class="split" style="margin-top:12px;gap:6px"><div class="flex">${crest(a,41)}<div class="scoreteam">${esc(a.name)}</div></div><div class="scoreline num">${frame.kills[a.id]} : ${frame.kills[b.id]}</div><div class="flex"><div class="scoreteam">${esc(b.name)}</div>${crest(b,41)}</div></div>
  <div class="scoregrid"><div><small>ORO</small><strong>${(frame.gold[a.id]/1000).toFixed(1)}k · ${(frame.gold[b.id]/1000).toFixed(1)}k</strong></div><div><small>TORRES</small><strong>${frame.towers[a.id]} · ${frame.towers[b.id]}</strong></div><div><small>DRAGONES</small><strong>${frame.dragons[a.id]} · ${frame.dragons[b.id]}</strong></div><div><small>BARÓN</small><strong>${frame.barons[a.id]} · ${frame.barons[b.id]}</strong></div><div title="Vida restante de cada Nexo"><small>VIDA NEXOS</small><strong>${frame.siege?.hp?`${frame.siege.hp[a.id]} · ${frame.siege.hp[b.id]}`:'—'}</strong></div><div><small>FASE</small><strong>${frame.minute<13?'Early':frame.minute<26?'Mid':'Late'}</strong></div><div><small>STATUS</small><strong>${viewingFinal?'Finalizado':ended?'Revisión histórica':'Por jugar'}</strong></div></div>
- </div><div class="buttons" style="margin-top:13px">
+ </div>
+ <div class="replay-navigation-head"><strong>Explorar la partida</strong><span class="helper num" aria-live="polite">Jugada ${replay.cursor+1} de ${replay.progress+1} vistas · ${timeline.length} totales</span></div>
+ <div class="replay-navigation-track" role="progressbar" aria-label="Jugadas disponibles" aria-valuemin="0" aria-valuemax="${timeline.length}" aria-valuenow="${replay.progress+1}"><span style="width:${(100*(replay.progress+1)/Math.max(1,timeline.length)).toFixed(1)}%"></span></div>
+ <div class="buttons replay-navigation-buttons">
+ <button class="btn secondary" data-action="replay-prev" ${replay.cursor<=0?'disabled':''}>← Anterior</button>
  <button class="btn" data-action="replay-next" ${replay.cursor>=timeline.length-1?'disabled':''}>${icon('play',14)} Siguiente evento</button>
- <button class="btn secondary" data-action="instant" ${ended?'disabled':''}>Terminar partida</button>
+ <button class="btn secondary" data-action="replay-latest" ${replay.cursor>=replay.progress?'disabled':''}>Último visto</button>
+ <button class="btn ghost" data-action="instant" ${ended?'disabled':''} title="Completar el partido y registrar el resultado">Terminar partida</button>
  ${ended?demoBackup?`<button class="btn secondary small" data-action="demo-replay">Otra partida</button><button class="btn ghost small" data-action="demo-exit">Salir</button>`:
  `<button class="btn ghost small" data-action="leave-match">Volver al club</button>`:''}
  </div>
+ <p class="helper replay-navigation-help">Anterior y Último visto solo revisan jugadas observadas. Siguiente evento avanza la simulación cuando estás al día. Terminar partida completa el encuentro y registra el resultado.</p>
  ${viewingFinal?`<div class="banner ${l.winner===s.userClub?'':'warn'}" style="margin-top:13px"><strong>${l.winner===s.userClub?'¡VICTORIA!':'Derrota'}</strong> · ${esc(win.name)} destruyó el nexo. Duración: ${frame.minute} minutos. ${demoBackup?'Exhibición terminada: sin cambios en tu partida.':'Los resultados quedaron registrados en las estadísticas y finanzas.'}</div>`:''}</section>
  <section class="panel"><div class="panel-head"><h2>Historial de jugadas · RiftCast</h2>
  <span class="chip">${replay.progress+1}/${timeline.length} momentos</span></div>
@@ -1124,7 +1130,7 @@ function render(){if(!s){document.getElementById('app').innerHTML=renderModal();
  <nav class="nav" aria-label="Navegación">${demoBackup?navButton('match','match','Exhibición'):`${navButton('home','home','Inicio')}${navButton('roster','users','Plantilla')}${navButton('market','market','Mercado')}${navButton('match','match','Partidos')}${navButton('finance','money','Finanzas')}${navButton('world','world','Mundo')}${navButton('settings','settings','Partida')}`}</nav>
  <div class="sidebar-foot"><div class="eyebrow">TEMPORADA ${s.season}</div><div style="margin-top:5px;font-weight:800">${MONTHS[s.month-1]} ${s.year}</div><div class="chip">${s.clubs.length} clubes · ${s.players.filter(p=>!p.retired).length} profesionales</div></div></aside>
  <main class="main"><header class="topbar"><div class="clubhead">${crest(c,46)}<div><div class="clubtitle">${esc(c.name)}</div><div class="helper">${brand('rift_director_symbol',20)} ${esc(s.leagueName)} · Club ${c.kind==='user'?'bajo tu dirección':'autónomo'}</div></div></div><div class="top-actions">${demoBackup?`<span class="chip">MODO PRUEBA</span><button class="btn small secondary" data-action="demo-exit">Volver</button>`:`<span class="chip">${icon('calendar',14)} ${MONTHS[s.month-1]} ${s.year}</span><span class="chip ${c.cash<250000?'red':'green'}">${icon('money',14)} ${fmt(c.cash)}</span><button class="btn small" data-action="close-month" ${s.over?'disabled':''}>Siguiente mes</button>`}</div></header>${body}
- <div class="footer">Rift Director Alpha 0.7.16 · Universo y retratos ficticios · Guardado local · Simulador independiente no afiliado a Riot Games</div></main></div>${renderModal()}${s.over?`<div class="modal-layer"><div class="modal end-screen"><div class="eyebrow">FIN DE PARTIDA</div><h1>Insolvencia.</h1><p>Tu club se quedó sin efectivo. El mundo sigue su historia, pero esta gestión termina aquí. Recuerda: ganar torneos nunca fue la única forma de triunfar.</p><div class="buttons" style="justify-content:center"><button class="btn" data-action="export">Exportar historia</button><button class="btn danger" data-action="reset">Nueva organización</button></div></div></div>`:''}`;
+ <div class="footer">Rift Director Alpha 0.7.17 · Universo y retratos ficticios · Guardado local · Simulador independiente no afiliado a Riot Games</div></main></div>${renderModal()}${s.over?`<div class="modal-layer"><div class="modal end-screen"><div class="eyebrow">FIN DE PARTIDA</div><h1>Insolvencia.</h1><p>Tu club se quedó sin efectivo. El mundo sigue su historia, pero esta gestión termina aquí. Recuerda: ganar torneos nunca fue la única forma de triunfar.</p><div class="buttons" style="justify-content:center"><button class="btn" data-action="export">Exportar historia</button><button class="btn danger" data-action="reset">Nueva organización</button></div></div></div>`:''}`;
  if(view==='match'&&s.live){const log=document.getElementById('eventlog');const selected=log?.querySelector('.is-selected');if(selected&&typeof selected.scrollIntoView==='function')selected.scrollIntoView({block:'nearest'})}
 }
 function updatePlan(id,delta){if(s.live&&!s.live.finished)return notify('Finaliza el partido para modificar la agenda.');if(!Object.hasOwn(s.plan,id))return;let x=s.plan[id]+delta;if(x<0||x>4||delta>0&&sumPlan()>=8)return;s.plan[id]=x;save();render()}
@@ -1136,7 +1142,7 @@ function handleClick(ev){let target=ev.target.closest('[data-action],[data-nav]'
  if(a==='demo-start'){startDemoMatch();return}
  if(a==='demo-replay'){replayDemoMatch();return}
  if(a==='demo-exit'||(demoBackup&&a==='leave-match')){exitDemoMatch();return}
- if(demoBackup&&!['replay-next','replay-seek','instant'].includes(a))return;
+ if(demoBackup&&!['replay-next','replay-prev','replay-latest','replay-seek','instant'].includes(a))return;
  if(a==='close-backdrop'){if(ev.target===target&&modal?.type!=='crisis'){modal=null;render()}return}
  if(a==='choose-start'){readBrandDraft();draftName=document.getElementById('new-club-name')?.value||draftName;theme=id;render();return}
  if(a==='create'){let name=document.getElementById('new-club-name')?.value.trim().slice(0,32)||'Aurora Esports';readBrandDraft();newGame(theme,name);if(globalThis.RiftBranding){const c=currentClub();c.branding=RiftBranding.identity(c,draftBrand);c.color=c.branding.primaryColor}modal=null;view='home';save();render();return}
@@ -1147,6 +1153,8 @@ function handleClick(ev){let target=ev.target.closest('[data-action],[data-nav]'
  switch(a){case 'plan-minus':updatePlan(target.dataset.kind,-1);break;case 'plan-plus':updatePlan(target.dataset.kind,1);break;
  case 'close-month':closeMonth();break;case 'start':startMatch();break;case 'instant':liveControl(a);break;
  case 'replay-next':liveControl('next');break;
+ case 'replay-prev':if(s.live){const r=RiftCore.MatchReplay.ensure(s.live);if(r.cursor>0)seekReplay(r.cursor-1)}break;
+ case 'replay-latest':if(s.live){const r=RiftCore.MatchReplay.ensure(s.live);if(r.cursor<r.progress)seekReplay(r.progress)}break;
  case 'replay-seek':seekReplay(Number(target.dataset.index));break;
  case 'reopen-replay':
   if(s.lastReplay?.finished){s.live=s.lastReplay;view='match';updateReplayCursor();save();render()}
