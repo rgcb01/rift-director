@@ -169,6 +169,7 @@ test('active spell spends part of basic-attack budget instead of stacking a free
   mode:'lane',teamId:a.id,attackerIds:[a.lineup.MID],
   targetIds:[b.lineup.MID],lane:'MID',powerState:power};
  const old=core.Encounters.resolveCombat(args);
+ const before=JSON.stringify(kits);
  const candidate=core.Encounters.resolveCombat({...args,abilityState:kits});
  assert.ok(old&&candidate);
  const hit=candidate.impacts[0];
@@ -180,6 +181,5 @@ test('active spell spends part of basic-attack budget instead of stacking a free
   'A spell should replace autos; old model added the full spell as free damage');
  assert.ok(Math.abs(hit.damage-old.impacts[0].damage)<=8,
   'Burst and defensive reactions should have bounded early-game effect');
- assert.equal(JSON.stringify(core.ChampionKits.snapshot(kits)),
-  JSON.stringify(core.ChampionKits.snapshot(kits)),'Preview is pure');
+ assert.equal(JSON.stringify(kits),before,'Preview is pure');
 });
