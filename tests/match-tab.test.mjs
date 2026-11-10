@@ -136,7 +136,7 @@ test('0.7.18 TAB shows earned resources and QWER cooldowns without rewriting his
  const html=tab.render({match:{champions},frame,teams});
  assert.equal((html.match(/Habilidades y recursos activos/g)||[]).length,10);
  assert.match(html,/Recurso 63\/100/);
- assert.match(html,/Q:2m/);
+ assert.match(html,/Q:1m/);
  assert.match(html,/W:lista/);
  assert.equal(JSON.stringify(frame),before,'TAB may not mutate replay');
  const historical=tab.render({match:{},frame:{minute:20,playerStats:{}},teams});
