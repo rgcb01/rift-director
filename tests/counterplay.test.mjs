@@ -133,7 +133,7 @@ test('late underdog pushes only with an actual wave and local numerical edge',()
   'A late leader must not obtain a free bonus siege');
  const order=core.Counterplay.pressureAfterKill(nav,facts,40,state);
  assert.equal(order?.lane,'BOT');
- assert.equal(order?.until,43);
+ assert.equal(order?.until,45);
  assert.equal(core.Counterplay.followup(nav,adc,41,state,{health})?.goal,goal);
  for(const defender of Object.values(nav.agents).filter(p=>p.teamId===b.id)){
   defender.alive=true;defender.node=goal;
@@ -144,9 +144,45 @@ test('late underdog pushes only with an actual wave and local numerical edge',()
  state.waves.BOT.front=0;
  assert.equal(core.Counterplay.followup(nav,adc,41,state,{health}),null,
   'Wave disappearance cancels a push');
- assert.equal(core.Counterplay.followup(nav,adc,44,state,{health}),null,
+ assert.equal(core.Counterplay.followup(nav,adc,46,state,{health}),null,
   'Expiry cancels an opportunity');
 });
+test('late river teamfight converts only with nearby living escorts and a real wave',()=>{
+ const x=setup(),{core,nav,a,b,health}=x;
+ const mid=nav.agents[a.lineup.MID],jun=nav.agents[a.lineup.JUN];
+ const enemy=nav.agents[b.lineup.MID];
+ for(const p of Object.values(nav.agents)){
+  p.node=p.teamId===a.id?'blue_fountain':'red_fountain';
+  p.intent='lane';
+ }
+ mid.node='red_mid_outer';jun.node='red_mid_outer';
+ enemy.node='red_mid_outer';
+ const state={gold:{[a.id]:10000,[b.id]:13000},
+  lanes:x.lanes,waves:x.waves};
+ state.waves.MID.front=1.25;
+ const facts={teamId:a.id,actorId:mid.id,
+  participantIds:[mid.id,jun.id],victimIds:[enemy.id]};
+ const before=JSON.stringify({gold:state.gold,lanes:state.lanes});
+ const order=core.Counterplay.pressureAfterKill(nav,facts,40,state);
+ assert.ok(order,'A real mid+jungle group should get a physical followup');
+ assert.equal(order.lane,'MID');
+ assert.deepEqual(order.allowed,[mid.id,jun.id]);
+ assert.equal(order.until,45);
+ assert.equal(JSON.stringify({gold:state.gold,lanes:state.lanes}),before);
+ const follow=core.Counterplay.followup(nav,mid,41,state,{health});
+ assert.equal(follow?.intent,'counterpush');
+ assert.equal(follow?.lane,'MID');
+ state.waves.MID.front=0;
+ assert.equal(core.Counterplay.followup(nav,mid,41,state,{health}),null,
+  'A disappearing wave cancels the earned followup');
+ const noKill=core.Counterplay.pressureAfterKill(nav,{...facts,victimIds:[]},40,state);
+ assert.equal(noKill,null);
+ state.waves.MID.front=1.25;
+ mid.node='blue_fountain';jun.node='blue_fountain';
+ assert.equal(core.Counterplay.pressureAfterKill(nav,facts,41,state),null,
+  'Distant allies cannot magically turn a win into a siege');
+});
+
 test('90 mapas: peleas de counterplay son causales y los shutdowns siguen auditables',()=>{
  const {sim,core,world,fixture}=setup();
  let fights=0,kills=0,pressure=0,reasons={};
