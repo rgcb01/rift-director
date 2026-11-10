@@ -94,3 +94,13 @@ test('no purchase, unavailable XP, and missing KDA never become invented values'
  assert.match(html,/— \/ — \/ —/);
  assert.match(html,/Espacio vacío/);
 });
+test('historical replay portraits and club identity render together without changing the replay',()=>{
+ const match={},frame={playerStats:{}},before=JSON.stringify({match,frame,teams});
+ const html=tab.render({match,frame,teams,renderCrest:(team,size)=>`<svg data-club="${team.id}" width="${size}"></svg>`});
+ assert.equal((html.match(/data-club=/g)||[]).length,2);
+ assert.equal((html.match(/class="rift-tab-portrait-image"/g)||[]).length,10);
+ assert.match(html,/Replay histórico/);
+ assert.equal(typeof tab.championFor,'function');
+ assert.equal(typeof tab.portraitFor,'function');
+ assert.equal(JSON.stringify({match,frame,teams}),before);
+});

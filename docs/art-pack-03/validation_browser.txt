@@ -1,0 +1,1 @@
+PASS: 60 valid SVGs, 36 PNGs, custom identity persisted/reloaded, dashboard, roster, profile, calendar, standings/news, Match Center, competition stages, desktop/mobile and missing-script fallback.

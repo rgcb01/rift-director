@@ -9,6 +9,13 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 - Los replays antiguos sin campeones asignados muestran una identidad visual reconstruida de forma determinista, marcada como ilustrativa, sin alterar el partido histórico ni sus datos.
 - Pruebas de integración para 10 retratos en el TAB y en el minimapa.
 
+### Art Pack 03: Club & Competition Identity
+- 36 identidades SVG originales y PNG de 256 px: 23 clubes (los 22 nombres del catálogo y Aurora Esports), cinco assets institucionales y ocho emblemas de competición. Incluye manifiesto y hojas de revisión sobre fondos claro/oscuro a varios tamaños.
+- Resolución de clubes por nombre normalizado, independiente del ID de mundo, posición o escudo aleatorio. Conserva los colores guardados; el mismo maestro se renderiza en dashboard, plantillas, perfiles, calendario, clasificaciones, noticias, fichajes, TAB y Match Center.
+- Creación de organizaciones con 16 símbolos y ocho siluetas modulares, colores principal/secundario/acento y previsualización. Las selecciones se guardan en `club.branding` (campo opcional, versión 1) sin cambiar el formato v2 ni los IDs existentes; los clubes históricos desconocidos conservan el SVG anterior.
+- Identidad para Liga Aurora y el nombre real Circuito Boreal, temporada regular, playoffs, semifinal, final y campeón. El emblema internacional es únicamente un asset futuro, no una competición nueva. El panel de campeonatos muestra solo fases y ganadores ya registrados.
+- SVG inline procedente de los mismos maestros exportados, sin descargas obligatorias ni dependencias nuevas para jugar; fallback histórico si falta el módulo visual. No cambia combate, economía deportiva, estadísticas, RNG, calendario, IA, balance ni resultados.
+- Validación: 31 archivos de pruebas funcionales correctos; 60 SVG y 36 PNG cargados en Chromium, identidad conservada al guardar/cargar y cambiar temporada, pantallas de escritorio/móvil y fallback comprobados. 1.000 mapas auditados más 500 pares espejados sin errores; resultados idénticos al Art Pack 02. Evidencias en `docs/art-pack-03/`.
 
 ### Art Pack 2: ítems y componentes (solo presentación)
 - Dos atlas originales de 640 × 384 px, cinco columnas por tres filas: 15 ítems y 15 componentes, con PNG individuales de 128, 64 y 32 px y manifiestos de coordenadas e IDs estables.

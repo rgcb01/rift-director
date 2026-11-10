@@ -1,0 +1,563 @@
+{
+  "schema": 1,
+  "style": "Rift Faceted Fantasy — Competitive Edition",
+  "pathBase": "assets/branding/",
+  "entries": [
+    {
+      "id": "aurora_esports",
+      "displayName": "Aurora Esports",
+      "motif": "dawn",
+      "primaryColor": "#5bd4b6",
+      "secondaryColor": "#d9f4eb",
+      "accent": "#D7AC65",
+      "category": "club",
+      "futureOnly": false,
+      "asset": "clubs/aurora_esports.svg",
+      "png": "png/aurora_esports.png"
+    },
+    {
+      "id": "obsidian_foxes",
+      "displayName": "Obsidian Foxes",
+      "motif": "fox",
+      "primaryColor": "#263342",
+      "secondaryColor": "#B9C7D6",
+      "accent": "#D7AC65",
+      "category": "club",
+      "futureOnly": false,
+      "asset": "clubs/obsidian_foxes.svg",
+      "png": "png/obsidian_foxes.png"
+    },
+    {
+      "id": "solar_knights",
+      "displayName": "Solar Knights",
+      "motif": "solar",
+      "primaryColor": "#e3b96f",
+      "secondaryColor": "#f3dfb0",
+      "accent": "#D7AC65",
+      "category": "club",
+      "futureOnly": false,
+      "asset": "clubs/solar_knights.svg",
+      "png": "png/solar_knights.png"
+    },
+    {
+      "id": "northstar",
+      "displayName": "Northstar",
+      "motif": "star",
+      "primaryColor": "#7fceec",
+      "secondaryColor": "#dcecff",
+      "accent": "#D7AC65",
+      "category": "club",
+      "futureOnly": false,
+      "asset": "clubs/northstar.svg",
+      "png": "png/northstar.png"
+    },
+    {
+      "id": "crimson_circuit",
+      "displayName": "Crimson Circuit",
+      "motif": "circuit",
+      "primaryColor": "#E87482",
+      "secondaryColor": "#e9c6cb",
+      "accent": "#D7AC65",
+      "category": "club",
+      "futureOnly": false,
+      "asset": "clubs/crimson_circuit.svg",
+      "png": "png/crimson_circuit.png"
+    },
+    {
+      "id": "astra_wolves",
+      "displayName": "Astra Wolves",
+      "motif": "wolf",
+      "primaryColor": "#71a5fc",
+      "secondaryColor": "#c4d4f3",
+      "accent": "#D7AC65",
+      "category": "club",
+      "futureOnly": false,
+      "asset": "clubs/astra_wolves.svg",
+      "png": "png/astra_wolves.png"
+    },
+    {
+      "id": "nexus_forge",
+      "displayName": "Nexus Forge",
+      "motif": "forge",
+      "primaryColor": "#5EAFE8",
+      "secondaryColor": "#a8b9c8",
+      "accent": "#D7AC65",
+      "category": "club",
+      "futureOnly": false,
+      "asset": "clubs/nexus_forge.svg",
+      "png": "png/nexus_forge.png"
+    },
+    {
+      "id": "velvet_comets",
+      "displayName": "Velvet Comets",
+      "motif": "comet",
+      "primaryColor": "#bba1ff",
+      "secondaryColor": "#e7d5ff",
+      "accent": "#D7AC65",
+      "category": "club",
+      "futureOnly": false,
+      "asset": "clubs/velvet_comets.svg",
+      "png": "png/velvet_comets.png"
+    },
+    {
+      "id": "silver_lotus",
+      "displayName": "Silver Lotus",
+      "motif": "lotus",
+      "primaryColor": "#a9c6c9",
+      "secondaryColor": "#e1edf0",
+      "accent": "#D7AC65",
+      "category": "club",
+      "futureOnly": false,
+      "asset": "clubs/silver_lotus.svg",
+      "png": "png/silver_lotus.png"
+    },
+    {
+      "id": "iron_harbor",
+      "displayName": "Iron Harbor",
+      "motif": "harbor",
+      "primaryColor": "#71a5fc",
+      "secondaryColor": "#bccbd9",
+      "accent": "#D7AC65",
+      "category": "club",
+      "futureOnly": false,
+      "asset": "clubs/iron_harbor.svg",
+      "png": "png/iron_harbor.png"
+    },
+    {
+      "id": "arcadia_five",
+      "displayName": "Arcadia Five",
+      "motif": "five",
+      "primaryColor": "#df88ca",
+      "secondaryColor": "#f3d6e8",
+      "accent": "#D7AC65",
+      "category": "club",
+      "futureOnly": false,
+      "asset": "clubs/arcadia_five.svg",
+      "png": "png/arcadia_five.png"
+    },
+    {
+      "id": "polar_rift",
+      "displayName": "Polar Rift",
+      "motif": "polar",
+      "primaryColor": "#7fceec",
+      "secondaryColor": "#e2f5ff",
+      "accent": "#D7AC65",
+      "category": "club",
+      "futureOnly": false,
+      "asset": "clubs/polar_rift.svg",
+      "png": "png/polar_rift.png"
+    },
+    {
+      "id": "kings_of_neon",
+      "displayName": "Kings of Neon",
+      "motif": "crown",
+      "primaryColor": "#5bd4b6",
+      "secondaryColor": "#b8f5e5",
+      "accent": "#D7AC65",
+      "category": "club",
+      "futureOnly": false,
+      "asset": "clubs/kings_of_neon.svg",
+      "png": "png/kings_of_neon.png"
+    },
+    {
+      "id": "eclipse_union",
+      "displayName": "Eclipse Union",
+      "motif": "eclipse",
+      "primaryColor": "#bba1ff",
+      "secondaryColor": "#e7d5ff",
+      "accent": "#D7AC65",
+      "category": "club",
+      "futureOnly": false,
+      "asset": "clubs/eclipse_union.svg",
+      "png": "png/eclipse_union.png"
+    },
+    {
+      "id": "azure_vipers",
+      "displayName": "Azure Vipers",
+      "motif": "viper",
+      "primaryColor": "#5EAFE8",
+      "secondaryColor": "#d1edff",
+      "accent": "#D7AC65",
+      "category": "club",
+      "futureOnly": false,
+      "asset": "clubs/azure_vipers.svg",
+      "png": "png/azure_vipers.png"
+    },
+    {
+      "id": "orchid_pulse",
+      "displayName": "Orchid Pulse",
+      "motif": "orchid",
+      "primaryColor": "#df88ca",
+      "secondaryColor": "#f8dbef",
+      "accent": "#D7AC65",
+      "category": "club",
+      "futureOnly": false,
+      "asset": "clubs/orchid_pulse.svg",
+      "png": "png/orchid_pulse.png"
+    },
+    {
+      "id": "black_meridian",
+      "displayName": "Black Meridian",
+      "motif": "meridian",
+      "primaryColor": "#61758c",
+      "secondaryColor": "#c4ced9",
+      "accent": "#D7AC65",
+      "category": "club",
+      "futureOnly": false,
+      "asset": "clubs/black_meridian.svg",
+      "png": "png/black_meridian.png"
+    },
+    {
+      "id": "nova_dynasty",
+      "displayName": "Nova Dynasty",
+      "motif": "dynasty",
+      "primaryColor": "#e3b96f",
+      "secondaryColor": "#fae1ae",
+      "accent": "#D7AC65",
+      "category": "club",
+      "futureOnly": false,
+      "asset": "clubs/nova_dynasty.svg",
+      "png": "png/nova_dynasty.png"
+    },
+    {
+      "id": "royal_ravens",
+      "displayName": "Royal Ravens",
+      "motif": "raven",
+      "primaryColor": "#9473ca",
+      "secondaryColor": "#d5c8ef",
+      "accent": "#D7AC65",
+      "category": "club",
+      "futureOnly": false,
+      "asset": "clubs/royal_ravens.svg",
+      "png": "png/royal_ravens.png"
+    },
+    {
+      "id": "halcyon_esports",
+      "displayName": "Halcyon Esports",
+      "motif": "halcyon",
+      "primaryColor": "#5bd4b6",
+      "secondaryColor": "#c4ece4",
+      "accent": "#D7AC65",
+      "category": "club",
+      "futureOnly": false,
+      "asset": "clubs/halcyon_esports.svg",
+      "png": "png/halcyon_esports.png"
+    },
+    {
+      "id": "quartz_legion",
+      "displayName": "Quartz Legion",
+      "motif": "quartz",
+      "primaryColor": "#d5a7db",
+      "secondaryColor": "#eee2f5",
+      "accent": "#D7AC65",
+      "category": "club",
+      "futureOnly": false,
+      "asset": "clubs/quartz_legion.svg",
+      "png": "png/quartz_legion.png"
+    },
+    {
+      "id": "silent_lantern",
+      "displayName": "Silent Lantern",
+      "motif": "lantern",
+      "primaryColor": "#a6c974",
+      "secondaryColor": "#e5efcd",
+      "accent": "#D7AC65",
+      "category": "club",
+      "futureOnly": false,
+      "asset": "clubs/silent_lantern.svg",
+      "png": "png/silent_lantern.png"
+    },
+    {
+      "id": "orbit_nine",
+      "displayName": "Orbit Nine",
+      "motif": "orbit",
+      "primaryColor": "#f09d70",
+      "secondaryColor": "#ffe0c0",
+      "accent": "#D7AC65",
+      "category": "club",
+      "futureOnly": false,
+      "asset": "clubs/orbit_nine.svg",
+      "png": "png/orbit_nine.png"
+    },
+    {
+      "id": "rift_director_logo",
+      "displayName": "Rift Director",
+      "motif": "logo",
+      "primaryColor": "#D7AC65",
+      "secondaryColor": "#F0E9DA",
+      "accent": "#5EAFE8",
+      "category": "institutional",
+      "futureOnly": false,
+      "asset": "institutionals/rift_director_logo.svg",
+      "png": "png/rift_director_logo.png"
+    },
+    {
+      "id": "rift_director_symbol",
+      "displayName": "Rift Director · símbolo",
+      "motif": "symbol",
+      "primaryColor": "#D7AC65",
+      "secondaryColor": "#F0E9DA",
+      "accent": "#5EAFE8",
+      "category": "institutional",
+      "futureOnly": false,
+      "asset": "institutionals/rift_director_symbol.svg",
+      "png": "png/rift_director_symbol.png"
+    },
+    {
+      "id": "rift_director_wordmark",
+      "displayName": "Rift Director · wordmark",
+      "motif": "wordmark",
+      "primaryColor": "#D7AC65",
+      "secondaryColor": "#F0E9DA",
+      "accent": "#5EAFE8",
+      "category": "institutional",
+      "futureOnly": false,
+      "asset": "institutionals/rift_director_wordmark.svg",
+      "png": "png/rift_director_wordmark.png"
+    },
+    {
+      "id": "rift_championship",
+      "displayName": "Rift Championship",
+      "motif": "championship",
+      "primaryColor": "#D7AC65",
+      "secondaryColor": "#F0E9DA",
+      "accent": "#5EAFE8",
+      "category": "institutional",
+      "futureOnly": false,
+      "asset": "institutionals/rift_championship.svg",
+      "png": "png/rift_championship.png"
+    },
+    {
+      "id": "rift_league",
+      "displayName": "Rift League",
+      "motif": "league",
+      "primaryColor": "#D7AC65",
+      "secondaryColor": "#F0E9DA",
+      "accent": "#5EAFE8",
+      "category": "institutional",
+      "futureOnly": false,
+      "asset": "institutionals/rift_league.svg",
+      "png": "png/rift_league.png"
+    },
+    {
+      "id": "liga_aurora",
+      "displayName": "Liga Aurora",
+      "motif": "aurora",
+      "primaryColor": "#D7AC65",
+      "secondaryColor": "#F0E9DA",
+      "accent": "#E87482",
+      "category": "competition",
+      "futureOnly": false,
+      "asset": "competitions/liga_aurora.svg",
+      "png": "png/liga_aurora.png"
+    },
+    {
+      "id": "liga_boreal",
+      "displayName": "Circuito Boreal",
+      "motif": "boreal",
+      "primaryColor": "#5EAFE8",
+      "secondaryColor": "#F0E9DA",
+      "accent": "#5EAFE8",
+      "category": "competition",
+      "futureOnly": false,
+      "asset": "competitions/liga_boreal.svg",
+      "png": "png/liga_boreal.png"
+    },
+    {
+      "id": "regular_season",
+      "displayName": "Temporada regular",
+      "motif": "regular",
+      "primaryColor": "#D7AC65",
+      "secondaryColor": "#F0E9DA",
+      "accent": "#E87482",
+      "category": "competition",
+      "futureOnly": false,
+      "asset": "competitions/regular_season.svg",
+      "png": "png/regular_season.png"
+    },
+    {
+      "id": "playoffs",
+      "displayName": "Playoffs",
+      "motif": "playoffs",
+      "primaryColor": "#D7AC65",
+      "secondaryColor": "#F0E9DA",
+      "accent": "#E87482",
+      "category": "competition",
+      "futureOnly": false,
+      "asset": "competitions/playoffs.svg",
+      "png": "png/playoffs.png"
+    },
+    {
+      "id": "semifinal",
+      "displayName": "Semifinal",
+      "motif": "semi",
+      "primaryColor": "#D7AC65",
+      "secondaryColor": "#F0E9DA",
+      "accent": "#E87482",
+      "category": "competition",
+      "futureOnly": false,
+      "asset": "competitions/semifinal.svg",
+      "png": "png/semifinal.png"
+    },
+    {
+      "id": "grand_final",
+      "displayName": "Gran final",
+      "motif": "final",
+      "primaryColor": "#D7AC65",
+      "secondaryColor": "#F0E9DA",
+      "accent": "#E87482",
+      "category": "competition",
+      "futureOnly": false,
+      "asset": "competitions/grand_final.svg",
+      "png": "png/grand_final.png"
+    },
+    {
+      "id": "league_champion",
+      "displayName": "Campeón de liga",
+      "motif": "champion",
+      "primaryColor": "#D7AC65",
+      "secondaryColor": "#F0E9DA",
+      "accent": "#E87482",
+      "category": "competition",
+      "futureOnly": false,
+      "asset": "competitions/league_champion.svg",
+      "png": "png/league_champion.png"
+    },
+    {
+      "id": "international_champion",
+      "displayName": "Campeón internacional",
+      "motif": "international",
+      "primaryColor": "#D7AC65",
+      "secondaryColor": "#F0E9DA",
+      "accent": "#E87482",
+      "category": "competition",
+      "futureOnly": true,
+      "asset": "competitions/international_champion.svg",
+      "png": "png/international_champion.png"
+    }
+  ],
+  "symbols": [
+    {
+      "id": "fox",
+      "name": "Zorro",
+      "asset": "symbols/fox.svg"
+    },
+    {
+      "id": "wolf",
+      "name": "Lobo",
+      "asset": "symbols/wolf.svg"
+    },
+    {
+      "id": "forge",
+      "name": "Forja",
+      "asset": "symbols/forge.svg"
+    },
+    {
+      "id": "comet",
+      "name": "Cometa",
+      "asset": "symbols/comet.svg"
+    },
+    {
+      "id": "lotus",
+      "name": "Loto",
+      "asset": "symbols/lotus.svg"
+    },
+    {
+      "id": "harbor",
+      "name": "Ancla",
+      "asset": "symbols/harbor.svg"
+    },
+    {
+      "id": "star",
+      "name": "Estrella",
+      "asset": "symbols/star.svg"
+    },
+    {
+      "id": "circuit",
+      "name": "Circuito",
+      "asset": "symbols/circuit.svg"
+    },
+    {
+      "id": "polar",
+      "name": "Montaña",
+      "asset": "symbols/polar.svg"
+    },
+    {
+      "id": "crown",
+      "name": "Corona",
+      "asset": "symbols/crown.svg"
+    },
+    {
+      "id": "viper",
+      "name": "Serpiente",
+      "asset": "symbols/viper.svg"
+    },
+    {
+      "id": "orchid",
+      "name": "Orquídea",
+      "asset": "symbols/orchid.svg"
+    },
+    {
+      "id": "raven",
+      "name": "Cuervo",
+      "asset": "symbols/raven.svg"
+    },
+    {
+      "id": "lantern",
+      "name": "Linterna",
+      "asset": "symbols/lantern.svg"
+    },
+    {
+      "id": "orbit",
+      "name": "Órbita",
+      "asset": "symbols/orbit.svg"
+    },
+    {
+      "id": "dawn",
+      "name": "Aurora",
+      "asset": "symbols/dawn.svg"
+    }
+  ],
+  "shapes": [
+    {
+      "id": "kite",
+      "name": "Escudo",
+      "asset": "shapes/kite.svg"
+    },
+    {
+      "id": "hexagon",
+      "name": "Hexágono",
+      "asset": "shapes/hexagon.svg"
+    },
+    {
+      "id": "diamond",
+      "name": "Rombo",
+      "asset": "shapes/diamond.svg"
+    },
+    {
+      "id": "round",
+      "name": "Medallón",
+      "asset": "shapes/round.svg"
+    },
+    {
+      "id": "banner",
+      "name": "Estandarte",
+      "asset": "shapes/banner.svg"
+    },
+    {
+      "id": "bastion",
+      "name": "Bastión",
+      "asset": "shapes/bastion.svg"
+    },
+    {
+      "id": "wing",
+      "name": "Alado",
+      "asset": "shapes/wing.svg"
+    },
+    {
+      "id": "octagon",
+      "name": "Octágono",
+      "asset": "shapes/octagon.svg"
+    }
+  ]
+}
