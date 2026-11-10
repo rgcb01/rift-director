@@ -67,18 +67,19 @@ test('defensores reales frenan el cierre del Nexo y preservan tiempo de respuest
  const {core,nav,state,health,dead,a,b,clubs}=setup();
  state.lanes[b].MID=3;
  const attacking=[clubs[0].lineup.ADC,clubs[0].lineup.MID];
- const defending=[clubs[1].lineup.TOP,clubs[1].lineup.MID,clubs[1].lineup.ADC];
+ const defending=[clubs[1].lineup.TOP,clubs[1].lineup.MID,clubs[1].lineup.ADC,clubs[1].lineup.SUP];
  attacking.forEach(id=>{nav.agents[id].node='red_nexus';nav.agents[id].alive=true});
  const undefended=core.NexusSiege.damageFor(2,0,1.2,false);
  const defended=core.NexusSiege.damageFor(2,2,1.2,false);
  assert.ok(undefended>defended&&defended>0);
- assert.equal(core.NexusSiege.damageFor(2,3,1.2,false),0,
-  'Dos atacantes no atraviesan gratis una defensa de tres');
+ assert.equal(core.NexusSiege.damageFor(2,4,1.2,false),0,
+  'Dos atacantes no atraviesan gratis una defensa de cuatro');
  defending.forEach(id=>{nav.agents[id].node='red_nexus';nav.agents[id].alive=true});
  const nexus=core.NexusSiege.create(a,b);
  assert.equal(core.NexusSiege.advance(nexus,nav,state,40,health,dead).length,0,
   'El nexo no pierde HP si una defensa físicamente superior detiene el asedio');
- defending[2]&& (nav.agents[defending[2]].node='red_top_front');
+ nav.agents[defending[2]].node='red_top_front';
+ nav.agents[defending[3]].node='red_top_front';
  const earned=core.NexusSiege.advance(nexus,nav,state,41,health,dead);
  assert.equal(earned.length,1);
  assert.ok(earned[0].damage>0&&earned[0].damage<undefended);
