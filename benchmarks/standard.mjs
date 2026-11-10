@@ -62,6 +62,40 @@ export function runStandard() {
           barons:(f.barons[a]||0)+(f.barons[b]||0),
           towers:(f.towers[a]||0)+(f.towers[b]||0),
           baronSteals,
+          towerHits:m.events.filter(e=>['tower_damage','plate'].includes(e.facts?.action)&&e.facts?.towerVersion===1).length,
+          towerPartialHits:m.events.filter(e=>['tower_damage','plate'].includes(e.facts?.action)&&e.facts?.towerVersion===1&&e.facts.after>0).length,
+          towerDefendedHits:m.events.filter(e=>['tower_damage','plate'].includes(e.facts?.action)&&e.facts?.towerVersion===1&&e.facts.defenderIds?.length).length,
+          towerBaronHits:m.events.filter(e=>['tower_damage','plate'].includes(e.facts?.action)&&e.facts?.towerVersion===1&&e.facts.baron).length,
+          firstTowerHitMinute:m.events.find(e=>['tower_damage','plate'].includes(e.facts?.action)&&e.facts?.towerVersion===1)?.minute??null,
+          firstOpenLaneMinute:m.events.find(e=>
+            e.facts?.action==='tower'&&e.facts.stage===3)?.minute??null,
+          earlySiegePlayerMinutes:m.frames.reduce((n,f)=>n+
+            (f.minute<30?Object.values(f.navigation?.before||{}).filter(p=>
+              p.reason==='primary_siege').length:0),0),
+          earnedLaneKillOrders:m.events.filter(e=>
+            ['gank','lane_trade'].includes(e.facts?.action)&&
+            e.facts?.counterPressure).length,
+          convertedLaneKillOrders:m.events.filter(e=>
+            ['gank','lane_trade'].includes(e.facts?.action)&&
+            e.facts?.counterPressure&&m.events.some(t=>t.facts?.action==='tower'&&
+             t.teamId===e.teamId&&t.facts.lane===e.facts.counterPressure.lane&&
+             t.minute>=e.minute&&t.minute<=e.minute+5)).length,
+          lateFightOrders:m.events.filter(e=>e.minute>=36&&
+            e.facts?.action==='teamfight'&&e.facts.counterPressure).length,
+          convertedLateFightOrders:m.events.filter(e=>e.minute>=36&&
+            e.facts?.action==='teamfight'&&e.facts.counterPressure&&
+            m.events.some(t=>['tower','nexus'].includes(t.facts?.action)&&
+             t.teamId===e.teamId&&
+             (t.facts.action==='nexus'||
+              t.facts.lane===e.facts.counterPressure.lane)&&
+             t.minute>=e.minute&&t.minute<=e.minute+5)).length,
+          nexusHits:m.events.filter(e=>['nexus_damage','nexus'].includes(e.facts?.action)).length,
+          nexusBaronHits:m.events.filter(e=>['nexus_damage','nexus'].includes(e.facts?.action)&&
+           e.facts.baron).length,
+          nexusDefendedHits:m.events.filter(e=>['nexus_damage','nexus'].includes(e.facts?.action)&&
+           e.facts.defenderIds?.length>0).length,
+          firstNexusHitMinute:m.events.find(e=>
+           ['nexus_damage','nexus'].includes(e.facts?.action))?.minute??null,
           counterplayFights:m.events.filter(e=>e.facts?.counterplayVersion===1).length,
           counterplayKills:m.events.reduce((n,e)=>n+
             (e.facts?.counterplayVersion===1?(e.facts?.victimIds?.length||0):0),0),
@@ -160,6 +194,7 @@ export function runStandard() {
           const errors=[
             ...core.Navigation.auditNavigation(m,world),
             ...core.LaneEconomy.audit(m),
+            ...core.NexusSiege.audit(m),
             ...core.PowerEconomy.audit(m),
             ...core.NeutralObjectives.audit(m),
             ...core.Vision.audit(m),
@@ -203,6 +238,25 @@ export function runStandard() {
       earlyTowerMatches:rows.filter(r=>r.firstTowerMinute!==null&&r.firstTowerMinute<36).length,
       firstTowerMean:+avg(rows.filter(r=>r.firstTowerMinute!==null).map(r=>r.firstTowerMinute)).toFixed(2),
       platesPerMatch:+avg(rows.map(r=>r.actions.plate||0)).toFixed(2),
+      towerHitsPerMatch:+avg(rows.map(r=>r.towerHits)).toFixed(2),
+      towerPartialHitsPerMatch:+avg(rows.map(r=>r.towerPartialHits)).toFixed(2),
+      towerDefendedHitsPerMatch:+avg(rows.map(r=>r.towerDefendedHits)).toFixed(2),
+      towerBaronHitsPerMatch:+avg(rows.map(r=>r.towerBaronHits)).toFixed(2),
+      firstTowerHitMean:+avg(rows.filter(r=>r.firstTowerHitMinute!==null)
+       .map(r=>r.firstTowerHitMinute)).toFixed(2),
+      firstOpenLaneMean:+avg(rows.filter(r=>r.firstOpenLaneMinute!==null)
+       .map(r=>r.firstOpenLaneMinute)).toFixed(2),
+      earlySiegeMinutesPerMatch:+avg(rows.map(r=>r.earlySiegePlayerMinutes)).toFixed(2),
+      earnedLaneKillOrdersPerMatch:+avg(rows.map(r=>r.earnedLaneKillOrders)).toFixed(2),
+      convertedLaneKillOrdersPerMatch:+avg(rows.map(r=>r.convertedLaneKillOrders)).toFixed(2),
+      lateFightOrdersPerMatch:+avg(rows.map(r=>r.lateFightOrders)).toFixed(2),
+      convertedLateFightOrdersPerMatch:+avg(rows.map(r=>r.convertedLateFightOrders)).toFixed(2),
+      nexusHitsPerMatch:+avg(rows.map(r=>r.nexusHits)).toFixed(2),
+      nexusBaronHitsPerMatch:+avg(rows.map(r=>r.nexusBaronHits)).toFixed(2),
+      nexusContestedHitsPerMatch:+avg(rows.map(r=>r.nexusDefendedHits)).toFixed(2),
+      firstNexusHitMean:+avg(rows.filter(r=>r.firstNexusHitMinute!==null)
+       .map(r=>r.firstNexusHitMinute)).toFixed(2),
+      gamesWithoutNexusDamage:rows.filter(r=>r.nexusHits===0).length,
       contestedDragonsPerMatch:+avg(rows.map(r=>r.dragonContests)).toFixed(2),
       macroFarmTurnsPerMatch:+avg(rows.map(r=>r.macroTurns.farm)).toFixed(2),
       macroDefendTurnsPerMatch:+avg(rows.map(r=>r.macroTurns.defend)).toFixed(2),

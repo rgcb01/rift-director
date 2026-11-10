@@ -73,6 +73,36 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 - Cada iteración conservará auditoría de 1,000 mapas y 500 parejas espejadas, pruebas funcionales, comparación de kills/duración/TTK/remontadas/sesgo y registro de resultados antes de continuar.
 
 
+## [0.7.15-alpha] — 2026-11-08 (experimental)
+
+### Primer corte: daño causal al Nexo
+- El Nexo tiene una vida persistente de 108 puntos, visible en los snapshots de cada minuto y momento histórico. Una victoria requiere reducir la vida del Nexo enemigo a cero; se elimina la probabilidad de cierre que dependía de los minutos 46/54.
+- `NexusSiege` exige una línea con tres torres destruidas, oleada con presión válida y al menos dos atacantes vivos presentes en el área del Nexo. Las defensas reales reducen el daño; el Barón solo potencia un asedio que ya cumpla las condiciones físicas.
+- Cada ataque se registra como `nexus_damage` o `nexus` con participantes, defensores, daño, vida anterior/posterior, línea y presión. Las auditorías comprueban que no haya ataques desde lejos, daños falsificados ni victorias sin vida cero.
+- **Regresión encontrada y corregida:** una partida quedó sin ganador al minuto 76 porque el modelo dejaba de contar los profesionales que escoltaban la oleada tras entrar a la base rival. Una escuadra real de al menos dos atacantes en el Nexo de una línea abierta ahora conserva impulso de esa línea; no gana oro de farm por hacerlo.
+- **Primer corte calibrado (#33, todavía draft):** 144/144 pruebas funcionales, 1,000 mapas auditados + 1,000 espejados, 0 ganadores inventados, 0 fallos de auditoría y 0 regresiones bloqueantes (Actions 42545899474 y 42545899699). Con daño real de 24 por atacante antes de defensa: duración 49.28→50.21 min, kills 6.39→6.53, remontadas 4.2%→4.0%, azul espejo 49.5%→49.4%, torres 4.48→4.54. El primer daño al Nexo ocurre en promedio al minuto 46.94; 2.92 golpes al Nexo por partida, 0% partidas sin daño al Nexo. 0.42 golpes con apoyo de Barón por partida.
+- **Un aviso no bloqueante pero abierto:** ninguna de las 1,000 partidas principales terminó antes del minuto 35. Falta mejorar la velocidad natural de derribo de torres y las condiciones de asedio temprano, sin un reloj que decida al ganador.
+- **Integridad y compatibilidad:** hash deportivo de candidato `52a159e766a2...` congelado; hashes de mundo y finanzas sin cambios. El Match Center visualiza vida del Nexo por instante y conserva guiones antiguos sin esa información.
+- **Pendiente dentro de 0.7.15:** inhibidores, conversión del Barón y calibración de asedios/defensa tempranos. No fusionar este primer corte hasta resolver o aprobar expresamente el aviso y cerrar el alcance.
+
+### 0.7.15B — torres con HP persistente (rama experimental, sin publicación)
+- Las torres tienen 60/72/84 HP (exterior/interior/base); el daño se acumula de forma determinista entre asedios. Las tres placas corresponden a cruces efectivos de un tercio de HP, no a tres ticks de presencia.
+- Se exige oleada y profesionales realmente cercanos para golpear. Las defensas reducen el daño y el Barón potencia solamente atacantes presentes. Un solitario puede desgastar, pero necesita un splitpush acreditado o compañía para destruir el último HP.
+- Cada golpe `tower_damage` registra vida anterior/final, atacantes, defensores, oleada y modificador de Barón. Auditorías verifican estructura, actor, posiciones y umbrales de placas; estadísticas incorporan golpes parciales y el minuto del primer daño.
+- **Calibración en dos lotes:** 96/108/120 HP al principio dejó algunos mapas sin ganador; bajamos a 60/72/84 y agrupamos daño + placa en un solo evento para evitar duplicar la narración. Se probó un umbral de presión moderada (0.35) para desgastar antes sin permitir daño con oleada neutral.
+- **Resultado candidato (PR #34, todavía draft):** 148/148 tests, 1,000 partidas completamente auditadas y 1,000 espejadas; cero fallos de ejecución o auditoría, cero regresiones bloqueantes (CI 42550842084, balance 42550842190). Frente a 0.7.15A: duración 50.21→52.10 min, kills 6.53→6.76, remontadas 4.0%→3.9%, victoria azul espejada 49.4%→49.9%, torres 4.54→4.59, torres en dos o más líneas 80.8%→84.1%, splitpush solitario 64.9%→70.2%. Primer daño a torre en 25.91 min, 24.77 golpes por mapa (20.18 parciales, 17.01 defendidos).
+- **Advertencias abiertas, no publicar aún:** la duración empeora +2.82 min frente a 0.7.14; no hay victorias antes del min 35. Adelantar el umbral de oleada apenas redujo 52.14→52.10 min: hace falta conversión de ventajas y objetivos más tempranos, no otra reducción a ciegas. Se conserva el modelo físico y el Match Center muestra HP de la torre activa por línea.
+- **Integridad:** sporting golden candidato `062baa8b50de...` congelado; hashes de mundo y finanzas sin cambios.
+
+### 0.7.15C — corrección causal del ritmo (experimental)
+- **Hallazgo de diseño:** el asedio coordinado estaba prohibido hasta el minuto 30, sin importar la oleada, las torres ya dañadas o una superioridad económica. Las bajas tempranas en línea/ganks no siempre emitían una orden aprovechable, y el support de BOT no podía acompañar una presión ganada.
+- **Plan temprano revisable:** desde el minuto 16, un equipo puede rotar a una estructura si tiene una ventaja pública acumulada de al menos 1,350, presión real de oleada de al menos 0.8 y un profesional vivo físicamente en ese carril. Se cancela si desaparece la oportunidad, sin teletransportes, daño adicional ni ganador elegido.
+- **Aprovechamiento de combate:** kills verificadas de intercambios de línea y ganks pueden crear una ventana corta de presión. SUP puede escoltar a ADC en BOT si ambos participaron realmente y la oleada lo permite. Cada plan está respaldado por bajas y participantes existentes; estructuras y recompensas siguen dependiendo de presencia física.
+- **Benchmark más estricto:** cualquier incremento de duración de más de 2 minutos frente a la versión publicada es regresión **bloqueante**, no solamente advertencia. Se miden tiempos del primer golpe, primera torre, primera línea abierta, órdenes de asedio tempranas y conversiones de kills en torres.
+- **Primer benchmark C (#35):** 154/154 tests y 2,000 partidas; duración 52.10→44.42 min, primeras torres antes de min 36 subieron a 80.7%, primer daño al Nexo minuto 41.53. Sin embargo, las remontadas cayeron de 3.9–4.2% a solo **1.2%**: resultado **rechazado para fusionar**, aunque CI y benchmark original no lo bloquearan.
+- **Calibración C2:** un asedio temprano requiere una escuadra físicamente presente y una ventaja grande con oleada fuerte, o bien una baja rival pública, una oleada favorable y una oportunidad de contraataque real, incluso desde una desventaja pequeña. Las oportunidades tempranas caducan. Se prohíbe el ataque por oro sin presencia y se audita que la baja que origina la presión exista.
+- **Nuevo gate:** además de bloquear duración >2 min respecto al release previo, una caída de remontadas de más de un punto porcentual se considera regresión **bloqueante**. Reejecutar 1,000 partidas auditadas y 1,000 espejadas antes de aprobar.
+
 ## [0.7.14-alpha] — 2026-11-08
 
 ### Riesgo y coste de oportunidad verificables

@@ -17,6 +17,28 @@ test('350 partidos: narración, objetivos, bajas, roles y score son coherentes',
     world.rng = seed * 37771;
     const match = sim.simulateMatch(fixture);
     const problems = core.auditMatch(match, world);
+    if(!match.winner){
+      const last=match.frames.at(-1),a=fixture.a,b=fixture.b;
+      const opens=Object.fromEntries([a,b].map(id=>[id,last.towers[id]]));
+      const recent=match.frames.slice(-15).filter(fr=>fr.minute%3===1)
+       .map(fr=>{
+        const agents=Object.values(fr.navigation.before);
+        const at=(id,node)=>agents.filter(p=>p.teamId===id&&p.alive&&
+         core.Navigation.nearby(p.node,node,1)).map(p=>p.role);
+        const waves=Object.fromEntries(['TOP','MID','BOT'].map(l=>[l,
+         core.LaneEconomy.pressureFor({
+          teamIds:[a,b],lanes:fr.laneEconomy.lanes},a,l)]));
+        return {t:fr.minute,hp:fr.siege.hp,waves,
+         blueAttackers:at(a,'red_nexus'),redAttackers:at(b,'blue_nexus'),
+         blueDefenders:at(a,'blue_nexus'),redDefenders:at(b,'red_nexus')};
+       });
+      console.log('NEXUS_STALL='+JSON.stringify({
+       seed,ends:last.minute,health:last.siege.hp,
+       towers:last.towers,lanes:match.events.filter(e=>e.facts?.action==='tower')
+        .slice(-10).map(e=>({t:e.minute,team:e.teamId,lane:e.facts.lane,stage:e.facts.stage})),
+       hits:match.events.filter(e=>['nexus','nexus_damage'].includes(e.facts?.action)).length,
+       recent,opens}));
+    }
     assert.equal(problems.length, 0, 'Seed '+seed+': '+problems.slice(0,8).join(' | '));
     for (const e of match.events) {
       if (e.facts?.action) counts[e.facts.action]++;

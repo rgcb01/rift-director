@@ -42,6 +42,21 @@ export function flatten(d){
   zeroKillRate:ratio(s.gameplay.zeroKills,s.completed),
   earlyTowerRate:s.gameplay.earlyTowerMatches===undefined?null:ratio(s.gameplay.earlyTowerMatches,s.completed),
   platesMean:s.gameplay.platesPerMatch||0,
+  towerHitsMean:s.gameplay.towerHitsPerMatch??null,
+  towerPartialHitsMean:s.gameplay.towerPartialHitsPerMatch??null,
+  towerDefendedHitsMean:s.gameplay.towerDefendedHitsPerMatch??null,
+  towerBaronHitsMean:s.gameplay.towerBaronHitsPerMatch??null,
+  firstTowerHitMean:s.gameplay.firstTowerHitMean??null,
+  firstOpenLaneMean:s.gameplay.firstOpenLaneMean??null,
+  earlySiegeMinutesMean:s.gameplay.earlySiegeMinutesPerMatch??null,
+  earnedLaneKillOrdersMean:s.gameplay.earnedLaneKillOrdersPerMatch??null,
+  convertedLaneKillOrdersMean:s.gameplay.convertedLaneKillOrdersPerMatch??null,
+  nexusHitsMean:s.gameplay.nexusHitsPerMatch??null,
+  nexusBaronHitsMean:s.gameplay.nexusBaronHitsPerMatch??null,
+  nexusDefendedHitsMean:s.gameplay.nexusContestedHitsPerMatch??null,
+  firstNexusHitMean:s.gameplay.firstNexusHitMean??null,
+  noNexusDamageRate:s.gameplay.gamesWithoutNexusDamage===undefined?null:
+    ratio(s.gameplay.gamesWithoutNexusDamage,s.completed),
   shutdownsMean:s.gameplay.shutdownsPerMatch??null,
   macroFarmTurnsMean:s.gameplay.macroFarmTurnsPerMatch??null,
   macroDefendTurnsMean:s.gameplay.macroDefendTurnsPerMatch??null,
@@ -121,6 +136,8 @@ export function evaluate(current,previous){
  fail(v.noBaronRate>.50,'Mas de 50% de partidas sin Baron');
  fail(v.zeroKillRate>.20,'Mas de 20% de partidos sin bajas');
  fail(v.towersMean<2.9,'Las torres se han reducido por debajo del minimo historico; revisar reglas de nexo');
+ if(v.noNexusDamageRate!==null)
+  fail(v.noNexusDamageRate>0,'Una partida finalizó sin daño causal al Nexo');
  if(previous.version!==current.version){
   fail(Math.abs(v.pairedBlueWinRate-.5)-Math.abs(p.pairedBlueWinRate-.5)>.05,
    'La asimetria espejada empeoro en mas de cinco puntos porcentuales');
@@ -130,6 +147,13 @@ export function evaluate(current,previous){
    'Kills descendieron mas de 40% frente a la version anterior');
   fail(v.durationMean-p.durationMean>15,
    'Duracion media aumento mas de 15 minutos');
+  // Explicit release gate: a more causal engine must not keep making
+  // matches progressively longer without addressing the actual cause.
+  fail(v.durationMean-p.durationMean>2,
+   'Duracion media aumento mas de dos minutos frente al release anterior');
+  fail(v.comebackRate!==null&&p.comebackRate!==null&&
+    p.comebackRate-v.comebackRate>.01,
+   'Remontadas cayeron mas de un punto porcentual: revisar snowball y defensa');
   fail(v.exactlyThreeTowers>.95&&v.exactlyThreeTowers>p.exactlyThreeTowers+.10,
    '95% de partidos acaban con solo tres torres: nueva regresion grave');
  }
@@ -179,7 +203,7 @@ export function evaluate(current,previous){
   'Más del 80% de los 60 espacios de inventario están ocupados al terminar');
  warn(v.noEarlyTowerRate>.90,'Mas de 90% de los partidos no derriban torres antes del minuto 36');
  warn(current.standard.duration.min>=35,
-  'No hay victorias tempranas (duracion minima 35+): revisar asedio por reloj');
+  'No hay victorias antes del minuto 35: revisar ritmo de torres, oleadas y acceso físico al Nexo');
  return {failures,warnings,current:v,baseline:p};
 }
 export function bars(title,items,opts={}){
@@ -220,6 +244,20 @@ const keys=[
  ['zeroKillRate','Sin bajas','rate'],
  ['earlyTowerRate','Torres antes del min 36','rate'],
  ['platesMean','Placas por mapa','num'],
+ ['towerHitsMean','Golpes físicos a torres por mapa','num'],
+ ['towerPartialHitsMean','Golpes a torres sin destrucción inmediata por mapa','num'],
+ ['towerDefendedHitsMean','Golpes a torres con defensa presente por mapa','num'],
+ ['towerBaronHitsMean','Golpes a torres respaldados por Barón por mapa','num'],
+ ['firstTowerHitMean','Minuto promedio del primer golpe a torre','num'],
+ ['firstOpenLaneMean','Minuto promedio de la primera línea completamente abierta','num'],
+ ['earlySiegeMinutesMean','Minutos-jugador en asedios antes del minuto 30 por mapa','num'],
+ ['earnedLaneKillOrdersMean','Órdenes de presión tras kills en línea/gank por mapa','num'],
+ ['convertedLaneKillOrdersMean','Kills de línea/gank convertidas en torre antes de 5 min por mapa','num'],
+ ['nexusHitsMean','Golpes físicos al Nexo por mapa','num'],
+ ['nexusBaronHitsMean','Golpes al Nexo respaldados por Barón por mapa','num'],
+ ['nexusDefendedHitsMean','Golpes al Nexo con defensores presentes por mapa','num'],
+ ['firstNexusHitMean','Minuto promedio del primer daño al Nexo','num'],
+ ['noNexusDamageRate','Partidas sin daño registrado al Nexo','rate'],
  ['shutdownsMean','Rachas eliminadas por mapa','num'],
  ['macroFarmTurnsMean','Minutos-jugador dedicados a farm macro por mapa','num'],
  ['macroDefendTurnsMean','Minutos-jugador dedicados a defender oleadas por mapa','num'],

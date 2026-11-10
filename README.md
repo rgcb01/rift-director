@@ -20,6 +20,18 @@ Los meses impulsan las finanzas y el mundo. Las noticias y los rumores reflejan 
 - No hay instalación de paquetes, cuenta ni backend para jugar.
 - **Guardados:** automáticos en `localStorage` de ese navegador. En **Partida** puedes **exportar/importar JSON**. Los guardados no se sincronizan entre dispositivos; expórtalos antes de borrar datos del navegador.
 
+## Alpha 0.7.15B — Vida persistente de torres (PR #34, experimental)
+
+Las torres exteriores/interiores/de base cuentan con **60/72/84 HP**, respectivamente. Los golpes se acumulan incluso si la escuadra se retira, y cada placa corresponde a un tercio de la vida de la torre efectivamente perdido. Un defensor presente reduce el daño, Barón refuerza asedios físicos y un splitpusher solo puede rematar si tiene una oleada fuerte y no existe defensa cercana. El panel de control de mapa muestra la vida de la siguiente torre en cada línea, también en el replay.
+
+**Benchmark inicial de 2,000 mapas:** 148/148 tests; 52.10 minutos, 6.76 kills, 3.9% remontadas, azul espejado 49.9%. Mejor variedad de splitpush y carriles, pero **duración peor que 0.7.15A y ningún mapa antes de 35 minutos**: sigue en borrador para corregir la conversión de ventajas en 0.7.15C. No se publicó en `main`.
+
+## Alpha 0.7.15A — Cierre físico del Nexo (en PR #33, no publicado)
+
+El Nexo dispone de **108 puntos de vida**. Tras destruir las tres torres de una línea, una oleada con presión real y al menos dos profesionales presentes puede atacar el Nexo; defensores y Barón modifican el daño, pero no asignan el resultado. Cada golpe queda registrado en el replay y la barra de vida está disponible en el marcador de nuevas partidas. Ningún minuto activa una victoria aleatoria.
+
+**Candidato probado:** 144/144 pruebas y 2,000 partidas; duración media 50.21 minutos, kills 6.53, remontadas 4.0%, azul espejado 49.4%; 0 regresiones bloqueantes. **Pendiente de revisión:** no hubo victorias antes del minuto 35. El PR #33 sigue en borrador y la versión publicada continúa siendo 0.7.14.
+
 ## Alpha 0.7.14 — Riesgo y decisiones macro (integrada)
 
 TOP/MID evalúan **farm, defensa de oleadas, presión y rotación hacia objetivos anunciados** usando visión real aproximada, wards, rivales efectivamente detectados, apoyo de aliados, salud, oleadas, oro y coste de traslado. La IA solo sustituye el plan de rol si detecta una oportunidad clara; puede cancelar órdenes que se vuelven peligrosas. Un splitpush legítimo de TOP conserva su prioridad cuando la oleada y ventaja económica lo justifican. Cada decisión tiene evidencia auditable en el replay y ninguna concede oro, kills o estructuras sin presencia física.
