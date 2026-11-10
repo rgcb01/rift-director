@@ -101,6 +101,8 @@ No se incorpora un editor posterior a la fundación ni carga de logos externos. 
 
 Base: Art Pack 02, commit `7ee258d`. Suite funcional completa: 31 archivos correctos, cero fallos (`validation_tests.txt`). Comprobaciones de sintaxis, recursos y diff correctas. Prueba adicional de persistencia de la identidad al cambiar de temporada: correcta (`validation_identity.txt`).
 
+Integración para publicación: aplicada sobre `main` en `68f69e9`, conservando los retratos de campeones en replays históricos y el minimapa. Una prueba de regresión comprueba que el TAB histórico muestra simultáneamente los diez retratos y los escudos de organización sin modificar el replay.
+
 Chromium valida los 60 SVG sin errores XML y las 36 imágenes PNG, creación personalizada, selección conservada al cambiar la modalidad de inicio, guardado y recarga, dashboard/plantilla/perfil/calendario/clasificaciones/noticias/Match Center, fases del campeonato y fallback sin módulo. Cero excepciones JavaScript (`validation_browser.txt`).
 
 La auditoría completa contiene 1.000 mapas estándar y 500 pares espejados, cero errores. Comparación profunda de `standard` y `mirror` contra `docs/art-pack-2/validation-balance.json`: idénticos; solo cambian los metadatos de ejecución (`validation_balance.json`).
