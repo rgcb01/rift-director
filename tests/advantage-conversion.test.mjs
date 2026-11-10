@@ -145,6 +145,43 @@ test('no late counter-siege without both a killed opponent and real wave escorts
  assert.equal(noEscorts.nav.siegeTeam,noEscorts.b.id,'No se ordena un asedio sin presencia');
 });
 
+test('counter-wave can interrupt cumulative-gold leader without bonus kills',()=>{
+ const {core,nav,state,a,b}=setup();
+ state.gold[a.id]=11000;state.gold[b.id]=18000;
+ state.waves.BOT.front=1.2;
+ nav.siegeTeam=b.id;nav.siegeLane='MID';nav.siegeUntil=50;
+ for(const id of [a.lineup.ADC,a.lineup.SUP]){
+  nav.agents[id].node='blue_bot_front';
+  nav.agents[id].alive=true;
+  nav.agents[id].intent='lane';
+ }
+ const before=JSON.stringify({gold:state.gold,lanes:state.lanes});
+ core.Navigation.determineSiege(nav,state,41);
+ assert.equal(nav.siegeTeam,a.id,'Una oleada ganada permite disputar la iniciativa');
+ assert.equal(nav.siegeLane,'BOT');
+ assert.equal(nav.siegeUntil,46);
+ assert.equal(JSON.stringify({gold:state.gold,lanes:state.lanes}),before,
+  'Un cambio táctico no concede oro ni estructuras');
+ state.waves.BOT.front=0;
+ core.Navigation.determineSiege(nav,state,47);
+ assert.equal(nav.siegeTeam,b.id,'Sin oleada real la presión no se mantiene');
+});
+
+test('counter-wave does not override siege without wave or physical escorts',()=>{
+ for(const caseName of ['wave','escorts']){
+  const {core,nav,state,a,b}=setup();
+  state.gold[a.id]=11000;state.gold[b.id]=18000;
+  state.waves.BOT.front=caseName==='wave'?0:1.2;
+  nav.siegeTeam=b.id;nav.siegeLane='MID';nav.siegeUntil=50;
+  if(caseName==='wave'){
+   for(const id of [a.lineup.ADC,a.lineup.SUP])
+    nav.agents[id].node='blue_bot_front';
+  }
+  core.Navigation.determineSiege(nav,state,41);
+  assert.equal(nav.siegeTeam,b.id,caseName);
+ }
+});
+
 test('regresión: la ventaja puede cambiar de lado tras un asedio comprometido',()=>{
  const {core,nav,state,a,b}=setup();
  nav.siegeTeam=a.id;nav.siegeLane='MID';nav.sideLane='TOP';
