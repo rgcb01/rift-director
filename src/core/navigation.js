@@ -205,6 +205,40 @@ function determineSiege(nav,worldState,t){
   nav.siegeUntil=t+4;
   return;
  }
+ // A team behind on the public scoreboard may temporarily redirect its
+ // siege only after actually eliminating an opponent while escorting a
+ // favourable wave. This is a tactical opportunity, NOT a comeback buff:
+ // movement, structural HP, presence and defended attacks remain authoritative.
+ const counterSieges=[];
+ for(const team of [nav.a,nav.b]){
+  const other=enemy(nav,team);
+  if(score(other)-score(team)<1500)continue;
+  const deadOpp=teamAgents(nav,other).filter(p=>
+   (worldState.dead?.[p.id]||0)>t).length;
+  if(!deadOpp)continue;
+  for(const lane of LANES){
+   if((worldState.lanes?.[other]?.[lane]??3)>=3)continue;
+   const wave=core.LaneEconomy.pressureFor(
+    {teamIds:[nav.a,nav.b],lanes:worldState.waves},team,lane);
+   if(wave<1.05)continue;
+   const escorts=teamAgents(nav,team).filter(p=>
+    p.alive&&(worldState.dead?.[p.id]||0)<=t&&
+    p.intent!=='retreat'&&isLaneNode(p.node,lane)).length;
+   if(escorts<2)continue;
+   counterSieges.push({team,lane,wave,escorts});
+  }
+ }
+ if(counterSieges.length){
+  counterSieges.sort((a,b)=>b.escorts-a.escorts||
+   b.wave-a.wave||LANES.indexOf(a.lane)-LANES.indexOf(b.lane)||
+   a.team.localeCompare(b.team));
+  const chosen=counterSieges[0];
+  nav.siegeTeam=chosen.team;
+  nav.siegeLane=chosen.lane;
+  nav.sideLane=secondaryLane(nav,worldState,chosen.team,chosen.lane);
+  nav.siegeUntil=t+3;
+  return;
+ }
  if(!nav.siegeTeam&&t<44&&advantage<1100)return;
  const proposed=advantage<100?
    (seedHash(nav.seed,'siege',Math.floor(t/8))%2?nav.a:nav.b):
