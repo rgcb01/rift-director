@@ -97,8 +97,12 @@ function resolve({nav,dead,minute,zone,players,health,seed,previous={},powerStat
  // More attackers and weak/low-health defenders suffer more pressure.
  // A lucky burst can kill, but a fresh, vigilant support can disengage.
  const burst=(hash(seed,minute,zone,defender.id,'burst')%1000)/1000;
- const damage=clamp(Math.round(39+attackers.length*12+
-   (quality-defence)*.3+(burst>.84?27:0)+burst*13),18,120);
+ const rawDamage=39+attackers.length*12+
+   (quality-defence)*.3+(burst>.84?27:0)+burst*13;
+ const mitigation=core.ChampionScaling?.mitigation(
+   powerState?.entries?.[killer.id],powerState?.entries?.[defender.id],
+   [...(core.PowerEconomy?.ITEM_CATALOG||[]),...(core.PowerEconomy?.COMPONENT_CATALOG||[])])??1;
+ const damage=clamp(Math.round(rawDamage*mitigation),18,120);
  const after=Math.max(0,before-damage);
  const killed=after<=0;
  const side=defender.teamId===nav.a?'blue':'red';
@@ -112,7 +116,7 @@ function resolve({nav,dead,minute,zone,players,health,seed,previous={},powerStat
   victimIds:killed?[defender.id]:[],assistIds:killed?participants.slice(1,3):[],
   opponentIds:nearbyAllies.map(x=>x.id),
   attackerCount:attackers.length,defenderCount:1+nearbyAllies.length,
-  damage,hpBefore:before,hpAfter:after,retreatGoal,
+  damage,mitigation,hpBefore:before,hpAfter:after,retreatGoal,
   healthVersion:1};
 }
 // Alpha 0.7.5 — One damage and retreat contract for lanes, ganks and fights.
@@ -167,12 +171,16 @@ function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attacker
   const outnumber=clamp(allies.length-1,0,3);
   const delta=power(players[leader.id],powerState,'attack')-power(players[target.id],powerState,'defense');
   const burst=variance>.88?(mode==='lane'?12:26):0;
-  const damage=clamp(Math.round(base+outnumber*(mode==='lane'?8:19)+
-    delta*.28+variance*16+burst),12,120);
+  const rawDamage=base+outnumber*(mode==='lane'?8:19)+
+    delta*.28+variance*16+burst;
+  const mitigation=core.ChampionScaling?.mitigation(
+    powerState?.entries?.[leader.id],powerState?.entries?.[target.id],
+    [...(core.PowerEconomy?.ITEM_CATALOG||[]),...(core.PowerEconomy?.COMPONENT_CATALOG||[])])??1;
+  const damage=clamp(Math.round(rawDamage*mitigation),12,120);
   const after=Math.max(0,before-damage);
   const retreat=after>0&&(after<48||(allies.length>defenders.length&&after<72));
   impacts.push({id:target.id,node:target.node,hpBefore:before,hpAfter:after,
-   damage,retreat,retreatGoal:retreat?retreatDestination(nav,target,minute):null});
+   damage,mitigation,retreat,retreatGoal:retreat?retreatDestination(nav,target,minute):null});
  }
  if(!impacts.length)return null;
  const victims=impacts.filter(p=>p.hpAfter===0).map(p=>p.id);
