@@ -105,10 +105,16 @@ function impact({model,powerState,nav,actorId,targetId,minute,mode,before,base,m
  const plan=preview(model,powerState,nav,actorId,targetId,minute,mode);
  if(!plan)return null;
  const offense=plan.offense,defense=plan.defense;
- let plain=Math.round(base*(offense?.kind?0.955:1));
  const spell=offense?.amount||0,passive=plan.passiveAttack;
- const potentialShield=(defense?.kind==='shield'?defense.amount:0)+plan.passiveGuard;
- const heal=defense?.kind==='heal'?Math.min(defense.amount,100-before):0;
+ // A spell REPLACES most basic attacks within the same five seconds.
+ // The first candidate stacked a full spell onto almost all auto-damage,
+ // multiplying early leads (4.6% -> 3.2% comebacks in 1,000 maps).
+ // Real cast timing, crowd control and resource costs still determine fights.
+ let plain=Math.max(0,Math.round(base-spell*.80-passive*.50));
+ const potentialShield=(defense?.kind==='shield'?
+  Math.ceil(defense.amount*.50):0)+plan.passiveGuard;
+ const heal=defense?.kind==='heal'?
+  Math.min(Math.ceil(defense.amount*.60),100-before):0;
  let total=plain+spell+passive;
  // The existing 12/18 minimum and 120 maximum remain the combat contract.
  // A shield/heal lowers REAL HP damage, never the number of recorded hits.
@@ -116,7 +122,7 @@ function impact({model,powerState,nav,actorId,targetId,minute,mode,before,base,m
  total=clamp(total-absorb-heal,minDamage,120)+absorb+heal;
  plain=Math.max(0,total-spell-passive);
  let hp=before,shield=absorb,absorbed=0;
- const steps=[],first=null;
+ const steps=[];
  for(let second=0;second<5;second++){
   const basePart=Math.floor(plain/5)+(second<plain%5?1:0);
   const gross=basePart+(second===1?spell:0)+(second===2?passive:0);
