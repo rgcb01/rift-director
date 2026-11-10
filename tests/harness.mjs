@@ -27,7 +27,7 @@ export function boot(options = {}) {
     setInterval: () => 1, clearInterval: () => {},
     setTimeout: () => 1, clearTimeout: () => {},
   };
-  for (const path of ['src/core/rng.js', 'src/core/state.js', 'src/core/calendar.js', 'src/core/persistence.js', 'src/core/finance.js', 'src/core/map-state.js', 'src/core/minimap-graph.js', 'src/core/lane-economy.js', 'src/core/nexus-siege.js', 'src/core/champion-scaling.js', 'src/core/power-economy.js', 'src/core/neutral-objectives.js', 'src/core/shutdowns.js', 'src/core/navigation.js', 'src/core/macro-policy.js', 'src/core/vision-wards.js', 'src/core/tactical-ai.js', 'src/core/counterplay.js', 'src/core/encounters.js', 'src/core/minimap-simulation.js', 'src/core/match-stats.js', 'src/core/match-events.js']) {
+  for (const path of ['src/core/rng.js', 'src/core/state.js', 'src/core/calendar.js', 'src/core/persistence.js', 'src/core/finance.js', 'src/core/map-state.js', 'src/core/minimap-graph.js', 'src/core/lane-economy.js', 'src/core/nexus-siege.js', 'src/core/champion-scaling.js', 'src/core/power-economy.js', 'src/core/neutral-objectives.js', 'src/core/shutdowns.js', 'src/core/navigation.js', 'src/core/macro-policy.js', 'src/core/vision-wards.js', 'src/core/tactical-ai.js', 'src/core/counterplay.js', 'src/core/champion-kits.js', 'src/core/encounters.js', 'src/core/minimap-simulation.js', 'src/core/match-stats.js', 'src/core/match-events.js']) {
     vm.runInNewContext(read(path), env, { timeout: 10000, filename: path });
   }
   vm.runInNewContext(read('src/ui/minimap.js'), env, { timeout:10000, filename:'src/ui/minimap.js' });
