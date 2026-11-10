@@ -239,6 +239,38 @@ function determineSiege(nav,worldState,t){
   nav.siegeUntil=t+3;
   return;
  }
+ // A committed leader must not monopolize the strategic initiative
+ // forever. If the defending underdog physically reverses a lane's wave
+ // with two living escorts, it may choose a real counter-siege even
+ // before it overtakes cumulative gold. No tower/HP/damage is granted.
+ // This is observable lane control, not a time-scripted comeback roll.
+ if(t>=32&&t<=65&&nav.siegeTeam){
+  const trailing=enemy(nav,nav.siegeTeam);
+  const deficit=score(nav.siegeTeam)-score(trailing);
+  if(deficit>=1200){
+   const openings=[];
+   for(const lane of LANES){
+    if((worldState.lanes?.[nav.siegeTeam]?.[lane]??3)>=3)continue;
+    const wave=core.LaneEconomy.pressureFor(
+     {teamIds:[nav.a,nav.b],lanes:worldState.waves},trailing,lane);
+    if(wave<.85)continue;
+    const escorts=teamAgents(nav,trailing).filter(p=>
+     p.alive&&(worldState.dead?.[p.id]||0)<=t&&
+     p.intent!=='retreat'&&isLaneNode(p.node,lane)).length;
+    if(escorts<2)continue;
+    openings.push({lane,wave,escorts});
+   }
+   openings.sort((a,b)=>b.escorts-a.escorts||b.wave-a.wave||
+    LANES.indexOf(a.lane)-LANES.indexOf(b.lane));
+   if(openings.length){
+    const opportunity=openings[0];
+    nav.siegeTeam=trailing;nav.siegeLane=opportunity.lane;
+    nav.sideLane=secondaryLane(nav,worldState,trailing,opportunity.lane);
+    nav.siegeUntil=t+5;
+    return;
+   }
+  }
+ }
  if(!nav.siegeTeam&&t<44&&advantage<1100)return;
  const proposed=advantage<100?
    (seedHash(nav.seed,'siege',Math.floor(t/8))%2?nav.a:nav.b):
