@@ -11,7 +11,9 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 - Las compras físicas de componentes/objetos convierten la cartera personal en estadísticas; acumular oro sin comprar no aporta daño. Los niveles solo se ganan mediante el ledger de XP, y el personaje/profesional siguen siendo entidades separadas.
 - `Encounters` utiliza la progresión efectiva del campeón en el combate real, aplicando resistencia/vida efectiva de forma acotada a la vida histórica normalizada (0–100%). El bono anterior por nivel/objeto queda reemplazado, nunca duplicado, en partidas nuevas con campeón asignado; adaptador legado para pruebas/replays sintéticos.
 - Replay registra `championId`, `effectiveStats` y rangos de habilidades, comprobables por auditoría determinista. No se alteran sueldos, club, persistencia económica, selección visual, ni se introduce RNG global.
-- **Aceptación pendiente:** pruebas CI, comparación oficial de 1,000 partidas auditadas + 500 pares espejados contra 0.7.16 y revisión de remontadas, kills y duración; no fusionar si hay regresión.
+- Primera validación funcional: 202/202 pruebas correctas y 2,000 mapas auditados/espejados. Frente a 0.7.16: remontadas 4.1%→4.6%, kills 6.44→6.50, duración media 49.78→49.48 minutos, torres 4.72→4.76, azul espejado 49.0%→49.5%. Cero regresiones bloqueantes. Referencia: Actions 42754744345.
+- El panel TAB presenta HP máximo, daño de ataque, armadura, resistencia mágica, velocidad de ataque y AP efectivo cuando el replay guarda estadísticas, sin atribuirlas a partidas históricas. Diagnóstico de benchmark: daño real de HP normalizada, mitigación, crecimiento al minuto 20/final y TTK observable (minutos simulados entre primera herida registrada y kill, NO TTK real en segundos); se añaden tres gráficos SVG.
+- Pendiente de aceptación final: repetir CI y benchmark de 2,000 mapas con la instrumentación de solo lectura; no fusionar si aparece una regresión.
 
 
 ## [0.7.16-alpha] — 2026-11-09 (release consolidada)
