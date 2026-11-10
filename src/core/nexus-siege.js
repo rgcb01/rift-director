@@ -33,7 +33,7 @@
   // cosmetic HP. Baron helps only attackers who are actually in range.
   // With two attackers versus three present defenders, no hit is earned.
   return Math.max(0,Math.round(attackers*24+clamp(wave,0,3)*3+
-   (baron?7:0)-defenders*20));
+   (baron?7:0)-defenders*14));
  }
  function candidates(nav,world,minute,health,dead){
   const output=[];
