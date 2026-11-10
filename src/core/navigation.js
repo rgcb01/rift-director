@@ -244,10 +244,15 @@ function determineSiege(nav,worldState,t){
  // with two living escorts, it may choose a real counter-siege even
  // before it overtakes cumulative gold. No tower/HP/damage is granted.
  // This is observable lane control, not a time-scripted comeback roll.
- if(t>=32&&t<=65&&nav.siegeTeam){
+ if(t>=32&&t<=60&&nav.siegeTeam){
   const trailing=enemy(nav,nav.siegeTeam);
   const deficit=score(nav.siegeTeam)-score(trailing);
-  if(deficit>=1200){
+  // An already opened route to the trailing team's Nexus must not be
+  // abandoned: the counter-wave is a tower strategy, not a denial of an
+  // actual final siege. This also prevents endless switching of plans.
+  const finalSiege=LANES.some(lane=>
+   (worldState.lanes?.[trailing]?.[lane]??0)>=3);
+  if(deficit>=1200&&!finalSiege){
    const openings=[];
    for(const lane of LANES){
     if((worldState.lanes?.[nav.siegeTeam]?.[lane]??3)>=3)continue;
