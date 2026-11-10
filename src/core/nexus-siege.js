@@ -28,9 +28,12 @@
   if(!Number.isSafeInteger(attackers)||attackers<2||attackers>5||
      !Number.isSafeInteger(defenders)||defenders<0||defenders>5||
      !Number.isFinite(wave)||wave<-.25) return 0;
-  // Defenders interrupt physical attacks rather than undoing dealt damage.
+  // A contested base must survive a real defense. A champion physically
+  // guarding the Nexus disrupts siege time rather than merely shaving off
+  // cosmetic HP. Baron helps only attackers who are actually in range.
+  // With two attackers versus three present defenders, no hit is earned.
   return Math.max(0,Math.round(attackers*24+clamp(wave,0,3)*3+
-   (baron?7:0)-defenders*7));
+   (baron?7:0)-defenders*20));
  }
  function candidates(nav,world,minute,health,dead){
   const output=[];
