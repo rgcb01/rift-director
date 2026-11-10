@@ -134,7 +134,7 @@ function rewardEvent(model,event){
    if(Array.isArray(f.victimIds)&&f.victimIds.length){
     const number=f.victimIds.length;
     xpAward(model,f.actorId,150*number);
-    goldAward(model,f.actorId,320*number+(f.bountyGold||0),'killGold');
+    goldAward(model,f.actorId,320*number+(f.bountyGold||0)+(f.comebackGold||0),'killGold');
     for(const id of f.assistIds||[])xpAward(model,id,75*number);
    }
  }

@@ -192,6 +192,19 @@ function simulateMatch(f){
     m.gold[team.id]+=bounty;
     event.body+=' ¡Recompensa de '+bounty+' de oro por terminar una racha rival!';
    }
+   // A verified kill against a richer club may carry an earned comeback
+   // bounty. The exact public deficit and paid amount are replay-auditable;
+   // no gold is created by a plan, retreat, wall-clock or unconfirmed fight.
+   if(facts.victimIds?.length){
+    facts.comebackDeficit=m.gold[enemy(team).id]-m.gold[team.id];
+    facts.comebackGold=RiftCore.Shutdowns.comebackBounty(
+     facts.comebackDeficit,facts.victimIds.length);
+    if(facts.comebackGold>0){
+     m.gold[team.id]+=facts.comebackGold;
+     event.body+=' ¡Bonificación de '+facts.comebackGold+
+      ' de oro por una eliminación real estando en desventaja!';
+    }
+   }
    RiftCore.applyPlayerEvent(playerStats,event);
    RiftCore.PowerEconomy.rewardEvent(powerEconomy,event);
   }

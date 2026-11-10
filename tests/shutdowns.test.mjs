@@ -40,12 +40,23 @@ test('las recompensas de shutdown nacen de rachas de bajas; ninguna ventaja apar
  assert.equal(double.facts.shutdowns.length,2);
  assert.throws(()=>kill.apply(multi,makeEvent('blue-ADC',[b,b])),/Duplicate/);
 });
+test('la recompensa de remontada exige una eliminación y déficit público real',()=>{
+ const {core}=boot(),b=core.Shutdowns.comebackBounty;
+ assert.equal(b(1499,1),0);
+ assert.equal(b(1500,0),0);
+ assert.equal(b(1500,1),300);
+ assert.equal(b(3300,1),600);
+ assert.equal(b(9000,1),1000);
+ assert.equal(b(3300,2),1200);
+ assert.equal(b(-5000,3),0,'El líder no cobra bonificación');
+ assert.throws(()=>b(Infinity,1),/Invalid/);
+});
 test('replay, cartera y marcador tienen una única recompensa por shutdown verificable',()=>{
  const {sim,core}=boot({now:1731111111000});
  const world=sim.newGame('balanced','Shutdown QA');
  const fixture=Object.values(world.fixtures).flat().find(f=>
   f.a===world.userClub||f.b===world.userClub);
- let shutdowns=0,paid=0;
+ let shutdowns=0,paid=0,comebackPaid=0;
  for(let seed=1;seed<=110;seed++){
   world.rng=seed*68371;
   const match=sim.simulateMatch(fixture);
@@ -55,6 +66,7 @@ test('replay, cartera y marcador tienen una única recompensa por shutdown verif
    ...core.MatchReplay.auditMoments(match,world)];
   assert.equal(errors.length,0,'Seed '+seed+': '+errors.slice(0,4).join(' | '));
   match.events.forEach((e,i)=>{
+   comebackPaid+=e.facts?.comebackGold||0;
    if(!e.facts?.bountyGold)return;
    shutdowns+=e.facts.shutdowns.length;
    paid+=e.facts.bountyGold;
@@ -64,5 +76,6 @@ test('replay, cartera y marcador tienen una única recompensa por shutdown verif
   });
  }
  assert.ok(paid>0,'No se observó ninguna recompensa en 110 partidas');
+ assert.ok(comebackPaid>0,'No se observaron bajas reales del equipo rezagado');
  console.log('SHUTDOWN_SAMPLE='+JSON.stringify({shutdowns,paid}));
 });
