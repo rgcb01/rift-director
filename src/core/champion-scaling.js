@@ -77,13 +77,15 @@
   if(kind==='attack'){
    const gainedAD=stats.attackDamage-champ.base.attackDamage-
     champ.growth.attackDamage*levels;
-   return levels*.98+gainedAD*.55+stats.abilityPower*.22+
-    (stats.attackSpeed-champ.base.attackSpeed)*12+
-    (champ.base.attackDamage-61)*.19;
+   const gearAs=stats.attackSpeed-champ.base.attackSpeed-
+    champ.growth.attackSpeed*levels;
+   const gear=clamp(gainedAD*.55+stats.abilityPower*.22+
+    gearAs*12,0,40);
+   return levels*1.18+gear+(champ.base.attackDamage-61)*.19;
   }
   const gearArmor=stats.armor-champ.base.armor-champ.growth.armor*levels;
   const gearHp=stats.maxHp-champ.base.maxHp-champ.growth.maxHp*levels;
-  return levels*.96+gearArmor*.56+gearHp*.025+
+  return levels*1.18+clamp(gearArmor*.56+gearHp*.025,0,20)+
    (champ.base.maxHp-650)*.021;
  }
  // Convert effective max HP and defenses to a bounded percent-HP damage
