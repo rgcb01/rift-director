@@ -179,3 +179,28 @@ test('partida antigua v2 sin momentos: historial navegable por minuto y fin de p
  assert.equal(match.finished,true);
  assert.equal(sim.seekReplay(0),true);
 });
+
+
+test('UX replay transport: previous and latest are reversible and never persist a demo',()=>{
+ const {sim,store}=boot({now:1731111111000});
+ sim.startDemoMatch();
+ const live=sim.getState().live;
+ let html=sim.renderMatch();
+ assert.match(html,/data-action="replay-prev" disabled/);
+ assert.match(html,/data-action="replay-latest" disabled/);
+ assert.match(html,/role="progressbar"/);
+ sim.nextReplay();
+ sim.nextReplay();
+ assert.equal(live.replayCursor,2);
+ const press=action=>sim.handleClick({target:{closest:()=>({dataset:{action}})}});
+ press('replay-prev');
+ assert.equal(live.replayCursor,1);
+ assert.equal(live.replayProgress,2,'Backward review does not rewind the discovered frontier');
+ press('replay-latest');
+ assert.equal(live.replayCursor,2);
+ assert.equal(live.replayProgress,2);
+ assert.equal(sim.seekReplay(3),false,'Future events remain inaccessible');
+ assert.equal(store.size,0,'Demo navigation does not touch persistent save');
+ sim.exitDemoMatch();
+ assert.equal(sim.getState(),null);
+});
