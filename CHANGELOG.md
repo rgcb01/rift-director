@@ -4,6 +4,11 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Seguimiento físico ganado tras kills — validado
+- Las peleas ganadas desde el minuto 36 pueden originar un contraavance de hasta cinco minutos cuando al menos dos participantes vivos están a cinco aristas o menos del objetivo, uno a tres o menos y existe una oleada real ≥0.85. La selección de escoltas usa posiciones físicas, no solo el rol: MID/JUN pueden avanzar tras una pelea en el río.
+- Se mantiene el déficit mínimo de 1,200 de oro para presionar torres, la comprobación de superioridad local y el daño a estructuras exclusivamente con atacantes presentes, sin movimiento instantáneo ni recompensas gratuitas.
+- Comparación con Alpha 0.7.14: 198/198 pruebas, 1,000 mapas auditados y 500 pares espejados (2,000 simulaciones), cero regresiones bloqueantes; remontadas 4.2%→4.1%, kills 6.39→6.44, torres 4.48→4.72, duración 49.28→49.78 min y azul espejado 49.5%→49.0%.
+
 ## [0.7.16-alpha] — 2026-11-09 (release consolidada)
 
 ### Resultado final de integración y balance — PR #44
