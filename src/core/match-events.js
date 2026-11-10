@@ -198,10 +198,19 @@
         const buyer=actor(facts,event,t);
         verifyParticipants(event,facts,t);
         const side=event.teamId===a?'blue':'red';
-        const item=core.PowerEconomy.ITEM_CATALOG.find(x=>x.id===facts.itemId);
-        if(!buyer||!item||item.cost!==facts.goldCost||
+        const item=[...core.PowerEconomy.ITEM_CATALOG,
+          ...core.PowerEconomy.COMPONENT_CATALOG].find(x=>x.id===facts.itemId);
+        const ingredients=facts.consumedIds||[];
+        const componentCatalog=core.PowerEconomy.COMPONENT_CATALOG;
+        const credit=ingredients.reduce((n,id)=>n+
+          (componentCatalog.find(x=>x.id===id)?.cost||0),0);
+        const recipeValid=!ingredients.length||
+          (item?.recipe&&ingredients.every(id=>item.recipe.includes(id))&&
+            new Set(ingredients).size===ingredients.length);
+        if(!buyer||!item||!recipeValid||item.cost-credit!==facts.goldCost||
+           (facts.itemKind==='component')!==(item.kind==='component')||
            ![side+'_fountain',side+'_nexus'].includes(facts.node)||
-           !integer(facts.slot)||facts.slot<1||facts.slot>3||
+           !integer(facts.slot)||facts.slot<1||facts.slot>6||
            !integer(facts.level)||facts.level<1||facts.level>18)
          fail('Compra sin jugador en base, nivel o precio válido.');
         const moment=match.moments?.[match.events.indexOf(event)];

@@ -377,6 +377,36 @@ function advance(nav,t,dead,worldState,context=null){
   if(agent.route.length>1)agent.node=agent.route[1];
  }
 }
+// Nexus victory is based on an opened route, physically present attackers,
+// a surviving wave and local defenders, never a minute-indexed coin flip.
+function nexusOpportunity(nav,{teamId,lanes,waves,health={},dead={},minute=nav.minute}){
+ const foe=enemy(nav,teamId),foeSide=getSide(nav,foe),node=foeSide+'_nexus';
+ const opened=['TOP','MID','BOT'].filter(lane=>(lanes?.[foe]?.[lane]||0)>=3);
+ if(!opened.length)return null;
+ const healthy=(p,min)=>p.alive&&(dead[p.id]||0)<=minute&&
+   (health[p.id]??100)>=min&&at(nav,p.id,node,1);
+ const attackers=teamAgents(nav,teamId).filter(p=>p.intent!=='retreat'&&healthy(p,40));
+ // Fountain residents are safe at spawn but not automatically stationed at
+ // the attacked Nexus. They must physically move out to defend it.
+ const defenders=teamAgents(nav,foe).filter(p=>p.node!==foeSide+'_fountain'&&healthy(p,25));
+ if(attackers.length<2)return null;
+ const candidates=opened.map(lane=>({lane,wave:core.LaneEconomy.pressureFor(
+  {teamIds:[nav.a,nav.b],lanes:waves},teamId,lane)}))
+  .sort((a,b)=>b.wave-a.wave||a.lane.localeCompare(b.lane));
+ if(!candidates.length)return null;
+ return {teamId,node,lane:candidates[0].lane,wave:candidates[0].wave,
+  attackers:attackers.map(p=>p.id),defenders:defenders.map(p=>p.id)};
+}
+// Physical siege damage accounts for real defenders and wave momentum.
+// Even a defended Nexus can sustain gradual damage from a persistent siege,
+// but weak/isolated attackers cannot damage it at all.
+function nexusSiegeDamage(plan,baronBuff=0){
+ if(!plan||plan.attackers.length<2)return 0;
+ const edge=plan.attackers.length-plan.defenders.length;
+ const wave=Math.max(-.5,Math.min(.5,plan.wave*.15));
+ const value=1+edge*.45+wave+(baronBuff>0?.4:0);
+ return Math.max(.25,Math.min(3,Math.round(value*4)/4));
+}
 function snapshot(nav,dead,t){
  const out={};
  for(const agent of Object.values(nav.agents)){
@@ -530,6 +560,28 @@ function auditNavigation(match,world){
     if(!near(f.actorId,node,1))errs.push('Nexo destruido sin atacante presente.');
     const attackers=Object.keys(positions).filter(id=>positions[id].teamId===team&&near(id,node,1));
     if(attackers.length<2)errs.push('Nexo destruido sin asedio de dos atacantes.');
+    if(f.nexusVersion===2){
+     const defenders=Object.keys(positions).filter(id=>positions[id].teamId===other&&near(id,node,1));
+     const opened=events.slice(0,frame.eventsCount).some(record=>
+      record.teamId===team&&record.facts?.action==='tower'&&
+      record.facts?.lane===f.lane&&record.facts?.stage===3);
+     const wave=frame.laneEconomy?.lanes?.[f.lane]?.front;
+     const signed=team===match.fixture.a?wave:-wave;
+     if(!['TOP','MID','BOT'].includes(f.lane)||!opened)
+      errs.push('Nexo sin carril abierto verificable.');
+     if(typeof signed!=='number'||Math.abs(signed-f.wave)>.011||
+       !Number.isFinite(signed))
+      errs.push('Nexo sin oleada verificable.');
+     if(f.localAttackers<2||
+       attackers.length<f.localAttackers||defenders.length<f.localDefenders||
+       !f.participantIds?.every(id=>attackers.includes(id)))
+      errs.push('Nexo sin presencia física suficiente.');
+     if(!(f.siegeDamage>=.25&&f.siegeDamage<=3)||
+       !(f.integrityBefore>0)||f.integrityAfter!==0||
+       Math.max(0,Math.round((f.integrityBefore-f.siegeDamage)*100)/100)!==0||
+       frame.nexusIntegrity?.[other]!==0)
+      errs.push('Nexo destruido sin daño acumulado verificable.');
+    }
    }
    if(f.action==='gank'||f.action==='teamfight'||
       (f.action==='lane_trade'&&f.outcome==='kill')||
@@ -550,5 +602,5 @@ core.Navigation=Object.freeze({links,adjacency,path,hops,adjacent,nearby,combatR
  jungleAllowed,gankPlan,jungleGoal,
  towerNode,createNavigation,teamAgents,getAgent,at,participants,engagement,forceRetreat,
  gankPlanForLane,
- advance,snapshot,auditNavigation});
+ advance,snapshot,nexusOpportunity,nexusSiegeDamage,auditNavigation});
 })(globalThis);

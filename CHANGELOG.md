@@ -4,6 +4,31 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+## [0.7.16-alpha] — Candidato en validación
+
+### Cierre del nexo por condiciones físicas, sin ruleta de reloj
+- Se eliminó el sorteo de destrucción del nexo a partir del minuto 29/46/54. Tras abrir un carril con tres torres destruidas, dos atacantes vivos que alcancen físicamente el nexo pueden reducir su integridad de forma persistente durante varios minutos. Las oleadas, los defensores y el Barón modifican el daño real por minuto; las defensas numerosas retrasan el cierre sin bloquear para siempre una partida. No existe victoria instantánea por un contador global.
+- Selección determinista cuando ambos equipos rompen el nexo en el mismo minuto; sin RNG adicional ni objetivos gratuitos. Auditoría de carril mediante eventos reales de torres, presión de oleada, presencia y registro de integridad, más pruebas de defensores, bajas, retirada y oleadas adversas. Es un experimento separado cuyo balance se comprueba en 1,000 partidas y 500 pares espejados.
+
+- Validación de cierre con 1 punto de integridad: 1,000 partidas auditadas y 500 pares espejados, CI funcional en verde. La duración media experimental desciende de 50.09 a 48.56 min; se observa una caída de kills de 6.35 a 5.86 y las remontadas permanecen en 2.8%. Mantener el PR en borrador; la mejora de duración todavía no justifica degradar kills ni ignorar la regresión de comeback frente a 0.7.14.
+
+### Conversión territorial tras una pelea real
+- Counterplay puede proponer una presión limitada hasta el minuto 52 solo cuando el equipo realmente va ≥1,200 de oro detrás, ha eliminado a un rival, tiene una oleada de presión ≥0.9 y al menos un atacante puede alcanzar la torre en tres aristas.
+- El avance se cancela si desaparece la oleada, los defensores locales igualan o superan los escoltas sanos, la ruta es demasiado larga o termina la ventana de tres minutos. No se conceden torres, placas, oro ni teletransportes; los eventos siguen exigiendo sus condiciones habituales.
+- Pruebas de ausencia de oleada, líder, superioridad local defensiva y expiración. Comparar mediante 1,000 partidas auditadas más 500 pares espejados; mantener candidato aislado si empeoran remontadas, kills o duración.
+
+### Diagnóstico de economía y remontadas (solo observación)
+- Benchmark amplía los indicadores de 1,000 partidas con diferencias de oro, carteras y gasto en equipamiento por equipo a los minutos 20 y 30; tasa de remontadas condicional a tener ≥1,500 de déficit; y ventanas observadas de cinco minutos entre shutdown y objetivos del mismo equipo. Incluye gráfico `economy.svg` y pruebas sintéticas sin alterar partidas.
+- Los eventos posteriores a un shutdown se presentan como asociación temporal, **no causalidad demostrada**. Los valores nuevos no existían en los baselines anteriores y deben mostrarse como no comparables.
+
+### Objetos, componentes, recetas y builds ejecutables
+- Iteración de economía: el motor permite una segunda visita voluntaria a la tienda con cartera elevada desde la fase intermedia, respetando desplazamiento físico, cooldown, un solo agente del equipo en regreso y veto de asedio. No se crean recursos ni teletransportes. Se añade prueba de segunda visita y monitorización del impacto en remontadas.
+- Se activan 15 objetos originales con bonos de combate del motor actual y 15 componentes con precio, compra real, ocupación de inventario y uso como ingredientes de mejora. Los 15 objetos declaran recetas de dos componentes; el precio de la mejora descuenta los componentes previamente comprados, sin crear ni duplicar oro.
+- Las compras siguen requiriendo presencia física en fuente/nexo propio; la IA prioriza familias de objetos según su rol, sin nuevos recalls voluntarios para adquirir únicamente componentes. El inventario pasa a seis espacios y las mejoras consumen componentes sin exceder capacidad.
+- El TAB muestra los iconos ya incluidos en Art Pack 2 para componentes y objetos completos, con precios y fallback SVG. El motor todavía usa potencias abstractas de ataque/defensa; las habilidades de campeón, los atributos AD/AP/armadura reales y las pasivas únicas no se simulan aún.
+- Auditorías actualizadas para verificar costo de las recetas, capacidad y coherencia de recibos, pruebas unitarias de recetas y simulación completa de 1,000 partidas y 500 pares espejados requeridos antes de fusionar.
+
+
 ### Arreglo de retratos visibles en replays
 - El atlas PNG de campeones se muestra tanto en el TAB de espectador como en el minimapa, conservando sus SVG originales como respaldo.
 - Los replays antiguos sin campeones asignados muestran una identidad visual reconstruida de forma determinista, marcada como ilustrativa, sin alterar el partido histórico ni sus datos.

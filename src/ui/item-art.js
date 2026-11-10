@@ -21,7 +21,8 @@ const definitions={
 };
 const catalogs=Object.freeze(Object.fromEntries(Object.entries(definitions).map(([kind,rows])=>[
  kind,Object.freeze(rows.map(([id,name],i)=>{
-  const existing=kind==='items'?live.find(item=>item.id===id):null;
+  const existing=kind==='items'?live.find(item=>item.id===id):
+    (root.RiftCore?.PowerEconomy?.COMPONENT_CATALOG||[]).find(item=>item.id===id);
   return Object.freeze({id,name:existing?.name||name||id,
    x:i%5*128,y:Math.floor(i/5)*128,width:128,height:128,
    atlas:`assets/inventory/${kind}_atlas.png`,
@@ -36,7 +37,7 @@ function get(id,kind='items'){
 }
 // The caller owns the accessible label and keeps its SVG under this overlay.
 function image(id,kind='items'){
- const art=get(id,kind);
+ const art=get(id,kind)|| (kind==='items'?get(id,'components'):undefined);
  return art?`<img class="rift-item-image" src="${art.icon32}" srcset="${art.icon64} 2x" width="32" height="32" alt="" aria-hidden="true" onerror="this.remove()">`:'';
 }
 root.RiftItemArt=Object.freeze({catalogs,get,image});

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { boot } from '../tests/harness.mjs';
+import {diagnoseMatch,aggregateDiagnostics} from './economy-diagnostics.mjs';
 
 // Alpha 0.7.7 baseline: 1,000 full matches, 10 independently generated
 // worlds, 100 distinct seeds/world, rotating actual league fixtures.
@@ -90,6 +91,18 @@ export function runStandard() {
           crossmapPlates:m.events.filter(e=>e.facts?.action==='plate'&&e.facts.crossmapTrade).length,
           crossmapTowers:m.events.filter(e=>e.facts?.action==='tower'&&e.facts.crossmapTrade).length,
           purchases:m.events.filter(e=>e.facts?.action==='item_purchase').length,
+          completedPurchases:m.events.filter(e=>e.facts?.action==='item_purchase'&&
+            (e.facts.itemKind==='complete'||!e.facts.itemKind)).length,
+          componentPurchases:m.events.filter(e=>e.facts?.action==='item_purchase'&&
+            e.facts.itemKind==='component').length,
+          recipeCompletions:m.events.filter(e=>e.facts?.action==='item_purchase'&&
+            e.facts.consumedIds?.length).length,
+          completedEquipped:Object.values(f.powerEconomy?.entries||{}).reduce((n,p)=>n+
+            p.items.filter(id=>core.PowerEconomy.ITEM_CATALOG.some(item=>item.id===id)).length,0),
+          componentsEquipped:Object.values(f.powerEconomy?.entries||{}).reduce((n,p)=>n+
+            p.items.filter(id=>core.PowerEconomy.COMPONENT_CATALOG?.some(item=>item.id===id)).length,0),
+          slotsOccupied:Object.values(f.powerEconomy?.entries||{}).reduce((n,p)=>n+p.items.length,0),
+          walletUnspent:Object.values(f.powerEconomy?.entries||{}).reduce((n,p)=>n+p.wallet,0),
           recallPurchases:m.events.filter((e,i)=>e.facts?.action==='item_purchase'&&
             m.moments[i]?.navigation?.before?.[e.facts.actorId]?.intent==='shop_recall').length,
           fountainPurchases:m.events.filter(e=>e.facts?.action==='item_purchase'&&
@@ -138,6 +151,7 @@ export function runStandard() {
             return at.gold[a]>at.gold[b]?a:at.gold[b]>at.gold[a]?b:null})(),
           goldLead20:(()=>{const at=m.frames.find(f=>f.minute===20)||f;
             return Math.abs(at.gold[a]-at.gold[b])})(),
+          economyDiagnosis:diagnoseMatch(m,fixture,core.PowerEconomy.ITEM_CATALOG),
           actions:actionCounts
         };
         rows.push(row);batchRows.push(row);
@@ -216,6 +230,13 @@ export function runStandard() {
       crossmapTradeTowerGames:rows.filter(r=>r.crossmapTowers>0).length,
       contestedDragonGames:rows.filter(r=>r.dragonContests>0).length,
       purchasesPerMatch:+avg(rows.map(r=>r.purchases)).toFixed(2),
+      completedPurchasesPerMatch:+avg(rows.map(r=>r.completedPurchases)).toFixed(2),
+      componentPurchasesPerMatch:+avg(rows.map(r=>r.componentPurchases)).toFixed(2),
+      recipeCompletionsPerMatch:+avg(rows.map(r=>r.recipeCompletions)).toFixed(2),
+      completedEquippedPerMatch:+avg(rows.map(r=>r.completedEquipped)).toFixed(2),
+      componentsEquippedPerMatch:+avg(rows.map(r=>r.componentsEquipped)).toFixed(2),
+      occupiedSlotsPerMatch:+avg(rows.map(r=>r.slotsOccupied)).toFixed(2),
+      walletUnspentPerMatch:+avg(rows.map(r=>r.walletUnspent)).toFixed(2),
       recallPurchasesPerMatch:+avg(rows.map(r=>r.recallPurchases)).toFixed(2),
       fountainPurchasesPerMatch:+avg(rows.map(r=>r.fountainPurchases)).toFixed(2),
       earlyPurchasesPerMatch:+avg(rows.map(r=>r.before30Purchases)).toFixed(2),
@@ -235,7 +256,8 @@ export function runStandard() {
       comebackWins20:rows.filter(r=>r.goldLead20>=1500&&r.goldLeader20&&r.goldLeader20!==r.winner).length,
       hugeKillMargin15:rows.filter(r=>r.killMargin>=15).length,
       durationAtCap75:rows.filter(r=>r.duration>=75).length,
-      actionTotals,actionMatches,tacticReasons},
+      actionTotals,actionMatches,tacticReasons,
+      economyDiagnostics:aggregateDiagnostics(rows)},
     worlds:worldStats,
     extremes:{
       fastest:[...rows].sort((a,b)=>a.duration-b.duration).slice(0,5).map(({i,world,seed,duration,totalKills,side})=>({i,world,seed,duration,totalKills,side})),

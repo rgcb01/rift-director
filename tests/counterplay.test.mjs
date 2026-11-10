@@ -115,6 +115,38 @@ test('el seguimiento tras matar exige una oleada y no regala torres',()=>{
  }
  assert.equal(core.Counterplay.followup(nav,agent,26,state,{health}),null);
 });
+test('late underdog pushes only with an actual wave and local numerical edge',()=>{
+ const x=setup(),{core,nav,a,b,health}=x;
+ const adc=nav.agents[a.lineup.ADC],sup=nav.agents[a.lineup.SUP];
+ const enemyADC=nav.agents[b.lineup.ADC];
+ const goal='red_bot_outer';
+ adc.node=goal;sup.node=goal;enemyADC.alive=false;
+ const facts={teamId:a.id,actorId:adc.id,
+  participantIds:[adc.id,sup.id],victimIds:[enemyADC.id]};
+ const state={gold:{[a.id]:10000,[b.id]:13000},lanes:x.lanes,waves:x.waves};
+ state.waves.BOT.front=0;
+ assert.equal(core.Counterplay.pressureAfterKill(nav,facts,40,state),null,
+  'A shutdown does not create a free wave');
+ state.waves.BOT.front=1.2;
+ assert.equal(core.Counterplay.pressureAfterKill(nav,facts,40,
+  {...state,gold:{[a.id]:15000,[b.id]:13000}}),null,
+  'A late leader must not obtain a free bonus siege');
+ const order=core.Counterplay.pressureAfterKill(nav,facts,40,state);
+ assert.equal(order?.lane,'BOT');
+ assert.equal(order?.until,43);
+ assert.equal(core.Counterplay.followup(nav,adc,41,state,{health})?.goal,goal);
+ for(const defender of Object.values(nav.agents).filter(p=>p.teamId===b.id)){
+  defender.alive=true;defender.node=goal;
+ }
+ assert.equal(core.Counterplay.followup(nav,adc,41,state,{health}),null,
+  'Do not push an equally defended tower');
+ enemyADC.alive=false;
+ state.waves.BOT.front=0;
+ assert.equal(core.Counterplay.followup(nav,adc,41,state,{health}),null,
+  'Wave disappearance cancels a push');
+ assert.equal(core.Counterplay.followup(nav,adc,44,state,{health}),null,
+  'Expiry cancels an opportunity');
+});
 test('90 mapas: peleas de counterplay son causales y los shutdowns siguen auditables',()=>{
  const {sim,core,world,fixture}=setup();
  let fights=0,kills=0,pressure=0,reasons={};
