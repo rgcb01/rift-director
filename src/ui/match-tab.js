@@ -103,8 +103,10 @@ function row(p,championId,frame){
   root.RiftCore.ChampionKits.projected(ability,at):ability?.resource;
  const abilityLine=ability?'<small class="rift-tab-effective" aria-label="Habilidades y recursos activos">'+
   'Recurso '+resource+'/100 · '+
-  ['Q','W','E','R'].map(slot=>slot+':'+(ability.cooldowns?.[slot]>at?
-   Math.ceil((ability.cooldowns[slot]-at)/60)+'m':'lista')).join(' · ')+
+  ['Q','W','E','R'].map(slot=>slot+':'+(
+   progress?.effectiveStats?.abilityRanks?.[slot]===0?'bloq.':
+   ability.cooldowns?.[slot]>at?
+    Math.ceil((ability.cooldowns[slot]-at)/60)+'m':'lista')).join(' · ')+
   '</small>':'';
  const effective=progress?.effectiveStats;
  const statsLine=effective?'<small class="rift-tab-effective" aria-label="Atributos efectivos">'+
