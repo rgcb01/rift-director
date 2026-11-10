@@ -51,15 +51,19 @@ const ITEM_CATALOG=Object.freeze([
 const ITEMS=Object.fromEntries([...ITEM_CATALOG,...COMPONENT_CATALOG].map(x=>[x.id,x]));
 const COMPONENTS=Object.fromEntries(COMPONENT_CATALOG.map(x=>[x.id,x]));
 const FINISHED=Object.fromEntries(ITEM_CATALOG.map(x=>[x.id,x]));
-const ROW=(p)=>({id:p.id,teamId:p.teamId,role:p.role,level:1,xp:0,
+const ROW=(p,championId=null)=>({id:p.id,teamId:p.teamId,role:p.role,
+ ...(championId?{championId}:{}),level:1,xp:0,
  wallet:500,earned:500,spent:0,items:[],lastPurchaseMinute:-100,
  voluntaryBuys:0,
  passive:0,farm:0,killGold:0,objectiveGold:0,kills:0});
-function create(players){
+function create(players,champions=null){
  const entries={};
  for(const p of players){
   if(!p?.id||entries[p.id])throw Error('Duplicate power economy player');
-  entries[p.id]=ROW(p);
+  const id=champions?.entries?.[p.id]||null;
+  if(id&&(core.ChampionScaling?.DEFINITIONS?.[id]?.role!==p.role))
+   throw Error('Champion assignment incompatible with professional role');
+  entries[p.id]=ROW(p,id);
  }
  return {version:1,entries};
 }
@@ -302,6 +306,9 @@ function purchase(model,nav,agent,minute,worldState){
 }
 function boost(model,id,kind='attack'){
  const row=model?.entries[id];if(!row)return 0;
+ if(row.championId&&core.ChampionScaling){
+  return core.ChampionScaling.combatBoost(row,kind,[...ITEM_CATALOG,...COMPONENT_CATALOG]);
+ }
  const levels=(row.level-1)*1.35;
  const raw=row.items.reduce((sum,item)=>
   sum+(ITEMS[item]?.[kind]||0)*(kind==='attack'?2.3:1.3),0);
@@ -318,7 +325,10 @@ function teamEquipment(model,teamId){
 }
 function snapshot(model){
  return {version:model.version,entries:Object.fromEntries(Object.entries(model.entries)
-  .map(([id,row])=>[id,{...row,items:[...row.items]}]))};
+  .map(([id,row])=>[id,{...row,items:[...row.items],
+   ...(row.championId&&core.ChampionScaling?{
+    effectiveStats:core.ChampionScaling.effective(row,[...ITEM_CATALOG,...COMPONENT_CATALOG])
+   }:{})}]))};
 }
 function audit(match){
  const errors=[];
@@ -328,6 +338,11 @@ function audit(match){
   const rows=power.entries||{};
   if(Object.keys(rows).length!==10)errors.push('Match power ledger must have 10 players: '+frame.minute);
   for(const [id,p] of Object.entries(rows)){
+   if(p.championId&&core.ChampionScaling){
+    const expected=core.ChampionScaling.effective(p,[...ITEM_CATALOG,...COMPONENT_CATALOG]);
+    if(!expected||JSON.stringify(expected)!==JSON.stringify(p.effectiveStats))
+     errors.push('Champion growth/stats mismatch in replay: '+id+'/'+frame.minute);
+   }
    if(!Number.isSafeInteger(p.level)||p.level<1||p.level>18||
       !Number.isSafeInteger(p.xp)||p.xp<0||
       (p.level<18&&p.xp>=nextLevel(p.level)))
