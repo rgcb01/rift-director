@@ -141,4 +141,11 @@ test('0.7.18 TAB shows earned resources and QWER cooldowns without rewriting his
  assert.equal(JSON.stringify(frame),before,'TAB may not mutate replay');
  const historical=tab.render({match:{},frame:{minute:20,playerStats:{}},teams});
  assert.doesNotMatch(historical,/Habilidades y recursos activos/);
+ const locked=JSON.parse(JSON.stringify(frame));
+ for(const p of Object.values(locked.powerEconomy.entries))
+  p.effectiveStats={abilityRanks:{Q:1,W:1,E:0,R:0}};
+ const lockedUI=tab.render({match:{champions},frame:locked,teams});
+ assert.match(lockedUI,/R:bloq\./);
+ assert.match(lockedUI,/E:bloq\./);
+ assert.match(lockedUI,/Q:1m/);
 });
