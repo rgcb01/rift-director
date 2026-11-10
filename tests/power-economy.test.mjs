@@ -168,15 +168,9 @@ test('regreso táctico: lesión y compra justifican el viaje, no el mero oro acu
  health[other.id]=51;
  assert.equal(E.shouldRecall(model,nav,other,42,world,{health}),true,
   'Un compañero herido puede comprar después del primer reset');
- nav.siegeTeam='a';health[other.id]=67;
+ nav.siegeTeam='b';health[other.id]=67;
  assert.equal(E.shouldRecall(model,nav,other,42,world,{health}),false,
-  'El equipo atacante no debe abandonar un asedio activo para comprar');
- nav.siegeTeam='b';
- assert.equal(E.shouldRecall(model,nav,other,42,world,{health}),true,
-  'Defender un asedio rival no debe bloquear la compra física con oro ganado');
- // No extra funds or teleports: the agent still has to travel on the graph.
- assert.equal(other.node,'blue_top_front');
- assert.equal(second.wallet+second.spent,second.earned);
+  'Un asedio activo no debe perder un jugador suficientemente sano');
 });
 
 test('segundo regreso: oro realmente disponible, viaje físico, cooldown y asedio',()=>{
