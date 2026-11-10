@@ -4,16 +4,16 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
-## [0.7.17-alpha] — candidato de escalado (sin publicación)
+## [0.7.17-alpha] — 2026-11-09 (release validada)
 
 ### Primer vertical slice: escalado real de los diez campeones
 - Nuevo registro determinista de diez identidades de campeón con HP máximo, daño de ataque, armadura, resistencia mágica, velocidad de ataque, crecimiento por nivel (1–18), tipo de daño y distribución de rangos Q/W/E/R. Las activas no lanzan habilidades: eso queda para Alpha 0.7.18.
 - Las compras físicas de componentes/objetos convierten la cartera personal en estadísticas; acumular oro sin comprar no aporta daño. Los niveles solo se ganan mediante el ledger de XP, y el personaje/profesional siguen siendo entidades separadas.
 - `Encounters` utiliza la progresión efectiva del campeón en el combate real, aplicando resistencia/vida efectiva de forma acotada a la vida histórica normalizada (0–100%). El bono anterior por nivel/objeto queda reemplazado, nunca duplicado, en partidas nuevas con campeón asignado; adaptador legado para pruebas/replays sintéticos.
 - Replay registra `championId`, `effectiveStats` y rangos de habilidades, comprobables por auditoría determinista. No se alteran sueldos, club, persistencia económica, selección visual, ni se introduce RNG global.
-- Primera validación funcional: 202/202 pruebas correctas y 2,000 mapas auditados/espejados. Frente a 0.7.16: remontadas 4.1%→4.6%, kills 6.44→6.50, duración media 49.78→49.48 minutos, torres 4.72→4.76, azul espejado 49.0%→49.5%. Cero regresiones bloqueantes. Referencia: Actions 42754744345.
+- **Validación final:** 205/205 pruebas correctas; 1,000 mapas auditados + 500 pares espejados (2,000 simulaciones), cero regresiones bloqueantes. Frente a 0.7.16: remontadas 4.1%→4.6%, kills 6.44→6.50, duración 49.78→49.48 min, torres 4.72→4.76, azul espejado 49.0%→49.5%. CI 42755942553; benchmark 42755942297.
 - El panel TAB presenta HP máximo, daño de ataque, armadura, resistencia mágica, velocidad de ataque y AP efectivo cuando el replay guarda estadísticas, sin atribuirlas a partidas históricas. Diagnóstico de benchmark: daño real de HP normalizada, mitigación, crecimiento al minuto 20/final y TTK observable (minutos simulados entre primera herida registrada y kill, NO TTK real en segundos); se añaden tres gráficos SVG.
-- Pendiente de aceptación final: repetir CI y benchmark de 2,000 mapas con la instrumentación de solo lectura; no fusionar si aparece una regresión.
+- **Métricas nuevas (no comparables históricamente):** 1,874.52 puntos porcentuales acumulados de HP dañados por mapa; HP máximo promedio 1,268.11 al min 20 y 1,937.60 al finalizar; DA promedio 83.26→119.76; TTK observable 2.52 minutos simulados entre herida registrada y baja, que NO es TTK real en segundos. Tres SVG adicionales para crecimiento de HP/DA y TTK proxy; resultados auditados sin alterar economía ni RNG.
 
 
 ## [0.7.16-alpha] — 2026-11-09 (release consolidada)

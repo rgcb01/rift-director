@@ -4,7 +4,7 @@
 
 [**Jugar en el navegador**](https://rgcb01.github.io/rift-director/) · [Roadmap](ROADMAP.md) · [Cambios](CHANGELOG.md) · [Cómo contribuir](CONTRIBUTING.md)
 
-> **Alpha 0.7.16 — consolidación validada tras 198/198 pruebas y 2,000 partidas auditadas/espejadas.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
+> **Alpha 0.7.17 — escalado de campeones validado tras 205/205 pruebas y 2,000 partidas auditadas/espejadas.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
 
 ## La idea
 
@@ -19,6 +19,12 @@ Los meses impulsan las finanzas y el mundo. Las noticias y los rumores reflejan 
 - **Local:** descarga el repositorio y abre `index.html` con tu navegador. Como alternativa, ejecuta `python -m http.server 8080` y visita `http://localhost:8080`.
 - No hay instalación de paquetes, cuenta ni backend para jugar.
 - **Guardados:** automáticos en `localStorage` de ese navegador. En **Partida** puedes **exportar/importar JSON**. Los guardados no se sincronizan entre dispositivos; expórtalos antes de borrar datos del navegador.
+
+## Alpha 0.7.17 — Estadísticas de campeón y power spikes
+
+Los diez campeones originales ahora tienen progresión física de **HP máximo, daño de ataque, armadura, resistencia mágica, velocidad de ataque y AP**. Las estadísticas crecen con XP/niveles y objetos realmente comprados; el panel TAB y el replay muestran los atributos del momento seleccionado. La vida del HUD conserva la escala histórica de 0–100%. Los rangos Q/W/E/R progresan, pero las habilidades activas y su TTK en segundos se implementarán en 0.7.18.
+
+**Resultados con 205 pruebas y 2,000 mapas:** 49.48 minutos, 6.50 kills, 4.6% remontadas, 49.5% de victorias azules espejadas, cero regresiones bloqueantes. Nuevo reporte de daño efectivo, HP/DA y TTK observado (2.52 minutos simulados; no segundos de combate). [Benchmark completo](https://github.com/rgcb01/rift-director/actions/runs/42755942297).
 
 ## Alpha 0.7.16 — Integración de experimentos
 
