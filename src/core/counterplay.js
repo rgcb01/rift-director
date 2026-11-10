@@ -99,33 +99,46 @@
   if(!facts?.victimIds?.length||minute>=59)return null;
   const opponent=facts.teamId===nav.a?nav.b:nav.a;
   const deficit=(worldState.gold?.[opponent]||0)-(worldState.gold?.[facts.teamId]||0);
-  // Tower pressure in late game needs an underdog; an already opened
-  // Nexus lane may also be pressured by the leader, but never damaged for free.
-  const roster=(facts.participantIds||[]).map(id=>nav.agents[id]).filter(Boolean);
-  const lanes=['BOT','MID','TOP'].filter(lane=>
-   roster.filter(p=>roleLane(p.role)===lane).length>=(lane==='BOT'?2:1));
-  const lane=lanes.find(lane=>{
+  const roster=(facts.participantIds||[]).map(id=>nav.agents[id])
+   .filter(p=>p&&p.teamId===facts.teamId&&p.alive&&
+    (worldState.dead?.[p.id]||0)<=minute&&p.intent!=='retreat');
+  const roleEscorts=lane=>roster.filter(p=>roleLane(p.role)===lane);
+  const late=minute>=36;
+  // Early lane phase keeps role responsibilities. In late teamfights,
+  // support comes from living, real participants near the actual structure
+  // rather than a rigid role label (JUN/MID can escort after a river fight).
+  const proposals=[];
+  for(const lane of ['BOT','MID','TOP']){
    const stage=worldState.lanes?.[opponent]?.[lane]??3;
-   if(stage>3)return false;
-   if(minute<36)return true;
-   if(stage<3&&deficit<=1200)return false;
+   if(stage>3)continue;
+   const traditional=roleEscorts(lane);
+   if(!late){
+    if(traditional.length<(lane==='BOT'?2:1))continue;
+    proposals.push({lane,allowed:traditional.map(p=>p.id),rank:0,stage});
+    continue;
+   }
+   if(stage<3&&deficit<=1200)continue;
    const wave=core.LaneEconomy.pressureFor(
     {teamIds:[nav.a,nav.b],lanes:worldState.waves},facts.teamId,lane);
-   if(wave<.9)return false;
-   const side=opponent===nav.a?'blue':'red';
-   const goal=stage<3?navAPI().towerNode(side,lane,stage+1):side+'_nexus';
-   // An open lane's Nexus order still requires physical travel and siege HP;
-   // the three-hop short-range rule applies only to tower conversion.
-   return roster.some(p=>roleLane(p.role)===lane&&p.alive&&
-    (stage===3||navAPI().hops(p.node,goal)<=3));
-  });
-  if(!lane)return null;
-  const allowed=roster.filter(p=>roleLane(p.role)===lane).map(p=>p.id);
+   if(wave<.85)continue;
+   const targetSide=opponent===nav.a?'blue':'red';
+   const goal=stage<3?navAPI().towerNode(targetSide,lane,stage+1):targetSide+'_nexus';
+   const nearby=roster.map(p=>({p,distance:navAPI().hops(p.node,goal)}))
+    .filter(x=>x.distance<=5);
+   if(nearby.length<2||!nearby.some(x=>x.distance<=3))continue;
+   const allowed=nearby.map(x=>x.p.id);
+   const minimumDistance=Math.min(...nearby.map(x=>x.distance));
+   proposals.push({lane,allowed,stage,
+    rank:nearby.length*5+wave*4-minimumDistance});
+  }
+  if(!proposals.length)return null;
+  proposals.sort((a,b)=>b.rank-a.rank||
+   ['BOT','MID','TOP'].indexOf(a.lane)-['BOT','MID','TOP'].indexOf(b.lane));
+  const chosen=proposals[0],lane=chosen.lane;
   nav.counterPressure??={};
-  const openNexus=(worldState.lanes?.[opponent]?.[lane]??0)>=3;
   const window={teamId:facts.teamId,lane,created:minute,
-   until:minute+(minute>=36&&openNexus?5:3),sourceId:facts.actorId,
-   sourceVictims:[...facts.victimIds],allowed};
+   until:minute+(late?5:3),sourceId:facts.actorId,
+   sourceVictims:[...facts.victimIds],allowed:chosen.allowed};
   nav.counterPressure[facts.teamId]=window;
   return window;
  }
