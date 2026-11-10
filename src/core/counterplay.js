@@ -157,13 +157,16 @@
   const side=foe===nav.a?'blue':'red';
   const goal=stage<=3?navAPI().towerNode(side,w.lane,stage):side+'_nexus';
   if(w.created>=36&&stage<=3){
-   if(navAPI().hops(agent.node,goal)>3)return null;
+   // A won river fight may need several legal graph steps to reach a tower.
+   // Keep its window only if escorting players can actually reach the target.
+   if(navAPI().hops(agent.node,goal)>5)return null;
    const defenders=Object.values(nav.agents).filter(p=>p.alive&&
     p.teamId===foe&&navAPI().hops(p.node,goal)<=1);
    const escorts=Object.values(nav.agents).filter(p=>p.alive&&
-    p.teamId===agent.teamId&&navAPI().hops(p.node,goal)<=3&&
+    p.teamId===agent.teamId&&w.allowed.includes(p.id)&&
+    navAPI().hops(p.node,goal)<=5&&
     (context?.health?.[p.id]??100)>=55);
-   if(defenders.length>=escorts.length)return null;
+   if(escorts.length<2||defenders.length>=escorts.length)return null;
   }
   return {goal,intent:'counterpush',lane:w.lane,reason:'earned_fight_pressure',
    decisionVersion:6};
