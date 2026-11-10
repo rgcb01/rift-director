@@ -173,9 +173,9 @@ test('counter-wave does not override siege without wave or physical escorts',()=
   state.gold[a.id]=11000;state.gold[b.id]=18000;
   state.waves.BOT.front=caseName==='wave'?0:1.2;
   nav.siegeTeam=b.id;nav.siegeLane='MID';nav.siegeUntil=50;
-  if(caseName==='wave'){
+  if(caseName==='escorts'){
    for(const id of [a.lineup.ADC,a.lineup.SUP])
-    nav.agents[id].node='blue_bot_front';
+    nav.agents[id].node='blue_fountain';
   }
   core.Navigation.determineSiege(nav,state,41);
   assert.equal(nav.siegeTeam,b.id,caseName);
