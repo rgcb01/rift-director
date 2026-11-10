@@ -189,22 +189,43 @@ function audit(match){
    if(!moment?.abilityState||JSON.stringify(snapshot(model))!==
       JSON.stringify(moment.abilityState))
     throw Error('Replay cast ledger diverged');
-   const hits=f.impacts||f.action==='skirmish'?[...f.impacts||[]]:
-    [];
+   const hits=Array.isArray(f.impacts)?f.impacts:
+    f.action==='skirmish'?[{hpBefore:f.hpBefore,hpAfter:f.hpAfter,
+     damage:f.damage,microSteps:f.microSteps,shieldAbsorbed:f.shieldAbsorbed,
+     healed:f.healed,passiveDamage:f.passiveDamage,
+     controlSeconds:f.controlSeconds,ttkSeconds:f.ttkSeconds}]:[];
+   const offensive=casts.find(c=>c.kind==='damage'||c.kind==='control');
    for(const hit of hits){
     if(!hit.microSteps)continue;
     if(hit.microSteps.length!==5||hit.microSteps.at(-1).hpAfter!==hit.hpAfter)
      throw Error('Micro step HP diverged');
     let hp=hit.hpBefore,shield=hit.shieldAbsorbed||0;
+    let gross=0,blockedTotal=0,healedTotal=0,spellTotal=0,passiveTotal=0;
     for(const [second,step] of hit.microSteps.entries()){
-     if(step.second!==second||step.basic<0||step.spell<0||
-        step.passive<0||step.blocked<0||step.blocked>shield)
+     if(step.second!==second||!Number.isSafeInteger(step.basic)||
+        !Number.isSafeInteger(step.spell)||!Number.isSafeInteger(step.passive)||
+        !Number.isSafeInteger(step.blocked)||!Number.isSafeInteger(step.healed)||
+        step.basic<0||step.spell<0||step.passive<0||
+        step.blocked<0||step.blocked>shield||step.healed<0||
+        (second>0&&step.healed!==0))
       throw Error('Invalid local combat step');
      if(second===0)hp=Math.min(100,hp+step.healed);
      hp=Math.max(0,hp-step.basic-step.spell-step.passive+step.blocked);
      if(hp!==step.hpAfter)throw Error('Forged microstep damage');
      shield-=step.blocked;
+     gross+=step.basic+step.spell+step.passive;
+     spellTotal+=step.spell;passiveTotal+=step.passive;
+     blockedTotal+=step.blocked;healedTotal+=step.healed;
     }
+    const fatal=hit.microSteps.find(step=>step.hpAfter===0)?.second;
+    if(gross-blockedTotal-healedTotal!==hit.damage||
+       blockedTotal!==(hit.shieldAbsorbed||0)||
+       healedTotal!==(hit.healed||0)||
+       passiveTotal!==(hit.passiveDamage||0)||
+       spellTotal!==(offensive?.amount||0)||
+       (hit.controlSeconds||0)!==(offensive?.controlSeconds||0)||
+       (fatal===undefined?null:fatal+1)!==(hit.ttkSeconds??null))
+     throw Error('Cast effect or local TTK diverged from HP ledger');
    }
   }catch(e){errors.push('Champion kit event '+i+': '+e.message)}
  }
