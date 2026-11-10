@@ -182,6 +182,19 @@ test('counter-wave does not override siege without wave or physical escorts',()=
  }
 });
 
+test('an open Nexus route keeps the committed finish ahead of a counter-wave',()=>{
+ const {core,nav,state,a,b}=setup();
+ state.gold[a.id]=11000;state.gold[b.id]=18000;
+ state.waves.BOT.front=1.2;
+ state.lanes[a.id].MID=3; // Leader has already opened a path to the Nexus.
+ nav.siegeTeam=b.id;nav.siegeLane='MID';nav.siegeUntil=50;
+ for(const id of [a.lineup.ADC,a.lineup.SUP])
+  nav.agents[id].node='blue_bot_front';
+ core.Navigation.determineSiege(nav,state,41);
+ assert.equal(nav.siegeTeam,b.id,'No abandonar un cierre físico inminente');
+ assert.equal(nav.siegeLane,'MID');
+});
+
 test('regresión: la ventaja puede cambiar de lado tras un asedio comprometido',()=>{
  const {core,nav,state,a,b}=setup();
  nav.siegeTeam=a.id;nav.siegeLane='MID';nav.sideLane='TOP';
