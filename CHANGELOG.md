@@ -4,6 +4,16 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+## [0.7.18-alpha] — candidato experimental (no publicar sin benchmark)
+
+### Diez kits activos con daño y defensas por segundo de encuentro
+- Los diez campeones originales tienen pasivas con efectos de daño/guardia y Q/W/E/R declarativas con nombre propio, tipo, coste, rango, rangos de habilidad y cooldown. No se ejecutan scripts arbitrarios ni se crean bajas fuera de encuentros autorizados.
+- Un combate válido abre una ventana local determinista de cinco segundos. Q/R infligen daño, W/E ofrecen escudos/curaciones/control según el campeón; el control impide defensas reactivas de esa ventana. El daño resultante se aplica a HP real normalizada, con rastro de los cinco subpasos, daño bloqueado, curación y TTK **local** en segundos. No afirma resolver duelos continuos entre eventos o navegación en tiempo real.
+- La selección ofensiva y defensiva respeta presencia, alcance, nivel, recurso y cooldown. Las habilidades consumen recursos y tienen estado por jugador persistido en frames, momentos y replay. Se audita ledger de activaciones, rutas legales y microdaño, manteniendo el motor de economía y el RNG global intactos.
+- TAB muestra recurso y cooldowns sin inventar valores en replays antiguos. El benchmark agrega Q/W/E/R activadas, control, curación, escudos, recursos y TTK local, más SVG.
+- **Aceptación pendiente:** CI, 1,000 mapas auditados + 500 pares espejados (2,000 partidos) frente a 0.7.17, estabilidad de remontadas y duración. Mantener el PR en borrador si no pasa.
+
+
 ## [0.7.17-alpha] — 2026-11-09 (release validada)
 
 ### Primer vertical slice: escalado real de los diez campeones
