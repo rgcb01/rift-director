@@ -74,6 +74,21 @@
 .rift-tab-items .tab-item.vacant{background:#0b1a29;opacity:.65}
 .rift-tab-items .tab-item svg{width:100%;height:100%}
 .tab-item{position:relative}
+.brand-mark{display:inline-block;vertical-align:middle;flex-shrink:0;max-width:100%;overflow:visible}
+.brand-institutional{flex-direction:column;align-items:flex-start;gap:4px}
+.brand-institutional small{font-size:9px;letter-spacing:1.2px;color:#D7AC65}
+.rift-tab-team h3{display:flex;align-items:center;gap:7px}
+.panel h2>.brand-mark,.chip>.brand-mark,.helper>.brand-mark{margin-right:4px}
+.player-card .helper>.brand-mark{margin:3px 4px 3px 0}
+.identity-options{margin:14px 0;padding:12px;border:1px solid #456078;border-radius:10px}
+.identity-options summary{cursor:pointer;color:#D7AC65;font-weight:650}
+.identity-form{display:grid;grid-template-columns:80px 1fr 1fr;gap:12px;align-items:center}
+.identity-form select{width:100%;min-width:0}
+.identity-form input[type=color]{width:100%;height:30px;padding:2px}
+.championship-panel .activity{display:flex;align-items:center;justify-content:flex-start;flex-wrap:wrap}
+.competition-fixture{gap:8px}
+.competition-fixture small{margin-left:auto}
+@media(max-width:420px){.identity-form{grid-template-columns:1fr 1fr}.identity-form #brand-preview{grid-column:1/-1;text-align:center}.championship-panel .activity{gap:5px}}
 .tab-item>.rift-item-image{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:3px}
 .match-item-inline{display:inline-flex;align-items:center;gap:4px;vertical-align:middle}
 .match-item-inline .tab-item{display:inline-flex;width:24px;height:24px;flex:none;background:#12283a;border:1px solid #36526a;border-radius:4px}

@@ -1,0 +1,531 @@
+{
+  "schema": 1,
+  "version": "art-pack-03",
+  "createdAt": "2026-11-10T01:32:29.062Z",
+  "benchmarkRevision": "fixed-seed-1000-v1",
+  "durationMs": 116752,
+  "standard": {
+    "base": "Fixed 1000-match benchmark across 10 deterministic worlds",
+    "requested": 1000,
+    "completed": 1000,
+    "worlds": [
+      {
+        "world": 0,
+        "n": 100,
+        "blueWins": 43,
+        "durationAvg": 49.05,
+        "killsAvg": 6.35
+      },
+      {
+        "world": 1,
+        "n": 100,
+        "blueWins": 44,
+        "durationAvg": 49.73,
+        "killsAvg": 6.14
+      },
+      {
+        "world": 2,
+        "n": 100,
+        "blueWins": 58,
+        "durationAvg": 48.81,
+        "killsAvg": 6.5
+      },
+      {
+        "world": 3,
+        "n": 100,
+        "blueWins": 50,
+        "durationAvg": 49.68,
+        "killsAvg": 6.16
+      },
+      {
+        "world": 4,
+        "n": 100,
+        "blueWins": 53,
+        "durationAvg": 48.72,
+        "killsAvg": 6.42
+      },
+      {
+        "world": 5,
+        "n": 100,
+        "blueWins": 50,
+        "durationAvg": 48.87,
+        "killsAvg": 6.52
+      },
+      {
+        "world": 6,
+        "n": 100,
+        "blueWins": 48,
+        "durationAvg": 50.33,
+        "killsAvg": 6.58
+      },
+      {
+        "world": 7,
+        "n": 100,
+        "blueWins": 50,
+        "durationAvg": 48.23,
+        "killsAvg": 6.42
+      },
+      {
+        "world": 8,
+        "n": 100,
+        "blueWins": 49,
+        "durationAvg": 49.39,
+        "killsAvg": 6.28
+      },
+      {
+        "world": 9,
+        "n": 100,
+        "blueWins": 47,
+        "durationAvg": 50.04,
+        "killsAvg": 6.5
+      }
+    ],
+    "fixtures": "rotating actual Aurora league fixtures",
+    "seedScheme": "distinct per match; 100 per independently generated world",
+    "audited": 1000,
+    "auditFailures": 0,
+    "issueCount": 0,
+    "issueSamples": [],
+    "wins": {
+      "blue": 492,
+      "red": 508,
+      "invalid": 0
+    },
+    "duration": {
+      "mean": 49.28,
+      "median": 48,
+      "p10": 40,
+      "p90": 59,
+      "p95": 62,
+      "min": 34,
+      "max": 70,
+      "hist": [
+        {
+          "label": "0–24",
+          "count": 0
+        },
+        {
+          "label": "25–34",
+          "count": 2
+        },
+        {
+          "label": "35–44",
+          "count": 212
+        },
+        {
+          "label": "45–54",
+          "count": 560
+        },
+        {
+          "label": "55–64",
+          "count": 210
+        },
+        {
+          "label": "65–75",
+          "count": 16
+        },
+        {
+          "label": "76+",
+          "count": 0
+        }
+      ]
+    },
+    "kills": {
+      "mean": 6.39,
+      "median": 6,
+      "p10": 4,
+      "p90": 9,
+      "min": 1,
+      "max": 14,
+      "hist": [
+        {
+          "label": "0–4",
+          "count": 207
+        },
+        {
+          "label": "5–9",
+          "count": 697
+        },
+        {
+          "label": "10–14",
+          "count": 96
+        },
+        {
+          "label": "15–19",
+          "count": 0
+        },
+        {
+          "label": "20–29",
+          "count": 0
+        },
+        {
+          "label": "30+",
+          "count": 0
+        }
+      ]
+    },
+    "objectives": {
+      "dragonsAvg": 3.06,
+      "baronsAvg": 2.17,
+      "towersAvg": 4.48,
+      "baronSteals": 36,
+      "gamesWithoutDragon": 17,
+      "gamesWithoutBaron": 5
+    },
+    "gameplay": {
+      "meanEvents": 91.52,
+      "zeroKills": 0,
+      "earlyTowerMatches": 578,
+      "firstTowerMean": 35.73,
+      "platesPerMatch": 17.11,
+      "contestedDragonsPerMatch": 0.7,
+      "macroFarmTurnsPerMatch": 0.83,
+      "macroDefendTurnsPerMatch": 14.02,
+      "macroPressureTurnsPerMatch": 9.84,
+      "macroObjectiveTurnsPerMatch": 2.42,
+      "macroExposedPushTurnsPerMatch": 0,
+      "macroEscortedObjectiveTurnsPerMatch": 2.42,
+      "shutdownsPerMatch": 0.11,
+      "counterplayFightsPerMatch": 6.88,
+      "counterplayKillsPerMatch": 3.49,
+      "underdogFightsPerMatch": 3.72,
+      "shutdownHuntsPer100Maps": 17.9,
+      "earnedFightPlatesPerMatch": 0.71,
+      "earnedFightTowerGames": 102,
+      "counterplayWinRate": 0.477,
+      "shutdownGoldPerMatch": 22.35,
+      "shutdownGames": 109,
+      "underdogShutdownGoldPerMatch": 17.49,
+      "dragonStealsPer100Maps": 2.1,
+      "firstDragonMean": 15.18,
+      "objectiveCommitmentMinutesPerMatch": 28.52,
+      "crossmapTradePlatesPerMatch": 0.94,
+      "crossmapTradeTowerGames": 140,
+      "contestedDragonGames": 550,
+      "purchasesPerMatch": 15.54,
+      "recallPurchasesPerMatch": 2.78,
+      "fountainPurchasesPerMatch": 0,
+      "earlyPurchasesPerMatch": 5.45,
+      "recallTravelMinutesPerMatch": 9.21,
+      "equipmentGoldPerMatch": 55843.65,
+      "avgFinalLevel": 13.59,
+      "maxLevelObserved": 18,
+      "noItemGames": 0,
+      "bothTeamsItemGames": 972,
+      "firstPurchaseMean": 12.34,
+      "levelLeader20WinGames": 617,
+      "gamesMultipleTowerLanes": 796,
+      "gamesBothTeamsTowers": 257,
+      "soloSplitTowers": 1242,
+      "soloSplitTowerGames": 649,
+      "comebackWins20": 42,
+      "hugeKillMargin15": 0,
+      "durationAtCap75": 0,
+      "actionTotals": {
+        "lane_trade": 13870,
+        "gank": 252,
+        "gank_avoided": 1076,
+        "teamfight": 3284,
+        "clash": 3601,
+        "skirmish": 9061,
+        "dragon": 3060,
+        "baron": 2172,
+        "tower": 4479,
+        "plate": 17108,
+        "nexus": 1000
+      },
+      "actionMatches": {
+        "lane_trade": 1000,
+        "gank": 234,
+        "gank_avoided": 730,
+        "teamfight": 976,
+        "clash": 986,
+        "skirmish": 1000,
+        "dragon": 983,
+        "baron": 995,
+        "tower": 1000,
+        "plate": 1000,
+        "nexus": 1000
+      },
+      "tacticReasons": {
+        "hold_role_plan": 152980,
+        "scheduled_jungle": 38772,
+        "avoid_bad_gank": 5615,
+        "damage_retreat": 23174,
+        "protect_injured_adc": 2296,
+        "opportunity_gank": 1050,
+        "low_health": 11097,
+        "dragon_take": 15827,
+        "dragon_crossmap_trade": 3245,
+        "siege_commitment": 47296,
+        "macro_defend": 14016,
+        "macro_objective": 2422,
+        "baron_take": 8444,
+        "unsafe_objective": 835,
+        "dragon_contest": 2443,
+        "macro_pressure": 9838,
+        "outnumbered_visible": 425,
+        "macro_farm": 832,
+        "baron_contest": 2648,
+        "local_advantage": 239
+      }
+    },
+    "extremes": {
+      "fastest": [
+        {
+          "i": 285,
+          "world": 2,
+          "seed": 1958029731,
+          "duration": 34,
+          "totalKills": 8,
+          "side": "red"
+        },
+        {
+          "i": 875,
+          "world": 8,
+          "seed": 2050156539,
+          "duration": 34,
+          "totalKills": 5,
+          "side": "red"
+        },
+        {
+          "i": 213,
+          "world": 2,
+          "seed": 4145243115,
+          "duration": 35,
+          "totalKills": 5,
+          "side": "red"
+        },
+        {
+          "i": 779,
+          "world": 7,
+          "seed": 4067515828,
+          "duration": 35,
+          "totalKills": 4,
+          "side": "blue"
+        },
+        {
+          "i": 860,
+          "world": 8,
+          "seed": 1064486426,
+          "duration": 35,
+          "totalKills": 6,
+          "side": "blue"
+        }
+      ],
+      "slowest": [
+        {
+          "i": 606,
+          "world": 6,
+          "seed": 2189503798,
+          "duration": 70,
+          "totalKills": 11,
+          "side": "blue"
+        },
+        {
+          "i": 348,
+          "world": 3,
+          "seed": 1075522353,
+          "duration": 68,
+          "totalKills": 8,
+          "side": "blue"
+        },
+        {
+          "i": 659,
+          "world": 6,
+          "seed": 1074600909,
+          "duration": 68,
+          "totalKills": 8,
+          "side": "blue"
+        },
+        {
+          "i": 205,
+          "world": 2,
+          "seed": 3857659507,
+          "duration": 67,
+          "totalKills": 8,
+          "side": "blue"
+        },
+        {
+          "i": 739,
+          "world": 7,
+          "seed": 3140245852,
+          "duration": 67,
+          "totalKills": 4,
+          "side": "blue"
+        }
+      ],
+      "bloodiest": [
+        {
+          "i": 751,
+          "world": 7,
+          "seed": 562228488,
+          "duration": 56,
+          "totalKills": 14,
+          "side": "blue"
+        },
+        {
+          "i": 508,
+          "world": 5,
+          "seed": 4275388631,
+          "duration": 56,
+          "totalKills": 13,
+          "side": "red"
+        },
+        {
+          "i": 519,
+          "world": 5,
+          "seed": 171350962,
+          "duration": 56,
+          "totalKills": 13,
+          "side": "blue"
+        },
+        {
+          "i": 555,
+          "world": 5,
+          "seed": 3404068950,
+          "duration": 57,
+          "totalKills": 13,
+          "side": "blue"
+        },
+        {
+          "i": 794,
+          "world": 7,
+          "seed": 3039916627,
+          "duration": 52,
+          "totalKills": 13,
+          "side": "red"
+        }
+      ]
+    }
+  },
+  "mirror": {
+    "base": "500 paired fixtures with fixed seeds and reversed sides",
+    "matches": 1000,
+    "pairs": 500,
+    "failures": [],
+    "wins": {
+      "blue": 495,
+      "red": 505
+    },
+    "outcomes": {
+      "bothBlue": 80,
+      "bothRed": 85,
+      "sameTeamWinsBoth": 335,
+      "oppositeWinners": 165
+    },
+    "towers": {
+      "mean": 4.497,
+      "hist": {
+        "3": 186,
+        "4": 418,
+        "5": 171,
+        "6": 171,
+        "7": 46,
+        "8": 8
+      },
+      "exact3": 186,
+      "meanFirstTowerMinute": 35.6,
+      "noEarlyTowerBefore36": 442
+    },
+    "objectives": {
+      "dragonsMean": 3.039,
+      "baronsMean": 2.141,
+      "dragonHist": {
+        "0": 9,
+        "1": 130,
+        "2": 247,
+        "3": 261,
+        "4": 195,
+        "5": 109,
+        "6": 38,
+        "7": 9,
+        "8": 2
+      },
+      "baronHist": {
+        "0": 9,
+        "1": 314,
+        "2": 332,
+        "3": 231,
+        "4": 101,
+        "5": 12,
+        "6": 1
+      }
+    },
+    "duration": {
+      "mean": 49.3,
+      "min": 34,
+      "max": 69
+    },
+    "samples": [
+      {
+        "batch": 0,
+        "pair": 1,
+        "seed": 61,
+        "a": "c33",
+        "b": "c21",
+        "flipped": false,
+        "blueWon": true,
+        "winner": "c33",
+        "minute": 50,
+        "kills": 7,
+        "towers": 6,
+        "dragons": 3,
+        "barons": 2,
+        "firstTowerMinute": 37,
+        "towerActions": 6
+      },
+      {
+        "batch": 0,
+        "pair": 2,
+        "seed": 3871907404,
+        "a": "c39",
+        "b": "c21",
+        "flipped": false,
+        "blueWon": true,
+        "winner": "c39",
+        "minute": 58,
+        "kills": 8,
+        "towers": 5,
+        "dragons": 4,
+        "barons": 2,
+        "firstTowerMinute": 39,
+        "towerActions": 5
+      },
+      {
+        "batch": 0,
+        "pair": 2,
+        "seed": 3871907404,
+        "a": "c21",
+        "b": "c39",
+        "flipped": true,
+        "blueWon": false,
+        "winner": "c39",
+        "minute": 48,
+        "kills": 8,
+        "towers": 5,
+        "dragons": 4,
+        "barons": 1,
+        "firstTowerMinute": 38,
+        "towerActions": 5
+      },
+      {
+        "batch": 0,
+        "pair": 3,
+        "seed": 1152587163,
+        "a": "c9",
+        "b": "c15",
+        "flipped": false,
+        "blueWon": false,
+        "winner": "c15",
+        "minute": 49,
+        "kills": 6,
+        "towers": 6,
+        "dragons": 2,
+        "barons": 1,
+        "firstTowerMinute": 32,
+        "towerActions": 6
+      }
+    ]
+  }
+}

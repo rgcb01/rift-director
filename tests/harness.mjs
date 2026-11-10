@@ -34,6 +34,7 @@ export function boot(options = {}) {
   vm.runInNewContext(read('src/core/broadcast.js'), env, { timeout:10000, filename:'src/core/broadcast.js' });
   vm.runInNewContext(read('src/core/replay.js'), env, { timeout:10000, filename:'src/core/replay.js' });
   vm.runInNewContext(read('src/ui/item-art.js'), env, { timeout:10000, filename:'src/ui/item-art.js' });
+  vm.runInNewContext(read('src/ui/branding.js'), env, { timeout:10000, filename:'src/ui/branding.js' });
   vm.runInNewContext(read('src/ui/match-tab.js'), env, { timeout: 10000, filename: 'src/ui/match-tab.js' });
   // Test-only API injection; game.js remains unmodified in production.
   const source = read('game.js');
@@ -46,7 +47,7 @@ export function boot(options = {}) {
     '  startDemoMatch, replayDemoMatch, exitDemoMatch, liveControl, tick,',
     '  nextReplay, seekReplay, updateReplayCursor,',
     '  handleClick,',
-    '  renderMatch, render,',
+    '  renderMatch, render, crest, legacyCrest, championshipPanel,',
     '  getDemoActive: () => Boolean(demoBackup), getView: () => view,',
     '  getState: () => s };',
     '})();'
@@ -54,5 +55,5 @@ export function boot(options = {}) {
   const injected = source.replace(/\}\)\(\);\s*$/, injection);
   if (injected === source) throw new Error('Test harness: no se encontró el cierre de game.js');
   vm.runInNewContext(injected, env, { timeout: 10000, filename: 'game.js' });
-  return { sim: env.__test, core: env.RiftCore, minimapUI: env.RiftMinimap, store, app };
+  return { sim: env.__test, core: env.RiftCore, minimapUI: env.RiftMinimap, branding: env.RiftBranding, store, app };
 }

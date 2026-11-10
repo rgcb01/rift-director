@@ -116,9 +116,9 @@ function portraitFor(match,professional){
  const c=championFor(match,professional);
  return c?portrait(c):'';
 }
-function render({match,frame,teams}){
+function render({match,frame,teams,renderCrest=(team,size)=>root.RiftBranding?.club(team,size)||''}){
  if(!frame || !Array.isArray(teams))return '';
- const rows=teams.map((team,i)=>`<section class="rift-tab-team ${i===0?'blue':'red'}" aria-label="${escape(team.name)}"><h3>${escape(team.name)}</h3><div role="table" aria-label="Estadísticas de ${escape(team.name)}">${team.players.map(p=>{
+ const rows=teams.map((team,i)=>`<section class="rift-tab-team ${i===0?'blue':'red'}" aria-label="${escape(team.name)}"><h3>${renderCrest(team,24)}${escape(team.name)}</h3><div role="table" aria-label="Estadísticas de ${escape(team.name)}">${team.players.map(p=>{
   const selected=championFor(match,p);if(!selected)return '';
   return row(p,selected.id,frame);
  }).join('')}</div></section>`).join('');

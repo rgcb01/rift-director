@@ -1,0 +1,13 @@
+✔ all real organization names have unique masters, with no index-based lookup (23.26466ms)
+✔ 36 SVG/PNG assets, 16 symbols and 8 shields match the runtime source (8.897098ms)
+✔ modular identity preserves selections and name without advancing RNG (11.812796ms)
+✔ v2 save/load retains visual identities without migration; legacy fallback is exact (13.1309ms)
+✔ competition presentation follows existing phases and never invents a champion (8.237936ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 71.53788
