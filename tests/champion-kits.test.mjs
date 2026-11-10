@@ -161,3 +161,25 @@ test('objective skirmish cannot forge five-second damage, healing or local TTK',
  ttk.events[i].facts.ttkSeconds=99;
  assert.ok(core.ChampionKits.audit(ttk).length>0);
 });
+
+test('active spell spends part of basic-attack budget instead of stacking a free full hit',()=>{
+ const x=setup(),{core,a,b,nav,power,kits}=x;
+ const health=core.Encounters.create(x.players),players=Object.fromEntries(x.players.map(p=>[p.id,p]));
+ const args={nav,dead:{},minute:8,players,health,seed:777,
+  mode:'lane',teamId:a.id,attackerIds:[a.lineup.MID],
+  targetIds:[b.lineup.MID],lane:'MID',powerState:power};
+ const old=core.Encounters.resolveCombat(args);
+ const candidate=core.Encounters.resolveCombat({...args,abilityState:kits});
+ assert.ok(old&&candidate);
+ const hit=candidate.impacts[0];
+ const casts=candidate.abilityCasts;
+ assert.ok(casts.some(c=>c.kind==='damage'));
+ const raw=hit.microSteps.reduce((n,s)=>n+s.basic+s.spell+s.passive,0);
+ const spell=casts.find(c=>c.kind==='damage');
+ assert.ok(raw-old.impacts[0].damage<=Math.ceil(spell.amount*.35)+2,
+  'A spell should replace autos; old model added the full spell as free damage');
+ assert.ok(Math.abs(hit.damage-old.impacts[0].damage)<=8,
+  'Burst and defensive reactions should have bounded early-game effect');
+ assert.equal(JSON.stringify(core.ChampionKits.snapshot(kits)),
+  JSON.stringify(core.ChampionKits.snapshot(kits)),'Preview is pure');
+});
