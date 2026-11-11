@@ -99,7 +99,7 @@ function canPressureTower(model,id,lane,stage,minute){
  // Plates still demand crossing one-third of real HP with agents present.
  // A structurally valid wave is required at every stage of the match.
  // No time-based licence to hit a tower with a losing wave.
- return momentum>=.25;
+ return momentum>=.35;
 }
 // Match-local deterministic HP loss; the caller proves physical presence.
 function damageValue({stage,attackers,defenders,wave,baron}){
