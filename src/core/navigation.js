@@ -250,7 +250,7 @@ function determineSiege(nav,worldState,t,context=null){
   old.wave>=.30&&old.score>=old.required-1.0;
  const urgent=top&&top.team===old?.team&&top.stage===3&&
   top.lane!==old.lane;
- const lostInitiative=top&&top.team!==old?.team&&
+ const lostInitiative=old&&top&&top.team!==old.team&&
   top.score>=old.score+6.0&&top.deadEnemies>0;
  const chosen=continuing&&!urgent&&!lostInitiative?old:
    old&&nav.siegeUntil>t&&
