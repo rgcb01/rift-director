@@ -21,7 +21,7 @@ concurrency:
 jobs:
   browser:
     name: Navegador real · 360 / 768 / 1440 px
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - name: Obtener repositorio
