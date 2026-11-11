@@ -57,9 +57,12 @@
   return output.sort((a,b)=>b.damage-a.damage||
    a.teamId.localeCompare(b.teamId));
  }
- function advance(model,nav,world,minute,health,dead){
+ function advance(model,nav,world,minute,health,dead,blockedTeams=[]){
   const hits=[];
   for(const attack of candidates(nav,world,minute,health,dead)){
+   // The match resolver first settles actual defenders in local combat.
+   // A still-contested base cannot lose HP merely because attackers arrived.
+   if(blockedTeams.includes(attack.teamId))continue;
    if(model.hp[attack.targetTeamId]===0)continue;
    const before=model.hp[attack.targetTeamId];
    const applied=Math.min(before,attack.damage);
