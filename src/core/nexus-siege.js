@@ -42,7 +42,10 @@
      (health?.[p.id]??100)>0&&p.intent!=='retreat'&&p.intent!=='dead';
    const participants=core.Navigation.participants(nav,attacker,target,1).filter(active);
    if(participants.length<2)continue;
-   const defenders=core.Navigation.participants(nav,defender,target,1).filter(active);
+   // Fountain residents have not moved out to defend the contested Nexus.
+   // Physical adjacency alone never recruits safe spawn occupants.
+   const defenders=core.Navigation.participants(nav,defender,target,1)
+    .filter(p=>p.node!==side(nav,defender)+'_fountain'&&active(p));
    const baron=(world.baronBuff?.[attacker]??0)>0;
    const damage=damageFor(participants.length,defenders.length,wave.wave,baron);
    if(damage<=0)continue;
