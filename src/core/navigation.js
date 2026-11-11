@@ -181,9 +181,7 @@ function siegeOpportunities(nav,world,t,context=null){
    // An advanced lane needs less push momentum than an untouched outer
    // tower, but a losing wave never creates a free tower/nexus attempt.
    const committed=nav.siegeTeam===team&&nav.siegeLane===lane&&nav.siegeUntil>t;
-   // An opened route permits travelling to escort the next wave, but
-   // never free Nexus damage: NexusSiege still checks its own wave gate.
-   const minimumWave=stage===3?-2.0:committed?-.20:stage>0?.35:.48;
+   const minimumWave=committed?-.20:stage===3?-.20:stage>0?.35:.48;
    if(wave<minimumWave)continue;
    // Neither a stopwatch nor a tiny early wave authorizes abandoning lanes.
    // An untouched outer tower requires an earned kill, a substantial lead
@@ -195,15 +193,11 @@ function siegeOpportunities(nav,world,t,context=null){
    // competent pair can rotate before a rich but distant team.
    const escorts=ours.map(p=>({id:p.id,hops:hops(p.node,goal),
     lanePresent:isLaneNode(p.node,lane)}))
-    .filter(p=>p.hops<=(stage===3?12:7)&&
-     (stage===3||p.role!=='JUN')).sort((a,b)=>a.hops-b.hops||
+    .filter(p=>p.hops<=7&&(stage===3||p.role!=='JUN')).sort((a,b)=>a.hops-b.hops||
      a.id.localeCompare(b.id));
-   if(escorts.length<2||escorts[0].hops>(stage===3?9:5))continue;
-   // A small group can convert a wave without evacuating every solo
-   // lane. A broken Nexus route justifies a full regroup.
-   const squad=stage===3?escorts:escorts.slice(0,stage===0?2:3);
-   const local=squad.filter(p=>p.lanePresent||p.hops<=3).length;
-   const travel=(squad[0].hops+squad[1].hops)/2;
+   if(escorts.length<2||escorts[0].hops>5)continue;
+   const local=escorts.filter(p=>p.lanePresent||p.hops<=3).length;
+   const travel=(escorts[0].hops+escorts[1].hops)/2;
    // Never read invisible opponent positions to choose a push.
    // The team's own vision determines how risky an unknown defense is.
    const vision=world.map?.lanes?.[lane]?.vision?.[team]??50;
@@ -211,9 +205,9 @@ function siegeOpportunities(nav,world,t,context=null){
    const defenders=revealed?theirs.filter(p=>hops(p.node,goal)<=2).length:0;
    const fogCost=revealed?0:1.0;
    const nearbyPower=Math.max(-2,Math.min(2,powerEdge*.075));
-   const localEdge=squad.length-defenders;
+   const localEdge=escorts.length-defenders;
    const structuralProgress=stage*1.5+(stage===3?3:0);
-   const position=local*.85+Math.min(3,squad.length)*.4-
+   const position=local*.85+Math.min(3,escorts.length)*.4-
     travel*.24;
    const score=wave*2.25+position+structuralProgress+
     nearbyPower+Math.min(2,deadEnemies)*1.35-
@@ -222,7 +216,7 @@ function siegeOpportunities(nav,world,t,context=null){
    // a gold lead nor an absolute minute may authorize a push on its own.
    const required=stage===3?1.6:stage>0?2.4:3.2;
    if(score<required||localEdge<1&&!deadEnemies)continue;
-   out.push({team,lane,goal,stage,wave,score,escorts:squad.map(p=>p.id),
+   out.push({team,lane,goal,stage,wave,score,escorts:escorts.map(p=>p.id),
     travel,local,defenders,vision,powerEdge,deadEnemies,
     required,minimumWave});
   }
@@ -246,14 +240,14 @@ function determineSiege(nav,worldState,t,context=null){
  // restarting unrelated outer-tower marches. A major opposing earned
  // opportunity can still interrupt the current plan.
  const endgame=options.find(p=>p.team===nav.siegeTeam&&p.stage===3&&
-  p.escorts.length>=2);
+  p.wave>=-.20&&p.escorts.length>=2);
  const top=endgame||best;
  // Once attackers have a real viable wave and local escorts, sustain
  // their push rather than re-assigning them to TOP/MID/BOT on consecutive
  // minutes. Only an open Nexus route or a substantially stronger opposing
  // opportunity should dislodge an earned commitment.
  const continuing=old&&old.escorts.length>=2&&
-  (old.stage===3||old.wave>=.30)&&old.score>=old.required-1.0;
+  old.wave>=.30&&old.score>=old.required-1.0;
  const urgent=top&&top.team===old?.team&&top.stage===3&&
   top.lane!==old.lane;
  const lostInitiative=old&&top&&top.team!==old.team&&
@@ -276,7 +270,7 @@ function determineSiege(nav,worldState,t,context=null){
    const escorts=teamAgents(nav,team).filter(p=>p.alive&&
     (worldState.dead?.[p.id]||0)<=t&&
     p.intent!=='retreat'&&hops(p.node,goal)<=8);
-   if(wave>=-2&&escorts.length>=2){
+   if(wave>=-.25&&escorts.length>=2){
     nav.siegeDecision={version:1,minute:t,teamId:team,lane,stage:3,
      score:nav.siegeDecision?.score??0,wave,
      travel:Math.min(...escorts.map(p=>hops(p.node,goal))),
