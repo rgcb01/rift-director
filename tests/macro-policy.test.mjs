@@ -272,6 +272,7 @@ test('70 partidas reproducibles conservan las auditorías y registran costes de 
   }
   auditCount++;
  }
+ console.log('MACRO_DIAG='+JSON.stringify({actions,auditCount}));
  assert.ok(actions.farm>20,'No existe una decision de farm visible');
  assert.ok(actions.pressure>10,'No existe presion macro decidida');
  console.log('MACRO_SAMPLE='+JSON.stringify({actions,auditCount}));
