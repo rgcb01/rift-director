@@ -523,7 +523,19 @@ function auditNavigation(match,world){
  if(agentIds.length!==10)errs.push('La partida no tiene diez agentes.');
  let prior=null,eventIndex=0;
  const deadUntil={};
+ // A jungler's early crossing is legal only if a real siege opportunity
+ // was registered recently. The short grace is graph-travel clearance
+ // after the call expires, NOT a match-clock unlock.
+ const siegeTravelProof={[match.fixture.a]:-100,[match.fixture.b]:-100};
  for(const frame of frames){
+  const call=frame.siegeDecision;
+  if(call?.version===1&&call.minute===frame.minute&&
+     [match.fixture.a,match.fixture.b].includes(call.teamId)&&
+     LANES.includes(call.lane)&&Number.isFinite(call.wave)&&
+     Number.isFinite(call.score)&&call.escorts?.length>=2){
+   siegeTravelProof[match.fixture.a]=frame.minute;
+   siegeTravelProof[match.fixture.b]=frame.minute;
+  }
   const nav=frame.navigation;
   if(!nav?.before||!nav?.after){errs.push('Frame sin estado de navegación: '+frame.minute);continue}
   for(const id of agentIds){
@@ -536,8 +548,8 @@ function auditNavigation(match,world){
     errs.push('Respawn con salto ilegal: '+id+' minuto '+frame.minute);
    const shouldLive=(deadUntil[id]||0)<=frame.minute;
    if(before.alive!==shouldLive)errs.push('Estado vivo/muerto incoherente: '+id+' minuto '+frame.minute);
-   if(before.role==='JUN'&&before.alive&&frame.minute<36&&
-      !frame.siegeDecision){
+   if(before.role==='JUN'&&before.alive&&
+      frame.minute-(siegeTravelProof[before.teamId]??-100)>8){
     const side=before.teamId===match.fixture.a?'blue':'red';
     if(!jungleAllowed(side,before.node))
       errs.push('JUN invadió un carril sin ser evento: '+id+' minuto '+frame.minute);
