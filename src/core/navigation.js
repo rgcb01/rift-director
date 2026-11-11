@@ -181,7 +181,9 @@ function siegeOpportunities(nav,world,t,context=null){
    // An advanced lane needs less push momentum than an untouched outer
    // tower, but a losing wave never creates a free tower/nexus attempt.
    const committed=nav.siegeTeam===team&&nav.siegeLane===lane&&nav.siegeUntil>t;
-   const minimumWave=committed?-.20:stage===3?-.20:stage>0?.35:.48;
+   // An open Nexus route may be approached as the escort rebuilds a wave.
+   // NexusSiege itself still refuses to deal damage without a real wave.
+   const minimumWave=stage===3?-1.5:committed?-.20:stage>0?.35:.48;
    if(wave<minimumWave)continue;
    // Neither a stopwatch nor a tiny early wave authorizes abandoning lanes.
    // An untouched outer tower requires an earned kill, a substantial lead
@@ -240,14 +242,14 @@ function determineSiege(nav,worldState,t,context=null){
  // restarting unrelated outer-tower marches. A major opposing earned
  // opportunity can still interrupt the current plan.
  const endgame=options.find(p=>p.team===nav.siegeTeam&&p.stage===3&&
-  p.wave>=-.20&&p.escorts.length>=2);
+  p.escorts.length>=2);
  const top=endgame||best;
  // Once attackers have a real viable wave and local escorts, sustain
  // their push rather than re-assigning them to TOP/MID/BOT on consecutive
  // minutes. Only an open Nexus route or a substantially stronger opposing
  // opportunity should dislodge an earned commitment.
  const continuing=old&&old.escorts.length>=2&&
-  old.wave>=.30&&old.score>=old.required-1.0;
+  (old.stage===3||old.wave>=.30)&&old.score>=old.required-1.0;
  const urgent=top&&top.team===old?.team&&top.stage===3&&
   top.lane!==old.lane;
  const lostInitiative=old&&top&&top.team!==old.team&&
@@ -270,7 +272,7 @@ function determineSiege(nav,worldState,t,context=null){
    const escorts=teamAgents(nav,team).filter(p=>p.alive&&
     (worldState.dead?.[p.id]||0)<=t&&
     p.intent!=='retreat'&&hops(p.node,goal)<=8);
-   if(wave>=-.25&&escorts.length>=2){
+   if(wave>=-1.5&&escorts.length>=2){
     nav.siegeDecision={version:1,minute:t,teamId:team,lane,stage:3,
      score:nav.siegeDecision?.score??0,wave,
      travel:Math.min(...escorts.map(p=>hops(p.node,goal))),
