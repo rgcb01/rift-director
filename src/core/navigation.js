@@ -390,7 +390,8 @@ function chooseGoal(nav,agent,t,worldState,context=null){
  // enemy positions never authorize this call.
  const ownLane=role==='ADC'||role==='SUP'?'BOT':
   role==='TOP'||role==='MID'?role:null;
- if(ownLane&&worldState.lanes?.[team]?.[ownLane]<3){
+ if(ownLane&&worldState.lanes?.[team]?.[ownLane]<3&&
+    worldState.waves?.[ownLane]){
   const stage=worldState.lanes[team][ownLane]+1;
   const goal=towerNode(side,ownLane,stage);
   const foeWave=core.LaneEconomy.pressureFor(
