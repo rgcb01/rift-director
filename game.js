@@ -218,6 +218,8 @@ function simulateMatch(f){
     map:RiftCore.cloneMapState(m.map),playerStats:RiftCore.clonePlayerStats(playerStats),
     health:{...health},laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
     powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
+    siegeDecision:navigation.siegeDecision?{...navigation.siegeDecision,
+     escorts:[...navigation.siegeDecision.escorts]}:null,
     shutdowns:RiftCore.Shutdowns.snapshot(shutdowns),
     siege:RiftCore.NexusSiege.snapshot(nexusSiege),
     vision:RiftCore.Vision.snapshot(navigation.vision,minute),
@@ -330,6 +332,8 @@ function simulateMatch(f){
   nexusIntegrity:{...m.nexusIntegrity},
   laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
   powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
+  siegeDecision:navigation.siegeDecision?{...navigation.siegeDecision,
+   escorts:[...navigation.siegeDecision.escorts]}:null,
   shutdowns:RiftCore.Shutdowns.snapshot(shutdowns),
   siege:RiftCore.NexusSiege.snapshot(nexusSiege),
   vision:RiftCore.Vision.snapshot(navigation.vision,t),
@@ -499,7 +503,8 @@ function simulateMatch(f){
   }
   // Every tower stores real HP. Damage and plates require wave pressure and
   // actual players at the structure; no instant destruction or clock roll.
-  if(t>=8)for(const c of [a,b])for(const lane of ['TOP','MID','BOT'])
+  // Tower pressure is earned by wave + actual attackers at any minute.
+  for(const c of [a,b])for(const lane of ['TOP','MID','BOT'])
    attackTower(c,t,lane);
   // The Dragon is earned at the actual pit, not by a scheduled owner roll.
   // Teams choose objective/contest/trade before moving; either can fail to
