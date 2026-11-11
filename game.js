@@ -12,6 +12,7 @@ const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
 let draftBrand={};
 let s=null,view='home',modal=null,timer=null,toastTimer=null,theme='balanced',draftName='Aurora Esports';
 let demoBackup=null; // Only in-memory: the save in localStorage is never replaced by a demo.
+let labPrefs={baseline:'0.7.16',current:'0.7.17',metric:'duration'}; // Read-only and never saved.
 let replayFilter='all',matchChampionsOpen=false; // Ephemeral UI preferences, never written to saves.
 const rnd=()=>RiftCore.nextRandom(s);
 const ri=(a,b)=>Math.floor(rnd()*(b-a+1))+a;
@@ -920,7 +921,7 @@ function kpis(){const c=currentClub(),last=s.monthlyReports[0],tab=s.standings[c
 function miniNews(max=5){return s.news.slice(0,max).map(n=>`<div class="newsitem"><div class="symbol">${n.teamId&&club(n.teamId)?crest(club(n.teamId),30):n.type==='transfer'?'⇄':n.type==='crisis'?'!':n.type==='rumor'?'?':n.type==='sponsor'?'◆':n.type==='finance'?'$':'✦'}</div><div style="flex:1;min-width:0"><div class="eyebrow">${n.type==='rumor'?'FILTRACIÓN · NO CONFIRMADO':n.type==='transfer'?'MERCADO':n.type==='crisis'?'ALERTA':n.type==='finance'?'ECONOMÍA':'NOTICIAS'} <span class="when"> · ${MONTHS[n.month-1]} ${n.year}</span></div><h3>${esc(n.title)}</h3><p>${esc(n.body)}</p></div></div>`).join('')}
 function standingsHTML(region='Aurora',limit=50){let tab=region==='Aurora'?s.standings:s.otherStandings;let ranks=rankTable(region).slice(0,limit);return `<div class="table-wrap"><table class="table"><thead><tr><th>#</th><th>Organización</th><th class="right">V</th><th class="right">D</th><th class="right">Pts</th></tr></thead><tbody>${ranks.map((c,i)=>`<tr class="${c.id===s.userClub?'you':''}"><td class="rank">${i+1}</td><td><div class="flex">${crest(c,25)}<strong>${esc(c.name)}</strong></div></td><td class="right num">${tab[c.id]?.w||0}</td><td class="right num">${tab[c.id]?.l||0}</td><td class="right num"><b>${tab[c.id]?.points||0}</b></td></tr>`).join('')}</tbody></table></div>`}
 const planDefs=[['scrims','Scrims competitivos','Mejoran coordinación y preparación, pero generan cansancio.'],['development','Desarrollo individual','Mejora lentamente un atributo o hábito del jugador elegido.'],['rest','Descanso','Recupera fatiga, reduce carga competitiva.'],['content','Contenido y publicidad','Aumenta fans, merchandising e ingresos comerciales.'],['community','Eventos y comunidad','Mejora el vínculo con la afición; implica un coste.'],['scout','Scouting e inteligencia','Reportes y descubrimiento de rasgos; supone inversión.']];
-function planPanel(){return `<section class="panel"><div class="panel-head"><h2>Agenda del mes</h2><span class="chip ${sumPlan()>=8?'gold':''}">${sumPlan()} / 8 bloques</span></div>
+function planPanel(){return `<section class="panel" id="club-agenda"><div class="panel-head"><h2>Agenda del mes</h2><span class="chip ${sumPlan()>=8?'gold':''}">${sumPlan()} / 8 bloques</span></div>
  <p class="helper">Distribuye el tiempo del club. No puedes entrenar y producir contenido comercial sin límites. Los bloques se ejecutan al cerrar el mes; la preparación para el partido se aplica inmediatamente.</p>
  <div class="stack">${planDefs.map(([id,title,description])=>`<div class="planrow"><div class="grow"><strong>${title}</strong><div class="helper">${description}</div></div><div class="stepper"><button data-action="plan-minus" data-kind="${id}" aria-label="Reducir ${title}" ${s.plan[id]<=0?'disabled':''}>−</button><span>${s.plan[id]}</span><button data-action="plan-plus" data-kind="${id}" aria-label="Aumentar ${title}" ${sumPlan()>=8?'disabled':''}>+</button></div></div>`).join('')}</div>
  <div class="banner" style="margin-top:11px">Contrato: ${sponsorObligationText()} · Costo adicional estimado: <b>${fmt(monthPlanCost())}</b>.</div></section>`}
@@ -932,12 +933,27 @@ function matchupPanel(){let games=nextFixtures();if(s.live&&!s.live.finished)ret
  <div class="split" style="margin-top:12px;flex-wrap:wrap"><span class="helper">${games.length} encuentro${games.length>1?'s':''} pendiente${games.length>1?'s':''} este mes · Tu plan: ${strategyName(s.style)}</span><button class="btn" data-action="start">${icon('play',14)} Jugar partido</button></div>
  </section>`}
 function strategyName(x){return {balanced:'Equilibrado',aggressive:'Presión temprana',objectives:'Control de objetivos',scaling:'Escalado y teamfight'}[x]||'Equilibrado'}
-function strategyPanel(){let styles=[['balanced','Equilibrado','Adaptación y flexibilidad.'],['aggressive','Presión temprana','Ganks y ventaja de líneas.'],['objectives','Control de objetivos','Visión, dragones y Barón.'],['scaling','Escalado','Proteger carries y dominar late.']];return `<section class="panel"><div class="panel-head"><h2>Plan del entrenador</h2><span class="chip green">Meta actual: ${strategyName(s.meta)}</span></div><p class="helper">Tus cinco profesionales ejecutarán esta filosofía por cuenta propia. No controla sus acciones individuales ni garantiza victorias.</p>
+function strategyPanel(){let styles=[['balanced','Equilibrado','Adaptación y flexibilidad.'],['aggressive','Presión temprana','Ganks y ventaja de líneas.'],['objectives','Control de objetivos','Visión, dragones y Barón.'],['scaling','Escalado','Proteger carries y dominar late.']];return `<section class="panel" id="club-strategy"><div class="panel-head"><h2>Plan del entrenador</h2><span class="chip green">Meta actual: ${strategyName(s.meta)}</span></div><p class="helper">Tus cinco profesionales ejecutarán esta filosofía por cuenta propia. No controla sus acciones individuales ni garantiza victorias.</p>
  <div class="grid2">${styles.map(([id,name,desc])=>`<button data-action="style" data-id="${id}" class="choice-tile ${s.style===id?'sel':''}"><strong>${name}</strong><small>${desc}</small></button>`).join('')}</div></section>`}
 function rosterSmall(){const c=currentClub();return `<section class="panel"><div class="panel-head"><h2>Tus cinco titulares</h2><button class="btn ghost small" data-nav="roster">Gestionar</button></div>${ROLES.map(role=>{let p=player(c.lineup[role]);return `<div class="compact-player"><div class="face-small">${avatar(p,c)}</div><div style="flex:1;min-width:0"><div class="split"><b>${esc(p.name)}</b><span class="eyebrow">${role}</span></div><small>${visibleTraits(p).map(t=>t[0]).join(' · ')||'Traits por descubrir'}</small></div><span class="chip">${playerRating(p)}</span></div>`}).join('')}</section>`}
-function renderHome(){const c=currentClub(),remaining=nextFixtures().length;return `${pageTitle('Dirección general','Gestiona una organización, no solo un equipo. No hay meta final: sobrevive, compite y construye tu historia.',`<button class="btn" data-action="close-month">Cerrar mes ${icon('calendar',15)}</button>`)}${kpis()}
- <div class="hero"><div class="eyebrow">TU CLUB · ${MONTHS[s.month-1]} ${s.year}</div><h1>El siguiente capítulo lo decides tú.</h1><p>Ingresos recurrentes, sueldos, jugadores con personalidad, rivales autónomos y noticias que afectan al negocio. ${remaining?'Tienes '+remaining+' partido(s) pendiente(s).':'Puedes avanzar al siguiente mes cuando estés preparado.'}</p><div class="buttons"><button class="btn" data-nav="match">${icon('match',15)} Centro de partidos</button><button class="btn secondary" data-nav="world">${icon('news',15)} Noticias del mundo</button></div></div>
- <div class="cols"><div>${s.crisis?`<div class="banner danger" style="margin-bottom:14px"><b>Decisión urgente:</b> un socio comercial ha congelado pagos. <button class="btn danger small" data-action="crisis">Resolver crisis</button></div>`:''}
+function renderHome(){
+ const c=currentClub(),live=s.live;
+ const salary=totalWages(c),agendaCost=monthPlanCost();
+ return `${pageTitle('Dirección general','Prepara el equipo, toma decisiones y avanza la temporada solo cuando el calendario lo permita.')}
+ ${RiftClubCommand.render({
+  dateLabel:MONTHS[s.month-1]+' '+s.year,
+  cash:c.cash,cashLabel:fmt(c.cash),
+  payroll:salary,payrollLabel:fmt(salary),
+  planCost:agendaCost,planCostLabel:fmt(agendaCost),
+  sponsorLabel:fmt(c.sponsor?.monthly||0),
+  sponsorRequirement:c.sponsor?.obligation||'none',
+  contentBlocks:s.plan.content||0,communityBlocks:s.plan.community||0,
+  usedBlocks:sumPlan(),strategy:strategyName(s.style),
+  pendingFixtures:nextFixtures().length,
+  matchRunning:Boolean(live&&!live.finished),
+  playoffsPending:s.month===9&&s.playoffs.some(f=>!f.played),
+  crisis:Boolean(s.crisis),over:Boolean(s.over)
+ })}${kpis()} <div class="cols"><div>
  ${matchupPanel()}${strategyPanel()}${planPanel()}</div><div>${rosterSmall()}<section class="panel"><div class="panel-head"><h2>RiftWire · Últimas noticias</h2><button class="btn ghost small" data-nav="world">Todas</button></div><div class="news">${miniNews(4)}</div></section>
  <section class="panel"><div class="panel-head"><h2>Tabla de liga</h2><span class="chip">${brand('liga_aurora')} ${esc(s.leagueName)}</span></div>${standingsHTML('Aurora',8)}</section></div></div>`}
 function playerCard(p){let c=p.teamId?club(p.teamId):null,own=p.teamId===s.userClub,main=own&&currentClub().lineup[p.role]===p.id;let rating=playerRating(p);
@@ -1133,6 +1149,7 @@ function renderModal(){if(!s&&modal?.type!=='welcome')modal={type:'welcome'};if(
  ${brandingForm()}<div class="field"><label>¿Cómo quieres comenzar?</label><div class="choice-grid">${[['balanced','Club equilibrado','Capital $1.6M, sponsor estable y plantilla sólida.'],['academy','Proyecto humilde','Capital $1.05M; menos prestigio, apuesta por la formación.'],['rich','Inversión ambiciosa','Capital $2.6M, más fama y mayores expectativas.']].map(([id,n,desc])=>`<button class="choice-tile ${theme===id?'sel':''}" data-action="choose-start" data-id="${id}"><div class="eyebrow">${id==='balanced'?'RECOMENDADO':id==='academy'?'DIFÍCIL':'MÁS CAPITAL'}</div><strong>${n}</strong><small>${desc}</small></button>`).join('')}</div></div>
  <button class="btn full" data-action="create">Fundar organización ${icon('play',14)}</button>
  <div class="banner" style="margin-top:12px"><b>¿Quieres ver cómo funciona el simulador?</b><p class="helper" style="margin:6px 0 10px">Prueba un mapa completo con cartas, ganks, objetivos y RiftCast sin fundar un club ni guardar nada.</p><button class="btn secondary full" data-action="demo-start">${icon('match',14)} Simular partida de prueba</button></div>
+ <div class="balance-welcome-link"><button class="btn ghost full" data-action="lab-open">Ver laboratorio de balance · Sin crear club</button></div>
  <p class="helper" style="margin:15px 0 0">Sin inicio de sesión · Guardado local · Nombres y retratos generados · No oficial</p></div></div>`;
  if(modal.type==='profile'){
   let p=player(modal.id);if(!p)return'';const c=p.teamId?club(p.teamId):null,own=p.teamId===s.userClub,free=!p.teamId,main=own&&currentClub().lineup[p.role]===p.id;
@@ -1155,21 +1172,28 @@ function renderModal(){if(!s&&modal?.type!=='welcome')modal={type:'welcome'};if(
  return''
 }
 function navButton(id,ic,label){return `<button data-nav="${id}" class="${view===id?'active':''}">${icon(ic)} <span>${label}</span></button>`}
-function render(){if(!s){document.getElementById('app').innerHTML=renderModal();return}
- const c=currentClub();let body=view==='home'?renderHome():view==='roster'?renderRoster():view==='market'?renderMarket():view==='match'?renderMatch():view==='finance'?renderFinance():view==='world'?renderWorld():renderSettings();
+function render(){if(!s){
+  document.getElementById('app').innerHTML=view==='lab'?
+   '<div class="balance-standalone"><header class="balance-standalone-header"><strong>Rift Director · Laboratorio histórico</strong><button class="btn ghost small" data-action="lab-close">Volver al inicio</button></header>'+
+   RiftBalanceLab.render(labPrefs)+'</div>':renderModal();
+  return;
+ }
+ const c=currentClub();let body=view==='home'?renderHome():view==='roster'?renderRoster():view==='market'?renderMarket():view==='match'?renderMatch():view==='finance'?renderFinance():view==='world'?renderWorld():view==='lab'?RiftBalanceLab.render(labPrefs):renderSettings();
  document.getElementById('app').innerHTML=`<div class="layout"><aside class="sidebar"><div class="brand brand-institutional">${brand('rift_director_wordmark',30)||'<strong>Rift Director</strong>'}<small>GESTIÓN · COMPETICIÓN · HISTORIA</small></div>
- <nav class="nav" aria-label="Navegación">${demoBackup?navButton('match','match','Exhibición'):`${navButton('home','home','Inicio')}${navButton('roster','users','Plantilla')}${navButton('market','market','Mercado')}${navButton('match','match','Partidos')}${navButton('finance','money','Finanzas')}${navButton('world','world','Mundo')}${navButton('settings','settings','Partida')}`}</nav>
+ <nav class="nav" aria-label="Navegación">${demoBackup?navButton('match','match','Exhibición'):`${navButton('home','home','Inicio')}${navButton('roster','users','Plantilla')}${navButton('market','market','Mercado')}${navButton('match','match','Partidos')}${navButton('finance','money','Finanzas')}${navButton('world','world','Mundo')}${navButton('lab','spark','Balance')}${navButton('settings','settings','Partida')}`}</nav>
  <div class="sidebar-foot"><div class="eyebrow">TEMPORADA ${s.season}</div><div style="margin-top:5px;font-weight:800">${MONTHS[s.month-1]} ${s.year}</div><div class="chip">${s.clubs.length} clubes · ${s.players.filter(p=>!p.retired).length} profesionales</div></div></aside>
- <main class="main"><header class="topbar"><div class="clubhead">${crest(c,46)}<div><div class="clubtitle">${esc(c.name)}</div><div class="helper">${brand('rift_director_symbol',20)} ${esc(s.leagueName)} · Club ${c.kind==='user'?'bajo tu dirección':'autónomo'}</div></div></div><div class="top-actions">${demoBackup?`<span class="chip">MODO PRUEBA</span><button class="btn small secondary" data-action="demo-exit">Volver</button>`:`<span class="chip">${icon('calendar',14)} ${MONTHS[s.month-1]} ${s.year}</span><span class="chip ${c.cash<250000?'red':'green'}">${icon('money',14)} ${fmt(c.cash)}</span><button class="btn small" data-action="close-month" ${s.over?'disabled':''}>Siguiente mes</button>`}</div></header>${body}
+ <main class="main"><header class="topbar"><div class="clubhead">${crest(c,46)}<div><div class="clubtitle">${esc(c.name)}</div><div class="helper">${brand('rift_director_symbol',20)} ${esc(s.leagueName)} · Club ${c.kind==='user'?'bajo tu dirección':'autónomo'}</div></div></div><div class="top-actions">${demoBackup?`<span class="chip">MODO PRUEBA</span><button class="btn small secondary" data-action="demo-exit">Volver</button>`:`<span class="chip">${icon('calendar',14)} ${MONTHS[s.month-1]} ${s.year}</span><span class="chip ${c.cash<250000?'red':'green'}">${icon('money',14)} ${fmt(c.cash)}</span><button class="btn small" data-action="close-month" ${s.over||s.crisis||(s.live&&!s.live.finished)||nextFixtures().length||(s.month===9&&s.playoffs.some(f=>!f.played))?'disabled':''}>Siguiente mes</button>`}</div></header>${body}
  <div class="footer">Rift Director Alpha 0.7.17 · Universo y retratos ficticios · Guardado local · Simulador independiente no afiliado a Riot Games</div></main></div>${renderModal()}${s.over?`<div class="modal-layer"><div class="modal end-screen"><div class="eyebrow">FIN DE PARTIDA</div><h1>Insolvencia.</h1><p>Tu club se quedó sin efectivo. El mundo sigue su historia, pero esta gestión termina aquí. Recuerda: ganar torneos nunca fue la única forma de triunfar.</p><div class="buttons" style="justify-content:center"><button class="btn" data-action="export">Exportar historia</button><button class="btn danger" data-action="reset">Nueva organización</button></div></div></div>`:''}`;
  if(view==='match'&&s.live){const log=document.getElementById('eventlog');const selected=log?.querySelector('.is-selected');if(selected&&typeof selected.scrollIntoView==='function')selected.scrollIntoView({block:'nearest'})}
 }
 function updatePlan(id,delta){if(s.live&&!s.live.finished)return notify('Finaliza el partido para modificar la agenda.');if(!Object.hasOwn(s.plan,id))return;let x=s.plan[id]+delta;if(x<0||x>4||delta>0&&sumPlan()>=8)return;s.plan[id]=x;save();render()}
 function exportGame(){let blob=new Blob([JSON.stringify(s,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`rift-director-${s.year}-${s.month}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);notify('Partida exportada en JSON.')}
 function importGame(file){if(!file)return;file.text().then(txt=>{let x=RiftCore.parseWorld(txt);stopTimer();s=x;modal=null;view='home';save();render();if(s.live?.running)playTimer();notify('Partida restaurada.')}).catch(e=>notify('No se pudo importar: '+e.message))}
-function goTab(id){if(!['home','roster','market','match','finance','world','settings'].includes(id))return;if(demoBackup&&id!=='match'){exitDemoMatch();if(s)goTab(id);return}view=id;modal=null;render();window.scrollTo({top:0,behavior:'instant'})}
+function goTab(id){if(!['home','roster','market','match','finance','world','lab','settings'].includes(id))return;if(demoBackup&&id!=='match'){exitDemoMatch();if(s)goTab(id);return}view=id;modal=null;render();window.scrollTo({top:0,behavior:'instant'})}
 function handleClick(ev){let target=ev.target.closest('[data-action],[data-nav]');if(!target)return;
  if(target.dataset.nav){goTab(target.dataset.nav);return}let a=target.dataset.action,id=target.dataset.id;
+ if(a==='lab-open'&&!demoBackup){view='lab';render();return}
+ if(a==='lab-close'&&!s){view='home';render();return}
  if(a==='demo-start'){startDemoMatch();return}
  if(a==='demo-replay'){replayDemoMatch();return}
  if(a==='demo-exit'||(demoBackup&&a==='leave-match')){exitDemoMatch();return}
@@ -1207,7 +1231,18 @@ function handleClick(ev){let target=ev.target.closest('[data-action],[data-nav]'
  case 'crisis':modal={type:'crisis'};render();break;case 'resolve-crisis':resolveCrisis(id);break;
  case 'export':exportGame();break;case 'import-prompt':modal={type:'import'};render();break;
  }}
-function handleChange(ev){handleBrandInput(ev);let el=ev.target;if(el.dataset.change==='focus'){s.focus=el.value;save();render()}if(el.dataset.change==='focusAttr'){s.focusAttr=el.value;save();render()}
+function handleChange(ev){
+ let el=ev.target;
+ if(view==='lab'&&['lab-baseline','lab-current','lab-metric'].includes(el.dataset?.change)){
+  const key=el.dataset.change.slice(4);
+  const allowed=key==='metric'?RiftBalanceLab.METRICS.some(x=>x.key===el.value):
+   RiftBalanceLab.DATA.some(x=>x.version===el.value);
+  if(allowed){labPrefs[key]=el.value;render()}
+  return;
+ }
+ handleBrandInput(ev);
+ if(!s)return;
+ if(el.dataset.change==='focus'){s.focus=el.value;save();render()}if(el.dataset.change==='focusAttr'){s.focusAttr=el.value;save();render()}
  if(el.id==='import-file'||el.id==='import-file-modal')importGame(el.files[0])}
 document.addEventListener('input',handleBrandInput);
 document.addEventListener('click',handleClick);document.addEventListener('change',handleChange);
