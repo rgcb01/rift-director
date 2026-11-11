@@ -259,6 +259,26 @@ function determineSiege(nav,worldState,t,context=null){
       top.team!==old.team&&top.score<old.score+4.2)?
      old:top;
  if(!chosen){
+  // A broken lane is a physically earned path to victory. A momentary
+  // absence of a fresh lane proposal must not pull its two travelling
+  // attackers away from the Nexus every alternate minute.
+  const team=nav.siegeTeam,foe=team&&enemy(nav,team),lane=nav.siegeLane;
+  if(team&&lane&&nav.siegeUntil>t&&worldState.lanes?.[foe]?.[lane]===3){
+   const wave=core.LaneEconomy.pressureFor(
+    {teamIds:[nav.a,nav.b],lanes:worldState.waves},team,lane);
+   const goal=getSide(nav,foe)+'_nexus';
+   const escorts=teamAgents(nav,team).filter(p=>p.alive&&
+    (worldState.dead?.[p.id]||0)<=t&&
+    p.intent!=='retreat'&&hops(p.node,goal)<=8);
+   if(wave>=-.25&&escorts.length>=2){
+    nav.siegeDecision={version:1,minute:t,teamId:team,lane,stage:3,
+     score:nav.siegeDecision?.score??0,wave,
+     travel:Math.min(...escorts.map(p=>hops(p.node,goal))),
+     escorts:escorts.map(p=>p.id),defenders:0,vision:50,
+     powerEdge:0,reason:'continue_open_nexus_route'};
+    return;
+   }
+  }
   nav.siegeTeam=null;nav.siegeLane=null;nav.sideLane=null;
   nav.siegeUntil=0;nav.siegeDecision=null;
   return;
@@ -332,6 +352,19 @@ function chooseGoal(nav,agent,t,worldState,context=null){
     core.PowerEconomy.shouldRecall(worldState.powerEconomy,nav,agent,t,worldState,context))
   return {goal:side+'_nexus',intent:'shop_recall',
     reason:'affordable_item_spike',decisionVersion:3};
+
+ // An already opened, physically escorted path to the enemy Nexus
+ // takes priority over another neutral objective timer. Players still
+ // traverse one real graph edge per minute; this grants zero structure HP.
+ const finish=nav.siegeDecision?.stage===3&&
+  nav.siegeDecision?.teamId===nav.siegeTeam;
+ if(finish){
+  const goal=(team===nav.siegeTeam?getSide(nav,foe):side)+'_nexus';
+  return {goal,intent:team===nav.siegeTeam?'siege':'defend',
+   lane:nav.siegeLane,
+   reason:team===nav.siegeTeam?'earned_nexus_finish':'defend_open_nexus',
+   decisionVersion:2};
+ }
 
  // Neutral objectives are a real opportunity cost: the two escorts must
  // travel to Dragon, or a splitpusher can pressure TOP instead. This is a
