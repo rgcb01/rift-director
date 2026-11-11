@@ -75,6 +75,7 @@ test('replay, cartera y marcador tienen una única recompensa por shutdown verif
    assert.ok(match.moments[i].shutdowns);
   });
  }
+ console.log('SHUTDOWN_DIAG='+JSON.stringify({shutdowns,paid,comebackPaid}));
  assert.ok(paid>0,'No se observó ninguna recompensa en 110 partidas');
  assert.ok(comebackPaid>0,'No se observaron bajas reales del equipo rezagado');
  console.log('SHUTDOWN_SAMPLE='+JSON.stringify({shutdowns,paid}));
