@@ -381,10 +381,10 @@ function chooseGoal(nav,agent,t,worldState,context=null){
     hops(ally.node,p.node)<=3));
   const laneDefender=role===lane||
    lane==='BOT'&&(role==='ADC'||role==='SUP');
-  // Laners on the breached route, support reinforcements after laning,
-  // and professionals already near base can answer a witnessed attack.
-  const available=laneDefender||role==='SUP'&&t>=29||
-   t>=20&&hops(agent.node,base)<=3;
+  // The breached lane and its support may defend, but proximity to
+  // the base is NOT blanket permission for all five to camp forever.
+  // Other roles retain their farm, crossmap trade and counterpush choices.
+  const available=laneDefender||role==='SUP'&&t>=29;
   if(approaching.length>=2&&spotted&&available)
    return {goal:base,intent:'defend',lane,
     reason:'visible_nexus_defense',decisionVersion:7};
