@@ -364,14 +364,30 @@ function chooseGoal(nav,agent,t,worldState,context=null){
   nav.siegeDecision?.teamId===nav.siegeTeam;
  const siegeEscort=nav.siegeDecision?.teamId===team&&
   nav.siegeDecision.escorts.includes(agent.id);
- // A Nexus finish can rally defenders, but an attacking jungler needs
- // personal proof of assignment before leaving its corridor.
- if(finish&&(team!==nav.siegeTeam||role!=='JUN'||siegeEscort)){
-  const goal=(team===nav.siegeTeam?getSide(nav,foe):side)+'_nexus';
-  return {goal,intent:team===nav.siegeTeam?'siege':'defend',
-   lane:nav.siegeLane,
-   reason:team===nav.siegeTeam?'earned_nexus_finish':'defend_open_nexus',
-   decisionVersion:2};
+ // A completed lane is an opportunity, NOT telepathic notice that all
+ // five opponents must camp the Nexus. The attacking group commits, while
+ // defenders respond only when an actual enemy is observed approaching.
+ if(finish&&team===nav.siegeTeam&&(role!=='JUN'||siegeEscort))
+  return {goal:getSide(nav,foe)+'_nexus',intent:'siege',
+   lane:nav.siegeLane,reason:'earned_nexus_finish',decisionVersion:2};
+ if(finish&&team!==nav.siegeTeam){
+  const base=side+'_nexus',lane=nav.siegeLane;
+  const vision=worldState.map?.lanes?.[lane]?.vision?.[team]??50;
+  const approaching=teamAgents(nav,foe).filter(p=>p.alive&&
+   (worldState.dead?.[p.id]||0)<=t&&p.intent!=='retreat'&&
+   hops(p.node,base)<=4);
+  const spotted=approaching.some(p=>vision>=58||
+   teamAgents(nav,team).some(ally=>ally.alive&&
+    hops(ally.node,p.node)<=3));
+  const laneDefender=role===lane||
+   lane==='BOT'&&(role==='ADC'||role==='SUP');
+  // Laners on the breached route, support reinforcements after laning,
+  // and professionals already near base can answer a witnessed attack.
+  const available=laneDefender||role==='SUP'&&t>=29||
+   t>=20&&hops(agent.node,base)<=3;
+  if(approaching.length>=2&&spotted&&available)
+   return {goal:base,intent:'defend',lane,
+    reason:'visible_nexus_defense',decisionVersion:7};
  }
 
  // An earned attacking group commits its actual escorts. Unassigned
