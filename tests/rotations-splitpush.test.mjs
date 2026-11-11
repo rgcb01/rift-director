@@ -47,8 +47,13 @@ test('asignación estratégica: splitpush en segunda línea y contraataque en la
  assert.ok(splits.length<=1,'Nunca dividir más de un solo laner');
  assert.ok(attackers.filter(x=>x.intent==='siege').length>=2,
   'El asedio principal debe tener una escolta física');
- assert.equal(defender.filter(x=>x.intent==='defend').length,0,
-  'No hay defensa global automática sin una amenaza al Nexo');
+ for(const p of defender.filter(x=>x.intent==='defend')){
+  assert.equal(p.tacticReason,'visible_structure_defense',
+   'Solo la defensa local de una torre observada puede reaccionar');
+  assert.equal(p.lane,p.role==='ADC'||p.role==='SUP'?'BOT':p.role);
+  assert.ok(p.goal.startsWith('red_'+p.lane.toLowerCase()+'_'),
+   'La defensa no puede dirigirse a una estructura remota');
+ }
  for(const p of splits)assert.equal(p.lane,nav.sideLane);
  assert.ok(attackers.every(x=>x.route.length>=1));
 });
@@ -61,9 +66,17 @@ test('presión lateral visible activa contraasedio, sin órdenes teletransportad
  const lane=nav.sideLane;
  state.waves.BOT.front=3.8;
  state.waves[lane].front=nav.siegeTeam===a.id?2.4:-2.4;
+ // Stage a visible, physically present opposing side-laner. A wave number
+ // alone is not evidence that a player can react to a splitpush.
+ const splitRole=lane==='TOP'?'TOP':'MID';
+ const attacker=Object.values(nav.agents).find(x=>
+  x.teamId===a.id&&x.role===splitRole);
+ attacker.node='red_'+lane.toLowerCase()+'_outer';
+ attacker.intent='splitpush';
  core.Navigation.advance(nav,38,{},state,{health,map:state.map});
  const defender=Object.values(nav.agents).filter(x=>x.teamId===b.id);
- const p=defender.find(x=>x.intent==='counter_siege');
+ const p=defender.find(x=>x.intent==='defend'&&
+  x.tacticReason==='visible_structure_defense'&&x.lane===lane);
  console.log('COUNTER_SIEGE_DIAG='+JSON.stringify({
   attackingTeam:nav.siegeTeam,main:nav.siegeLane,side:nav.sideLane,
   wave:state.waves[lane].front,
@@ -71,7 +84,7 @@ test('presión lateral visible activa contraasedio, sin órdenes teletransportad
   attackers:Object.values(nav.agents).filter(q=>q.teamId===nav.siegeTeam)
    .map(q=>({role:q.role,intent:q.intent,goal:q.goal}))
  }));
- assert.ok(p,'Sin contraasedio pese a oleada visible');
+ assert.ok(p,'La presión lateral con rival visible debe convocar una defensa local');
  assert.equal(p.lane,lane);
  assert.ok(core.Navigation.adjacent(p.movedFrom,p.node)||p.movedFrom===p.node,
   'Rotación sin recorrer aristas');
