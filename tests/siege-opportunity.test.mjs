@@ -38,6 +38,29 @@ test('siege decision depends on physical wave/escort rather than match minute',(
   assert.equal(blank.nav.siegeTeam,null,'No free siege in minute '+minute);
  }
 });
+test('an earned open Nexus remains a physical objective when defenders outnumber the escorts',()=>{
+ const {core,nav,state,a,b}=scene();
+ state.lanes[b.id].MID=3;
+ state.waves.MID.front=1.3;
+ // Five actual defenders near their Nexus are not an automatic veto.
+ // They reduce damage through NexusSiege rather than making the team's
+ // already earned route disappear from the tactical opportunity list.
+ for(const p of Object.values(nav.agents)){
+  p.node=p.teamId===a.id?'red_mid_base':'red_nexus';
+  p.intent='lane';
+ }
+ const before=JSON.stringify({gold:state.gold,lanes:state.lanes,
+  wave:state.waves.MID.front});
+ core.Navigation.determineSiege(nav,state,42);
+ assert.equal(nav.siegeTeam,a.id);
+ assert.equal(nav.siegeLane,'MID');
+ assert.equal(nav.siegeDecision.stage,3);
+ assert.ok(nav.siegeDecision.escorts.length>=2);
+ assert.equal(JSON.stringify({gold:state.gold,lanes:state.lanes,
+  wave:state.waves.MID.front}),before,
+  'Choosing to contest an open Nexus cannot award damage, kills or gold');
+});
+
 test('winning the wave is always required for real tower damage, even late',()=>{
  const {core}=scene(),model=core.LaneEconomy.create('a','b');
  for(const minute of [8,35,48,63,74]){
