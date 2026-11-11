@@ -239,3 +239,24 @@
 @media(max-width:780px){.balance-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.balance-lab-filters{grid-template-columns:1fr 1fr}.balance-lab-field:last-child{grid-column:1/-1}.balance-standalone-header{flex-wrap:wrap}}
 @media(max-width:520px){.balance-lab-intro{padding:17px}.balance-lab-meta{font-size:10px}.balance-lab-filters{grid-template-columns:1fr}.balance-lab-field:last-child{grid-column:auto}.balance-kpis{gap:7px}.balance-kpi{padding:11px}.balance-kpi strong{font-size:19px}.balance-comparison{grid-template-columns:1fr}.balance-comparison>div{display:flex;align-items:center;justify-content:space-between;gap:9px}.balance-comparison strong{margin-top:0}.balance-chart{max-height:270px}.balance-source-panel{padding:13px}}
 @media(max-width:360px){.balance-kpis{grid-template-columns:1fr}.balance-standalone-header{align-items:start;flex-direction:column}}
+
+
+/* Integrated UX mobile QA: a readable two-line champion summary on narrow screens. */
+.balance-swipe-tip{display:none}
+@media(max-width:600px){
+ .match-champions-shell .rift-tab-player{
+  display:grid;
+  grid-template-columns:28px 38px minmax(0,1fr) 75px;
+  grid-template-areas:"role portrait identity kda" ". items items items";
+  column-gap:8px;row-gap:9px;padding:11px 9px;
+ }
+ .match-champions-shell .rift-tab-role{grid-area:role}
+ .match-champions-shell .rift-tab-portrait{grid-area:portrait}
+ .match-champions-shell .rift-tab-ident{grid-area:identity}
+ .match-champions-shell .rift-tab-kda{grid-area:kda;white-space:nowrap}
+ .match-champions-shell .rift-tab-items{grid-area:items;justify-content:flex-start;gap:4px;width:100%}
+ .match-champions-shell .rift-tab-items .tab-item{flex:0 0 28px;max-width:28px}
+ .match-champions-shell .rift-tab-ident strong{font-size:12px}
+ .match-champions-shell .rift-tab-ident small{font-size:10px}
+ .balance-swipe-tip{display:block;margin:0 0 10px;color:#b6d3e3;font-size:11px}
+}
