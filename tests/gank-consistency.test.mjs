@@ -103,12 +103,15 @@ test('una partida antigua incoherente genera aviso sin teletransportar jugadores
  const legacy=JSON.parse(JSON.stringify(match)),f=legacy.events[index].facts;
  delete f.spatialVersion;
  const pre=legacy.moments[index].navigation.before;
- pre[f.initiatorId].node='red_bot_front';
- f.initiatorNode='red_bot_front';
+ const impossible=['blue_fountain','red_fountain'].find(node=>
+  !core.Navigation.combatRange(node,pre[f.victimIds[0]].node,2));
+ assert.ok(impossible,'La manipulación debe representar un gank imposible');
+ pre[f.initiatorId].node=impossible;
+ f.initiatorNode=impossible;
  const scene=core.MatchReplay.eventView(legacy,index);
  assert.equal(scene.consistent,false);
  assert.equal(scene.legacyLocationWarning,true);
- assert.equal(scene.frame.minimap.players[f.initiatorId].node,'red_bot_front');
+ assert.equal(scene.frame.minimap.players[f.initiatorId].node,impossible);
  assert.notEqual(scene.frame.minimap.players[f.initiatorId].node,pre[f.victimIds[0]].node);
 });
 
