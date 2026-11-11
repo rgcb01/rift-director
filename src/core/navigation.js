@@ -374,6 +374,27 @@ function chooseGoal(nav,agent,t,worldState,context=null){
  // professionals keep their lane/farm/objective responsibilities, instead
  // of a global siege call redirecting all ten agents to one tower.
  if(team===nav.siegeTeam&&siegeEscort&&nav.siegeDecision.stage<3){
+  const sideLane=nav.sideLane||'TOP';
+  const sideRole=sideLane==='TOP'?'TOP':'MID';
+  if(role===sideRole&&worldState.lanes[foe][sideLane]<3){
+   const wave=core.LaneEconomy.pressureFor(
+    {teamIds:[nav.a,nav.b],lanes:worldState.waves},team,sideLane);
+   const enemyWave=core.LaneEconomy.pressureFor(
+    {teamIds:[nav.a,nav.b],lanes:worldState.waves},nav.siegeTeam,sideLane);
+   const visible=(worldState.map?.lanes?.[sideLane]?.vision?.[team]??50)>=58;
+   const side= getSide(nav,team);
+   if(team!==nav.siegeTeam&&visible&&enemyWave>=1.35&&
+      worldState.lanes[team][sideLane]<3)
+    return {goal:towerNode(side,sideLane,worldState.lanes[team][sideLane]+1),
+     intent:'counter_siege',lane:sideLane,reason:'protect_secondary_lane',
+     decisionVersion:3};
+   if(wave>=.65){
+    const stage=worldState.lanes[foe][sideLane]+1;
+    return {goal:towerNode(getSide(nav,foe),sideLane,stage),
+     intent:'splitpush',lane:sideLane,reason:'secondary_wave_pressure',
+     decisionVersion:3};
+   }
+  }
   const lane=nav.siegeLane,stage=worldState.lanes[foe][lane]+1;
   return {goal:stage<=3?towerNode(getSide(nav,foe),lane,stage):
     getSide(nav,foe)+'_nexus',intent:'siege',lane,
