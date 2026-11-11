@@ -187,7 +187,7 @@ function siegeOpportunities(nav,world,t,context=null){
    // An untouched outer tower requires an earned kill, a substantial lead
    // alongside the wave, or bought equipment able to convert into pressure.
    const earned=deadEnemies>0||lead>=2200&&wave>=1.05||
-    completed>=2&&wave>=.85;
+    completed>=2&&wave>=.85||completed>=4&&wave>=.45;
    if(stage===0&&!earned)continue;
    // Distance is graph travel, NOT a global asiedio timer. A nearby
    // competent pair can rotate before a rich but distant team.
@@ -242,11 +242,22 @@ function determineSiege(nav,worldState,t,context=null){
  const endgame=options.find(p=>p.team===nav.siegeTeam&&p.stage===3&&
   p.wave>=-.20&&p.escorts.length>=2);
  const top=endgame||best;
- const chosen=old&&nav.siegeUntil>t&&
-  (!top||top.team===old.team&&top.stage!==3&&
-    top.score<old.score+5.5||
-   top.team!==old.team&&top.score<old.score+4.2)?
-    old:top;
+ // Once attackers have a real viable wave and local escorts, sustain
+ // their push rather than re-assigning them to TOP/MID/BOT on consecutive
+ // minutes. Only an open Nexus route or a substantially stronger opposing
+ // opportunity should dislodge an earned commitment.
+ const continuing=old&&old.escorts.length>=2&&
+  old.wave>=.30&&old.score>=old.required-1.0;
+ const urgent=top&&top.team===old?.team&&top.stage===3&&
+  top.lane!==old.lane;
+ const lostInitiative=top&&top.team!==old?.team&&
+  top.score>=old.score+6.0&&top.deadEnemies>0;
+ const chosen=continuing&&!urgent&&!lostInitiative?old:
+   old&&nav.siegeUntil>t&&
+     (!top||top.team===old.team&&top.stage!==3&&
+      top.score<old.score+5.5||
+      top.team!==old.team&&top.score<old.score+4.2)?
+     old:top;
  if(!chosen){
   nav.siegeTeam=null;nav.siegeLane=null;nav.sideLane=null;
   nav.siegeUntil=0;nav.siegeDecision=null;
@@ -258,7 +269,7 @@ function determineSiege(nav,worldState,t,context=null){
  nav.sideLane=secondaryLane(nav,worldState,chosen.team,chosen.lane);
  // A plan's budget is its estimated graph journey, not the match clock;
  // it is reviewed again every simulated minute against the real wave.
- if(!same||nav.siegeUntil<=t)
+ if(!same||nav.siegeUntil<=t||continuing)
   nav.siegeUntil=t+Math.max(3,Math.min(8,Math.ceil(chosen.travel)+2));
  nav.siegeDecision={version:1,minute:t,teamId:chosen.team,lane:chosen.lane,
   stage:chosen.stage,score:+chosen.score.toFixed(2),wave:chosen.wave,
