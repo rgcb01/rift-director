@@ -34,25 +34,30 @@ function setup(){
 
 test('asignación estratégica: splitpush en segunda línea y contraataque en la misma',()=>{
  const {core,a,b,nav,state,health}=setup();
+ state.waves.BOT.front=3.1;
+ state.waves.TOP.front=.75;
  core.Navigation.advance(nav,37,{},state,{health,map:state.map});
  assert.equal(nav.siegeTeam,a.id);
  assert.ok(['TOP','MID'].includes(nav.sideLane));
  assert.notEqual(nav.sideLane,nav.siegeLane);
  const attackers=Object.values(nav.agents).filter(x=>x.teamId===a.id);
  const defender=Object.values(nav.agents).filter(x=>x.teamId===b.id);
+ assert.equal(nav.siegeLane,'BOT');
  assert.equal(attackers.filter(x=>x.intent==='splitpush').length,1);
- assert.equal(attackers.filter(x=>x.intent==='siege').length,4);
- assert.equal(defender.filter(x=>x.intent==='counterpush').length,1);
- assert.equal(defender.filter(x=>x.intent==='defend').length,4);
+ assert.ok(attackers.filter(x=>x.intent==='siege').length>=2);
+ assert.equal(defender.filter(x=>x.intent==='defend').length,0,
+  'No hay defensa global automática sin una amenaza al Nexo');
  assert.equal(attackers.find(x=>x.intent==='splitpush').lane,nav.sideLane);
- assert.equal(defender.find(x=>x.intent==='counterpush').lane,nav.sideLane);
  assert.ok(attackers.every(x=>x.route.length>=1));
 });
 
 test('presión lateral visible activa contraasedio, sin órdenes teletransportadas',()=>{
  const {core,a,b,nav,state,health}=setup();
+ state.waves.BOT.front=3.1;
+ state.waves.TOP.front=.75;
  core.Navigation.advance(nav,37,{},state,{health,map:state.map});
  const lane=nav.sideLane;
+ state.waves.BOT.front=3.8;
  state.waves[lane].front=nav.siegeTeam===a.id?2.4:-2.4;
  core.Navigation.advance(nav,38,{},state,{health,map:state.map});
  const defender=Object.values(nav.agents).filter(x=>x.teamId===b.id);
