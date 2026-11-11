@@ -157,8 +157,7 @@ function siegeOpportunities(nav,world,t,context=null){
    p.intent!=='retreat'&&p.intent!=='dead'&&(hp[p.id]??100)>=38;
  const offensivePower=p=>{
   const row=world.powerEconomy?.entries?.[p.id];
-  return row?(row.level-1)*1.18+
-    (core.PowerEconomy?.boost(world.powerEconomy,p.id,'attack')||0):0;
+  return row?(core.PowerEconomy?.boost(world.powerEconomy,p.id,'attack')||0):0;
  };
  for(const team of teams){
   const foe=enemy(nav,team),ours=teamAgents(nav,team).filter(alive),
@@ -207,7 +206,7 @@ function siegeOpportunities(nav,world,t,context=null){
    const fogCost=revealed?0:1.0;
    const nearbyPower=Math.max(-2,Math.min(2,powerEdge*.075));
    const localEdge=escorts.length-defenders;
-   const structuralProgress=stage*.85;
+   const structuralProgress=stage*1.5+(stage===3?3:0);
    const position=local*.85+Math.min(3,escorts.length)*.4-
     travel*.24;
    const score=wave*2.25+position+structuralProgress+
@@ -237,8 +236,17 @@ function determineSiege(nav,worldState,t,context=null){
  // Commitment lasts only while the physical advantage continues. Avoid
  // changing lanes for tiny score variations; never guarantee an eight-minute
  // siege just because the clock reached a particular phase.
+ // On a real opened Nexus route, finishing is worth more than repeatedly
+ // restarting unrelated outer-tower marches. A major opposing earned
+ // opportunity can still interrupt the current plan.
+ const endgame=options.find(p=>p.team===nav.siegeTeam&&p.stage===3&&
+  p.wave>=-.20&&p.escorts.length>=2);
+ const top=endgame||best;
  const chosen=old&&nav.siegeUntil>t&&
-  (!best||best.score<old.score+1.6)?old:best;
+  (!top||top.team===old.team&&top.stage!==3&&
+    top.score<old.score+5.5||
+   top.team!==old.team&&top.score<old.score+4.2)?
+    old:top;
  if(!chosen){
   nav.siegeTeam=null;nav.siegeLane=null;nav.sideLane=null;
   nav.siegeUntil=0;nav.siegeDecision=null;
