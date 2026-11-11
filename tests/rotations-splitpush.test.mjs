@@ -62,6 +62,13 @@ test('presión lateral visible activa contraasedio, sin órdenes teletransportad
  core.Navigation.advance(nav,38,{},state,{health,map:state.map});
  const defender=Object.values(nav.agents).filter(x=>x.teamId===b.id);
  const p=defender.find(x=>x.intent==='counter_siege');
+ console.log('COUNTER_SIEGE_DIAG='+JSON.stringify({
+  attackingTeam:nav.siegeTeam,main:nav.siegeLane,side:nav.sideLane,
+  wave:state.waves[lane].front,
+  defenders:defender.map(q=>({role:q.role,intent:q.intent,reason:q.tacticReason,goal:q.goal})),
+  attackers:Object.values(nav.agents).filter(q=>q.teamId===nav.siegeTeam)
+   .map(q=>({role:q.role,intent:q.intent,goal:q.goal}))
+ }));
  assert.ok(p,'Sin contraasedio pese a oleada visible');
  assert.equal(p.lane,lane);
  assert.ok(core.Navigation.adjacent(p.movedFrom,p.node)||p.movedFrom===p.node,
