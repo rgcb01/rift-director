@@ -353,7 +353,7 @@ function simulateMatch(f){
    m.gold[c.id]+=earned;
    if(m.baronBuff[c.id]>0)m.baronBuff[c.id]--;
   }
-  nav.advance(navigation,t,m.dead,m,{health,map:m.map});
+  nav.advance(navigation,t,m.dead,m,{health,map:m.map,nexusHp:nexusSiege.hp});
   RiftCore.Encounters.recover(health,navigation,m.dead,t);
   const farmIncome=RiftCore.LaneEconomy.advance(laneEconomy,
     {minute:t,nav:navigation,map:m.map,health,gold:m.gold,structures:m.lanes});
