@@ -303,6 +303,9 @@ function simulateMatch(f){
     }
    }
    facts.action=facts.victimIds.length?'teamfight':'clash';
+   // The sports ledger requires exact multikill cardinality for all
+   // teamfight actions, including those born from a defended structure.
+   facts.multiKill=facts.victimIds.length;
    facts.structureContest={version:1,lane,node,attackerTeamId:attacker.id,
     defenderTeamId:defender.id,initiatorTeamId:initiatorClub.id};
    facts.node=nav.getAgent(navigation,facts.actorId).node;
