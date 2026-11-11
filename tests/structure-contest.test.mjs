@@ -106,3 +106,32 @@ test('only the allied fountain rapidly heals; Nexus combat does not',()=>{
  core.Encounters.recover(health,nav,{},27);
  assert.equal(health[id],67,'the real allied fountain heals rapidly');
 });
+
+test('diagnostic: blocked endings preserve causal movement, wave and Nexus evidence',()=>{
+ const {sim,world,fixture}=setup();
+ for(const [seed,multiplier] of [[10,22931],[175,26171],[29,71919]]){
+  world.rng=seed*multiplier;
+  const match=sim.simulateMatch(fixture);
+  const end=match.frames.at(-1);
+  if(match.winner)continue;
+  const events=match.events.filter(e=>['tower','nexus','nexus_damage'].includes(e.facts?.action)||
+   e.facts?.structureContest).slice(-14);
+  const frames=match.frames.slice(-8).map(f=>({
+   minute:f.minute,nexus:f.siege?.hp,towers:f.towers,
+   wave:Object.fromEntries(Object.entries(f.laneEconomy?.lanes||{}).map(([l,v])=>[l,v.front])),
+   call:f.siegeDecision&&{lane:f.siegeDecision.lane,team:f.siegeDecision.teamId,
+    stage:f.siegeDecision.stage,escorts:f.siegeDecision.escorts,
+    wave:f.siegeDecision.wave},
+   units:Object.values(f.navigation?.before||{}).map(p=>({
+    id:p.id,team:p.teamId,role:p.role,node:p.node,intent:p.intent,
+    goal:p.goal,life:f.health?.[p.id]
+   }))
+  }));
+  console.log('STRUCTURE_STALL_DIAG='+JSON.stringify({seed,multiplier,winner:match.winner,
+   minutes:end.minute,towers:end.towers,nexus:end.siege?.hp,
+   events:events.map(e=>({m:e.minute,action:e.facts?.action,team:e.teamId,
+    reason:e.facts?.structureContest?.lane,node:e.facts?.node,
+    wave:e.facts?.wave,participants:e.facts?.participantIds,
+    victims:e.facts?.victimIds})),frames}));
+ }
+});
