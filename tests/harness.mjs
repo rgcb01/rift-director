@@ -36,6 +36,7 @@ export function boot(options = {}) {
   vm.runInNewContext(read('src/ui/item-art.js'), env, { timeout:10000, filename:'src/ui/item-art.js' });
   vm.runInNewContext(read('src/ui/branding.js'), env, { timeout:10000, filename:'src/ui/branding.js' });
   vm.runInNewContext(read('src/ui/match-tab.js'), env, { timeout: 10000, filename: 'src/ui/match-tab.js' });
+  vm.runInNewContext(read('src/ui/balance-lab.js'), env, { timeout: 10000, filename:'src/ui/balance-lab.js' });
   // Test-only API injection; game.js remains unmodified in production.
   const source = read('game.js');
   const injection = [
@@ -46,7 +47,7 @@ export function boot(options = {}) {
     '  signFreeAgent, sellPlayer, chooseSponsor, upgrade, scoutPlayer,',
     '  startDemoMatch, replayDemoMatch, exitDemoMatch, liveControl, tick,',
     '  nextReplay, seekReplay, updateReplayCursor,',
-    '  handleClick,',
+    '  handleClick, handleChange,',
     '  renderMatch, render, crest, legacyCrest, championshipPanel,',
     '  getDemoActive: () => Boolean(demoBackup), getView: () => view,',
     '  getState: () => s };',
