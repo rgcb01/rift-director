@@ -384,6 +384,30 @@ function chooseGoal(nav,agent,t,worldState,context=null){
     reason:'earned_siege_escort',decisionVersion:3};
  }
 
+ // Defenders of the threatened lane answer an observed push instead of
+ // remaining idle while their tower takes damage. They must travel along
+ // graph edges and actually encounter attackers. Distant hidden HP and
+ // enemy positions never authorize this call.
+ const ownLane=role==='ADC'||role==='SUP'?'BOT':
+  role==='TOP'||role==='MID'?role:null;
+ if(ownLane&&worldState.lanes?.[team]?.[ownLane]<3){
+  const stage=worldState.lanes[team][ownLane]+1;
+  const goal=towerNode(side,ownLane,stage);
+  const foeWave=core.LaneEconomy.pressureFor(
+   {teamIds:[nav.a,nav.b],lanes:worldState.waves},foe,ownLane);
+  const vision=worldState.map?.lanes?.[ownLane]?.vision?.[team]??50;
+  const nearbyAllies=teamAgents(nav,team).filter(p=>p.alive);
+  const threat=teamAgents(nav,foe).some(p=>p.alive&&
+   (worldState.dead?.[p.id]||0)<=t&&p.intent!=='retreat'&&
+   hops(p.node,goal)<=3&&
+   (vision>=58||nearbyAllies.some(ally=>hops(ally.node,p.node)<=3))&&
+   (['siege','splitpush','counterpush','macro_pressure'].includes(p.intent)||
+    foeWave>=.48));
+  if(threat&&foeWave>=.35)
+   return {goal,intent:'defend',lane:ownLane,
+    reason:'visible_structure_defense',decisionVersion:7};
+ }
+
  // Neutral objectives are a real opportunity cost: the two escorts must
  // travel to Dragon, or a splitpusher can pressure TOP instead. This is a
  // per-team decision made before any agent moves, never turn-order magic.
