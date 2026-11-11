@@ -270,7 +270,9 @@ function simulateMatch(f){
  // an actual opponent, not merely a flat subtraction from tower damage.
  // Encounters owns the HP/kill/retreat result; this decision awards no HP.
  const contestStructure=(attacker,defender,node,lane,t,minAttackers=1)=>{
-  const livingHere=c=>positioned(c,node).filter(p=>(health[p.id]??0)>0);
+  const livingHere=c=>positioned(c,node).filter(p=>
+   (health[p.id]??0)>0&&(lane!=='NEXUS'||
+    p.node!==(c.id===a.id?'blue':'red')+'_fountain'));
   const offense=livingHere(attacker);
   if(offense.length<minAttackers)return false;
   const defense=livingHere(defender);
