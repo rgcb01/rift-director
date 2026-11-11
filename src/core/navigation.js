@@ -193,11 +193,14 @@ function siegeOpportunities(nav,world,t,context=null){
    if(stage===0&&!earned)continue;
    // Distance is graph travel, NOT a global asiedio timer. A nearby
    // competent pair can rotate before a rich but distant team.
+   const woundedNexus=stage===3&&
+    Number.isFinite(context?.nexusHp?.[foe])&&
+    context.nexusHp[foe]<(core.NexusSiege?.MAX_HP??108);
    const escorts=ours.map(p=>({id:p.id,hops:hops(p.node,goal),
     lanePresent:isLaneNode(p.node,lane)}))
-    .filter(p=>p.hops<=7&&(stage===3||p.role!=='JUN')).sort((a,b)=>a.hops-b.hops||
-     a.id.localeCompare(b.id));
-   if(escorts.length<2||escorts[0].hops>5)continue;
+    .filter(p=>p.hops<=(woundedNexus?11:7)&&(stage===3||p.role!=='JUN'))
+    .sort((a,b)=>a.hops-b.hops||a.id.localeCompare(b.id));
+   if(escorts.length<2||escorts[0].hops>(woundedNexus?9:5))continue;
    const local=escorts.filter(p=>p.lanePresent||p.hops<=3).length;
    const travel=(escorts[0].hops+escorts[1].hops)/2;
    // Never read invisible opponent positions to choose a push.
@@ -243,7 +246,12 @@ function determineSiege(nav,worldState,t,context=null){
  // opportunity can still interrupt the current plan.
  const endgame=options.find(p=>p.team===nav.siegeTeam&&p.stage===3&&
   p.escorts.length>=2);
- const top=endgame||best;
+ // A Nexus already damaged by real hits is a public, earned objective.
+ // Finish the physical attack before starting unrelated outer-tower marches.
+ const woundedFinish=options.find(p=>p.stage===3&&
+  Number.isFinite(context?.nexusHp?.[enemy(nav,p.team)])&&
+  context.nexusHp[enemy(nav,p.team)]<(core.NexusSiege?.MAX_HP??108));
+ const top=woundedFinish||endgame||best;
  // Once attackers have a real viable wave and local escorts, sustain
  // their push rather than re-assigning them to TOP/MID/BOT on consecutive
  // minutes. Only an open Nexus route or a substantially stronger opposing
@@ -254,7 +262,8 @@ function determineSiege(nav,worldState,t,context=null){
   top.lane!==old.lane;
  const lostInitiative=old&&top&&top.team!==old.team&&
   top.score>=old.score+6.0&&top.deadEnemies>0;
- const chosen=continuing&&!urgent&&!lostInitiative?old:
+ const chosen=woundedFinish? woundedFinish:
+  continuing&&!urgent&&!lostInitiative?old:
    old&&nav.siegeUntil>t&&
      (!top||top.team===old.team&&top.stage!==3&&
       top.score<old.score+5.5||
@@ -381,15 +390,6 @@ function chooseGoal(nav,agent,t,worldState,context=null){
   if(role===sideRole&&worldState.lanes[foe][sideLane]<3){
    const wave=core.LaneEconomy.pressureFor(
     {teamIds:[nav.a,nav.b],lanes:worldState.waves},team,sideLane);
-   const enemyWave=core.LaneEconomy.pressureFor(
-    {teamIds:[nav.a,nav.b],lanes:worldState.waves},nav.siegeTeam,sideLane);
-   const visible=(worldState.map?.lanes?.[sideLane]?.vision?.[team]??50)>=58;
-   const side= getSide(nav,team);
-   if(team!==nav.siegeTeam&&visible&&enemyWave>=1.35&&
-      worldState.lanes[team][sideLane]<3)
-    return {goal:towerNode(side,sideLane,worldState.lanes[team][sideLane]+1),
-     intent:'counter_siege',lane:sideLane,reason:'protect_secondary_lane',
-     decisionVersion:3};
    if(wave>=.65){
     const stage=worldState.lanes[foe][sideLane]+1;
     return {goal:towerNode(getSide(nav,foe),sideLane,stage),
@@ -435,6 +435,14 @@ function chooseGoal(nav,agent,t,worldState,context=null){
    const wave=core.LaneEconomy.pressureFor(
     {teamIds:[nav.a,nav.b],lanes:worldState.waves},team,sideLane);
    const stage=worldState.lanes[foe][sideLane]+1;
+   const enemyWave=core.LaneEconomy.pressureFor(
+    {teamIds:[nav.a,nav.b],lanes:worldState.waves},nav.siegeTeam,sideLane);
+   const visible=(worldState.map?.lanes?.[sideLane]?.vision?.[team]??50)>=58;
+   if(team!==nav.siegeTeam&&visible&&enemyWave>=1.35&&
+      worldState.lanes[team][sideLane]<3)
+    return {goal:towerNode(side,sideLane,worldState.lanes[team][sideLane]+1),
+     intent:'counter_siege',lane:sideLane,reason:'protect_secondary_lane',
+     decisionVersion:3};
    if(team===nav.siegeTeam&&wave>=.35)
     return {goal:towerNode(getSide(nav,foe),sideLane,stage),
      intent:'splitpush',lane:sideLane,reason:'secondary_wave_pressure',
