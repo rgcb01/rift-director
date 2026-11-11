@@ -50,10 +50,25 @@ test('fase de líneas minuto 10: ADC y SUP permanecen en su mitad y no en el mis
    const affected=reactive.has(frame.navigation.before[adc]?.reason)||
      reactive.has(frame.navigation.before[sup]?.reason);
    const ordered=siegeEscort(frame,teamId,adc)||siegeEscort(frame,teamId,sup);
-   if(!casualties&&!affected&&!ordered){
+   const defending=[a,s].some(p=>p.intent==='defend'&&
+    p.reason==='visible_structure_defense');
+   if(!casualties&&!affected&&!ordered&&!defending){
     assert.equal(a.node,side+'_bot_front','ADC debe estar en su botlane');
     assert.equal(s.node,side+'_bot_front','SUP debe proteger al ADC');
     normal++;
+   }else if(defending){
+    // A discovered opposing push justifies moving BACK along the own
+    // botlane toward its active tower, never an unexplained crossmap roam.
+    const laneNodes=new Set([side+'_bot_front',side+'_bot_outer',
+     side+'_bot_inner',side+'_bot_base',side+'_nexus',side+'_fountain']);
+    for(const p of [a,s]){
+     assert.ok(laneNodes.has(p.node),'Defensa BOT salió de su carril');
+     if(p.intent==='defend'){
+      assert.equal(p.reason,'visible_structure_defense');
+      assert.equal(p.lane,'BOT');
+      assert.ok(p.goal.startsWith(side+'_bot_'));
+     }
+    }
    }else if(ordered){
     for(const [id,p] of [[adc,a],[sup,s]]){
      if(!siegeEscort(frame,teamId,id))continue;
@@ -156,6 +171,13 @@ test('SUP tiene roaming breve después de líneas y regresa junto a su ADC',()=>
    for(const frame of match.frames.filter(f=>f.minute<=27)){
     const p=frame.navigation.after[sup],carry=frame.navigation.after[adc],t=frame.minute;
     if(!p.alive)continue;
+    if(p.intent==='defend'&&p.reason==='visible_structure_defense'){
+     assert.equal(p.lane,'BOT','SUP only defends its assigned botlane');
+     const side=teamId===fixture.a?'blue':'red';
+     assert.ok(p.goal.startsWith(side+'_bot_'),
+      'Defense needs a real allied tower destination');
+     continue;
+    }
     if(p.intent==='siege'){
      assert.ok(siegeEscort(frame,teamId,sup),
       'SUP salió con una orden de asedio no sustentada');
