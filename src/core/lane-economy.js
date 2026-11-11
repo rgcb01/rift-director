@@ -97,7 +97,9 @@ function canPressureTower(model,id,lane,stage,minute){
  // A moderately favourable wave lets players physically chip tower HP,
  // instead of waiting for a fully crashed wave before any structural damage.
  // Plates still demand crossing one-third of real HP with agents present.
- return momentum>=.35||(minute>=48&&momentum>=-1.25);
+ // A structurally valid wave is required at every stage of the match.
+ // No time-based licence to hit a tower with a losing wave.
+ return momentum>=.25;
 }
 // Match-local deterministic HP loss; the caller proves physical presence.
 function damageValue({stage,attackers,defenders,wave,baron}){
