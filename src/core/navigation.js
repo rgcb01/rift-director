@@ -181,9 +181,7 @@ function siegeOpportunities(nav,world,t,context=null){
    // An advanced lane needs less push momentum than an untouched outer
    // tower, but a losing wave never creates a free tower/nexus attempt.
    const committed=nav.siegeTeam===team&&nav.siegeLane===lane&&nav.siegeUntil>t;
-   // An open Nexus route may be approached as the escort rebuilds a wave.
-   // NexusSiege itself still refuses to deal damage without a real wave.
-   const minimumWave=stage===3?-1.5:committed?-.20:stage>0?.35:.48;
+   const minimumWave=committed?-.20:stage===3?-.20:stage>0?.35:.48;
    if(wave<minimumWave)continue;
    // Neither a stopwatch nor a tiny early wave authorizes abandoning lanes.
    // An untouched outer tower requires an earned kill, a substantial lead
@@ -193,14 +191,11 @@ function siegeOpportunities(nav,world,t,context=null){
    if(stage===0&&!earned)continue;
    // Distance is graph travel, NOT a global asiedio timer. A nearby
    // competent pair can rotate before a rich but distant team.
-   const woundedNexus=stage===3&&
-    Number.isFinite(context?.nexusHp?.[foe])&&
-    context.nexusHp[foe]<(core.NexusSiege?.MAX_HP??108);
    const escorts=ours.map(p=>({id:p.id,hops:hops(p.node,goal),
     lanePresent:isLaneNode(p.node,lane)}))
-    .filter(p=>p.hops<=(woundedNexus?11:7)&&(stage===3||p.role!=='JUN'))
-    .sort((a,b)=>a.hops-b.hops||a.id.localeCompare(b.id));
-   if(escorts.length<2||escorts[0].hops>(woundedNexus?9:5))continue;
+    .filter(p=>p.hops<=7&&(stage===3||p.role!=='JUN')).sort((a,b)=>a.hops-b.hops||
+     a.id.localeCompare(b.id));
+   if(escorts.length<2||escorts[0].hops>5)continue;
    const local=escorts.filter(p=>p.lanePresent||p.hops<=3).length;
    const travel=(escorts[0].hops+escorts[1].hops)/2;
    // Never read invisible opponent positions to choose a push.
@@ -245,25 +240,19 @@ function determineSiege(nav,worldState,t,context=null){
  // restarting unrelated outer-tower marches. A major opposing earned
  // opportunity can still interrupt the current plan.
  const endgame=options.find(p=>p.team===nav.siegeTeam&&p.stage===3&&
-  p.escorts.length>=2);
- // A Nexus already damaged by real hits is a public, earned objective.
- // Finish the physical attack before starting unrelated outer-tower marches.
- const woundedFinish=options.find(p=>p.stage===3&&
-  Number.isFinite(context?.nexusHp?.[enemy(nav,p.team)])&&
-  context.nexusHp[enemy(nav,p.team)]<(core.NexusSiege?.MAX_HP??108));
- const top=woundedFinish||endgame||best;
+  p.wave>=-.20&&p.escorts.length>=2);
+ const top=endgame||best;
  // Once attackers have a real viable wave and local escorts, sustain
  // their push rather than re-assigning them to TOP/MID/BOT on consecutive
  // minutes. Only an open Nexus route or a substantially stronger opposing
  // opportunity should dislodge an earned commitment.
  const continuing=old&&old.escorts.length>=2&&
-  (old.stage===3||old.wave>=.30)&&old.score>=old.required-1.0;
+  old.wave>=.30&&old.score>=old.required-1.0;
  const urgent=top&&top.team===old?.team&&top.stage===3&&
   top.lane!==old.lane;
  const lostInitiative=old&&top&&top.team!==old.team&&
   top.score>=old.score+6.0&&top.deadEnemies>0;
- const chosen=woundedFinish? woundedFinish:
-  continuing&&!urgent&&!lostInitiative?old:
+ const chosen=continuing&&!urgent&&!lostInitiative?old:
    old&&nav.siegeUntil>t&&
      (!top||top.team===old.team&&top.stage!==3&&
       top.score<old.score+5.5||
@@ -281,7 +270,7 @@ function determineSiege(nav,worldState,t,context=null){
    const escorts=teamAgents(nav,team).filter(p=>p.alive&&
     (worldState.dead?.[p.id]||0)<=t&&
     p.intent!=='retreat'&&hops(p.node,goal)<=8);
-   if(wave>=-1.5&&escorts.length>=2){
+   if(wave>=-.25&&escorts.length>=2){
     nav.siegeDecision={version:1,minute:t,teamId:team,lane,stage:3,
      score:nav.siegeDecision?.score??0,wave,
      travel:Math.min(...escorts.map(p=>hops(p.node,goal))),
@@ -385,18 +374,6 @@ function chooseGoal(nav,agent,t,worldState,context=null){
  // professionals keep their lane/farm/objective responsibilities, instead
  // of a global siege call redirecting all ten agents to one tower.
  if(team===nav.siegeTeam&&siegeEscort&&nav.siegeDecision.stage<3){
-  const sideLane=nav.sideLane||'TOP';
-  const sideRole=sideLane==='TOP'?'TOP':'MID';
-  if(role===sideRole&&worldState.lanes[foe][sideLane]<3){
-   const wave=core.LaneEconomy.pressureFor(
-    {teamIds:[nav.a,nav.b],lanes:worldState.waves},team,sideLane);
-   if(wave>=.65){
-    const stage=worldState.lanes[foe][sideLane]+1;
-    return {goal:towerNode(getSide(nav,foe),sideLane,stage),
-     intent:'splitpush',lane:sideLane,reason:'secondary_wave_pressure',
-     decisionVersion:3};
-   }
-  }
   const lane=nav.siegeLane,stage=worldState.lanes[foe][lane]+1;
   return {goal:stage<=3?towerNode(getSide(nav,foe),lane,stage):
     getSide(nav,foe)+'_nexus',intent:'siege',lane,
