@@ -24,6 +24,7 @@ export function boot(options = {}) {
       removeItem(k) { store.delete(k); },
     },
     Date: FixedDate, console,
+    window: {scrollTo() {}},
     setInterval: () => 1, clearInterval: () => {},
     setTimeout: () => 1, clearTimeout: () => {},
   };
