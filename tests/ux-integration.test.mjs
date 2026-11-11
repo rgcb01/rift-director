@@ -37,6 +37,7 @@ test('UX integrated: guest balance lab, then career dashboard, then spectator mo
  assert.equal(store.size,0,'Guest must never save');
 
  const world=sim.newGame('balanced','Integrated QA');
+ world.month=2; // First league month with a scheduled match; January is valid preseason.
  const rng=world.rng;
  sim.render();
  assert.match(app.innerHTML,/TU SIGUIENTE DECISIÓN/);
