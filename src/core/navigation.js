@@ -450,8 +450,7 @@ function advance(nav,t,dead,worldState,context=null){
   agent.goal=plan.goal;agent.intent=plan.intent;agent.lane=plan.lane||null;
   agent.tacticReason=plan.reason||null;
   agent.decisionVersion=plan.decisionVersion||null;
-  const released=nav.siegeTeam!==null&&
-    (agent.teamId===nav.siegeTeam||agent.intent==='defend');
+  const released=nav.siegeTeam!==null;
   const safe=agent.role==='JUN'&&!released?
     node=>jungleAllowed(side,node):null;
   agent.route=path(agent.node,agent.goal,safe);
