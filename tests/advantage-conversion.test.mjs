@@ -120,8 +120,9 @@ test('no counter-siege is awarded without earned kill or purchased power, wave a
   if(missing!=='kill')state.dead={[b.lineup.ADC]:44};
   if(missing==='wave')state.waves.BOT.front=0;
   if(missing==='escorts'){
-   for(const id of [a.lineup.ADC,a.lineup.SUP])
-    nav.agents[id].node='blue_fountain';
+   // No eligible pair remains, irrespective of other team members' range.
+   for(const p of Object.values(nav.agents).filter(x=>x.teamId===a.id))
+    p.alive=p.id===a.lineup.ADC;
   }
   core.Navigation.determineSiege(nav,state,41);
   assert.notEqual(nav.siegeTeam,a.id,missing);
