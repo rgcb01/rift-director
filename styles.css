@@ -96,3 +96,45 @@
 .match-item-inline .tab-item svg{width:100%;height:100%}
 @media(max-width:1270px){.rift-tab-grid{grid-template-columns:1fr}.rift-tab-player{grid-template-columns:32px 42px minmax(90px,1fr) 90px minmax(128px,174px)}}
 @media(max-width:600px){.rift-tab-player{grid-template-columns:26px 38px minmax(70px,1fr) 68px minmax(100px,1fr);gap:4px;padding:9px 6px}.rift-tab-role{font-size:9px}.rift-tab-ident strong{font-size:11px}.rift-tab-portrait,.rift-tab-portrait>svg{width:32px;height:32px}.rift-tab-kda{font-size:10px}.rift-tab-items{gap:2px}}
+
+
+/* UX-2 — Club command center: primary decision, priorities and monthly workflow. */
+.club-command{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(280px,.95fr);border:1px solid #456878;border-radius:17px;overflow:hidden;margin-bottom:14px;background:#0e2031}
+.club-command-lead{padding:24px 25px;background:radial-gradient(460px 300px at 25% 0%,#26525b77,transparent 75%),linear-gradient(145deg,#162d3d,#0e1d2d)}
+.club-command-lead .eyebrow{color:#e8c68e}
+.club-command-lead h2{font-size:clamp(22px,2.7vw,30px);line-height:1.18;letter-spacing:-.035em;margin:12px 0 10px}
+.club-command-lead p{max-width:520px;font-size:13px;color:#c8dfed;line-height:1.65;margin-bottom:18px}
+.club-command-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.club-command-actions .btn{min-height:42px}
+.club-command-text-link{color:#a8e4d8;font-weight:750;font-size:12px;text-decoration:underline;text-underline-offset:4px}
+.club-command-text-link:focus-visible,.club-priority-link:focus-visible,.club-workflow-step a:focus-visible{outline:2px solid var(--gold);outline-offset:4px;border-radius:3px}
+.club-command-side{background:#111f31;padding:19px 19px 15px;min-width:0;border-left:1px solid #334c60}
+.club-command-side h3{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#d5e7f2;margin-bottom:12px}
+.club-priority{display:flex;align-items:center;justify-content:space-between;gap:11px;border:1px solid #30475a;border-left:3px solid #4da6a8;border-radius:9px;padding:10px;margin-bottom:9px;background:#16283a;min-width:0}
+.club-priority-danger{border-left-color:#ff8390}
+.club-priority-warn{border-left-color:#efc37e}
+.club-priority-calm{border-left-color:#65e0c3}
+.club-priority-body{min-width:0}
+.club-priority-body strong{font-size:12px;display:block}
+.club-priority-body p{font-size:11px;color:#afc5d8;line-height:1.45;margin:3px 0 0}
+.club-priority .btn{white-space:nowrap;flex:none;min-height:37px}
+.club-priority-link{font-size:11px;color:#f5d59f;white-space:nowrap;font-weight:750}
+.club-command-workflow{padding:16px 17px}
+.club-workflow-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.club-workflow-step{padding:12px;background:#132438;border:1px solid #30465d;border-radius:10px;display:grid;grid-template-rows:auto 1fr auto;gap:11px;min-width:0}
+.club-workflow-number{font-size:10px;letter-spacing:.1em;color:#87cfc1;font-weight:850}
+.club-workflow-copy strong{display:block;font-size:13px;margin-bottom:5px}
+.club-workflow-copy small{display:block;font-size:11px;line-height:1.45;overflow-wrap:anywhere}
+.club-workflow-step .btn,.club-workflow-step a{align-self:end;justify-self:start}
+.club-workflow-step .btn{min-height:35px}
+.club-workflow-step a{color:#b9dfdf;font-size:11px;font-weight:750}
+.club-finance-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;margin-bottom:6px;border-radius:12px;overflow:hidden;border:1px solid #30465d;background:#30465d}
+.club-finance-strip>div{background:#111e2e;padding:13px;min-width:0}
+.club-finance-strip small{display:block;font-size:10px;line-height:1.45;margin-bottom:5px}
+.club-finance-strip strong{font-size:17px;font-variant-numeric:tabular-nums}
+.club-finance-disclaimer{margin:0 0 18px;font-size:11px}
+#club-agenda,#club-strategy{scroll-margin-top:94px}
+@media(max-width:1160px){.club-command{grid-template-columns:minmax(0,1fr) minmax(265px,.9fr)}.club-priority{align-items:flex-start;flex-direction:column}.club-workflow-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:800px){.club-command{grid-template-columns:1fr}.club-command-side{border-left:0;border-top:1px solid #334c60}.club-priority{align-items:center;flex-direction:row}.club-finance-strip{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.club-command-lead{padding:20px 16px}.club-command-side{padding:15px}.club-priority{align-items:flex-start;flex-direction:column}.club-workflow-grid{gap:7px}.club-workflow-step{padding:10px;gap:9px}.club-finance-strip strong{font-size:15px}.club-command-actions .btn{flex:1 1 100%}.club-command-text-link{min-height:37px;display:inline-flex;align-items:center}}
+@media(max-width:370px){.club-workflow-grid{grid-template-columns:1fr}.club-finance-strip{grid-template-columns:repeat(2,minmax(0,1fr))}}
