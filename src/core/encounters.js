@@ -25,9 +25,13 @@ function recover(health,nav,dead,minute){
   if(health[agent.id]===0||health[agent.id]===undefined){
    health[agent.id]=100;continue;
   }
-  const nearBase=agent.node.endsWith('_fountain')||agent.node.endsWith('_nexus');
+  // The healing zone is the fountain, never the contested Nexus.
+  // In particular, attackers at the ENEMY Nexus cannot regenerate as if
+  // they were shopping safely in their own base.
+  const side=agent.teamId===nav.a?'blue':'red';
+  const inFountain=agent.node===side+'_fountain';
   const retreat=agent.intent==='retreat';
-  health[agent.id]=clamp(health[agent.id]+(nearBase?35:retreat?17:6),1,100);
+  health[agent.id]=clamp(health[agent.id]+(inFountain?35:retreat?17:6),1,100);
  }
 }
 const point=node=>graph.pointAt(node);
