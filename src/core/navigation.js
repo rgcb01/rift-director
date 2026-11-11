@@ -462,7 +462,10 @@ function advance(nav,t,dead,worldState,context=null){
   agent.tacticReason=plan.reason||null;
   agent.decisionVersion=plan.decisionVersion||null;
   const released=nav.siegeTeam!==null;
-  const safe=agent.role==='JUN'&&!released?
+  // If a jungler just completed a legitimate siege, its current lane
+  // node is outside the normal jungle graph. Permit a physical return route
+  // rather than passing an impossible restricted path to BFS.
+  const safe=agent.role==='JUN'&&!released&&jungleAllowed(side,agent.node)?
     node=>jungleAllowed(side,node):null;
   agent.route=path(agent.node,agent.goal,safe);
   // One edge a minute; no position jumps to satisfy an event later.
