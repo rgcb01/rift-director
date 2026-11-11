@@ -421,9 +421,9 @@ function forceRetreat(nav,id,minute,goal){
  const side=getSide(nav,agent.teamId);
  if(agent.role==='JUN'&&nav.siegeTeam===null&&!jungleAllowed(side,goal))
   throw Error('Jungla no puede retirarse por un carril');
- const allowed=agent.role==='JUN'&&nav.siegeTeam===null?
-  node=>jungleAllowed(side,node):null;
- const steps=path(agent.node,goal,allowed);
+ // Survival decisions always use legal graph edges. A previously committed
+ // jungler may be outside its ordinary corridor when it must retreat.
+ const steps=path(agent.node,goal);
  agent.retreatGoal=goal;
  agent.retreatUntil=minute+Math.max(4,steps.length+2);
  agent.goal=goal;agent.intent='retreat';
@@ -467,7 +467,15 @@ function advance(nav,t,dead,worldState,context=null){
   // rather than passing an impossible restricted path to BFS.
   const safe=agent.role==='JUN'&&!released&&jungleAllowed(side,agent.node)?
     node=>jungleAllowed(side,node):null;
-  agent.route=path(agent.node,agent.goal,safe);
+  // Corridor preferences cannot disconnect a legal route (e.g. a JUN
+  // returning from an earned pressure call or objective). Falling back
+  // uses the real, unchanged adjacency graph, never teleportation.
+  try{agent.route=path(agent.node,agent.goal,safe)}
+  catch(err){
+   if(!safe||!String(err.message).startsWith('Disconnected navigation graph:'))
+    throw err;
+   agent.route=path(agent.node,agent.goal);
+  }
   // One edge a minute; no position jumps to satisfy an event later.
   if(agent.route.length>1)agent.node=agent.route[1];
  }
