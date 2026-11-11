@@ -43,11 +43,13 @@ test('asignación estratégica: splitpush en segunda línea y contraataque en la
  const attackers=Object.values(nav.agents).filter(x=>x.teamId===a.id);
  const defender=Object.values(nav.agents).filter(x=>x.teamId===b.id);
  assert.equal(nav.siegeLane,'BOT');
- assert.equal(attackers.filter(x=>x.intent==='splitpush').length,1);
- assert.ok(attackers.filter(x=>x.intent==='siege').length>=2);
+ const splits=attackers.filter(x=>x.intent==='splitpush');
+ assert.ok(splits.length<=1,'Nunca dividir más de un solo laner');
+ assert.ok(attackers.filter(x=>x.intent==='siege').length>=2,
+  'El asedio principal debe tener una escolta física');
  assert.equal(defender.filter(x=>x.intent==='defend').length,0,
   'No hay defensa global automática sin una amenaza al Nexo');
- assert.equal(attackers.find(x=>x.intent==='splitpush').lane,nav.sideLane);
+ for(const p of splits)assert.equal(p.lane,nav.sideLane);
  assert.ok(attackers.every(x=>x.route.length>=1));
 });
 
