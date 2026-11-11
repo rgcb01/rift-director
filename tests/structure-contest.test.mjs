@@ -36,7 +36,7 @@ test('a Nexus cannot lose HP while its real defenders still contest the route',(
  const candidates=core.NexusSiege.candidates(nav,state,35,health,{});
  assert.equal(candidates.length,1,'the raw candidate is physically reachable');
  assert.equal(candidates[0].defenderIds.length,1,'a defender is actually present');
- assert.deepEqual(core.NexusSiege.advance(model,nav,state,35,health,{},[blue.id]),[]);
+ assert.equal(core.NexusSiege.advance(model,nav,state,35,health,{},[blue.id]).length,0);
  assert.equal(model.hp[red.id],core.NexusSiege.MAX_HP,
   'no HP may be granted through an unresolved local contest');
  nav.agents[red.lineup.TOP].intent='retreat';
@@ -85,4 +85,24 @@ test('actual structural fights and damage replay from physical positions',()=>{
  }
  assert.ok(contests>0,'at least one structural defense must be fought on the map');
  assert.ok(damage>0,'the test must inspect real structural damage');
+});
+
+test('only the allied fountain rapidly heals; Nexus combat does not',()=>{
+ const {core,world,fixture}=setup();
+ const clubs=[fixture.a,fixture.b].map(id=>world.clubs.find(c=>c.id===id));
+ const teams=Object.fromEntries(clubs.map(c=>[c.id,core.ROLES.map(role=>
+  world.players.find(p=>p.id===c.lineup[role]))]));
+ const nav=core.Navigation.createNavigation(clubs,teams,817);
+ const id=clubs[0].lineup.ADC,agent=nav.agents[id];
+ const health=core.Encounters.create(world.players);
+ health[id]=20;
+ agent.node='red_nexus';agent.intent='siege';
+ core.Encounters.recover(health,nav,{},25);
+ assert.equal(health[id],26,'enemy Nexus does not count as a healing fountain');
+ agent.node='blue_nexus';
+ core.Encounters.recover(health,nav,{},26);
+ assert.equal(health[id],32,'own Nexus is combat territory, not the fountain');
+ agent.node='blue_fountain';
+ core.Encounters.recover(health,nav,{},27);
+ assert.equal(health[id],67,'the real allied fountain heals rapidly');
 });
