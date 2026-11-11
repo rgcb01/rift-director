@@ -1010,7 +1010,17 @@ function renderPlayerScoreboard(match,frame){
     const build=frame.powerEconomy?.entries?.[q.id];
     const items=build?.items||[];
     const powerLine=build?`<div class="helper">Nivel ${build.level} · Oro disponible ${build.wallet} · ${items.length?'Ítems: '+items.map((id,i)=>`<span class="match-item-inline">${globalThis.RiftMatchTab?.itemSlot(id,i)||''} ${esc(RiftCore.PowerEconomy.ITEM_CATALOG.find(x=>x.id===id)?.name||id)}</span>`).join(', '):'Sin compras'}</div>`:'';
-    return `<div class="activity" style="gap:8px"><div style="min-width:0;flex:1"><b>${role} · ${esc(q.name)}</b>${powerLine}<div class="helper">Torres ${st.towers} · Dragones ${st.dragons} · Barones ${st.barons}${st.pentakills?' · Pentakills '+st.pentakills:''}</div></div><div style="text-align:right"><strong class="num">${st.kills}/${st.deaths}/${st.assists}</strong>function renderMatch(){const c=currentClub(),l=s.live;
+    return `<div class="activity" style="gap:8px"><div style="min-width:0;flex:1"><b>${role} · ${esc(q.name)}</b>${powerLine}<div class="helper">Torres ${st.towers} · Dragones ${st.dragons} · Barones ${st.barons}${st.pentakills?' · Pentakills '+st.pentakills:''}</div></div><div style="text-align:right"><strong class="num">${st.kills}/${st.deaths}/${st.assists}</strong><div class="helper">KDA ${RiftCore.playerKda(st)}</div></div></div>`;
+   }).join('');
+ }).join('');
+}
+function replayEventCategory(event){
+ if(event?.kind==='fight')return 'combat';
+ if(event?.kind==='goal'||event?.kind==='end')return 'objective';
+ if(event?.kind==='insight')return 'analysis';
+ return 'other';
+}
+function renderMatch(){const c=currentClub(),l=s.live;
  if(!l)return `${pageTitle('Match Center','Escoge tu quinteto y estrategia; los jugadores compiten autónomamente mientras tú disfrutas del encuentro.')}
  <div class="cols"><div>${matchupPanel()}${strategyPanel()}
  <section class="panel"><h2>Probar simulación</h2><p class="helper">Juega un mapa ficticio independiente. No necesitas avanzar meses ni modificar tu temporada.</p><button class="btn secondary" style="margin-top:8px" data-action="demo-start">Simular partida de prueba</button></section>
