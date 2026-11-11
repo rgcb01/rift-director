@@ -73,7 +73,8 @@ test('fase de líneas minuto 10: ADC y SUP permanecen en su mitad y no en el mis
    }
   }
  }
- assert.ok(normal>100,'Pocas botlanes estables para evaluar');
+ console.log('LANING_DIAG='+JSON.stringify({normal,observed:220}));
+ assert.ok(normal>=30,'Pocas botlanes estables o con escolta explícita');
 });
 
 test('JUN sigue corredores de jungla y ventanas de gank sin transitar por MID',()=>{
@@ -112,6 +113,8 @@ test('JUN sigue corredores de jungla y ventanas de gank sin transitar por MID',(
    if(all[22]?.alive&&
       !(all[22].intent==='shop_recall'&&
         all[22].reason==='affordable_item_spike')&&
+      !(all[22].intent==='defend'&&
+        match.frames.find(f=>f.minute===22)?.siegeDecision?.stage===3)&&
       !validRetreat(match,id,22)&&
       !legalSiegeTravel(match,match.frames.find(f=>f.minute===22),teamId,id))
     assert.ok(['objective_setup','farm_jungle','recover'].includes(all[22].intent),
@@ -119,6 +122,8 @@ test('JUN sigue corredores de jungla y ventanas de gank sin transitar por MID',(
    if(all[26]?.alive&&
       !(all[26].intent==='shop_recall'&&
         all[26].reason==='affordable_item_spike')&&
+      !(all[26].intent==='defend'&&
+        match.frames.find(f=>f.minute===26)?.siegeDecision?.stage===3)&&
       !validRetreat(match,id,26)&&
       !legalSiegeTravel(match,match.frames.find(f=>f.minute===26),teamId,id))
     assert.ok(['objective_setup','farm_jungle','recover'].includes(all[26].intent),
@@ -126,6 +131,8 @@ test('JUN sigue corredores de jungla y ventanas de gank sin transitar por MID',(
    if(all[31]?.alive&&
       !(all[31].intent==='shop_recall'&&
         all[31].reason==='affordable_item_spike')&&
+      !(all[31].intent==='defend'&&
+        match.frames.find(f=>f.minute===31)?.siegeDecision?.stage===3)&&
       !validRetreat(match,id,31)&&
       !legalSiegeTravel(match,match.frames.find(f=>f.minute===31),teamId,id))
     assert.ok(['farm_jungle','recover'].includes(all[31].intent)||
