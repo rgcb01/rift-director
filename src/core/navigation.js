@@ -168,6 +168,10 @@ function siegeOpportunities(nav,world,t,context=null){
     theirs.reduce((sum,p)=>sum+offensivePower(p),0)/theirs.length):0;
   const deadEnemies=teamAgents(nav,foe).filter(p=>
    (world.dead?.[p.id]||0)>t).length;
+  const lead=(world.gold?.[team]||0)-(world.gold?.[foe]||0);
+  const finished=new Set((core.PowerEconomy?.ITEM_CATALOG||[]).map(i=>i.id));
+  const completed=ours.reduce((n,p)=>n+(world.powerEconomy?.entries?.[p.id]?.items||[])
+   .filter(id=>finished.has(id)).length,0);
   for(const lane of LANES){
    const stage=world.lanes?.[foe]?.[lane];
    if(!Number.isInteger(stage)||stage<0||stage>3||
@@ -177,8 +181,15 @@ function siegeOpportunities(nav,world,t,context=null){
    const wave=core.LaneEconomy.pressureFor(waveModel,team,lane);
    // An advanced lane needs less push momentum than an untouched outer
    // tower, but a losing wave never creates a free tower/nexus attempt.
-   const minimumWave=stage===3?-.20:stage>0?.20:.38;
+   const committed=nav.siegeTeam===team&&nav.siegeLane===lane&&nav.siegeUntil>t;
+   const minimumWave=committed?-.20:stage===3?-.20:stage>0?.20:.48;
    if(wave<minimumWave)continue;
+   // Neither a stopwatch nor a tiny early wave authorizes abandoning lanes.
+   // An untouched outer tower requires an earned kill, a substantial lead
+   // alongside the wave, or bought equipment able to convert into pressure.
+   const earned=deadEnemies>0||lead>=2200&&wave>=1.05||
+    completed>=2&&wave>=.85;
+   if(stage===0&&!earned)continue;
    // Distance is graph travel, NOT a global asiedio timer. A nearby
    // competent pair can rotate before a rich but distant team.
    const escorts=ours.map(p=>({id:p.id,hops:hops(p.node,goal),
@@ -204,7 +215,7 @@ function siegeOpportunities(nav,world,t,context=null){
     defenders*.9-fogCost;
    // Victory route and actual eliminated defenders matter, but neither
    // a gold lead nor an absolute minute may authorize a push on its own.
-   const required=stage===3?2.2:3.2;
+   const required=stage===3?1.6:stage>0?2.4:3.2;
    if(score<required||localEdge<1&&!deadEnemies)continue;
    out.push({team,lane,goal,stage,wave,score,escorts:escorts.map(p=>p.id),
     travel,local,defenders,vision,powerEdge,deadEnemies,
