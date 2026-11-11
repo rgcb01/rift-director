@@ -179,3 +179,79 @@ test('partida antigua v2 sin momentos: historial navegable por minuto y fin de p
  assert.equal(match.finished,true);
  assert.equal(sim.seekReplay(0),true);
 });
+
+
+test('UX replay transport: previous and latest are reversible and never persist a demo',()=>{
+ const {sim,store}=boot({now:1731111111000});
+ sim.startDemoMatch();
+ const live=sim.getState().live;
+ let html=sim.renderMatch();
+ assert.match(html,/data-action="replay-prev" disabled/);
+ assert.match(html,/data-action="replay-latest" disabled/);
+ assert.match(html,/role="progressbar"/);
+ sim.nextReplay();
+ sim.nextReplay();
+ assert.equal(live.replayCursor,2);
+ const press=action=>sim.handleClick({target:{closest:()=>({dataset:{action}})}});
+ press('replay-prev');
+ assert.equal(live.replayCursor,1);
+ assert.equal(live.replayProgress,2,'Backward review does not rewind the discovered frontier');
+ press('replay-latest');
+ assert.equal(live.replayCursor,2);
+ assert.equal(live.replayProgress,2);
+ assert.equal(sim.seekReplay(3),false,'Future events remain inaccessible');
+ assert.equal(store.size,0,'Demo navigation does not touch persistent save');
+ sim.exitDemoMatch();
+ assert.equal(sim.getState(),null);
+});
+
+
+test('UX-1 Match Center prioritizes score and map, filters only observed events and expands TAB safely',()=>{
+ const {sim,store}=boot({now:1731111111000});
+ sim.startDemoMatch();
+ const live=sim.getState().live;
+ let html=sim.renderMatch();
+ assert.ok(html.indexOf('match-center-stage')>=0);
+ assert.ok(html.indexOf('scoreboard')<html.indexOf('Minimapa táctico'));
+ assert.ok(html.indexOf('Minimapa táctico')<html.indexOf('Historial de jugadas'));
+ assert.match(html,/data-action="match-toggle-roster" aria-expanded="false"/);
+ assert.match(html,/id="match-champions-content" hidden/);
+ assert.match(html,/data-action="replay-filter" data-kind="all" aria-pressed="true"/);
+ const press=(action,kind)=>sim.handleClick({target:{closest:()=>({dataset:{action,kind}})}});
+ press('match-toggle-roster');
+ html=sim.renderMatch();
+ assert.match(html,/data-action="match-toggle-roster" aria-expanded="true"/);
+ assert.match(html,/id="match-champions-content" >/);
+ assert.match(html,/Campeones y builds/);
+ press('replay-filter','objective');
+ html=sim.renderMatch();
+ assert.match(html,/data-action="replay-filter" data-kind="objective" aria-pressed="true"/);
+ assert.match(html,/El filtro no cambia la simulación/);
+ assert.equal(live.replayCursor,0);
+ assert.equal(live.replayProgress,0);
+ assert.equal(store.size,0);
+ sim.nextReplay();sim.nextReplay();
+ press('replay-prev');
+ assert.equal(live.replayCursor,1);
+ html=sim.renderMatch();
+ assert.match(html,/data-action="match-toggle-roster" aria-expanded="true"/);
+ assert.match(html,/data-action="replay-filter" data-kind="objective" aria-pressed="true"/);
+ assert.equal(sim.seekReplay(3),false,'Filter never reveals undiscovered events');
+ press('replay-filter','all');
+ assert.match(sim.renderMatch(),/data-action="replay-filter" data-kind="all" aria-pressed="true"/);
+ assert.equal(store.size,0);
+ sim.exitDemoMatch();
+ assert.equal(sim.getState(),null);
+});
+
+test('UX-1 historical replay does not fabricate event-level precision or earned gold',()=>{
+ const {sim,world,fixture}=setup();
+ const match=sim.simulateMatch(fixture);
+ delete match.moments;
+ delete match.broadcast;
+ world.live=match;
+ const html=sim.renderMatch();
+ assert.match(html,/Partido histórico: reconstrucción aproximada por minuto/);
+ assert.match(html,/Campeones, niveles y objetos/);
+ assert.match(html,/match-current-event/);
+});
