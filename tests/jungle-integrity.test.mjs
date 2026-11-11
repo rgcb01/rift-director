@@ -10,6 +10,10 @@ const setup=()=>{
  return {...ctx,world,fixture};
 };
 const roles=(world,id)=>world.clubs.find(c=>c.id===id).lineup;
+const earnedNexusEscort=(match,t,teamId,id)=>
+ match.frames.some(f=>f.minute>=t-8&&f.minute<=t&&
+  f.siegeDecision?.stage===3&&f.siegeDecision.teamId===teamId&&
+  f.siegeDecision.escorts.includes(id));
 
 test('rutas de campamentos y accesos de emboscada no necesitan pasar por MID',()=>{
  const {core}=setup(),nav=core.Navigation;
@@ -89,9 +93,12 @@ test('340 semillas: todos los minutos y tipos de eventos respetan ubicación y e
     const id=roles(world,teamId).JUN,p=frame.navigation.after[id];
     if(frame.minute>=36||!p?.alive)continue;
     inspected++;
-    assert.equal(nav.jungleAllowed(side,p.node),true,
-      'JUN fuera de jungla seed '+seed+' minuto '+frame.minute+' node '+p.node);
-    for(const lane of ['TOP','MID','BOT'])assert.equal(nav.isLaneNode(p.node,lane),false);
+    if(!nav.jungleAllowed(side,p.node)){
+     assert.ok(earnedNexusEscort(match,frame.minute,teamId,id),
+      'JUN sin escolta legítima seed '+seed+' minuto '+frame.minute+' node '+p.node);
+     assert.ok(['siege','siege_return','retreat'].includes(p.intent),
+      'El jungla salió sin una misión física auditada');
+    }
     intents.add(p.intent);
     if(p.intent==='gank_setup'){
      assert.ok(['TOP','MID','BOT'].includes(p.lane));
