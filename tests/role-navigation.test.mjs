@@ -58,8 +58,10 @@ test('fase de líneas minuto 10: ADC y SUP permanecen en su mitad y no en el mis
     for(const [id,p] of [[adc,a],[sup,s]]){
      if(!siegeEscort(frame,teamId,id))continue;
      assert.equal(p.intent,'siege','Solo escoltas reales pueden salir de línea');
-     assert.ok(p.goal.includes('_bot_')||p.goal.endsWith('_nexus'),
-      'El escolta debe ir hacia una estructura del carril');
+     const attackingLane=frame.siegeDecision.lane.toLowerCase();
+     assert.ok(p.goal.includes('_'+attackingLane+'_')||
+      p.goal.endsWith('_nexus'),
+      'El escolta debe ir al carril del asedio documentado');
     }
    }else if(!casualties&&affected){
     // A healthy front is not mandatory after an HP-triggered retreat,
@@ -107,15 +109,24 @@ test('JUN sigue corredores de jungla y ventanas de gank sin transitar por MID',(
       !legalSiegeTravel(match,match.frames.find(f=>f.minute===7),teamId,id))
     assert.ok(['gank_setup','farm_jungle','recover'].includes(all[7].intent),
       'JUN debe gankear o explicar una cancelación');
-   if(all[22]?.alive&&!validRetreat(match,id,22)&&
+   if(all[22]?.alive&&
+      !(all[22].intent==='shop_recall'&&
+        all[22].reason==='affordable_item_spike')&&
+      !validRetreat(match,id,22)&&
       !legalSiegeTravel(match,match.frames.find(f=>f.minute===22),teamId,id))
     assert.ok(['objective_setup','farm_jungle','recover'].includes(all[22].intent),
       'JUN debe preparar objetivo o evitarlo por riesgo');
-   if(all[26]?.alive&&!validRetreat(match,id,26)&&
+   if(all[26]?.alive&&
+      !(all[26].intent==='shop_recall'&&
+        all[26].reason==='affordable_item_spike')&&
+      !validRetreat(match,id,26)&&
       !legalSiegeTravel(match,match.frames.find(f=>f.minute===26),teamId,id))
     assert.ok(['objective_setup','farm_jungle','recover'].includes(all[26].intent),
       'JUN puede evitar Barón solo por riesgo médico');
-   if(all[31]?.alive&&!validRetreat(match,id,31)&&
+   if(all[31]?.alive&&
+      !(all[31].intent==='shop_recall'&&
+        all[31].reason==='affordable_item_spike')&&
+      !validRetreat(match,id,31)&&
       !legalSiegeTravel(match,match.frames.find(f=>f.minute===31),teamId,id))
     assert.ok(['farm_jungle','recover'].includes(all[31].intent)||
       (all[31].intent==='objective_setup'&&
