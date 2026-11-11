@@ -145,6 +145,7 @@ function render(options={}){
   '<p class="helper">Los pequeños cambios de promedios no prueban por sí mismos que el balance haya mejorado. Las validaciones de causalidad siguen siendo responsabilidad de los benchmarks y sus gates.</p>'+
   '</aside></div>'+
   '<section class="panel balance-data-panel"><div class="panel-head"><h2>Tabla de métricas</h2><span class="chip">No medido ≠ 0</span></div>'+
+  '<p class="helper balance-swipe-tip">En móvil, desliza la tabla horizontalmente para ver las dos versiones y el delta.</p>'+ 
   '<div class="table-wrap"><table class="table balance-data-table"><thead><tr><th scope="col">Indicador</th>'+
   '<th scope="col">'+escape(baseline.version)+'</th><th scope="col">'+escape(current.version)+'</th>'+
   '<th scope="col">Delta</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
