@@ -215,7 +215,11 @@ function siegeOpportunities(nav,world,t,context=null){
    // Victory route and actual eliminated defenders matter, but neither
    // a gold lead nor an absolute minute may authorize a push on its own.
    const required=stage===3?1.6:stage>0?2.4:3.2;
-   if(score<required||localEdge<1&&!deadEnemies)continue;
+   // On an already opened Nexus route, numerical inferiority is a
+   // combat risk, not an absolute ban on a physical assault. The Nexus
+   // damage ledger still requires a real wave, two living attackers
+   // at the base and applies the actual defenders' damage reduction.
+   if(score<required||(stage<3&&localEdge<1&&!deadEnemies))continue;
    out.push({team,lane,goal,stage,wave,score,escorts:escorts.map(p=>p.id),
     travel,local,defenders,vision,powerEdge,deadEnemies,
     required,minimumWave});
