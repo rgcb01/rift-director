@@ -150,3 +150,18 @@ for(const [batch,pair,seed] of [[5,288,4130985195],[8,400,3405975574]]){
   }
  });
 }
+
+test('integrated kits: standard seed 307 does not abandon a viable siege for Baron',()=>{
+ const batch=3,i=307,seed=2869273992;
+ const {sim,core}=boot({now:1731111111000+batch*41241211});
+ const world=sim.newGame('balanced','QA Balance '+batch);
+ const fixtures=Object.values(world.fixtures).flat();
+ const f=fixtures[(i*13+batch*7)%fixtures.length];
+ world.rng=seed;
+ const m=sim.simulateMatch(f);
+ assert.ok(m.winner,'Exact standard regression must have a winner');
+ const errors=[...core.auditMatch(m,world),...core.NexusSiege.audit(m),
+  ...core.Encounters.audit(m,world),...core.ChampionKits.audit(m)];
+ assert.equal(errors.length,0,errors.join(' | '));
+ assert.ok(m.events.some(e=>e.facts?.action==='nexus'));
+});
