@@ -452,6 +452,21 @@ function chooseGoal(nav,agent,t,worldState,context=null){
  // the objective's actual JUN/SUP pair if at least two other attackers
  // can continue the siege; a real opened Nexus still takes priority.
  const objectiveCall=nav.neutralPlans?.[team];
+ // A formed objective squad is a competing team-level commitment.
+ // Do not peel one member at a time into the river while the others siege.
+ // Preserve an open Nexus route, the reserved splitpusher, and a strong
+ // local siege with attackers already on site.
+ const groupPlan=objectiveCall?.reinforcementIds?.length>0&&
+  ['take','contest'].includes(objectiveCall.action)&&objectiveCall.until>=t;
+ const mainSiege=team===nav.siegeTeam?nav.siegeDecision:null;
+ const strongSiege=mainSiege&&mainSiege.wave>=1.45&&mainSiege.travel<=2;
+ if(!finish&&groupPlan&&!strongSiege&&
+    mainSiege?.sidePlan?.actorId!==agent.id&&
+    (['JUN','SUP'].includes(role)||objectiveCall.reinforcementIds.includes(agent.id))&&
+    (context?.health?.[agent.id]??100)>=55){
+  const formationMove=core.NeutralObjectives?.movement(nav,agent,t,worldState);
+  if(formationMove)return formationMove;
+ }
  const baronPlan=objectiveCall?.target==='baron_pit'&&
   ['take','contest'].includes(objectiveCall.action)&&
   objectiveCall.until>=t;
