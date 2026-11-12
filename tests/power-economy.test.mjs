@@ -223,3 +223,40 @@ test('healthy first recall requires a real favorable wave and affordable nearby 
  p.intent='lane';r.wallet=500;r.earned=500;
  assert.equal(E.shouldRecall(model,nav,p,20,w,{health}),false);
 });
+
+test('role economy conserves team income, credits only physical jungle farming and shares lane XP',()=>{
+ const {core}=boot();
+ const E=core.PowerEconomy,model=E.create(testRoster());
+ const nodes={TOP:'top_front',MID:'mid_front',ADC:'bot_front',SUP:'bot_front',JUN:'jungle_upper'};
+ const nav={a:'a',b:'b',agents:Object.fromEntries(testRoster().map(p=>
+  [p.id,{...p,alive:true,node:(p.teamId==='a'?'blue_':'red_')+nodes[p.role],
+    intent:p.role==='JUN'?'farm_jungle':'lane'}]))};
+ nav.agents['b-JUN'].node='baron_pit';
+ nav.agents['b-JUN'].intent='objective_setup';
+ const health=Object.fromEntries(testRoster().map(p=>[p.id,100]));
+ E.advance(model,{nav,dead:{},minute:1,teamIncome:{a:1000,b:1000},health});
+ const rows=model.entries;
+ assert.equal(rows['a-JUN'].jungleFarm,100);
+ assert.equal(rows['a-JUN'].farm,100);
+ assert.equal(rows['b-JUN'].jungleFarm,0);
+ assert.equal(rows['a-JUN'].xp,58);
+ assert.equal(rows['b-JUN'].xp,35);
+ assert.equal(rows['a-TOP'].xp,72);
+ assert.equal(rows['a-MID'].xp,72);
+ assert.equal(rows['a-ADC'].xp,56);
+ assert.equal(rows['a-SUP'].xp,56);
+ for(const team of ['a','b']){
+  const earned=Object.values(rows).filter(p=>p.teamId===team).reduce((n,p)=>n+p.earned-500,0);
+  assert.equal(earned,1000,'Jungle allocation must not inflate team income');
+ }
+ E.awardFarm(model,{teamId:'a',lane:'BOT',gold:101},nav,health);
+ assert.equal(rows['a-ADC'].farm,81);
+ assert.equal(rows['a-SUP'].farm,20);
+ const laneIncome=Object.values(rows).filter(p=>p.teamId==='a').reduce((n,p)=>n+p.farm-p.jungleFarm,0);
+ assert.equal(laneIncome,101,'Exact integer distribution of existing lane gold');
+ nav.agents['a-JUN'].intent='objective_setup';
+ E.advance(model,{nav,dead:{},minute:2,teamIncome:{a:1000,b:1000},health});
+ assert.equal(rows['a-JUN'].jungleFarm,100,'Rotating instead of farming does not grant jungle income');
+ assert.equal(Object.values(rows).filter(p=>p.teamId==='a').reduce((n,p)=>n+p.earned-500,0),2101);
+ for(const p of Object.values(rows))assert.equal(p.wallet+p.spent,p.earned);
+});
