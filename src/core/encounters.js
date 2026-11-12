@@ -140,7 +140,37 @@ function retreatDestination(nav,agent,minute){
  const lane=agent.role==='ADC'||agent.role==='SUP'?'bot':agent.role.toLowerCase();
  return side+'_'+lane+'_inner';
 }
-function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attackerIds,targetIds,lane=null,powerState=null}){
+// A genuine group fight needs opposing formations, not merely a pick
+// labelled "teamfight". Every member must be alive, close to the arena
+// and able to reach at least one member of the opposite group.
+function groupOpportunity({nav,dead,minute,players,health,seed,world,powerState=null,previous=-10}){
+ if(minute-previous<3)return null;
+ const zones=[];
+ if(minute>=world.nextDragon)zones.push('dragon_pit');
+ if(minute>=world.nextBaron)zones.push('baron_pit');
+ zones.push('mid_center');
+ const choices=[];
+ for(const zone of zones){
+  const groups={};
+  for(const team of [nav.a,nav.b])groups[team]=Object.values(nav.agents).filter(p=>
+   p.teamId===team&&p.alive&&(dead[p.id]||0)<=minute&&
+   p.intent!=='retreat'&&(health[p.id]??0)>=34&&
+   core.Navigation.hops(p.node,zone)<=2&&nearZone(p,zone));
+  const first=groups[nav.a],second=groups[nav.b];
+  const a=first.filter(p=>second.some(q=>hitRange(p,q,'teamfight')));
+  const b=second.filter(p=>first.some(q=>hitRange(p,q,'teamfight')));
+  if(a.length<3||b.length<3)continue;
+  const strength=ps=>ps.reduce((n,p)=>n+
+   power(players[p.id],powerState,'attack')*.65+(health[p.id]??100)*.35,0);
+  const edge=strength(a)-strength(b);
+  const initiative=edge+(hash(seed,minute,zone,'group-initiative')%31-15);
+  const firstTeam=initiative>=0?nav.a:nav.b;
+  choices.push({zone,firstTeam,groups:{[nav.a]:a.map(p=>p.id),
+   [nav.b]:b.map(p=>p.id)},score:a.length+b.length+(zone==='mid_center'?0:2)});
+ }
+ return choices.sort((x,y)=>y.score-x.score||x.zone.localeCompare(y.zone))[0]||null;
+}
+function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attackerIds,targetIds,lane=null,powerState=null,groupExchange=false}){
  if(!['lane','gank','teamfight'].includes(mode)||![nav.a,nav.b].includes(teamId))
   throw Error('Invalid combat mode/team');
  const get=id=>nav.agents[id],alive=id=>get(id)?.alive&&
@@ -172,7 +202,10 @@ function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attacker
   const before=health[target.id]??100;
   const variance=(hash(seed,minute,mode,leader.id,target.id)%1000)/1000;
   const base={lane:21,gank:52,teamfight:42}[mode];
-  const outnumber=clamp(allies.length-1,0,3);
+  // In a group engagement, enemies can cover one another. Equal-sized
+  // groups exchange damage rather than treating each rival as an isolated
+  // 3v1. Picks, ganks and structure contests retain their existing rules.
+  const outnumber=clamp(groupExchange?allies.length-defenders.length:allies.length-1,0,3);
   const delta=power(players[leader.id],powerState,'attack')-power(players[target.id],powerState,'defense');
   const burst=variance>.88?(mode==='lane'?12:26):0;
   const rawDamage=base+outnumber*(mode==='lane'?8:19)+
@@ -291,5 +324,5 @@ function audit(match,world){
  }
  return errs;
 }
-core.Encounters=Object.freeze({create,recover,locate,resolve,resolveCombat,laneRange,hitRange,retreatDestination,power,distance,nearZone,threat,audit});
+core.Encounters=Object.freeze({create,recover,locate,resolve,groupOpportunity,resolveCombat,laneRange,hitRange,retreatDestination,power,distance,nearZone,threat,audit});
 })(globalThis);
