@@ -74,6 +74,11 @@ export function flatten(d){
   macroObjectiveTurnsMean:s.gameplay.macroObjectiveTurnsPerMatch??null,
   macroExposedPushMean:s.gameplay.macroExposedPushTurnsPerMatch??null,
   macroEscortedObjectiveMean:s.gameplay.macroEscortedObjectiveTurnsPerMatch??null,
+  groupFightMean:s.gameplay.groupFightsPerMatch??null,
+  groupFightRate:s.gameplay.groupFightGames===undefined?null:ratio(s.gameplay.groupFightGames,s.completed),
+  groupFightKillsMean:s.gameplay.groupFightKillsPerMatch??null,
+  fullFiveOnFive:s.gameplay.fullFiveOnFive??null,
+  groupFightResponses:s.gameplay.groupFightResponses??null,
   counterplayFightsMean:s.gameplay.counterplayFightsPerMatch??null,
   counterplayKillsMean:s.gameplay.counterplayKillsPerMatch??null,
   underdogFightsMean:s.gameplay.underdogFightsPerMatch??null,
@@ -275,6 +280,11 @@ const keys=[
  ['macroObjectiveTurnsMean','Minutos-jugador dedicados a rotar por objetivos por mapa','num'],
  ['macroExposedPushMean','Minutos-jugador de pushes con riesgo alto observado','num'],
  ['macroEscortedObjectiveMean','Minutos-jugador de rotaciones con escoltas propias','num'],
+ ['groupFightMean','Teamfights reales por mapa','num'],
+ ['groupFightRate','Mapas con teamfight real','rate'],
+ ['groupFightKillsMean','Kills en teamfights por mapa','num'],
+ ['fullFiveOnFive','Teamfights 5v5 en la muestra','num'],
+ ['groupFightResponses','Respuestas en teamfights en la muestra','num'],
  ['counterplayFightsMean','Peleas iniciadas por oportunidad visible por mapa','num'],
  ['counterplayKillsMean','Kills por peleas tácticas por mapa','num'],
  ['underdogFightsMean','Contraataques estando atrás por mapa','num'],
@@ -374,6 +384,12 @@ export function generate(current,previous,output){
    {label:'Disputado',value:(assessment.current.contestedDragonRate||0)*100},
    {label:'Torre de intercambio',value:(assessment.current.crossmapTowerRate||0)*100}
   ],{max:100,decimals:0})],
+  ...(s.gameplay.groupFightGames===undefined?[]:[['teamfights.svg',bars('Teamfights reales por cada 100 mapas',[
+   {label:'Teamfights',value:(assessment.current.groupFightMean||0)*100},
+   {label:'Kills',value:(assessment.current.groupFightKillsMean||0)*100},
+   {label:'Mapas con teamfight',value:(assessment.current.groupFightRate||0)*100},
+   {label:'5v5',value:ratio(assessment.current.fullFiveOnFive||0,s.completed)*100}
+  ],{decimals:1})]]),
   ['counterplay.svg',bars('Peleas tácticas y conversión territorial por 100 mapas',[
    {label:'Peleas con kill',value:(assessment.current.counterplayWinRate||0)*100},
    {label:'Torres de respuesta',value:(assessment.current.earnedFightTowerRate||0)*100},
