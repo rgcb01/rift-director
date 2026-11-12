@@ -108,6 +108,17 @@ function plan(nav,world,minute,health){
    score:+score.toFixed(2),
    enemyId:foe,created:minute,until:minute+commitment,
    cooldownUntil:minute+(objective==='baron'?commitment+3:12)};
+  // A healthy MID can reinforce a contested river objective if the
+  // lane is stable, the pair is healthy and all three can really arrive.
+  // The call only reserves movement; no group fight or capture is assured.
+  const mid=Object.values(nav.agents).find(p=>p.teamId===id&&p.role==='MID');
+  const midWave=world.waves?.MID?core.LaneEconomy.pressureFor(
+   {teamIds:[nav.a,nav.b],lanes:world.waves},id,'MID'):0;
+  if(minute>=22&&['take','contest'].includes(action)&&mid?.alive&&
+     (health?.[mid.id]??100)>=65&&hpJ>=55&&hpS>=55&&
+     midWave>=-.65&&core.Navigation.hops(mid.node,target)<=commitment&&
+     (world.map?.riverVision?.[id]??50)>=48)
+   call.reinforcementId=mid.id;
   nav.neutralCalls[id]=call;
   out[id]=call;
  }
@@ -124,6 +135,15 @@ function movement(nav,agent,minute,worldState){
   const side=foe===nav.a?'blue':'red';
   return {goal:core.Navigation.towerNode(side,'TOP',stage),
    intent:'splitpush',lane:'TOP',reason:'dragon_crossmap_trade',decisionVersion:4};
+ }
+ // A named MID reinforcement can walk to the pit, but cannot abandon
+ // a newly threatened wave or an active finishing siege.
+ if(agent.role==='MID'&&agent.id===call.reinforcementId&&
+    ['take','contest'].includes(call.action)&&worldState.waves?.MID){
+  const wave=core.LaneEconomy.pressureFor(
+   {teamIds:[nav.a,nav.b],lanes:worldState.waves},agent.teamId,'MID');
+  if(wave>=-.65)return {goal:call.target,intent:'objective_setup',
+   reason:call.reason,decisionVersion:4};
  }
  // JUN/SUP are the two required physical escorts. The caller does not
  // teleport ADC and can still lose the objective if they arrive injured.
