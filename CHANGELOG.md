@@ -4,6 +4,10 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental: recalls según oleadas (rama independiente)
+- Primer regreso para comprar con oleada favorable ≥1.05, visión ≥55 y viaje real de hasta cuatro aristas desde el minuto 14. No abandona un asedio comprometido, no compra sin cartera suficiente, no teletransporta y conserva los límites existentes de resets.
+- Exploración controlada (80 partidas por variante, mismas semillas y mundos, base PR #54 `e8ebaf2`): 80/80 terminadas por variante y cero errores de las auditorías comprobadas. Compras 6.99→10.41, gasto 20,251→30,973, cartera final 60,971→56,220, primera compra 15.38→14.25 min, kills 5.26→6.04, duración 31.69→34.70, teamfights 9→26. Minutos-jugador de recall 4.75→11.50 por partida: revisar coste de oportunidad. No equivale a la batería de 2,000 ni a un release validado.
+
 ## [0.7.17-alpha] — 2026-11-09 (release validada)
 
 ### Primer vertical slice: escalado real de los diez campeones
