@@ -473,7 +473,11 @@ function chooseGoal(nav,agent,t,worldState,context=null){
  const groupPlan=objectiveCall?.reinforcementIds?.length>0&&
   ['take','contest'].includes(objectiveCall.action)&&objectiveCall.until>=t;
  const mainSiege=team===nav.siegeTeam?nav.siegeDecision:null;
- const strongSiege=mainSiege&&mainSiege.wave>=1.45&&mainSiege.travel<=2;
+ // A viable wave and two reachable escorts already constitute a real
+ // siege investment. Do not repeatedly pull them into river formations
+ // before the first tower is hit. Distant or cleared pushes may yield.
+ const strongSiege=mainSiege&&mainSiege.wave>=.48&&
+  mainSiege.travel<=4&&mainSiege.escorts.length>=2;
  if(!finish&&groupPlan&&!strongSiege&&
     mainSiege?.sidePlan?.actorId!==agent.id&&
     (['JUN','SUP'].includes(role)||objectiveCall.reinforcementIds.includes(agent.id))&&
