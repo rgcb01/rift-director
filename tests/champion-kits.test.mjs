@@ -201,3 +201,24 @@ test('same-minute mixed encounters never rewind a champion clock or cast past th
  const exhausted=core.ChampionKits.preview(kits,power,nav,actor,target,minute,'teamfight');
  assert.equal(exhausted.casts.length,0,'No spillover casts into another map minute');
 });
+
+test('explicit draft substitution changes only the chosen professional and preserves default replay determinism',()=>{
+ const {sim,core,world,fixture,a}=setup();
+ const professional=a.lineup.TOP;
+ world.rng=987653;
+ const base=sim.simulateMatch(fixture);
+ const original=base.champions.entries[professional];
+ const alternate=Object.values(core.ChampionScaling.DEFINITIONS)
+  .find(c=>c.role==='TOP'&&c.id!==original).id;
+ world.rng=987653;
+ const changed=sim.simulateMatch(fixture,{draft:{[professional]:alternate}});
+ const expected={...base.champions.entries,[professional]:alternate};
+ assert.deepEqual(clone(changed.champions.entries),clone(expected));
+ assert.equal(changed.frames[0].powerEconomy.entries[professional].championId,alternate);
+ assert.equal(core.ChampionKits.audit(changed).length,0);
+ world.rng=987653;
+ const repeated=sim.simulateMatch(fixture,{draft:{[professional]:original}});
+ assert.deepEqual(clone(repeated.frames),clone(base.frames));
+ assert.throws(()=>sim.simulateMatch(fixture,{draft:{[professional]:'nyra'}}),
+  /Invalid counterfactual champion assignment/);
+});
