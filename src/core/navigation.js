@@ -237,13 +237,12 @@ function siegeOpportunities(nav,world,t,context=null){
 function nexusRally(nav,world,team,lane,t,health={}){
  const request=nav.nexusRegroup?.[team];
  if(!request||world.lanes?.[enemy(nav,team)]?.[lane]!==3)return null;
- if(request.releaseUntil>=t)return null;
  const goal=towerNode(getSide(nav,enemy(nav,team)),lane,2);
  const ready=teamAgents(nav,team).filter(p=>p.alive&&
   (world.dead?.[p.id]||0)<=t&&p.intent!=='retreat'&&
   (health[p.id]??100)>=65&&p.node===goal);
  if(ready.length>=3){
-  request.releaseUntil=t+Math.max(3,hops(goal,getSide(nav,enemy(nav,team))+'_nexus')+2);
+  delete nav.nexusRegroup[team];
   return null;
  }
  return {goal,lane,created:request.created,ready:ready.map(p=>p.id)};
