@@ -175,14 +175,18 @@ function siegeOpportunities(nav,world,t,context=null){
    const stage=world.lanes?.[foe]?.[lane];
    if(!Number.isInteger(stage)||stage<0||stage>3||
       !world.waves?.[lane])continue;
-   const goal=stage===3?getSide(nav,foe)+'_nexus':
-    towerNode(getSide(nav,foe),lane,stage+1);
    const wave=core.LaneEconomy.pressureFor(waveModel,team,lane);
+   // An opened lane whose wave has been cleared is a staging opportunity,
+   // not permission to attack the Nexus. Rebuild the wave at the former
+   // base tower before advancing; require a real, healthy formation.
+   const rebuild=stage===3&&wave<-.20;
+   const goal=stage===3?(rebuild?towerNode(getSide(nav,foe),lane,3):
+    getSide(nav,foe)+'_nexus'):towerNode(getSide(nav,foe),lane,stage+1);
    // An advanced lane needs less push momentum than an untouched outer
    // tower, but a losing wave never creates a free tower/nexus attempt.
    const committed=nav.siegeTeam===team&&nav.siegeLane===lane&&nav.siegeUntil>t;
    const minimumWave=committed?-.20:stage===3?-.20:stage>0?.35:.48;
-   if(wave<minimumWave)continue;
+   if(wave<minimumWave&&!rebuild)continue;
    // Neither a stopwatch nor a tiny early wave authorizes abandoning lanes.
    // An untouched outer tower requires an earned kill, a substantial lead
    // alongside the wave, or bought equipment able to convert into pressure.
@@ -195,7 +199,9 @@ function siegeOpportunities(nav,world,t,context=null){
     lanePresent:isLaneNode(p.node,lane)}))
     .filter(p=>p.hops<=7&&(stage===3||p.role!=='JUN')).sort((a,b)=>a.hops-b.hops||
      a.id.localeCompare(b.id));
-   if(escorts.length<2||escorts[0].hops>5)continue;
+   if(escorts.length<(rebuild?3:2)||escorts[0].hops>5)continue;
+   if(rebuild&&escorts.filter(p=>(hp[p.id]??100)>=60&&p.hops<=5).length<3)
+    continue;
    const local=escorts.filter(p=>p.lanePresent||p.hops<=3).length;
    const travel=(escorts[0].hops+escorts[1].hops)/2;
    // Never read invisible opponent positions to choose a push.
@@ -222,7 +228,7 @@ function siegeOpportunities(nav,world,t,context=null){
    if(score<required||(stage<3&&localEdge<1&&!deadEnemies))continue;
    out.push({team,lane,goal,stage,wave,score,escorts:escorts.map(p=>p.id),
     travel,local,defenders,vision,powerEdge,deadEnemies,
-    required,minimumWave});
+    required,minimumWave,...(rebuild?{rebuild:true}:{})});
   }
  }
  return out.sort((x,y)=>y.score-x.score||
@@ -261,7 +267,15 @@ function determineSiege(nav,worldState,t,context=null){
  // restarting unrelated outer-tower marches. A major opposing earned
  // opportunity can still interrupt the current plan.
  const endgame=options.find(p=>p.team===nav.siegeTeam&&p.stage===3&&
-  p.wave>=-.20&&p.escorts.length>=2);
+  p.wave>=-.20&&p.escorts.length>=2)||
+  options.find(p=>p.stage===3&&!p.rebuild);
+ // Rebuilding a cleared lane is preferable to repeatedly contesting
+ // unrelated outer towers once a real route to victory has been earned.
+ const rebuild=options.find(p=>p.team===nav.siegeTeam&&p.rebuild)||
+  options.find(p=>p.rebuild);
+ const closing=options.find(p=>p.team===nav.siegeTeam&&p.stage===2&&
+  p.wave>=1.05&&p.escorts.length>=2&&p.travel<=3&&
+  (!old||old.stage<2));
  // An unproductive outer-tower march must not renew its commitment
  // forever. Judge the actual persistent tower HP, not the match clock.
  // If a different earned lane is viable, stop repeating a stalled push.
@@ -272,7 +286,7 @@ function determineSiege(nav,worldState,t,context=null){
   t-progress.since>=Math.max(7,Math.ceil(old.travel)+5);
  const alternative=stalled?options.find(p=>p.team===old.team&&
   p.lane!==old.lane&&p.score>=p.required&&p.wave>=.48):null;
- const top=endgame||alternative||best;
+ const top=endgame||rebuild||closing||alternative||best;
  // Once attackers have a real viable wave and local escorts, sustain
  // their push rather than re-assigning them to TOP/MID/BOT on consecutive
  // minutes. Only an open Nexus route or a substantially stronger opposing
@@ -283,13 +297,14 @@ function determineSiege(nav,worldState,t,context=null){
   top.lane!==old.lane;
  const lostInitiative=old&&top&&top.team!==old.team&&
   top.score>=old.score+6.0&&top.deadEnemies>0;
- const chosen=alternative&&!endgame?alternative:
+ const chosen=endgame||rebuild||closing||
+   (alternative?alternative:
    continuing&&!urgent&&!lostInitiative?old:
    old&&nav.siegeUntil>t&&
      (!top||top.team===old.team&&top.stage!==3&&
       top.score<old.score+5.5||
       top.team!==old.team&&top.score<old.score+4.2)?
-     old:top;
+     old:top);
  if(!chosen){
   // A broken lane is a physically earned path to victory. A momentary
   // absence of a fresh lane proposal must not pull its two travelling
@@ -357,9 +372,10 @@ function determineSiege(nav,worldState,t,context=null){
   stage:chosen.stage,score:+chosen.score.toFixed(2),wave:chosen.wave,
   travel:+chosen.travel.toFixed(2),escorts,
   ...(sidePlan?{sidePlan}:{}),
+  ...(chosen.rebuild?{rebuildGoal:chosen.goal}:{}),
   defenders:chosen.defenders,vision:chosen.vision,
   powerEdge:+chosen.powerEdge.toFixed(2)};
- if(chosen.stage===3){
+ if(chosen.stage===3&&!chosen.rebuild){
   const rally=nexusRally(nav,worldState,chosen.team,chosen.lane,t,context?.health);
   if(rally)nav.siegeDecision.rally=rally;
  }
@@ -440,8 +456,8 @@ function chooseGoal(nav,agent,t,worldState,context=null){
  // five opponents must camp the Nexus. The attacking group commits, while
  // defenders respond only when an actual enemy is observed approaching.
  if(finish&&team===nav.siegeTeam&&(role!=='JUN'||siegeEscort))
-  return {goal:getSide(nav,foe)+'_nexus',intent:'siege',
-   lane:nav.siegeLane,reason:'earned_nexus_finish',decisionVersion:2};
+  return {goal:nav.siegeDecision.rebuildGoal||getSide(nav,foe)+'_nexus',intent:'siege',
+   lane:nav.siegeLane,reason:nav.siegeDecision.rebuildGoal?'rebuild_open_lane_wave':'earned_nexus_finish',decisionVersion:2};
  if(finish&&team!==nav.siegeTeam){
   const base=side+'_nexus',lane=nav.siegeLane;
   const vision=worldState.map?.lanes?.[lane]?.vision?.[team]??50;
