@@ -312,6 +312,12 @@ function simulateMatch(f){
     defenderTeamId:defender.id,initiatorTeamId:initiatorClub.id};
    facts.node=nav.getAgent(navigation,facts.actorId).node;
    applyCombat(facts,t);
+   if(lane==='NEXUS'&&!attackerInitiates&&
+      facts.impacts.some(hit=>hit.hpAfter===0||hit.retreat)){
+    navigation.nexusRegroup??={};
+    navigation.nexusRegroup[attacker.id]={created:t};
+    facts.repulsedNexusAssault=true;
+   }
    makeEv(t,facts.victimIds.length?'¡Combate por el control de '+lane+'!':
     '¡Defensa disputada en '+lane+'!',
     player(facts.actorId).name+' se enfrenta a los defensores de '+
