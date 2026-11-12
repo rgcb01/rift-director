@@ -187,8 +187,8 @@ function compositionEffect({leader,target,allies,defenders,powerState}){
  const ownFront=allies.filter(p=>p.id!==leader.id&&frontline(p)&&close(p,leader));
  const ownSupport=allies.filter(p=>p.id!==leader.id&&archetype(p)==='support'&&close(p,leader));
  const isolated=defenders.every(p=>p.id===target.id||!close(p,target));
- const offense=(carry&&ownFront.length?.06:0)+(carry&&ownSupport.length?.04:0)+
-  (type==='assassin'&&isolated?.12:0);
+ const offense=(carry&&ownFront.length ? .06 : 0)+(carry&&ownSupport.length ? .04 : 0)+
+  (type==='assassin'&&isolated ? .12 : 0);
  const protection=protectedCarry?Math.min(.14,cover.length*.07):0;
  const multiplier=+(1+offense-protection).toFixed(3);
  return {version:1,archetype:type,frontlineIds:ownFront.map(p=>p.id),
@@ -314,6 +314,22 @@ function audit(match,world){
    const impacts=f.impacts||[],kills=[];
    for(const p of impacts){
     const target=positions[p.id];
+    if(p.composition){
+     const c=p.composition,live=match.moments[index-1]?.minute===event.minute?
+      match.moments[index-1].navigation.after:positions;
+     const supports=[...(c.frontlineIds||[]),...(c.supportIds||[])];
+     const protectors=c.coverIds||[];
+     if(!f.groupFight||c.version!==1||
+       !Number.isFinite(c.multiplier)||c.multiplier<.86||c.multiplier>1.12||
+       supports.some(id=>!live[id]?.alive||live[id].intent==='retreat'||
+        live[id].teamId!==event.teamId||!f.groupFight.groups[event.teamId].includes(id)||
+        !core.Navigation.combatRange(live[id].node,actor.node,2))||
+       protectors.some(id=>!live[id]?.alive||live[id].intent==='retreat'||
+        live[id].teamId!==target.teamId||id===target.id||
+        !f.groupFight.groups[target.teamId].includes(id)||
+        !core.Navigation.combatRange(live[id].node,target.node,2)))
+      errs.push('Composition effect without physical champion support: '+index);
+    }
     if(!target?.alive||target.node!==p.node||target.teamId===event.teamId||
        !actor||!hitRange(actor,target,mode,f.lane))
       errs.push('Impacto sin rival en alcance: '+index+' / '+p.id);
