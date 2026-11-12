@@ -216,6 +216,7 @@ export function runStandard() {
             ...core.MacroPolicy.audit(m),
             ...core.TacticalAI.audit(m,world),
             ...core.Encounters.audit(m,world),
+            ...core.ChampionKits.audit(m),
             ...core.auditMatch(m,world),
             ...core.auditMinimap(m,world),
             ...core.MatchReplay.auditMoments(m,world),

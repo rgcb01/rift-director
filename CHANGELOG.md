@@ -4,6 +4,11 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental: habilidades activas integradas
+- Integra los diez kits originales del PR #49 sobre el candidato acumulado de asedios, teamfights, recalls y progresión por rol del PR #56, sin modificar las ramas originales.
+- Los intercambios de carril, ganks, escaramuzas, teamfights grupales, counterplay y disputas de estructuras utilizan ventanas locales de cinco segundos, con recursos, cooldowns, daño/escudos/curaciones y ledger de casts. Se preservan el targeting y las sinergias de grupo; los objetivos secundarios no clonan hechizos.
+- TAB, pruebas de kits y diagnósticos de combate incluidos. Pendiente validación de la combinación mediante 1,000 partidas estándar + 500 pares espejados. No se declara release.
+
 ### Experimental: farm y XP por rol (candidato separado)
 - Distribución entera del oro de oleadas existente: dueño del carril/ADC peso 4, visitante peso 2, SUP peso 1. La suma coincide exactamente con el oro generado por la oleada.
 - XP por presencia física: 72 en línea sin compañero cercano, 56 con uno, 43 con dos o más; jungla propia con orden de farm 58, rotaciones 35, base 10. No se inventan campamentos individuales ni CS.
