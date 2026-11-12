@@ -128,7 +128,7 @@ function tagHtml(p){let items=visibleTraits(p).map(([t,k])=>`<span class="tag ${
 function record(sType,amount,note=''){s.history.unshift({year:s.year,month:s.month,type:sType,amount,note});s.history=s.history.slice(0,100)}
 function notify(t){let d=document.getElementById('toast');if(d)d.remove();d=document.createElement('div');d.className='toast';d.id='toast';d.textContent=t;document.body.appendChild(d);clearTimeout(toastTimer);toastTimer=setTimeout(()=>d.remove(),3600)}
 // MATCH ENGINE — deterministic events first; commentary describes validated state.
-function simulateMatch(f){
+function simulateMatch(f,options=null){
  // One stable world-level draw reserves a fresh match seed. All tactical
  // rolls are then private to this fixture, so adding plates/rotations
  // cannot randomly alter future transfers, finances or world news.
@@ -141,6 +141,16 @@ function simulateMatch(f){
  const pick=arr=>arr[Math.floor(rnd()*arr.length)];
  const a=club(f.a),b=club(f.b),aP=teamPlayers(a),bP=teamPlayers(b);
  const champions=RiftMatchTab.assign([...aP,...bP]);
+ // Explicit counterfactual draft overrides are for controlled simulations.
+ // The ordinary manager still uses the existing deterministic assignment.
+ if(options?.draft){
+  for(const [id,championId] of Object.entries(options.draft)){
+   const professional=[...aP,...bP].find(p=>p.id===id);
+   if(!professional||RiftCore.ChampionScaling.DEFINITIONS[championId]?.role!==professional.role)
+    throw Error('Invalid counterfactual champion assignment: '+id);
+   champions.entries[id]=championId;
+  }
+ }
  const m={minute:0,kills:{[a.id]:0,[b.id]:0},gold:{[a.id]:500,[b.id]:500},towers:{[a.id]:0,[b.id]:0},lanes:{[a.id]:{TOP:0,MID:0,BOT:0},[b.id]:{TOP:0,MID:0,BOT:0}},dragons:{[a.id]:0,[b.id]:0},barons:{[a.id]:0,[b.id]:0},dead:{},winner:null,events:[],frames:[],moments:[],nextDragon:5,nextBaron:20,baronBuff:{[a.id]:0,[b.id]:0}};
  m.nexusIntegrity={[a.id]:1,[b.id]:1};
  const all=[a,b],teams={[a.id]:aP,[b.id]:bP};
