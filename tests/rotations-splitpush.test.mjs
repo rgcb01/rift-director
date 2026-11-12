@@ -117,3 +117,55 @@ test('100 partidos de estrategia lateral preservan posición, KDA y replays',()=
  assert.ok(splitTurns>100,'Los agentes nunca deciden splitpush o contraataque');
  console.log('SPLIT_SAMPLE='+JSON.stringify({splitTurns,soloTowers,multiLaneGames:multiple}));
 });
+
+test('a strong secondary wave reserves its own laner instead of consuming all escorts',()=>{
+ const {core,a,b,nav,state,health}=setup();
+ state.lanes[b.id].BOT=1;
+ state.towers[a.id]=1;
+ state.waves.BOT.front=3.8;
+ state.waves.TOP.front=2.4;
+ for(const p of Object.values(nav.agents)){
+  p.node=p.teamId===b.id?'red_fountain':
+   p.role==='TOP'?'red_top_outer':'red_bot_outer';
+  p.intent='lane';
+ }
+ core.Navigation.determineSiege(nav,state,25,{health,map:state.map});
+ const plan=nav.siegeDecision;
+ assert.equal(plan.teamId,a.id);
+ assert.equal(plan.lane,'BOT');
+ assert.equal(plan.stage,1);
+ assert.equal(plan.sidePlan?.lane,'TOP');
+ assert.equal(plan.sidePlan?.actorId,a.lineup.TOP);
+ assert.equal(plan.sidePlan.goal,'red_top_outer');
+ assert.ok(plan.escorts.length>=2);
+ assert.ok(!plan.escorts.includes(a.lineup.TOP));
+ assert.ok(!plan.escorts.includes(a.lineup.JUN),
+  'The jungler cannot be advertised as a lane escort before a Nexus finish');
+ assert.equal(state.towers[a.id],1,'assignments award no towers');
+ assert.equal(state.lanes[b.id].TOP,0);
+ core.Navigation.advance(nav,25,{},state,{health,map:state.map});
+ const top=nav.agents[a.lineup.TOP];
+ assert.equal(top.intent,'splitpush');
+ assert.equal(top.tacticReason,'reserved_secondary_wave');
+ assert.equal(top.goal,plan.sidePlan.goal);
+ assert.ok(top.node===top.movedFrom||core.Navigation.adjacent(top.movedFrom,top.node));
+});
+
+test('the secondary assignment cannot steal the final two healthy escorts',()=>{
+ const {core,a,b,nav,state,health}=setup();
+ state.lanes[b.id].BOT=1;
+ state.towers[a.id]=1;
+ state.waves.BOT.front=3.8;
+ state.waves.TOP.front=2.4;
+ for(const p of Object.values(nav.agents)){
+  p.node=p.teamId===b.id?'red_fountain':
+   p.role==='TOP'?'red_top_outer':'red_bot_outer';
+  p.intent='lane';
+  if(p.teamId===a.id&&['MID','SUP'].includes(p.role))health[p.id]=20;
+ }
+ core.Navigation.determineSiege(nav,state,25,{health,map:state.map});
+ assert.equal(nav.siegeDecision?.teamId,a.id);
+ assert.equal(nav.siegeDecision?.lane,'BOT');
+ assert.ok(nav.siegeDecision?.escorts.length>=2);
+ assert.equal(nav.siegeDecision.sidePlan,undefined);
+});
