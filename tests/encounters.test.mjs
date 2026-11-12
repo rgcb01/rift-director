@@ -212,3 +212,24 @@ test('a real 3v3 at Baron permits two exchanges; remote players cannot join',()=
  assert.equal(core.Encounters.groupOpportunity(ctx),null,
   'remote defenders cannot become a teamfight');
 });
+
+test('drafted frontline and support protect nearby carries; assassins exploit isolation',()=>{
+ const x=setup(),{core,fixture}=x;
+ const {nav}=staged(x);
+ const pick=(team,role)=>Object.values(nav.agents).find(p=>p.teamId===team&&p.role===role);
+ const adc=pick(fixture.a,'ADC'),tank=pick(fixture.a,'TOP'),sup=pick(fixture.a,'SUP');
+ const target=pick(fixture.b,'ADC'),guard=pick(fixture.b,'TOP'),assassin=pick(fixture.a,'JUN');
+ for(const p of [adc,tank,sup,target,guard,assassin])p.node='baron_pit';
+ const entries=Object.fromEntries([[adc,'nyra'],[tank,'korvek'],[sup,'thessa'],
+  [target,'velin'],[guard,'korvek'],[assassin,'veyra']].map(([p,championId])=>
+   [p.id,{championId,role:p.role}]));
+ const effect=(leader,allies,defenders)=>core.Encounters.compositionEffect({
+  leader,target,allies,defenders,powerState:{entries}});
+ assert.equal(effect(adc,[adc,tank,sup],[target]).multiplier,1.10);
+ assert.equal(effect(adc,[adc,tank,sup],[target,guard]).multiplier,1.03);
+ assert.equal(effect(assassin,[assassin],[target]).multiplier,1.12);
+ assert.equal(effect(assassin,[assassin],[target,guard]).multiplier,.93);
+ guard.node='red_fountain';tank.node='blue_fountain';sup.node='blue_fountain';
+ assert.equal(effect(adc,[adc,tank,sup],[target,guard]).multiplier,1,
+  'Remote champions cannot provide cover');
+});
