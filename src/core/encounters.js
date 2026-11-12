@@ -233,6 +233,7 @@ function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attacker
 }
 function audit(match,world){
  const errs=[],players=Object.fromEntries(world.players.map(x=>[x.id,x]));
+ const groupStarts=new Map();
  if(!match.moments?.length)return errs; // v2 pre-0.7 replay fallback
  for(let index=0;index<match.events.length;index++){
   const event=match.events[index],f=event.facts;
@@ -240,6 +241,42 @@ function audit(match,world){
    const moment=match.moments[index],positions=moment?.navigation?.before,after=moment?.navigation?.after;
    if(!positions||!after||!moment?.health){errs.push('Combate sin fotograma: '+index);continue;}
    const actor=positions[f.actorId],mode=f.mode;
+   if(f.groupFight){
+    const g=f.groupFight,teams=[match.fixture.a,match.fixture.b];
+    const prior=match.moments[index-1];
+    const live=prior?.minute===event.minute?prior.navigation.after:positions;
+    const group=g.groups?.[event.teamId]||[];
+    const foe=teams.find(id=>id!==event.teamId);
+    const enemies=g.groups?.[foe]||[];
+    const valid=g.version===1&&g.id===event.minute+':'+g.zone&&
+     ['dragon_pit','baron_pit','mid_center'].includes(g.zone)&&
+     teams.includes(g.firstTeam)&&mode==='teamfight'&&
+     [1,2].includes(g.round)&&group.length>=3&&enemies.length>=3&&
+     new Set([...group,...enemies]).size===group.length+enemies.length&&
+     group.every(id=>positions[id]?.teamId===event.teamId)&&
+     enemies.every(id=>positions[id]?.teamId===foe)&&
+     (f.participantIds||[]).every(id=>group.includes(id)&&live[id]?.alive&&
+      live[id].intent!=='retreat')&&
+     (f.impacts||[]).every(hit=>enemies.includes(hit.id)&&live[hit.id]?.alive&&
+      live[hit.id].intent!=='retreat');
+    if(!valid){errs.push('Teamfight sin formación o respuesta verificable: '+index);}
+    if(g.round===1){
+     const both=[...group,...enemies];
+     if(groupStarts.has(g.id)||g.firstTeam!==event.teamId||
+        both.some(id=>!live[id]?.alive||live[id].intent==='retreat'||
+         !nearZone(live[id],g.zone)||core.Navigation.hops(live[id].node,g.zone)>2)||
+        !group.every(id=>enemies.some(other=>hitRange(live[id],live[other],'teamfight')))||
+        !enemies.every(id=>group.some(other=>hitRange(live[id],live[other],'teamfight'))))
+      errs.push('Teamfight inicial sin tres rivales físicos por lado: '+index);
+     groupStarts.set(g.id,{...g,responded:false});
+    }else{
+     const start=groupStarts.get(g.id);
+     if(!start||start.responded||event.teamId===start.firstTeam||
+        JSON.stringify(g.groups)!==JSON.stringify(start.groups))
+      errs.push('Respuesta de teamfight sin intercambio previo: '+index);
+     if(start)start.responded=true;
+    }
+   }
    if(!['lane','gank','teamfight'].includes(mode)||!actor?.alive||
       actor.node!==f.actorNode||event.teamId!==actor.teamId)
      errs.push('Iniciador del combate falso: '+index);
