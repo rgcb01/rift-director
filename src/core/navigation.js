@@ -262,7 +262,17 @@ function determineSiege(nav,worldState,t,context=null){
  // opportunity can still interrupt the current plan.
  const endgame=options.find(p=>p.team===nav.siegeTeam&&p.stage===3&&
   p.wave>=-.20&&p.escorts.length>=2);
- const top=endgame||best;
+ // An unproductive outer-tower march must not renew its commitment
+ // forever. Judge the actual persistent tower HP, not the match clock.
+ // If a different earned lane is viable, stop repeating a stalled push.
+ const progress=nav.siegeProgress;
+ const stalled=old&&old.stage<3&&progress?.team===old.team&&
+  progress.lane===old.lane&&progress.stage===old.stage&&
+  worldState.waves?.[old.lane]?.hp?.[enemy(nav,old.team)]?.[old.stage]===progress.hp&&
+  t-progress.since>=Math.max(7,Math.ceil(old.travel)+5);
+ const alternative=stalled?options.find(p=>p.team===old.team&&
+  p.lane!==old.lane&&p.score>=p.required&&p.wave>=.48):null;
+ const top=endgame||alternative||best;
  // Once attackers have a real viable wave and local escorts, sustain
  // their push rather than re-assigning them to TOP/MID/BOT on consecutive
  // minutes. Only an open Nexus route or a substantially stronger opposing
@@ -273,7 +283,8 @@ function determineSiege(nav,worldState,t,context=null){
   top.lane!==old.lane;
  const lostInitiative=old&&top&&top.team!==old.team&&
   top.score>=old.score+6.0&&top.deadEnemies>0;
- const chosen=continuing&&!urgent&&!lostInitiative?old:
+ const chosen=alternative&&!endgame?alternative:
+   continuing&&!urgent&&!lostInitiative?old:
    old&&nav.siegeUntil>t&&
      (!top||top.team===old.team&&top.stage!==3&&
       top.score<old.score+5.5||
@@ -307,6 +318,9 @@ function determineSiege(nav,worldState,t,context=null){
   return;
  }
  const same=chosen.team===nav.siegeTeam&&chosen.lane===nav.siegeLane;
+ const hp=worldState.waves?.[chosen.lane]?.hp?.[enemy(nav,chosen.team)]?.[chosen.stage];
+ if(!same||progress?.stage!==chosen.stage||progress?.hp!==hp)
+  nav.siegeProgress={team:chosen.team,lane:chosen.lane,stage:chosen.stage,hp,since:t};
  nav.siegeTeam=chosen.team;
  nav.siegeLane=chosen.lane;
  nav.sideLane=secondaryLane(nav,worldState,chosen.team,chosen.lane);
