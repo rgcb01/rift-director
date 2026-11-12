@@ -9,6 +9,13 @@ const started=Date.now();
 console.log('[balance] '+version+': iniciando 1,000 partidos + 1,000 partidos espejo');
 const standard=runStandard();
 console.log('[balance] 1,000 partidos completos; '+standard.audited+' auditorías detalladas; '+standard.issueCount+' errores');
+console.log('[group-fights] '+JSON.stringify({
+  perMatch:standard.gameplay.groupFightsPerMatch,
+  matches:standard.gameplay.groupFightGames,
+  responses:standard.gameplay.groupFightResponses,
+  killsPerMatch:standard.gameplay.groupFightKillsPerMatch,
+  fiveOnFive:standard.gameplay.fullFiveOnFive
+}));
 const mirror=runMirror();
 console.log('[balance] 500 pares invertidos completos: '+mirror.matches+' partidos; '+mirror.failures.length+' errores');
 const result={schema:1,version,createdAt:new Date().toISOString(),
