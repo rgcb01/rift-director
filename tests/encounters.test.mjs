@@ -170,3 +170,45 @@ test('manipular vida o desenlace en un replay se detecta',()=>{
  assert.ok(core.Encounters.audit(fake,world).length>0);
  assert.ok(core.auditMatch(fake,world).length>0);
 });
+
+test('a real 3v3 at Baron permits two exchanges; remote players cannot join',()=>{
+ const x=setup(),{core,world,fixture}=x;
+ const {nav,players}=staged(x);
+ const health=core.Encounters.create(world.players);
+ for(const p of Object.values(nav.agents)){
+  p.node=p.teamId===fixture.a?'blue_fountain':'red_fountain';
+  p.intent='lane';
+  if(['MID','JUN','SUP'].includes(p.role)){
+   p.node='baron_pit';p.intent='objective_setup';
+  }
+ }
+ const ctx={nav,dead:{},minute:24,players,health,seed:32,
+  world:{nextDragon:29,nextBaron:20}};
+ const group=core.Encounters.groupOpportunity(ctx);
+ assert.equal(group?.zone,'baron_pit');
+ assert.equal(group.groups[fixture.a].length,3);
+ assert.equal(group.groups[fixture.b].length,3);
+ assert.equal(core.Encounters.groupOpportunity({...ctx,previous:23}),null);
+ const first=group.firstTeam,second=first===fixture.a?fixture.b:fixture.a;
+ const resolve=(teamId,other)=>core.Encounters.resolveCombat({
+  ...ctx,mode:'teamfight',teamId,attackerIds:group.groups[teamId],
+  targetIds:group.groups[other],groupExchange:true});
+ const hit=resolve(first,second);
+ assert.ok(hit?.impacts.length);
+ for(const impact of hit.impacts){
+  health[impact.id]=impact.hpAfter;
+  if(impact.hpAfter===0)ctx.dead[impact.id]=28;
+  else if(impact.retreat)nav.agents[impact.id].intent='retreat';
+ }
+ const remaining=group.groups[second].filter(id=>!ctx.dead[id]&&
+  nav.agents[id].intent!=='retreat');
+ const response=resolve(second,first);
+ if(remaining.length){
+  assert.ok(response);
+  assert.ok(response.participantIds.every(id=>remaining.includes(id)));
+ }else assert.equal(response,null);
+ for(const p of Object.values(nav.agents).filter(p=>p.teamId===second))
+  p.node='red_fountain';
+ assert.equal(core.Encounters.groupOpportunity(ctx),null,
+  'remote defenders cannot become a teamfight');
+});
