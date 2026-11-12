@@ -57,7 +57,8 @@ const itemCatalog=()=>[...(core.PowerEconomy?.ITEM_CATALOG||[]),
 function select(model,powerState,nav,id,targetId,at,mode,side){
  const entry=model?.entries?.[id],row=powerState?.entries?.[id],
   actor=nav?.agents?.[id],target=nav?.agents?.[targetId];
- if(!entry||!row||!actor?.alive||!target?.alive||entry.championId!==row.championId)return null;
+ if(!entry||!row||!actor?.alive||!target?.alive||entry.championId!==row.championId||
+    at<entry.lastAt)return null;
  const def=DEFINITIONS[row.championId],stats=core.ChampionScaling?.effective(row,itemCatalog());
  if(!def||!stats)return null;
  const wanted=side==='attack'?
@@ -89,10 +90,17 @@ function select(model,powerState,nav,id,targetId,at,mode,side){
 }
 function preview(model,powerState,nav,actorId,targetId,minute,mode){
  if(!model?.entries?.[actorId]||!model?.entries?.[targetId])return null;
- const at=minute*60+({lane:6,gank:16,skirmish:26,teamfight:36}[mode]||0);
- const offense=select(model,powerState,nav,actorId,targetId,at,mode,'attack');
+ // Actual resolution order can interleave group fights, skirmishes and
+ // structure contests. Never rewind either participant's cast clock.
+ // Leave room for a five-second local exchange inside this map minute;
+ // if there is no room, the physical hit still resolves without new casts.
+ const nominal=minute*60+({lane:6,gank:16,skirmish:26,teamfight:36}[mode]||0);
+ const at=Math.max(nominal,model.entries[actorId].lastAt+5,
+  model.entries[targetId].lastAt+5);
+ const available=at<=minute*60+54;
+ const offense=available?select(model,powerState,nav,actorId,targetId,at,mode,'attack'):null;
  // A confirmed crowd-control cast prevents a defender's next local reaction.
- const defense=offense?.kind==='control'?null:
+ const defense=!available||offense?.kind==='control'?null:
   select(model,powerState,nav,targetId,targetId,at+1,mode,'defense');
  const attacking=DEFINITIONS[model.entries[actorId].championId];
  const defending=DEFINITIONS[model.entries[targetId].championId];
