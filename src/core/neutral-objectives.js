@@ -49,13 +49,12 @@ function activeCall(nav,world,minute,health){
  // duties. Afterward, timing follows dragon availability and team choices.
  const roleWindow=minute>=11&&minute<=13||minute>=22&&minute<=29||
    minute>=36&&minute<=55;
- if(!roleWindow||
-     ![nav.a,nav.b].some(id=>objectiveTarget(nav,world,id,minute)))return false;
- // A late siege is an opportunity cost, not a magical extra objective team.
- if(minute>=36&&nav.siegeTeam&&
-    Object.values(world.lanes[other(nav,nav.siegeTeam)]||{})
-      .some(stage=>stage>=2))return false;
- return true;
+ // Once Baron is available, a credible objective call may be considered
+ // outside the old rotation windows. An actual open Nexus still has its
+ // own finishing priority; a two-tower lane is not a global Baron veto.
+ const baronReady=minute>=22&&minute>=(world.nextBaron??Infinity)-3;
+ if(!roleWindow&&!baronReady)return false;
+ return [nav.a,nav.b].some(id=>objectiveTarget(nav,world,id,minute));
 }
 function plan(nav,world,minute,health){
  if(!nav.neutralCalls)nav.neutralCalls={};
@@ -66,7 +65,14 @@ function plan(nav,world,minute,health){
     (old.target==='baron_pit'?world.nextBaron:world.nextDragon)){
    nav.neutralCalls[id]=null;
   }
-  const existing=nav.neutralCalls[id];
+  // A stale Dragon commitment/cooldown cannot suppress a newly available
+  // Baron. Do not interrupt a live call for minor score fluctuations.
+  let existing=nav.neutralCalls[id];
+  const targetNow=objectiveTarget(nav,world,id,minute);
+  if(existing&&minute>=22&&targetNow==='baron'&&
+     existing.target==='dragon_pit'&&minute>existing.until){
+   nav.neutralCalls[id]=null;existing=null;
+  }
   if(existing&&minute<=existing.until){
    out[id]=existing;continue;
   }
@@ -89,11 +95,19 @@ function plan(nav,world,minute,health){
   }
   // A threatened Dragon can be traded for actual TOP pressure; Baron
   // requires present jungler and support and competes for their time.
-  const call={action,reason:objective+'_'+action,
-   target:objective==='dragon'?'dragon_pit':'baron_pit',
+  const target=objective==='dragon'?'dragon_pit':'baron_pit';
+  // A credible Baron setup lasts long enough for its actual escorts to
+  // walk to the pit. This does not grant capture or override HP recovery.
+  const escorts=Object.values(nav.agents).filter(p=>p.teamId===id&&
+    p.alive&&['JUN','SUP'].includes(p.role));
+  const travel=escorts.length===2?Math.max(...escorts.map(p=>
+   core.Navigation.hops(p.node,target))):3;
+  const commitment=objective==='baron'?clamp(travel+2,3,6):3;
+  const call={action,reason:objective+'_'+action,target,
    targetSpawn:objective==='dragon'?world.nextDragon:world.nextBaron,
    score:+score.toFixed(2),
-   enemyId:foe,created:minute,until:minute+3,cooldownUntil:minute+12};
+   enemyId:foe,created:minute,until:minute+commitment,
+   cooldownUntil:minute+(objective==='baron'?commitment+3:12)};
   nav.neutralCalls[id]=call;
   out[id]=call;
  }
