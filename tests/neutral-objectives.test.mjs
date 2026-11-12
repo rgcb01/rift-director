@@ -132,3 +132,30 @@ test('Baron available between old rotation windows remains a real strategic opti
  assert.equal(state.barons[a],0,'Planning does not capture Baron');
  assert.equal(state.lanes[b].TOP,2,'Planning does not award towers');
 });
+
+test('healthy reinforcements form an objective squad without abandoning strong side waves',()=>{
+ const {core}=prepare();
+ const {nav,state,health,a,b}=synthetic(prepare());
+ state.nextDragon=40;state.nextBaron=22;
+ state.waves.TOP.front=2.4;
+ for(const p of Object.values(nav.agents)){
+  if(p.teamId!==a)continue;
+  p.node='baron_pit';p.intent='lane';
+ }
+ const plans=core.NeutralObjectives.plan(nav,state,22,health);
+ const call=plans[a];nav.neutralPlans=plans;
+ const actor=role=>Object.values(nav.agents).find(p=>p.teamId===a&&p.role===role);
+ assert.equal(call.target,'baron_pit');
+ assert.ok(call.reinforcementIds.includes(actor('MID').id));
+ assert.ok(call.reinforcementIds.includes(actor('ADC').id));
+ assert.ok(!call.reinforcementIds.includes(actor('TOP').id),
+  'A strong TOP wave remains an independent splitpush opportunity');
+ for(const role of ['JUN','SUP','MID','ADC'])
+  assert.equal(core.NeutralObjectives.movement(nav,actor(role),22,state)?.goal,'baron_pit');
+ assert.equal(core.NeutralObjectives.movement(nav,actor('TOP'),22,state),null);
+ assert.equal(state.barons[a],0);
+ assert.equal(state.towers[a],0);
+ // Newly unsafe lane cancels its reinforcement without gifting an objective.
+ state.waves.BOT.front=-2.4;
+ assert.equal(core.NeutralObjectives.movement(nav,actor('ADC'),23,state),null);
+});
