@@ -541,40 +541,6 @@ function simulateMatch(f){
   // Causal objective skirmishes. A numerical 2v1 near Dragon/Baron
   // becomes actual damage, a possible kill, or a forced, visible retreat.
   // It never disappears behind an unrelated lane-pressure commentary.
-  if(t>=5){
-   const roster=Object.fromEntries([...aP,...bP].map(p=>[p.id,p]));
-   for(const zone of ['dragon_pit','baron_pit']){
-    if(zone==='baron_pit'&&t<20)continue;
-    const facts=RiftCore.Encounters.resolve({
-      nav:navigation,dead:m.dead,minute:t,zone,
-      players:roster,health,seed:commentarySeed,powerState:powerEconomy,previous:lastSkirmish
-    });
-    if(!facts)continue;
-    const attacker=club(facts.teamId),defender=player(facts.targetId);
-    const leader=player(facts.actorId);
-    const zoneName=zone==='dragon_pit'?'Dragón':'Barón';
-    lastSkirmish[zone]=t;
-    if(facts.outcome==='kill'){
-      if(!addKill(leader,defender,t))throw Error('Kill de escaramuza sin víctima viva');
-      facts.hpAfter=0;
-      makeEv(t,'¡Escaramuza ganada en '+zoneName+'!',
-        attacker.name+' sorprende a '+defender.name+' con '+facts.attackerCount+
-        ' atacantes contra '+facts.defenderCount+
-        '. '+leader.name+' consigue la eliminación cerca de '+zoneName+'.',
-        'fight',attacker,facts);
-    }else{
-      health[defender.id]=facts.hpAfter;
-      if(!nav.forceRetreat(navigation,defender.id,t,facts.retreatGoal))
-        throw Error('Retirada sin jugador activo');
-      makeEv(t,'¡'+defender.name+' escapa de '+zoneName+'!',
-        attacker.name+' presiona con '+facts.attackerCount+' profesionales contra '+
-        facts.defenderCount+'. '+defender.name+' recibe '+facts.damage+
-        ' de daño, sobrevive con '+facts.hpAfter+
-        '% de vida y se retira; no se registra una eliminación.',
-        'fight',attacker,facts);
-    }
-   }
-  }
   // Coordinated teamfights are distinct from picks or tower defense.
   // Both teams have at least three actual reachable fighters at initiation.
   // Resolve the first exchange, then let surviving opponents respond using
@@ -616,6 +582,43 @@ function simulateMatch(f){
      'fight',attacker,facts);
    }
    lastCounterFight=t;
+  }
+  if(t>=5){
+   const roster=Object.fromEntries([...aP,...bP].map(p=>[p.id,p]));
+   for(const zone of ['dragon_pit','baron_pit']){
+    if(zone==='baron_pit'&&t<20)continue;
+    // The larger formation has already exchanged damage at this pit.
+    // Do not consume the same engagement again as a standalone pick.
+    if(group?.zone===zone)continue;
+    const facts=RiftCore.Encounters.resolve({
+      nav:navigation,dead:m.dead,minute:t,zone,
+      players:roster,health,seed:commentarySeed,powerState:powerEconomy,previous:lastSkirmish
+    });
+    if(!facts)continue;
+    const attacker=club(facts.teamId),defender=player(facts.targetId);
+    const leader=player(facts.actorId);
+    const zoneName=zone==='dragon_pit'?'Dragón':'Barón';
+    lastSkirmish[zone]=t;
+    if(facts.outcome==='kill'){
+      if(!addKill(leader,defender,t))throw Error('Kill de escaramuza sin víctima viva');
+      facts.hpAfter=0;
+      makeEv(t,'¡Escaramuza ganada en '+zoneName+'!',
+        attacker.name+' sorprende a '+defender.name+' con '+facts.attackerCount+
+        ' atacantes contra '+facts.defenderCount+
+        '. '+leader.name+' consigue la eliminación cerca de '+zoneName+'.',
+        'fight',attacker,facts);
+    }else{
+      health[defender.id]=facts.hpAfter;
+      if(!nav.forceRetreat(navigation,defender.id,t,facts.retreatGoal))
+        throw Error('Retirada sin jugador activo');
+      makeEv(t,'¡'+defender.name+' escapa de '+zoneName+'!',
+        attacker.name+' presiona con '+facts.attackerCount+' profesionales contra '+
+        facts.defenderCount+'. '+defender.name+' recibe '+facts.damage+
+        ' de daño, sobrevive con '+facts.hpAfter+
+        '% de vida y se retira; no se registra una eliminación.',
+        'fight',attacker,facts);
+    }
+   }
   }
   // Every tower stores real HP. Damage and plates require wave pressure and
   // actual players at the structure; no instant destruction or clock roll.
