@@ -269,11 +269,12 @@ function simulateMatch(f){
  // Structural control is earned in combat. A nearby living defender is
  // an actual opponent, not merely a flat subtraction from tower damage.
  // Encounters owns the HP/kill/retreat result; this decision awards no HP.
- const contestStructure=(attacker,defender,node,lane,t,minAttackers=1)=>{
+ const contestStructure=(attacker,defender,node,lane,t,minAttackers=1,attackingIds=null)=>{
   const livingHere=c=>positioned(c,node).filter(p=>
    (health[p.id]??0)>0&&(lane!=='NEXUS'||
     p.node!==(c.id===a.id?'blue':'red')+'_fountain'));
-  const offense=livingHere(attacker);
+  const attackingHere=()=>livingHere(attacker).filter(p=>!attackingIds||attackingIds.includes(p.id));
+  const offense=attackingHere();
   if(offense.length<minAttackers)return false;
   const defense=livingHere(defender);
   const inReach=(x,y)=>nav.combatRange(x.node,y.node,2);
@@ -327,7 +328,7 @@ function simulateMatch(f){
   // Re-evaluate AFTER actual damage and retreats. A living defender in
   // attack range contests the objective; the opponent cannot chip it
   // through that defender without first winning or disengaging.
-  const currentAttackers=livingHere(attacker);
+  const currentAttackers=attackingHere();
   if(currentAttackers.length<minAttackers)return true;
   return livingHere(defender).some(d=>currentAttackers.some(x=>inReach(x,d)));
  };
@@ -335,16 +336,18 @@ function simulateMatch(f){
   const target=enemy(c),stage=m.lanes[target.id][lane]+1;
   if(stage>3)return false;
   const node=nav.towerNode(target.id===a.id?'blue':'red',lane,stage);
-  const present=positioned(c,node);
+  const targetNexus=(target.id===a.id?'blue':'red')+'_nexus';
+  const towerAttackers=()=>positioned(c,node).filter(p=>!(p.intent==='siege'&&p.goal===targetNexus));
+  const present=towerAttackers();
   if(!present.length)return false;
   // A nearby player is not automatically diving a tower. Require an
   // eligible wave before starting the structural combat; an unrelated
   // tower must not spend the health of a passing Nexus assault.
   if(!RiftCore.LaneEconomy.canPressureTower(laneEconomy,c.id,lane,stage,t))
    return false;
-  if(contestStructure(c,target,node,lane,t))return false;
+  if(contestStructure(c,target,node,lane,t,1,present.map(p=>p.id)))return false;
   // A combat decision may have killed or forced an attacker to retreat.
-  const attackersNow=positioned(c,node);
+  const attackersNow=towerAttackers();
   if(!attackersNow.length)return false;
   const defenders=positioned(target,node);
   const wave=RiftCore.LaneEconomy.pressureFor(laneEconomy,c.id,lane);
