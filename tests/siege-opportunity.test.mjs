@@ -127,7 +127,8 @@ test('previous benchmark mirror pair 158 finishes through causal Nexus damage',(
   world.rng=seed;
   const m=sim.simulateMatch({...f,a,b});
   assert.ok(m.winner,'Exact benchmark failure must finish: '+a+' vs '+b);
-  assert.deepEqual(core.NexusSiege.audit(m),[]);
+  const errors=core.NexusSiege.audit(m);
+  assert.equal(errors.length,0,'Nexus audit: '+errors.join(' | '));
   assert.ok(m.events.some(e=>e.facts?.action==='nexus'),
    'No timer-based winner is permitted');
  }
