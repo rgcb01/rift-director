@@ -233,3 +233,34 @@ test('drafted frontline and support protect nearby carries; assassins exploit is
  assert.equal(effect(adc,[adc,tank,sup],[target,guard]).multiplier,1,
   'Remote champions cannot provide cover');
 });
+
+test('group targeting distinguishes a nearby frontline from an exposed carry',()=>{
+ const x=setup(),{core,fixture}=x;
+ const {nav}=staged(x);
+ const pick=(team,role)=>Object.values(nav.agents).find(p=>p.teamId===team&&p.role===role);
+ const adc=pick(fixture.a,'ADC'),assassin=pick(fixture.a,'JUN');
+ const carry=pick(fixture.b,'ADC'),tank=pick(fixture.b,'TOP');
+ for(const p of [adc,assassin,carry,tank])p.node='baron_pit';
+ const entries=Object.fromEntries([[adc,'nyra'],[assassin,'veyra'],
+  [carry,'velin'],[tank,'korvek']].map(([p,championId])=>
+   [p.id,{championId,role:p.role}]));
+ const health=Object.fromEntries([adc,assassin,carry,tank].map(p=>[p.id,100]));
+ const score=(leader,target)=>core.Encounters.groupTargetPriority({
+  leader,target,allies:[leader],defenders:[carry,tank],health,powerState:{entries}});
+ assert.ok(score(adc,tank).score>score(adc,carry).score);
+ assert.equal(score(adc,tank).reason,'front_to_back');
+ const covered=score(assassin,carry);
+ assert.equal(covered.reason,'covered_carry');
+ tank.node='red_fountain';
+ const isolated=score(assassin,carry);
+ assert.equal(isolated.reason,'exposed_carry');
+ assert.ok(isolated.score>covered.score);
+ // Ranking does not make a remote champion a legal combat target.
+ const result=core.Encounters.resolveCombat({nav,dead:{},minute:26,
+  players:staged(x).players,health,seed:42,mode:'teamfight',teamId:fixture.a,
+  attackerIds:[assassin.id],targetIds:[carry.id,tank.id],
+  powerState:{entries},groupExchange:true});
+ assert.ok(result);
+ assert.ok(result.impacts.every(hit=>hit.id===carry.id));
+ assert.equal(result.impacts[0].targetPriority.reason,'exposed_carry');
+});
