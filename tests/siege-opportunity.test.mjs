@@ -133,3 +133,38 @@ test('previous benchmark mirror pair 158 finishes through causal Nexus damage',(
    'No timer-based winner is permitted');
  }
 });
+
+test('an opened lane with a cleared wave stages at the former base tower before a finish',()=>{
+ const {core,nav,state,a,b}=scene();
+ state.lanes[b.id].MID=3;
+ state.waves.MID.front=-1.2;
+ const health=Object.fromEntries(Object.keys(nav.agents).map(id=>[id,100]));
+ for(const p of Object.values(nav.agents)){
+  p.node=p.teamId===a.id?'red_mid_base':'red_fountain';p.intent='lane';
+ }
+ core.Navigation.determineSiege(nav,state,40,{health});
+ assert.equal(nav.siegeDecision.stage,3);
+ assert.equal(nav.siegeDecision.rebuildGoal,'red_mid_base');
+ assert.equal(state.waves.MID.front,-1.2,'Planning does not create a wave');
+ state.waves.MID.front=.9;
+ core.Navigation.determineSiege(nav,state,41,{health});
+ assert.equal(nav.siegeDecision.stage,3);
+ assert.equal(nav.siegeDecision.rebuildGoal,undefined,'A real favorable wave releases the assault');
+});
+
+test('previous benchmark mirror pairs 288 and 400 finish through causal Nexus damage',()=>{
+ for(const [batch,pair,seed] of [[5,288,4130985195],[8,400,3405975574]]){
+  const {sim,core}=boot({now:1731111111000+batch*41241211});
+  const world=sim.newGame('balanced','QA Mirror '+batch);
+  const fixtures=Object.values(world.fixtures).flat();
+  const f=fixtures[(pair*13+batch*7)%fixtures.length];
+  for(const [a,b] of [[f.a,f.b],[f.b,f.a]]){
+   world.rng=seed;
+   const m=sim.simulateMatch({...f,a,b});
+   assert.ok(m.winner,'Exact benchmark pair '+pair+' must finish: '+a+' vs '+b);
+   const errors=core.NexusSiege.audit(m);
+   assert.equal(errors.length,0,'Nexus audit: '+errors.join(' | '));
+   assert.ok(m.events.some(e=>e.facts?.action==='nexus'));
+  }
+ }
+});
