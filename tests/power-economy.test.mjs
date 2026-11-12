@@ -198,3 +198,28 @@ test('segundo regreso: oro realmente disponible, viaje físico, cooldown y asedi
  assert.equal(E.shouldRecall(model,nav,agent,51,w,{health}),false,'No tercer reset');
  assert.equal(row.wallet+row.spent,row.earned);
 });
+
+test('healthy first recall requires a real favorable wave and affordable nearby base',()=>{
+ const {core}=boot();
+ const E=core.PowerEconomy,model=E.create(testRoster());
+ const nav={a:'a',b:'b',siegeTeam:null,agents:Object.fromEntries(testRoster().map(p=>
+  [p.id,{...p,alive:true,intent:'lane',
+    node:p.teamId==='a'?'blue_top_inner':'red_top_inner'}]))};
+ const w={gold:{a:13000,b:13000},waves:core.LaneEconomy.create('a','b').lanes,
+  map:{lanes:{TOP:{vision:{a:65,b:65}}}}};
+ const p=nav.agents['a-TOP'],r=model.entries[p.id];
+ const health=Object.fromEntries(testRoster().map(p=>[p.id,100]));
+ r.wallet+=4000;r.earned+=4000;
+ w.waves.TOP.front=1.6;
+ assert.equal(E.shouldRecall(model,nav,p,20,w,{health}),true);
+ w.waves.TOP.front=-1.6;
+ assert.equal(E.shouldRecall(model,nav,p,20,w,{health}),false);
+ w.waves.TOP.front=1.6;w.map.lanes.TOP.vision.a=45;
+ assert.equal(E.shouldRecall(model,nav,p,20,w,{health}),false);
+ w.map.lanes.TOP.vision.a=65;nav.siegeTeam='a';
+ assert.equal(E.shouldRecall(model,nav,p,25,w,{health}),false);
+ nav.siegeTeam=null;p.intent='retreat';
+ assert.equal(E.shouldRecall(model,nav,p,20,w,{health}),false);
+ p.intent='lane';r.wallet=500;r.earned=500;
+ assert.equal(E.shouldRecall(model,nav,p,20,w,{health}),false);
+});
