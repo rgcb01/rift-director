@@ -183,3 +183,21 @@ test('active spell spends part of basic-attack budget instead of stacking a free
   'Burst and defensive reactions should have bounded early-game effect');
  assert.equal(JSON.stringify(kits),before,'Preview is pure');
 });
+
+test('same-minute mixed encounters never rewind a champion clock or cast past the minute',()=>{
+ const {core,a,b,nav,power,kits}=setup();
+ const actor=a.lineup.MID,target=b.lineup.MID;
+ const minute=20,base=minute*60;
+ power.entries[actor].level=11;power.entries[target].level=11;
+ kits.entries[actor].lastAt=base+40;
+ kits.entries[target].lastAt=base+41;
+ const earlier=core.ChampionKits.select(kits,power,nav,actor,target,base+26,'skirmish','attack');
+ assert.equal(earlier,null);
+ const window=core.ChampionKits.preview(kits,power,nav,actor,target,minute,'skirmish');
+ assert.ok(window.casts.length>0);
+ for(const cast of window.casts)assert.ok(cast.at>=base+46&&cast.at<=base+55);
+ core.ChampionKits.commit(kits,window.casts);
+ kits.entries[actor].lastAt=base+53;
+ const exhausted=core.ChampionKits.preview(kits,power,nav,actor,target,minute,'teamfight');
+ assert.equal(exhausted.casts.length,0,'No spillover casts into another map minute');
+});
