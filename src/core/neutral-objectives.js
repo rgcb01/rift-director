@@ -108,17 +108,33 @@ function plan(nav,world,minute,health){
    score:+score.toFixed(2),
    enemyId:foe,created:minute,until:minute+commitment,
    cooldownUntil:minute+(objective==='baron'?commitment+3:12)};
-  // A healthy MID can reinforce a contested river objective if the
-  // lane is stable, the pair is healthy and all three can really arrive.
-  // The call only reserves movement; no group fight or capture is assured.
-  const mid=Object.values(nav.agents).find(p=>p.teamId===id&&p.role==='MID');
-  const midWave=world.waves?.MID?core.LaneEconomy.pressureFor(
-   {teamIds:[nav.a,nav.b],lanes:world.waves},id,'MID'):0;
-  if(minute>=22&&['take','contest'].includes(action)&&mid?.alive&&
-     (health?.[mid.id]??100)>=65&&hpJ>=55&&hpS>=55&&
-     midWave>=-.65&&core.Navigation.hops(mid.node,target)<=commitment&&
-     (world.map?.riverVision?.[id]??50)>=48)
-   call.reinforcementId=mid.id;
+  // From the midgame, prepare a formation rather than sending only
+  // two escorts. Each reinforcement must have an affordable lane exit
+  // and enough time to reach the pit. A strong side wave remains a
+  // valid alternative, so the whole roster is never summoned blindly.
+  if(minute>=22&&['take','contest'].includes(action)&&hpJ>=55&&hpS>=55&&
+     (world.map?.riverVision?.[id]??50)>=43){
+   const model={teamIds:[nav.a,nav.b],lanes:world.waves};
+   const laneOf=p=>p.role==='ADC'?'BOT':p.role;
+   const extra=Object.values(nav.agents).filter(p=>p.teamId===id&&
+    ['MID','ADC','TOP'].includes(p.role)&&p.alive&&p.intent!=='retreat'&&
+    (world.dead?.[p.id]||0)<=minute&&(health?.[p.id]??100)>=65&&
+    world.waves?.[laneOf(p)]).map(p=>({p,
+     wave:core.LaneEconomy.pressureFor(model,id,laneOf(p)),
+     travel:core.Navigation.hops(p.node,target)}))
+    .filter(x=>x.wave>=-1.05&&x.travel<=commitment+1&&
+      !(x.p.role==='TOP'&&x.wave>=1.45))
+    .sort((a,b)=>a.travel-b.travel||
+      (a.p.role==='MID'?-1:b.p.role==='MID'?1:0)||a.p.id.localeCompare(b.p.id));
+   call.reinforcementIds=extra.map(x=>x.p.id);
+   // A real formation has a travel budget based on its furthest member.
+   // The original early Dragon window remains unchanged.
+   if(extra.length){
+    const duration=clamp(Math.max(commitment,...extra.map(x=>x.travel+1)),3,6);
+    call.until=minute+duration;
+    call.cooldownUntil=minute+(objective==='baron'?duration+3:12);
+   }
+  }
   nav.neutralCalls[id]=call;
   out[id]=call;
  }
@@ -136,14 +152,18 @@ function movement(nav,agent,minute,worldState){
   return {goal:core.Navigation.towerNode(side,'TOP',stage),
    intent:'splitpush',lane:'TOP',reason:'dragon_crossmap_trade',decisionVersion:4};
  }
- // A named MID reinforcement can walk to the pit, but cannot abandon
- // a newly threatened wave or an active finishing siege.
- if(agent.role==='MID'&&agent.id===call.reinforcementId&&
-    ['take','contest'].includes(call.action)&&worldState.waves?.MID){
-  const wave=core.LaneEconomy.pressureFor(
-   {teamIds:[nav.a,nav.b],lanes:worldState.waves},agent.teamId,'MID');
-  if(wave>=-.65)return {goal:call.target,intent:'objective_setup',
-   reason:call.reason,decisionVersion:4};
+ // Named reinforcements keep their own lane-risk constraint. They can
+ // walk to the objective with the original pair, not teleport to it.
+ if(call.reinforcementIds?.includes(agent.id)&&
+    ['take','contest'].includes(call.action)){
+  const lane=agent.role==='ADC'?'BOT':agent.role;
+  if(worldState.waves?.[lane]){
+   const wave=core.LaneEconomy.pressureFor(
+    {teamIds:[nav.a,nav.b],lanes:worldState.waves},agent.teamId,lane);
+   if(wave>=-1.05&&!(agent.role==='TOP'&&wave>=1.45))
+    return {goal:call.target,intent:'objective_setup',
+     reason:call.reason,decisionVersion:4};
+  }
  }
  // JUN/SUP are the two required physical escorts. The caller does not
  // teleport ADC and can still lose the objective if they arrive injured.
