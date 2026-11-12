@@ -170,6 +170,31 @@ function groupOpportunity({nav,dead,minute,players,health,seed,world,powerState=
  }
  return choices.sort((x,y)=>y.score-x.score||x.zone.localeCompare(y.zone))[0]||null;
 }
+// Composition is derived from the drafted champion, not a hard-coded
+// lane label. Only nearby, participating living champions can contribute.
+// No ability is cast here: the independent kit experiment owns that layer.
+function compositionEffect({leader,target,allies,defenders,powerState}){
+ const archetype=p=>core.ChampionScaling?.definition(powerState?.entries?.[p.id])?.archetype;
+ const type=archetype(leader);
+ if(!type||!powerState?.entries?.[leader.id]?.championId||
+    !powerState?.entries?.[target.id]?.championId)return null;
+ const close=(a,b)=>core.Navigation.combatRange(a.node,b.node,2);
+ const frontline=p=>['tank','fighter'].includes(archetype(p));
+ const carry=['marksman','mage'].includes(type);
+ const protectedCarry=['marksman','mage','assassin'].includes(archetype(target));
+ const cover=defenders.filter(p=>p.id!==target.id&&close(p,target)&&
+  (frontline(p)||archetype(p)==='support'));
+ const ownFront=allies.filter(p=>p.id!==leader.id&&frontline(p)&&close(p,leader));
+ const ownSupport=allies.filter(p=>p.id!==leader.id&&archetype(p)==='support'&&close(p,leader));
+ const isolated=defenders.every(p=>p.id===target.id||!close(p,target));
+ const offense=(carry&&ownFront.length?.06:0)+(carry&&ownSupport.length?.04:0)+
+  (type==='assassin'&&isolated?.12:0);
+ const protection=protectedCarry?Math.min(.14,cover.length*.07):0;
+ const multiplier=+(1+offense-protection).toFixed(3);
+ return {version:1,archetype:type,frontlineIds:ownFront.map(p=>p.id),
+  supportIds:ownSupport.map(p=>p.id),coverIds:protectedCarry?cover.map(p=>p.id):[],
+  isolated,multiplier};
+}
 function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attackerIds,targetIds,lane=null,powerState=null,groupExchange=false}){
  if(!['lane','gank','teamfight'].includes(mode)||![nav.a,nav.b].includes(teamId))
   throw Error('Invalid combat mode/team');
@@ -208,8 +233,9 @@ function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attacker
   const outnumber=clamp(groupExchange?allies.length-defenders.length:allies.length-1,0,3);
   const delta=power(players[leader.id],powerState,'attack')-power(players[target.id],powerState,'defense');
   const burst=variance>.88?(mode==='lane'?12:26):0;
-  const rawDamage=base+outnumber*(mode==='lane'?8:19)+
-    delta*.28+variance*16+burst;
+  const composition=groupExchange?compositionEffect({leader,target,allies,defenders,powerState}):null;
+  const rawDamage=(base+outnumber*(mode==='lane'?8:19)+
+    delta*.28+variance*16+burst)*(composition?.multiplier??1);
   const mitigation=core.ChampionScaling?.mitigation(
     powerState?.entries?.[leader.id],powerState?.entries?.[target.id],
     [...(core.PowerEconomy?.ITEM_CATALOG||[]),...(core.PowerEconomy?.COMPONENT_CATALOG||[])])??1;
@@ -217,7 +243,8 @@ function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attacker
   const after=Math.max(0,before-damage);
   const retreat=after>0&&(after<48||(allies.length>defenders.length&&after<72));
   impacts.push({id:target.id,node:target.node,hpBefore:before,hpAfter:after,
-   damage,mitigation,retreat,retreatGoal:retreat?retreatDestination(nav,target,minute):null});
+   damage,mitigation,retreat,retreatGoal:retreat?retreatDestination(nav,target,minute):null,
+   ...(composition?{composition}:{})});
  }
  if(!impacts.length)return null;
  const victims=impacts.filter(p=>p.hpAfter===0).map(p=>p.id);
@@ -361,5 +388,5 @@ function audit(match,world){
  }
  return errs;
 }
-core.Encounters=Object.freeze({create,recover,locate,resolve,groupOpportunity,resolveCombat,laneRange,hitRange,retreatDestination,power,distance,nearZone,threat,audit});
+core.Encounters=Object.freeze({create,recover,locate,resolve,groupOpportunity,compositionEffect,resolveCombat,laneRange,hitRange,retreatDestination,power,distance,nearZone,threat,audit});
 })(globalThis);
