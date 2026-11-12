@@ -4,6 +4,13 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental: torneo de composiciones con draft completo
+- Base PR #57 `cf60200` aprobada: 252/252 pruebas, 2,200 mapas válidos, cero bloqueantes, UX aprobada. Se conserva sin cambios de gameplay.
+- Cinco hipótesis de composición: front-to-back, dive, pick y prototipos de poke/scaling. Cada draft contiene cinco picks legales; no se añaden multiplicadores, rangos, movilidad ni ventajas por etiqueta.
+- Round robin de diez cruces, diez pares por cruce, dos mapas por par con drafts intercambiados entre los mismos profesionales, lados, fixture y semilla. Se repiten escenarios entre cruces, por lo que no son observaciones independientes para inferir significancia. Se excluyen ambos resultados si una pierna falla; cualquier fallo bloquea el runner.
+- Piloto: 100/100 pares, 200/200 mapas, cero errores en seis auditorías. Duración media 32.795 min. Victorias Dive 43/80, Pick 42/80, Front-to-back 40/80, Poke 38/80, Scaling 37/80. En 24 pares la misma composición gana ambos mapas; en 76 el mismo equipo gana ambos (12 azul, 64 rojo), señal de peso de plantilla/lado en estos diez escenarios, no estimación general de sesgo azul/rojo.
+- El benchmark conserva los 2,200 mapas anteriores y añade 200 de composiciones; ledger JSON, resultados por cruce, métricas por equipo, tres gráficas y pruebas de roles e invariantes de pares. No se concluye un meta ni se ajustan estadísticas hasta ampliar escenarios y diferenciar identidades de kits.
+
 ### Experimental: balance contrafactual de campeones
 - PR #57 inicial: 250/250 pruebas, UX aprobada, 1,999/2,000 partidas con ganador causal. Un mapa estándar (índice 307, semilla 2869273992) no terminó. 33.55 min, 5.76 kills, 28.11 casts/mapa y 17.2% mapas con teamfight.
 - Corregida la cesión de escoltas al Barón: la reserva de JUN/SUP requiere dos atacantes sanos no JUN/SUP a una arista o menos de la torre; el caso 307 termina al minuto 50. Piloto de 120 mapas estándar (tres mundos), 120/120 con ganador, cero errores de las seis auditorías comprobadas; duración 33.44, kills 5.43 y 8 sin Barón. Pendiente benchmark oficial.
