@@ -191,7 +191,7 @@ function siegeOpportunities(nav,world,t,context=null){
    if(stage===0&&!earned)continue;
    // Distance is graph travel, NOT a global asiedio timer. A nearby
    // competent pair can rotate before a rich but distant team.
-   const escorts=ours.map(p=>({id:p.id,hops:hops(p.node,goal),
+   const escorts=ours.map(p=>({id:p.id,role:p.role,hops:hops(p.node,goal),
     lanePresent:isLaneNode(p.node,lane)}))
     .filter(p=>p.hops<=7&&(stage===3||p.role!=='JUN')).sort((a,b)=>a.hops-b.hops||
      a.id.localeCompare(b.id));
@@ -291,13 +291,39 @@ function determineSiege(nav,worldState,t,context=null){
  nav.siegeTeam=chosen.team;
  nav.siegeLane=chosen.lane;
  nav.sideLane=secondaryLane(nav,worldState,chosen.team,chosen.lane);
+ // A secondary lane is a real allocation, not just a label on the map.
+ // Reserve at most one independent solo laner BEFORE assigning escorts,
+ // only when a crashing wave and a safe route are already observable.
+ // Keep two healthy non-jungler escorts on the main route; an exposed
+ // Nexus retains full finishing priority.
+ let sidePlan=null;
+ const escorts=[...chosen.escorts];
+ if(chosen.stage<3){
+  const foe=enemy(nav,chosen.team),lane=nav.sideLane;
+  const stage=(worldState.lanes?.[foe]?.[lane]??3)+1;
+  const wave=worldState.waves?.[lane]?core.LaneEconomy.pressureFor(
+   {teamIds:[nav.a,nav.b],lanes:worldState.waves},chosen.team,lane):0;
+  const solo=teamAgents(nav,chosen.team).find(p=>p.role===lane);
+  const hp=context?.health?.[solo?.id]??100;
+  const vision=worldState.map?.lanes?.[lane]?.vision?.[chosen.team]??50;
+  const goal=stage<=3?towerNode(getSide(nav,foe),lane,stage):null;
+  const remaining=escorts.filter(id=>id!==solo?.id);
+  const safe=solo&&solo.alive&&(worldState.dead?.[solo.id]||0)<=t&&
+   solo.intent!=='retreat'&&hp>=65&&goal&&hops(solo.node,goal)<=5&&
+   vision>=58&&wave>=1.45;
+  if(safe&&remaining.length>=2){
+   sidePlan={actorId:solo.id,lane,goal,wave,vision};
+   escorts.splice(0,escorts.length,...remaining);
+  }
+ }
  // A plan's budget is its estimated graph journey, not the match clock;
  // it is reviewed again every simulated minute against the real wave.
  if(!same||nav.siegeUntil<=t||continuing)
   nav.siegeUntil=t+Math.max(3,Math.min(8,Math.ceil(chosen.travel)+2));
  nav.siegeDecision={version:1,minute:t,teamId:chosen.team,lane:chosen.lane,
   stage:chosen.stage,score:+chosen.score.toFixed(2),wave:chosen.wave,
-  travel:+chosen.travel.toFixed(2),escorts:[...chosen.escorts],
+  travel:+chosen.travel.toFixed(2),escorts,
+  ...(sidePlan?{sidePlan}:{}),
   defenders:chosen.defenders,vision:chosen.vision,
   powerEdge:+chosen.powerEdge.toFixed(2)};
 }
@@ -406,6 +432,13 @@ function chooseGoal(nav,agent,t,worldState,context=null){
    if(objectiveMove)return objectiveMove;
   }
  }
+
+ // A documented side-lane assignment precedes the generic siege order.
+ // The player walks the map and still faces real combat/retreat checks.
+ const split=nav.siegeDecision?.sidePlan;
+ if(!finish&&team===nav.siegeTeam&&split?.actorId===agent.id)
+  return {goal:split.goal,intent:'splitpush',lane:split.lane,
+   reason:'reserved_secondary_wave',decisionVersion:3};
 
  // An earned attacking group commits its actual escorts. Unassigned
  // professionals keep their lane/farm/objective responsibilities, instead
