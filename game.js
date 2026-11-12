@@ -315,7 +315,7 @@ function simulateMatch(f){
    if(lane==='NEXUS'&&!attackerInitiates&&
       facts.impacts.some(hit=>hit.hpAfter===0||hit.retreat)){
     navigation.nexusRegroup??={};
-    navigation.nexusRegroup[attacker.id]={created:t};
+    navigation.nexusRegroup[attacker.id]??={created:t};
     facts.repulsedNexusAssault=true;
    }
    makeEv(t,facts.victimIds.length?'¡Combate por el control de '+lane+'!':
@@ -746,12 +746,28 @@ function simulateMatch(f){
    const foe=enemy(c);
    if(!['TOP','MID','BOT'].some(l=>m.lanes[foe.id][l]===3))continue;
    const node=(foe.id===a.id?'blue':'red')+'_nexus';
-   if(contestStructure(c,foe,node,'NEXUS',t,2))nexusBlocked.push(c.id);
+   const blocked=contestStructure(c,foe,node,'NEXUS',t,2);
+   if(blocked){
+    nexusBlocked.push(c.id);
+    // A surviving defender can also stall a numerically superior push.
+    // Two actual blocked assaults within a short interval justify a rally,
+    // even if neither exchange happened to kill an attacker.
+    navigation.nexusBlockedAt??={};
+    navigation.nexusRegroup??={};
+    const previous=navigation.nexusBlockedAt[c.id];
+    if(Number.isInteger(previous)&&t-previous<=5)
+     navigation.nexusRegroup[c.id]??={created:t};
+    navigation.nexusBlockedAt[c.id]=t;
+   }
   }
   // The Nexus has persistent HP. It cannot be chipped while a physically
   // present defender still contests the attacking squad at the objective.
   for(const hit of RiftCore.NexusSiege.advance(
    nexusSiege,navigation,m,t,health,m.dead,nexusBlocked)){
+   // Real damage restores initiative; old blocked attempts no longer
+   // constitute a reason to call the surviving squad back.
+   if(navigation.nexusRegroup)delete navigation.nexusRegroup[hit.teamId];
+   if(navigation.nexusBlockedAt)delete navigation.nexusBlockedAt[hit.teamId];
    const winner=club(hit.teamId),actorId=hit.participantIds.find(id=>
      player(id).role==='ADC')||hit.participantIds[0];
    const actor=player(actorId);
