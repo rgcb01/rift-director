@@ -195,6 +195,40 @@ function compositionEffect({leader,target,allies,defenders,powerState}){
   supportIds:ownSupport.map(p=>p.id),coverIds:protectedCarry?cover.map(p=>p.id):[],
   isolated,multiplier};
 }
+// Target choice is local and archetype-aware. A marksman fights the
+// accessible frontline, an assassin looks for an exposed carry and a
+// support prioritizes enemies threatening allied carries. These are
+// preferences, not ranged attacks, crowd control or free damage.
+function groupTargetPriority({leader,target,allies,defenders,health,powerState}){
+ const kind=p=>core.ChampionScaling?.definition(powerState?.entries?.[p.id])?.archetype;
+ const type=kind(leader),targetType=kind(target);
+ const carry=p=>['marksman','mage'].includes(kind(p));
+ const front=p=>['tank','fighter'].includes(kind(p));
+ const reach=(a,b)=>core.Navigation.combatRange(a.node,b.node,2);
+ const hp=health[target.id]??100;
+ const cover=defenders.filter(p=>p.id!==target.id&&reach(p,target)&&
+  (front(p)||kind(p)==='support')).length;
+ const exposed=cover===0;
+ const threatening=allies.filter(p=>carry(p)&&reach(target,p)).length;
+ const distance=core.Navigation.hops(leader.node,target.node);
+ let score=(100-hp)*.55-distance*9;
+ let reason='finish_vulnerable';
+ if(type==='assassin'&&carry(target)){
+  score+=exposed?32:4-cover*9;
+  reason=exposed?'exposed_carry':'covered_carry';
+ }else if(type==='marksman'){
+  score+=front(target)?18:0;
+  score-=cover*5;
+  reason=front(target)?'front_to_back':'finish_vulnerable';
+ }else if(type==='support'||type==='tank'){
+  score+=threatening*12+(kind(target)==='assassin'?12:0);
+  reason=threatening?'protect_ally':'frontline_engage';
+ }else if(type==='mage'){
+  score+=defenders.filter(p=>p.id!==target.id&&reach(p,target)).length*5;
+  reason='clustered_enemies';
+ }
+ return {score:+score.toFixed(2),reason};
+}
 function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attackerIds,targetIds,lane=null,powerState=null,groupExchange=false}){
  if(!['lane','gank','teamfight'].includes(mode)||![nav.a,nav.b].includes(teamId))
   throw Error('Invalid combat mode/team');
@@ -213,8 +247,11 @@ function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attacker
    viable.find(a=>a.id===attackerIds[0]):viable.sort(rank)[0];
  // In teamfight mode one author can deal damage to several nearby targets.
  // Nonlethal damage is retained and replayed, not turned into fake kills.
+ const priorities=groupExchange?Object.fromEntries(targets.map(target=>[target.id,
+  groupTargetPriority({leader,target,allies:viable,defenders,health,powerState})])):null;
  const chosen=(mode==='teamfight'?targets.filter(d=>hitRange(leader,d,mode,lane))
-   .sort((a,b)=>(health[a.id]??100)-(health[b.id]??100)||a.id.localeCompare(b.id)).slice(0,3)
+   .sort((a,b)=>(priorities?priorities[b.id].score-priorities[a.id].score:
+    (health[a.id]??100)-(health[b.id]??100))||a.id.localeCompare(b.id)).slice(0,3)
    :targets.sort((a,b)=>(health[a.id]??100)-(health[b.id]??100)||a.id.localeCompare(b.id)).slice(0,1));
  if(!chosen.length)return null;
  const comrades=attackers.filter(a=>chosen.some(d=>
@@ -244,7 +281,8 @@ function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attacker
   const retreat=after>0&&(after<48||(allies.length>defenders.length&&after<72));
   impacts.push({id:target.id,node:target.node,hpBefore:before,hpAfter:after,
    damage,mitigation,retreat,retreatGoal:retreat?retreatDestination(nav,target,minute):null,
-   ...(composition?{composition}:{})});
+   ...(composition?{composition}:{}),
+   ...(priorities?{targetPriority:priorities[target.id]}:{})});
  }
  if(!impacts.length)return null;
  const victims=impacts.filter(p=>p.hpAfter===0).map(p=>p.id);
@@ -404,5 +442,5 @@ function audit(match,world){
  }
  return errs;
 }
-core.Encounters=Object.freeze({create,recover,locate,resolve,groupOpportunity,compositionEffect,resolveCombat,laneRange,hitRange,retreatDestination,power,distance,nearZone,threat,audit});
+core.Encounters=Object.freeze({create,recover,locate,resolve,groupOpportunity,compositionEffect,groupTargetPriority,resolveCombat,laneRange,hitRange,retreatDestination,power,distance,nearZone,threat,audit});
 })(globalThis);
