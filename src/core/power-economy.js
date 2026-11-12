@@ -246,6 +246,18 @@ function shouldRecall(model,nav,agent,minute,worldState,context=null){
  if(agent.role==='JUN'&&minute<36||agent.role==='SUP'&&minute<29)return false;
  const hp=id=>context?.health?.[id]??100;
  const committed=nav.siegeTeam!==null&&minute>=24;
+ // A healthy laner may reset after crashing a wave, not merely because
+ // gold is accumulating. Nearby base, real wave and role coverage limit
+ // the opportunity cost. Existing ongoing sieges remain protected.
+ const safeWaveReset=p=>{
+  const lane=p.role==='ADC'?'BOT':p.role;
+  if(!['TOP','MID','BOT'].includes(lane)||!worldState.waves?.[lane]||
+     minute<14||committed||p.intent==='retreat')return false;
+  const wave=core.LaneEconomy.pressureFor(
+   {teamIds:[nav.a,nav.b],lanes:worldState.waves},p.teamId,lane);
+  return wave>=1.05&&core.Navigation.hops(p.node,side+'_nexus')<=4&&
+    (worldState.map?.lanes?.[lane]?.vision?.[p.teamId]??50)>=55;
+ };
  const accepted=p=>{
   const r=model.entries[p.id];
   if(!r||r.voluntaryBuys>=2||minute-r.lastPurchaseMinute<10||
@@ -253,7 +265,9 @@ function shouldRecall(model,nav,agent,minute,worldState,context=null){
      (p.role==='JUN'&&minute<36||p.role==='SUP'&&minute<29))return false;
   const buy=nextPurchase(model,p.id,enemyLead);
   if(!buy||buy.kind!=='combine'||r.wallet<buy.goldCost+450)return false;
+  if(p.intent==='retreat'||[side+'_nexus',side+'_fountain'].includes(p.node))return false;
   const health=hp(p.id);
+  if(r.voluntaryBuys===0&&safeWaveReset(p))return true;
   // During an active siege, preserve the squad's map presence. Only a
   // heavily injured professional may concede pressure to secure an item.
   if(committed&&health>54)return false;
