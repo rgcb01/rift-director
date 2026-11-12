@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { runStandard } from './standard.mjs';
 import { runMirror } from './mirror.mjs';
+import { runChampionMatchups } from './champion-matchups.mjs';
 
 const version=process.argv[2]||'development';
 const output=process.argv[3]||'.balance-output';
@@ -20,10 +21,17 @@ if(standard.issueSamples?.length)
  console.error('[standard-failures] '+JSON.stringify(standard.issueSamples));
 const mirror=runMirror();
 console.log('[balance] 500 pares invertidos completos: '+mirror.matches+' partidos; '+mirror.failures.length+' errores');
+const championMatchups=runChampionMatchups();
+writeFileSync(output+'/champion-matchups.json',JSON.stringify(championMatchups,null,2)+'\n');
+console.log('[champion-matchups] '+JSON.stringify({validPairs:championMatchups.validPairs,
+ requestedPairs:championMatchups.requestedPairs,failures:championMatchups.failures,
+ rows:championMatchups.rows}));
 const result={schema:1,version,createdAt:new Date().toISOString(),
-  benchmarkRevision:'fixed-seed-1000-v1',durationMs:Date.now()-started,standard,mirror};
+  benchmarkRevision:'fixed-seed-1000-v1',durationMs:Date.now()-started,standard,mirror,
+  championMatchups:{...championMatchups,cases:undefined}};
 writeFileSync(output+'/summary.json',JSON.stringify(result,null,2)+'\n');
 console.log('[balance] output '+output+'/summary.json');
 if(standard.completed!==1000||standard.audited!==1000||standard.issueCount||
    standard.auditFailures||standard.wins.invalid||mirror.matches!==1000||mirror.pairs!==500||
-   mirror.failures.length)process.exitCode=1;
+   mirror.failures.length||championMatchups.failures.length||
+   championMatchups.validPairs!==championMatchups.requestedPairs)process.exitCode=1;

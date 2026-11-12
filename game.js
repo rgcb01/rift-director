@@ -128,7 +128,7 @@ function tagHtml(p){let items=visibleTraits(p).map(([t,k])=>`<span class="tag ${
 function record(sType,amount,note=''){s.history.unshift({year:s.year,month:s.month,type:sType,amount,note});s.history=s.history.slice(0,100)}
 function notify(t){let d=document.getElementById('toast');if(d)d.remove();d=document.createElement('div');d.className='toast';d.id='toast';d.textContent=t;document.body.appendChild(d);clearTimeout(toastTimer);toastTimer=setTimeout(()=>d.remove(),3600)}
 // MATCH ENGINE — deterministic events first; commentary describes validated state.
-function simulateMatch(f){
+function simulateMatch(f,options=null){
  // One stable world-level draw reserves a fresh match seed. All tactical
  // rolls are then private to this fixture, so adding plates/rotations
  // cannot randomly alter future transfers, finances or world news.
@@ -141,14 +141,26 @@ function simulateMatch(f){
  const pick=arr=>arr[Math.floor(rnd()*arr.length)];
  const a=club(f.a),b=club(f.b),aP=teamPlayers(a),bP=teamPlayers(b);
  const champions=RiftMatchTab.assign([...aP,...bP]);
+ // Explicit counterfactual draft overrides are for controlled simulations.
+ // The ordinary manager still uses the existing deterministic assignment.
+ if(options?.draft){
+  for(const [id,championId] of Object.entries(options.draft)){
+   const professional=[...aP,...bP].find(p=>p.id===id);
+   if(!professional||RiftCore.ChampionScaling.DEFINITIONS[championId]?.role!==professional.role)
+    throw Error('Invalid counterfactual champion assignment: '+id);
+   champions.entries[id]=championId;
+  }
+ }
  const m={minute:0,kills:{[a.id]:0,[b.id]:0},gold:{[a.id]:500,[b.id]:500},towers:{[a.id]:0,[b.id]:0},lanes:{[a.id]:{TOP:0,MID:0,BOT:0},[b.id]:{TOP:0,MID:0,BOT:0}},dragons:{[a.id]:0,[b.id]:0},barons:{[a.id]:0,[b.id]:0},dead:{},winner:null,events:[],frames:[],moments:[],nextDragon:5,nextBaron:20,baronBuff:{[a.id]:0,[b.id]:0}};
  m.nexusIntegrity={[a.id]:1,[b.id]:1};
  const all=[a,b],teams={[a.id]:aP,[b.id]:bP};
  const laneEconomy=RiftCore.LaneEconomy.create(a.id,b.id);
  const powerEconomy=RiftCore.PowerEconomy.create([...aP,...bP],champions);
  const shutdowns=RiftCore.Shutdowns.create([...aP,...bP]);
+ const abilityState=RiftCore.ChampionKits.create(powerEconomy);
  m.waves=laneEconomy.lanes;
  m.powerEconomy=powerEconomy;
+ m.abilityState=abilityState;
  const navigation=RiftCore.Navigation.createNavigation(all,teams,commentarySeed);
  const nexusSiege=RiftCore.NexusSiege.create(a.id,b.id);
  const health=RiftCore.Encounters.create([...aP,...bP]);
@@ -218,6 +230,7 @@ function simulateMatch(f){
     map:RiftCore.cloneMapState(m.map),playerStats:RiftCore.clonePlayerStats(playerStats),
     health:{...health},laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
     powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
+  abilityState:RiftCore.ChampionKits.snapshot(abilityState),
     siegeDecision:navigation.siegeDecision?{...navigation.siegeDecision,
      escorts:[...navigation.siegeDecision.escorts]}:null,
     shutdowns:RiftCore.Shutdowns.snapshot(shutdowns),
@@ -250,6 +263,7 @@ function simulateMatch(f){
      throw Error('Combat retreat without living target');
    }
   }
+  if(facts.abilityCasts?.length)RiftCore.ChampionKits.commit(abilityState,facts.abilityCasts);
   // Lane kills and ganks previously ended in a dead rival but rarely
   // supplied a tower order. Convert the *observed* kill to a short,
   // reversible lane plan; no damage, gold or tower is awarded here.
@@ -263,9 +277,10 @@ function simulateMatch(f){
  const affected=(facts)=>facts.impacts.map(q=>
     player(q.id).name+' '+q.hpBefore+'% → '+q.hpAfter+'%'+
     (q.hpAfter===0?' (eliminado)':q.retreat?' (se retira)':'')).join('; ');
+ const abilityNotes=facts=>facts.abilityCasts?.length?' Habilidades ejecutadas: '+facts.abilityCasts.map(c=>player(c.casterId).name+' usa '+c.name+' ('+c.slot+', '+c.kind+')').join('; ')+'.':'';
  const combatDetails=(facts)=>affected(facts)+'. '+
     (facts.victimIds.length?'Eliminación confirmada.':
-     facts.outcome==='retreat'?'El rival cede espacio y se retira.':'Ambos siguen en el mapa.');
+     facts.outcome==='retreat'?'El rival cede espacio y se retira.':'Ambos siguen en el mapa.')+abilityNotes(facts);
  // Structural control is earned in combat. A nearby living defender is
  // an actual opponent, not merely a flat subtraction from tower damage.
  // Encounters owns the HP/kill/retreat result; this decision awards no HP.
@@ -290,7 +305,7 @@ function simulateMatch(f){
   const facts=RiftCore.Encounters.resolveCombat({
    nav:navigation,dead:m.dead,minute:t,
    players:Object.fromEntries([...aP,...bP].map(p=>[p.id,p])),
-   health,seed:commentarySeed,powerState:powerEconomy,
+   health,seed:commentarySeed,powerState:powerEconomy,abilityState,
    mode:'teamfight',teamId:initiatorClub.id,
    attackerIds:initiators.map(p=>p.id),
    targetIds:targets.map(p=>p.id)
@@ -409,6 +424,7 @@ function simulateMatch(f){
   nexusIntegrity:{...m.nexusIntegrity},
   laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
   powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
+  abilityState:RiftCore.ChampionKits.snapshot(abilityState),
   siegeDecision:navigation.siegeDecision?{...navigation.siegeDecision,
    escorts:[...navigation.siegeDecision.escorts]}:null,
   shutdowns:RiftCore.Shutdowns.snapshot(shutdowns),
@@ -477,7 +493,7 @@ function simulateMatch(f){
     if(!offense.length||!defense.length)continue;
     const facts=RiftCore.Encounters.resolveCombat({
      nav:navigation,dead:m.dead,minute:t,players:Object.fromEntries([...aP,...bP].map(p=>[p.id,p])),
-     health,seed:commentarySeed,powerState:powerEconomy,mode:'lane',teamId:attacker.id,
+     health,seed:commentarySeed,powerState:powerEconomy,abilityState,mode:'lane',teamId:attacker.id,
      attackerIds:offense.map(p=>p.id),targetIds:defense.map(p=>p.id),lane
     });
     if(!facts)continue;
@@ -518,7 +534,7 @@ function simulateMatch(f){
     const combat=RiftCore.Encounters.resolveCombat({
       nav:navigation,dead:m.dead,minute:t,
       players:Object.fromEntries([...aP,...bP].map(p=>[p.id,p])),
-      health,seed:commentarySeed,powerState:powerEconomy,mode:'gank',teamId:attacker.id,
+      health,seed:commentarySeed,powerState:powerEconomy,abilityState,mode:'gank',teamId:attacker.id,
       attackerIds:[j.id,...(helper?[helper.id]:[])],targetIds:[v.id],lane
     });
     if(!combat)throw Error('Gank elegible sin daño resoluble');
@@ -562,7 +578,7 @@ function simulateMatch(f){
    for(const [round,attacker,defender] of [[1,first,second],[2,second,first]]){
     const facts=RiftCore.Encounters.resolveCombat({
      nav:navigation,dead:m.dead,minute:t,players:rosterForFight,
-     health,seed:commentarySeed,powerState:powerEconomy,mode:'teamfight',
+     health,seed:commentarySeed,powerState:powerEconomy,abilityState,mode:'teamfight',
      teamId:attacker.id,attackerIds:group.groups[attacker.id],
      targetIds:group.groups[defender.id],groupExchange:true
     });
@@ -595,20 +611,21 @@ function simulateMatch(f){
     if(group?.zone===zone)continue;
     const facts=RiftCore.Encounters.resolve({
       nav:navigation,dead:m.dead,minute:t,zone,
-      players:roster,health,seed:commentarySeed,powerState:powerEconomy,previous:lastSkirmish
+      players:roster,health,seed:commentarySeed,powerState:powerEconomy,abilityState,previous:lastSkirmish
     });
     if(!facts)continue;
     const attacker=club(facts.teamId),defender=player(facts.targetId);
     const leader=player(facts.actorId);
     const zoneName=zone==='dragon_pit'?'Dragón':'Barón';
     lastSkirmish[zone]=t;
+    if(facts.abilityCasts?.length)RiftCore.ChampionKits.commit(abilityState,facts.abilityCasts);
     if(facts.outcome==='kill'){
       if(!addKill(leader,defender,t))throw Error('Kill de escaramuza sin víctima viva');
       facts.hpAfter=0;
       makeEv(t,'¡Escaramuza ganada en '+zoneName+'!',
         attacker.name+' sorprende a '+defender.name+' con '+facts.attackerCount+
         ' atacantes contra '+facts.defenderCount+
-        '. '+leader.name+' consigue la eliminación cerca de '+zoneName+'.',
+        '. '+leader.name+' consigue la eliminación cerca de '+zoneName+'.'+abilityNotes(facts),
         'fight',attacker,facts);
     }else{
       health[defender.id]=facts.hpAfter;
@@ -618,7 +635,7 @@ function simulateMatch(f){
         attacker.name+' presiona con '+facts.attackerCount+' profesionales contra '+
         facts.defenderCount+'. '+defender.name+' recibe '+facts.damage+
         ' de daño, sobrevive con '+facts.hpAfter+
-        '% de vida y se retira; no se registra una eliminación.',
+        '% de vida y se retira; no se registra una eliminación.'+abilityNotes(facts),
         'fight',attacker,facts);
     }
    }
@@ -680,7 +697,7 @@ function simulateMatch(f){
     const facts=RiftCore.Encounters.resolveCombat({
      nav:navigation,dead:m.dead,minute:t,
      players:Object.fromEntries([...aP,...bP].map(p=>[p.id,p])),
-     health,seed:commentarySeed,powerState:powerEconomy,
+     health,seed:commentarySeed,powerState:powerEconomy,abilityState,
      mode:'teamfight',teamId:attacker.id,
      attackerIds:call.attackerIds,targetIds:call.targetIds
     });
@@ -799,7 +816,7 @@ function simulateMatch(f){
   }
   nextSnapshot(t)
  }
- const report={champions,fixture:{a:f.a,b:f.b,round:f.round,playoff:!!f.playoff},frames:m.frames,events:m.events,moments:m.moments,health:{...health},powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),shutdowns:RiftCore.Shutdowns.snapshot(shutdowns),playerStats:RiftCore.clonePlayerStats(playerStats),elapsed:0,speed:1,running:true,committed:false,winner:m.winner,finished:false};
+ const report={abilityState:RiftCore.ChampionKits.snapshot(abilityState),champions,fixture:{a:f.a,b:f.b,round:f.round,playoff:!!f.playoff},frames:m.frames,events:m.events,moments:m.moments,health:{...health},powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),shutdowns:RiftCore.Shutdowns.snapshot(shutdowns),playerStats:RiftCore.clonePlayerStats(playerStats),elapsed:0,speed:1,running:true,committed:false,winner:m.winner,finished:false};
  RiftCore.attachMinimap(report,s);RiftCore.attachBroadcast(report,s,commentarySeed);
  RiftCore.MatchReplay.attachReplay(report,s);return report
 }

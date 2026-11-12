@@ -490,8 +490,12 @@ function chooseGoal(nav,agent,t,worldState,context=null){
   objectiveCall.until>=t;
  if(!finish&&team===nav.siegeTeam&&baronPlan&&
     ['JUN','SUP'].includes(role)){
-  const remaining=nav.siegeDecision?.escorts.filter(id=>
-   !['JUN','SUP'].includes(nav.agents[id]?.role)).length??0;
+  const goal=towerNode(getSide(nav,foe),nav.siegeLane,nav.siegeDecision.stage+1);
+  const remaining=nav.siegeDecision?.escorts.filter(id=>{
+   const p=nav.agents[id];
+   return p?.alive&&!['JUN','SUP'].includes(p.role)&&p.intent!=='retreat'&&
+    (context?.health?.[id]??100)>=55&&hops(p.node,goal)<=1;
+  }).length??0;
   if(remaining>=2||!siegeEscort){
    const objectiveMove=core.NeutralObjectives?.movement(nav,agent,t,worldState);
    if(objectiveMove)return objectiveMove;

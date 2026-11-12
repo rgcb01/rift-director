@@ -4,6 +4,17 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental: balance contrafactual de campeones
+- PR #57 inicial: 250/250 pruebas, UX aprobada, 1,999/2,000 partidas con ganador causal. Un mapa estándar (índice 307, semilla 2869273992) no terminó. 33.55 min, 5.76 kills, 28.11 casts/mapa y 17.2% mapas con teamfight.
+- Corregida la cesión de escoltas al Barón: la reserva de JUN/SUP requiere dos atacantes sanos no JUN/SUP a una arista o menos de la torre; el caso 307 termina al minuto 50. Piloto de 120 mapas estándar (tres mundos), 120/120 con ganador, cero errores de las seis auditorías comprobadas; duración 33.44, kills 5.43 y 8 sin Barón. Pendiente benchmark oficial.
+- Nueva opción explícita de draft para experimentos, validada por rol, sin cambiar asignación normal ni RNG. 100 pares controlados (20 por rol), mismos profesionales/fixture/semilla y nueve picks fijos; 200/200 mapas válidos en piloto. Cambiaron de ganador tres pares; diferencias de victoria pequeñas, sin justificación para buffs/nerfs definitivos.
+- Benchmark añade ledger JSON y dos gráficas de sustituciones controladas, separado de las 2,000 partidas oficiales. El runner exige que los pares adicionales sean válidos. No se cambian los gates originales.
+
+### Experimental: habilidades activas integradas
+- Integra los diez kits originales del PR #49 sobre el candidato acumulado de asedios, teamfights, recalls y progresión por rol del PR #56, sin modificar las ramas originales.
+- Los intercambios de carril, ganks, escaramuzas, teamfights grupales, counterplay y disputas de estructuras utilizan ventanas locales de cinco segundos, con recursos, cooldowns, daño/escudos/curaciones y ledger de casts. Se preservan el targeting y las sinergias de grupo; los objetivos secundarios no clonan hechizos.
+- TAB, pruebas de kits y diagnósticos de combate incluidos. Pendiente validación de la combinación mediante 1,000 partidas estándar + 500 pares espejados. No se declara release.
+
 ### Experimental: farm y XP por rol (candidato separado)
 - Distribución entera del oro de oleadas existente: dueño del carril/ADC peso 4, visitante peso 2, SUP peso 1. La suma coincide exactamente con el oro generado por la oleada.
 - XP por presencia física: 72 en línea sin compañero cercano, 56 con uno, 43 con dos o más; jungla propia con orden de farm 58, rotaciones 35, base 10. No se inventan campamentos individuales ni CS.
