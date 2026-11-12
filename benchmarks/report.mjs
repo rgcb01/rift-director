@@ -390,6 +390,14 @@ export function generate(current,previous,output){
    {label:'Mapas con teamfight',value:(assessment.current.groupFightRate||0)*100},
    {label:'5v5',value:ratio(assessment.current.fullFiveOnFive||0,s.completed)*100}
   ],{decimals:1})]]),
+  ...(s.gameplay.roleEconomy?[
+   ['role-levels.svg',bars('Nivel final promedio por rol',Object.entries(s.gameplay.roleEconomy)
+    .map(([label,p])=>({label,value:p.level})),{max:18,decimals:1})],
+   ['role-farm.svg',bars('Oro de farm promedio por jugador y rol',Object.entries(s.gameplay.roleEconomy)
+    .map(([label,p])=>({label,value:p.farm})),{decimals:0})],
+   ['role-equipment.svg',bars('Oro invertido en equipamiento por jugador y rol',Object.entries(s.gameplay.roleEconomy)
+    .map(([label,p])=>({label,value:p.spent})),{decimals:0})]
+  ]:[]),
   ['counterplay.svg',bars('Peleas tácticas y conversión territorial por 100 mapas',[
    {label:'Peleas con kill',value:(assessment.current.counterplayWinRate||0)*100},
    {label:'Torres de respuesta',value:(assessment.current.earnedFightTowerRate||0)*100},
