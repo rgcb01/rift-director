@@ -16,6 +16,8 @@ console.log('[group-fights] '+JSON.stringify({
   killsPerMatch:standard.gameplay.groupFightKillsPerMatch,
   fiveOnFive:standard.gameplay.fullFiveOnFive
 }));
+if(standard.issueSamples?.length)
+ console.error('[standard-failures] '+JSON.stringify(standard.issueSamples));
 const mirror=runMirror();
 console.log('[balance] 500 pares invertidos completos: '+mirror.matches+' partidos; '+mirror.failures.length+' errores');
 const result={schema:1,version,createdAt:new Date().toISOString(),
