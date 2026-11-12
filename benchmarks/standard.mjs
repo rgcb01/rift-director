@@ -152,6 +152,11 @@ export function runStandard() {
           recallTravelMinutes:m.frames.reduce((n,fr)=>n+
             Object.values(fr.navigation?.before||{}).filter(a=>a.intent==='shop_recall').length,0),
           totalSpent:Object.values(f.powerEconomy?.entries||{}).reduce((n,p)=>n+p.spent,0),
+          roleEconomy:Object.fromEntries(core.ROLES.map(role=>{
+            const players=Object.values(f.powerEconomy?.entries||{}).filter(p=>p.role===role);
+            return [role,Object.fromEntries(['level','farm','jungleFarm','spent','wallet','items'].map(key=>
+              [key,avg(players.map(p=>key==='items'?p.items.length:(p[key]??0)))]))];
+          })),
           meanLevel:avg(Object.values(f.powerEconomy?.entries||{}).map(p=>p.level)),
           maxLevel:Math.max(...Object.values(f.powerEconomy?.entries||{}).map(p=>p.level)),
           bothTeamsBought:[a,b].every(team=>Object.values(f.powerEconomy?.entries||{})
@@ -309,6 +314,9 @@ export function runStandard() {
       earlyPurchasesPerMatch:+avg(rows.map(r=>r.before30Purchases)).toFixed(2),
       recallTravelMinutesPerMatch:+avg(rows.map(r=>r.recallTravelMinutes)).toFixed(2),
       equipmentGoldPerMatch:+avg(rows.map(r=>r.totalSpent)).toFixed(2),
+      roleEconomy:Object.fromEntries(['TOP','JUN','MID','ADC','SUP'].map(role=>
+        [role,Object.fromEntries(['level','farm','jungleFarm','spent','wallet','items'].map(key=>
+          [key,+avg(rows.map(r=>r.roleEconomy[role][key])).toFixed(2)]))])),
       avgFinalLevel:+avg(rows.map(r=>r.meanLevel)).toFixed(2),
       maxLevelObserved:Math.max(...rows.map(r=>r.maxLevel)),
       noItemGames:rows.filter(r=>r.purchases===0).length,
