@@ -337,6 +337,11 @@ function simulateMatch(f){
   const node=nav.towerNode(target.id===a.id?'blue':'red',lane,stage);
   const present=positioned(c,node);
   if(!present.length)return false;
+  // A nearby player is not automatically diving a tower. Require an
+  // eligible wave before starting the structural combat; an unrelated
+  // tower must not spend the health of a passing Nexus assault.
+  if(!RiftCore.LaneEconomy.canPressureTower(laneEconomy,c.id,lane,stage,t))
+   return false;
   if(contestStructure(c,target,node,lane,t))return false;
   // A combat decision may have killed or forced an attacker to retreat.
   const attackersNow=positioned(c,node);
