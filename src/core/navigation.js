@@ -390,6 +390,23 @@ function chooseGoal(nav,agent,t,worldState,context=null){
     reason:'visible_nexus_defense',decisionVersion:7};
  }
 
+ // A credible Baron call competes with a non-finishing siege. Reserve
+ // the objective's actual JUN/SUP pair if at least two other attackers
+ // can continue the siege; a real opened Nexus still takes priority.
+ const objectiveCall=nav.neutralPlans?.[team];
+ const baronPlan=objectiveCall?.target==='baron_pit'&&
+  ['take','contest'].includes(objectiveCall.action)&&
+  objectiveCall.until>=t;
+ if(!finish&&team===nav.siegeTeam&&baronPlan&&
+    ['JUN','SUP'].includes(role)){
+  const remaining=nav.siegeDecision?.escorts.filter(id=>
+   !['JUN','SUP'].includes(nav.agents[id]?.role)).length??0;
+  if(remaining>=2||!siegeEscort){
+   const objectiveMove=core.NeutralObjectives?.movement(nav,agent,t,worldState);
+   if(objectiveMove)return objectiveMove;
+  }
+ }
+
  // An earned attacking group commits its actual escorts. Unassigned
  // professionals keep their lane/farm/objective responsibilities, instead
  // of a global siege call redirecting all ten agents to one tower.
