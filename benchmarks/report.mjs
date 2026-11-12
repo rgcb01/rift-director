@@ -452,6 +452,15 @@ export function generate(current,previous,output){
   ['champion-ttk.svg',bars('TTK observado: minutos simulados desde primera herida',[
    {label:'Minutos',value:assessment.current.observedTTKMean||0}
   ])],
+  ...(current.championMatchups?.rows?.length?[
+   ['champion-matchups.svg',bars('Victorias en sustituciones controladas (%)',
+    current.championMatchups.rows.flatMap(row=>row.champions.map(c=>({
+      label:c.id,value:(c.winRate??0)*100}))),{max:100,decimals:0})],
+   ['champion-matchup-flips.svg',bars('Pares que cambian de ganador por rol (%)',
+    current.championMatchups.rows.map(row=>({label:row.role,
+      value:row.paired.validPairs?100*(row.paired.firstOnly+row.paired.secondOnly)/row.paired.validPairs:0})),
+    {max:100,decimals:0})]
+  ]:[]),
   ['ability-casts.svg',bars('Habilidades Q/W/E/R usadas por mapa',[
    {label:'Q',value:assessment.current.abilityQMean||0},
    {label:'W',value:assessment.current.abilityWMean||0},
