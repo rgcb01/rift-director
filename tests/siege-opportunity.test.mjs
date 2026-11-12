@@ -91,3 +91,27 @@ test('diagnostic: record first sieges and first tower timing without changing ga
   assert.equal(m.frames[0].minute,0);
  }
 });
+
+test('after a repelled base attack, escorts regroup on a cleared lane and release together',()=>{
+ const {core,nav,state,a,b}=scene();
+ state.lanes[b.id].MID=3;
+ state.waves.MID.front=3.8;
+ nav.nexusRegroup={[a.id]:{created:39}};
+ const rallyNode='red_mid_inner';
+ for(const p of Object.values(nav.agents)){
+  p.node=p.teamId===a.id?'red_mid_base':'red_fountain';
+  p.intent='lane';
+ }
+ const healthy=Object.fromEntries(Object.keys(nav.agents).map(id=>[id,100]));
+ core.Navigation.determineSiege(nav,state,40,{health:healthy});
+ assert.equal(nav.siegeDecision.stage,3);
+ assert.equal(nav.siegeDecision.rally?.goal,rallyNode);
+ assert.equal(nav.siegeDecision.rally?.created,39);
+ for(const role of ['TOP','MID','ADC'])nav.agents[a.lineup[role]].node=rallyNode;
+ core.Navigation.determineSiege(nav,state,41,{health:healthy});
+ assert.equal(nav.siegeDecision.stage,3);
+ assert.equal(nav.siegeDecision.rally,undefined,
+  'A physical three-player formation releases the assault');
+ assert.equal(nav.nexusRegroup[a.id],undefined);
+ assert.equal(state.lanes[b.id].MID,3,'A regroup awards no structural progress');
+});
