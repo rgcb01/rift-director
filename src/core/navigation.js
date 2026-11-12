@@ -230,6 +230,24 @@ function siegeOpportunities(nav,world,t,context=null){
    LANES.indexOf(x.lane)-LANES.indexOf(y.lane)||
    x.team.localeCompare(y.team));
 }
+// A repelled Nexus attack leaves an observable reason to regroup. This
+// is a rally on the already-cleared route, not an extra wave or HP grant.
+// Release only after a real three-person formation has arrived; it may
+// then travel to the Nexus together rather than feeding isolated players.
+function nexusRally(nav,world,team,lane,t,health={}){
+ const request=nav.nexusRegroup?.[team];
+ if(!request||world.lanes?.[enemy(nav,team)]?.[lane]!==3)return null;
+ if(request.releaseUntil>=t)return null;
+ const goal=towerNode(getSide(nav,enemy(nav,team)),lane,2);
+ const ready=teamAgents(nav,team).filter(p=>p.alive&&
+  (world.dead?.[p.id]||0)<=t&&p.intent!=='retreat'&&
+  (health[p.id]??100)>=65&&p.node===goal);
+ if(ready.length>=3){
+  request.releaseUntil=t+Math.max(3,hops(goal,getSide(nav,enemy(nav,team))+'_nexus')+2);
+  return null;
+ }
+ return {goal,lane,created:request.created,ready:ready.map(p=>p.id)};
+}
 function determineSiege(nav,worldState,t,context=null){
  if(nav.siegeChecked===t)return;
  nav.siegeChecked=t;
@@ -280,6 +298,8 @@ function determineSiege(nav,worldState,t,context=null){
      travel:Math.min(...escorts.map(p=>hops(p.node,goal))),
      escorts:escorts.map(p=>p.id),defenders:0,vision:50,
      powerEdge:0,reason:'continue_open_nexus_route'};
+    const rally=nexusRally(nav,worldState,team,lane,t,context?.health);
+    if(rally)nav.siegeDecision.rally=rally;
     return;
    }
   }
@@ -326,6 +346,10 @@ function determineSiege(nav,worldState,t,context=null){
   ...(sidePlan?{sidePlan}:{}),
   defenders:chosen.defenders,vision:chosen.vision,
   powerEdge:+chosen.powerEdge.toFixed(2)};
+ if(chosen.stage===3){
+  const rally=nexusRally(nav,worldState,chosen.team,chosen.lane,t,context?.health);
+  if(rally)nav.siegeDecision.rally=rally;
+ }
 }
 // Only these regions belong to the JUN's travel network before teamfights.
 // Gank staging nodes are off-lane; simply being in a node adjacent to a lane
@@ -375,6 +399,15 @@ function chooseGoal(nav,agent,t,worldState,context=null){
  const lead=worldState.gold[team]-worldState.gold[foe];
  const partner=role==='SUP'?teamAgents(nav,team).find(p=>p.role==='ADC'&&p.alive):null;
  const followADC=()=>partner?.goal&&adjacency[partner.goal]?partner.goal:anchor('BOT');
+
+ // Following a repelled base attack, healthy escorts gather at a real
+ // waypoint before the next assault. Recovery and actual retreat still
+ // outrank this order; buying can wait until the formation has regrouped.
+ const rally=nav.siegeDecision?.stage===3&&nav.siegeDecision.teamId===team?
+  nav.siegeDecision.rally:null;
+ if(rally&&(role!=='JUN'||nav.siegeDecision.escorts.includes(agent.id)))
+  return {goal:rally.goal,intent:'siege',lane:rally.lane,
+   reason:'regroup_after_repulse',decisionVersion:2};
 
  // An affordable power spike can justify physically returning to base.
  // A single professional per squad may recall; there is no teleport/instant buy.
