@@ -461,6 +461,18 @@ export function generate(current,previous,output){
       value:row.paired.validPairs?100*(row.paired.firstOnly+row.paired.secondOnly)/row.paired.validPairs:0})),
     {max:100,decimals:0})]
   ]:[]),
+  ...(current.compositionMatchups?.summary?.length?[
+   ['composition-wins.svg',bars('Victorias por composicion en drafts intercambiados (%)',
+    current.compositionMatchups.summary.map(row=>({label:row.name.replaceAll('_',' '),value:(row.winRate??0)*100})),
+    {max:100,decimals:1})],
+   ['composition-objectives.svg',bars('Barones por equipo y composicion',
+    current.compositionMatchups.summary.map(row=>({label:row.name.replaceAll('_',' '),value:row.means.barons??0})),
+    {decimals:2})],
+   ['composition-paired.svg',bars('Pares: efecto de composicion frente a plantilla/lado (%)',[
+    {label:'Mismo equipo',value:100*current.compositionMatchups.rows.reduce((n,r)=>n+r.paired.split,0)/Math.max(1,current.compositionMatchups.validPairs)},
+    {label:'Misma composicion',value:100*current.compositionMatchups.rows.reduce((n,r)=>n+r.paired.firstSweep+r.paired.secondSweep,0)/Math.max(1,current.compositionMatchups.validPairs)}
+   ],{max:100,decimals:0})]
+  ]:[]),
   ['ability-casts.svg',bars('Habilidades Q/W/E/R usadas por mapa',[
    {label:'Q',value:assessment.current.abilityQMean||0},
    {label:'W',value:assessment.current.abilityWMean||0},
