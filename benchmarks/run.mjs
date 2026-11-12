@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { runStandard } from './standard.mjs';
 import { runMirror } from './mirror.mjs';
 import { runChampionMatchups } from './champion-matchups.mjs';
+import { runCompositionMatchups } from './composition-matchups.mjs';
 
 const version=process.argv[2]||'development';
 const output=process.argv[3]||'.balance-output';
@@ -26,12 +27,19 @@ writeFileSync(output+'/champion-matchups.json',JSON.stringify(championMatchups,n
 console.log('[champion-matchups] '+JSON.stringify({validPairs:championMatchups.validPairs,
  requestedPairs:championMatchups.requestedPairs,failures:championMatchups.failures,
  rows:championMatchups.rows}));
+const compositionMatchups=runCompositionMatchups();
+writeFileSync(output+'/composition-matchups.json',JSON.stringify(compositionMatchups,null,2)+'\n');
+console.log('[composition-matchups] '+JSON.stringify({validPairs:compositionMatchups.validPairs,
+ requestedPairs:compositionMatchups.requestedPairs,failures:compositionMatchups.failures,
+ summary:compositionMatchups.summary,rows:compositionMatchups.rows}));
 const result={schema:1,version,createdAt:new Date().toISOString(),
   benchmarkRevision:'fixed-seed-1000-v1',durationMs:Date.now()-started,standard,mirror,
-  championMatchups:{...championMatchups,cases:undefined}};
+  championMatchups:{...championMatchups,cases:undefined},
+  compositionMatchups:{...compositionMatchups,cases:undefined}};
 writeFileSync(output+'/summary.json',JSON.stringify(result,null,2)+'\n');
 console.log('[balance] output '+output+'/summary.json');
 if(standard.completed!==1000||standard.audited!==1000||standard.issueCount||
    standard.auditFailures||standard.wins.invalid||mirror.matches!==1000||mirror.pairs!==500||
    mirror.failures.length||championMatchups.failures.length||
-   championMatchups.validPairs!==championMatchups.requestedPairs)process.exitCode=1;
+   championMatchups.validPairs!==championMatchups.requestedPairs||compositionMatchups.failures.length||
+   compositionMatchups.validPairs!==compositionMatchups.requestedPairs)process.exitCode=1;
