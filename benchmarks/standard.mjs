@@ -97,6 +97,12 @@ export function runStandard() {
            e.facts.defenderIds?.length>0).length,
           firstNexusHitMinute:m.events.find(e=>
            ['nexus_damage','nexus'].includes(e.facts?.action))?.minute??null,
+          groupFights:m.events.filter(e=>e.facts?.groupFight?.round===1).length,
+          groupFightResponses:m.events.filter(e=>e.facts?.groupFight?.round===2).length,
+          groupFightKills:m.events.reduce((n,e)=>n+
+            (e.facts?.groupFight?(e.facts.victimIds?.length||0):0),0),
+          fullFiveOnFive:m.events.filter(e=>e.facts?.groupFight?.round===1&&
+            Object.values(e.facts.groupFight.groups).every(ids=>ids.length===5)).length,
           counterplayFights:m.events.filter(e=>e.facts?.counterplayVersion===1).length,
           counterplayKills:m.events.reduce((n,e)=>n+
             (e.facts?.counterplayVersion===1?(e.facts?.victimIds?.length||0):0),0),
@@ -267,6 +273,11 @@ export function runStandard() {
       macroExposedPushTurnsPerMatch:+avg(rows.map(r=>r.macroRisk.exposedPush)).toFixed(2),
       macroEscortedObjectiveTurnsPerMatch:+avg(rows.map(r=>r.macroRisk.escortedObjective)).toFixed(2),
       shutdownsPerMatch:+avg(rows.map(r=>r.shutdowns)).toFixed(2),
+      groupFightsPerMatch:+avg(rows.map(r=>r.groupFights)).toFixed(2),
+      groupFightGames:rows.filter(r=>r.groupFights>0).length,
+      groupFightResponses:sum(rows,'groupFightResponses'),
+      groupFightKillsPerMatch:+avg(rows.map(r=>r.groupFightKills)).toFixed(2),
+      fullFiveOnFive:sum(rows,'fullFiveOnFive'),
       counterplayFightsPerMatch:+avg(rows.map(r=>r.counterplayFights)).toFixed(2),
       counterplayKillsPerMatch:+avg(rows.map(r=>r.counterplayKills)).toFixed(2),
       underdogFightsPerMatch:+avg(rows.map(r=>r.underdogFights)).toFixed(2),
