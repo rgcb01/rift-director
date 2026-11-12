@@ -115,3 +115,20 @@ test('after a repelled base attack, escorts regroup on a cleared lane and releas
  assert.equal(nav.nexusRegroup[a.id],undefined);
  assert.equal(state.lanes[b.id].MID,3,'A regroup awards no structural progress');
 });
+
+test('previous benchmark mirror pair 158 finishes through causal Nexus damage',()=>{
+ const batch=3,pair=158,seed=3050264979;
+ const {sim,core}=boot({now:1731111111000+batch*41241211});
+ const world=sim.newGame('balanced','QA Mirror '+batch);
+ const fixtures=Object.values(world.fixtures).flat();
+ const f=fixtures[(pair*13+batch*7)%fixtures.length];
+ assert.equal(f.a,'c27');assert.equal(f.b,'c21');
+ for(const [a,b] of [[f.a,f.b],[f.b,f.a]]){
+  world.rng=seed;
+  const m=sim.simulateMatch({...f,a,b});
+  assert.ok(m.winner,'Exact benchmark failure must finish: '+a+' vs '+b);
+  assert.deepEqual(core.NexusSiege.audit(m),[]);
+  assert.ok(m.events.some(e=>e.facts?.action==='nexus'),
+   'No timer-based winner is permitted');
+ }
+});
