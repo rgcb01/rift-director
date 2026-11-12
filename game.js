@@ -406,7 +406,7 @@ function simulateMatch(f){
  makeEv(0,'Comienza el mapa',`${a.name} y ${b.name} entran a la Grieta. Ambos equipos buscan imponer su plan de juego.`, 'normal');nextSnapshot(0);
  const lastLaneTrade={TOP:-10,MID:-10,BOT:-10};
  const lastGankAttempt=Object.create(null);
- let lastCounterFight=-10;
+ let lastCounterFight=-10,lastGroupFight=-10;
  for(let t=1;t<=76&&!m.winner;t++){
   m.minute=t;
   const teamIncome={};
@@ -563,6 +563,48 @@ function simulateMatch(f){
         'fight',attacker,facts);
     }
    }
+  }
+  // Coordinated teamfights are distinct from picks or tower defense.
+  // Both teams have at least three actual reachable fighters at initiation.
+  // Resolve the first exchange, then let surviving opponents respond using
+  // the same damage, health, retreat and KDA contract. Nobody retaliates
+  // after death or while fleeing, and no victory roll grants free kills.
+  const rosterForFight=Object.fromEntries([...aP,...bP].map(p=>[p.id,p]));
+  const group=RiftCore.Encounters.groupOpportunity({
+   nav:navigation,dead:m.dead,minute:t,players:rosterForFight,
+   health,seed:commentarySeed,world:m,powerState:powerEconomy,
+   previous:lastGroupFight
+  });
+  if(group){
+   lastGroupFight=t;
+   const first=club(group.firstTeam),second=enemy(first);
+   const fightId=t+':'+group.zone;
+   for(const [round,attacker,defender] of [[1,first,second],[2,second,first]]){
+    const facts=RiftCore.Encounters.resolveCombat({
+     nav:navigation,dead:m.dead,minute:t,players:rosterForFight,
+     health,seed:commentarySeed,powerState:powerEconomy,mode:'teamfight',
+     teamId:attacker.id,attackerIds:group.groups[attacker.id],
+     targetIds:group.groups[defender.id],groupExchange:true
+    });
+    if(!facts)continue;
+    facts.action=facts.victimIds.length?'teamfight':'clash';
+    facts.node=facts.actorNode;
+    facts.groupFight={version:1,id:fightId,zone:group.zone,round,
+     firstTeam:group.firstTeam,groups:group.groups};
+    applyCombat(facts,t);
+    facts.multiKill=facts.victimIds.length;
+    facts.ace=facts.victimIds.length>0&&living(defender,t).length===0;
+    const pressure=RiftCore.Counterplay.pressureAfterKill(navigation,facts,t,m);
+    if(pressure)facts.counterPressure={...pressure,
+     sourceVictims:[...pressure.sourceVictims],allowed:[...pressure.allowed]};
+    const title=round===1?'¡Teamfight en el mapa!':'¡Respuesta en la teamfight!';
+    const where=group.zone==='dragon_pit'?'Dragón':
+     group.zone==='baron_pit'?'Barón':'carril central';
+    makeEv(t,title,attacker.name+(round===1?' inicia':' responde en')+
+     ' una pelea grupal en '+where+'. '+combatDetails(facts),
+     'fight',attacker,facts);
+   }
+   lastCounterFight=t;
   }
   // Every tower stores real HP. Damage and plates require wave pressure and
   // actual players at the structure; no instant destruction or clock roll.
