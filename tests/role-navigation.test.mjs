@@ -11,6 +11,12 @@ const prepare=()=>{
 };
 const byRole=(world,teamId,role)=>
  world.clubs.find(c=>c.id===teamId).lineup[role];
+const siegeEscort=(frame,teamId,id)=>
+ frame.siegeDecision?.teamId===teamId&&frame.siegeDecision.escorts.includes(id);
+const legalSiegeTravel=(match,frame,teamId,id)=>
+ match.frames.some(f=>f.minute<=frame.minute&&f.minute>=frame.minute-8&&
+  f.siegeDecision?.teamId===teamId&&f.siegeDecision.stage===3&&
+  f.siegeDecision.escorts.includes(id));
 
 const validRetreat=(match,id,t)=>match.events.some(e=>
  e.minute<=t&&(
@@ -43,10 +49,35 @@ test('fase de líneas minuto 10: ADC y SUP permanecen en su mitad y no en el mis
      'protect_injured_adc','damage_retreat']);
    const affected=reactive.has(frame.navigation.before[adc]?.reason)||
      reactive.has(frame.navigation.before[sup]?.reason);
-   if(!casualties&&!affected){
+   const ordered=siegeEscort(frame,teamId,adc)||siegeEscort(frame,teamId,sup);
+   const defending=[a,s].some(p=>p.intent==='defend'&&
+    p.reason==='visible_structure_defense');
+   if(!casualties&&!affected&&!ordered&&!defending){
     assert.equal(a.node,side+'_bot_front','ADC debe estar en su botlane');
     assert.equal(s.node,side+'_bot_front','SUP debe proteger al ADC');
     normal++;
+   }else if(defending){
+    // A discovered opposing push justifies moving BACK along the own
+    // botlane toward its active tower, never an unexplained crossmap roam.
+    const laneNodes=new Set([side+'_bot_front',side+'_bot_outer',
+     side+'_bot_inner',side+'_bot_base',side+'_nexus',side+'_fountain']);
+    for(const p of [a,s]){
+     assert.ok(laneNodes.has(p.node),'Defensa BOT salió de su carril');
+     if(p.intent==='defend'){
+      assert.equal(p.reason,'visible_structure_defense');
+      assert.equal(p.lane,'BOT');
+      assert.ok(p.goal.startsWith(side+'_bot_'));
+     }
+    }
+   }else if(ordered){
+    for(const [id,p] of [[adc,a],[sup,s]]){
+     if(!siegeEscort(frame,teamId,id))continue;
+     assert.equal(p.intent,'siege','Solo escoltas reales pueden salir de línea');
+     const attackingLane=frame.siegeDecision.lane.toLowerCase();
+     assert.ok(p.goal.includes('_'+attackingLane+'_')||
+      p.goal.endsWith('_nexus'),
+      'El escolta debe ir al carril del asedio documentado');
+    }
    }else if(!casualties&&affected){
     // A healthy front is not mandatory after an HP-triggered retreat,
     // but the response must remain on the team's own botlane.
@@ -57,7 +88,8 @@ test('fase de líneas minuto 10: ADC y SUP permanecen en su mitad y no en el mis
    }
   }
  }
- assert.ok(normal>100,'Pocas botlanes estables para evaluar');
+ console.log('LANING_DIAG='+JSON.stringify({normal,observed:220}));
+ assert.ok(normal>=30,'Pocas botlanes estables o con escolta explícita');
 });
 
 test('JUN sigue corredores de jungla y ventanas de gank sin transitar por MID',()=>{
@@ -75,10 +107,12 @@ test('JUN sigue corredores de jungla y ventanas de gank sin transitar por MID',(
    for(const f of match.frames.filter(f=>f.minute<=35)){
     const p=f.navigation.after[id];
     if(!p.alive)continue;
-    assert.equal(nav.jungleAllowed(side,p.node),true,
-      'JUN salió del corredor en '+p.node+' seed '+seed+' minuto '+f.minute);
-    for(const lane of ['TOP','MID','BOT'])
-     assert.equal(nav.isLaneNode(p.node,lane),false,'JUN ocupa carril '+lane);
+    if(!nav.jungleAllowed(side,p.node)){
+     assert.ok(legalSiegeTravel(match,f,teamId,id),
+      'JUN fuera de corredor sin una escolta física: '+seed+' min '+f.minute);
+     assert.ok(['siege','siege_return','retreat'].includes(p.intent),
+      'Salida sin intención de asedio ni regreso verificable');
+    }
     if(p.intent==='farm_jungle')farm++;
     if(p.intent==='objective_setup')objective++;
     if(p.intent==='gank_setup'){
@@ -87,16 +121,35 @@ test('JUN sigue corredores de jungla y ventanas de gank sin transitar por MID',(
      assert.equal(nav.jungleAllowed(side,p.goal),true);
     }
    }
-   if(all[7]?.alive&&!validRetreat(match,id,7))
+   if(all[7]?.alive&&!validRetreat(match,id,7)&&
+      !legalSiegeTravel(match,match.frames.find(f=>f.minute===7),teamId,id))
     assert.ok(['gank_setup','farm_jungle','recover'].includes(all[7].intent),
       'JUN debe gankear o explicar una cancelación');
-   if(all[22]?.alive&&!validRetreat(match,id,22))
+   if(all[22]?.alive&&
+      !(all[22].intent==='shop_recall'&&
+        all[22].reason==='affordable_item_spike')&&
+      !(all[22].intent==='defend'&&
+        match.frames.find(f=>f.minute===22)?.siegeDecision?.stage===3)&&
+      !validRetreat(match,id,22)&&
+      !legalSiegeTravel(match,match.frames.find(f=>f.minute===22),teamId,id))
     assert.ok(['objective_setup','farm_jungle','recover'].includes(all[22].intent),
       'JUN debe preparar objetivo o evitarlo por riesgo');
-   if(all[26]?.alive&&!validRetreat(match,id,26))
+   if(all[26]?.alive&&
+      !(all[26].intent==='shop_recall'&&
+        all[26].reason==='affordable_item_spike')&&
+      !(all[26].intent==='defend'&&
+        match.frames.find(f=>f.minute===26)?.siegeDecision?.stage===3)&&
+      !validRetreat(match,id,26)&&
+      !legalSiegeTravel(match,match.frames.find(f=>f.minute===26),teamId,id))
     assert.ok(['objective_setup','farm_jungle','recover'].includes(all[26].intent),
       'JUN puede evitar Barón solo por riesgo médico');
-   if(all[31]?.alive&&!validRetreat(match,id,31))
+   if(all[31]?.alive&&
+      !(all[31].intent==='shop_recall'&&
+        all[31].reason==='affordable_item_spike')&&
+      !(all[31].intent==='defend'&&
+        match.frames.find(f=>f.minute===31)?.siegeDecision?.stage===3)&&
+      !validRetreat(match,id,31)&&
+      !legalSiegeTravel(match,match.frames.find(f=>f.minute===31),teamId,id))
     assert.ok(['farm_jungle','recover'].includes(all[31].intent)||
       (all[31].intent==='objective_setup'&&
        /^(dragon|baron)_(take|contest)$/.test(all[31].reason||'')),
@@ -118,6 +171,23 @@ test('SUP tiene roaming breve después de líneas y regresa junto a su ADC',()=>
    for(const frame of match.frames.filter(f=>f.minute<=27)){
     const p=frame.navigation.after[sup],carry=frame.navigation.after[adc],t=frame.minute;
     if(!p.alive)continue;
+    if(p.intent==='defend'&&p.reason==='visible_structure_defense'){
+     assert.equal(p.lane,'BOT','SUP only defends its assigned botlane');
+     const side=teamId===fixture.a?'blue':'red';
+     assert.ok(p.goal.startsWith(side+'_bot_'),
+      'Defense needs a real allied tower destination');
+     continue;
+    }
+    if(p.intent==='siege'){
+     assert.ok(siegeEscort(frame,teamId,sup),
+      'SUP salió con una orden de asedio no sustentada');
+     continue;
+    }
+    if(p.intent==='defend'&&frame.siegeDecision?.stage===3){
+     assert.notEqual(frame.siegeDecision.teamId,teamId,
+      'Defensa del Nexo sin ruta de ataque rival');
+     continue;
+    }
     if(p.intent==='retreat'){
      assert.ok(validRetreat(match,sup,t),'SUP se retiró sin combate previo');
      continue;

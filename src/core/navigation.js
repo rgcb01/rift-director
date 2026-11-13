@@ -91,11 +91,16 @@ function createNavigation(clubs,teams,seed){
   }
  }
  return {a,b,agents,teams,seed,siegeTeam:null,siegeLane:null,
-   sideLane:null,siegeChecked:0,siegeUntil:0,minute:0,
+   sideLane:null,siegeChecked:-1,siegeUntil:0,siegeDecision:null,minute:0,
    vision:core.Vision?.create([a,b])||null};
 }
 function teamAgents(nav,id){return Object.values(nav.agents).filter(x=>x.teamId===id)}
 function getAgent(nav,id){return nav.agents[id]||null}
+function laneRivalRoles(lane){return lane==='BOT'?['ADC','SUP']:[lane]}
+function laneRivalDead(nav,team,lane,dead={},minute=nav.minute){
+ return teamAgents(nav,enemy(nav,team)).some(p=>laneRivalRoles(lane).includes(p.role)&&
+  (!p.alive||(dead[p.id]||0)>minute));
+}
 function at(nav,id,node,maxHops=1){
  const agent=nav.agents[id];
  if(!agent?.alive||!nearby(agent.node,node,maxHops))return false;
@@ -146,151 +151,226 @@ function secondaryLane(nav,worldState,team,primary){
   return rank(b)-rank(a)||a.localeCompare(b);
  })[0]||'TOP';
 }
-function determineSiege(nav,worldState,t){
- if(nav.siegeChecked===t)return;
- nav.siegeChecked=t;
- if(t<16)return;
- // A major *observed* early gold/structure advantage plus a favourable
- // physical wave may warrant an earlier coordinated rotation. This never
- // awards plates, tower damage or a winner. It only chooses a destination,
- // so existing pathfinding and wave/HP combat rules remain authoritative.
- // Late siege selection below retains its existing balancing logic.
- const score=id=>worldState.gold[id]+worldState.towers[id]*700+
-   worldState.kills[id]*280+worldState.barons[id]*450;
- const delta=score(nav.a)-score(nav.b);
- const advantage=Math.abs(delta);
- if(t<30){
-  if(nav.siegeTeam&&t<(nav.siegeUntil||0))return;
-  const proposals=[];
-  // Deaths are public information. Enemy *position* is not. Consider
-  // both clubs instead of always committing the gold leader, allowing an
-  // outnumbered-side counterattack when it wins a visible fight and wave.
-  for(const team of [nav.a,nav.b]){
-   const defender=enemy(nav,team);
-   const lead=score(team)-score(defender);
-   const deadOpp=teamAgents(nav,defender).filter(p=>
-    (worldState.dead?.[p.id]||0)>t).length;
-   const earned=nav.counterPressure?.[team];
-   for(const lane of LANES){
-    if((worldState.lanes?.[defender]?.[lane]??3)>=3||
-       !worldState.waves?.[lane])continue;
-    const wave=core.LaneEconomy.pressureFor(
-     {teamIds:[nav.a,nav.b],lanes:worldState.waves},team,lane);
-    const present=teamAgents(nav,team).filter(p=>
-     (worldState.dead?.[p.id]||0)<=t&&p.alive&&
-     p.intent!=='retreat'&&isLaneNode(p.node,lane)).length;
-    const earnedHere=earned?.lane===lane&&t>earned.created&&
-     t<=earned.until&&earned.sourceVictims?.length>0;
-    const credibleLargeLead=lead>=2200&&wave>=1.0&&present>=2;
-    const credibleFight=lead>=-900&&deadOpp>=1&&wave>=.65&&
-     (present>=2||present>=1&&earnedHere);
-    if(!credibleLargeLead&&!credibleFight)continue;
-    proposals.push({team,lane,wave,present,lead,earnedHere,
-     score:(credibleFight?18:0)+present*5+wave*7+
-       Math.max(-4,Math.min(8,lead/450))});
-   }
+// A siege is an investment of actual travel, farm and safety, not a
+// "minute >= 44" phase transition. Evaluate the same snapshot for BOTH
+// teams before anyone moves, with no gameplay RNG or hidden enemy HP.
+function siegeOpportunities(nav,world,t,context=null){
+ const teams=[nav.a,nav.b],out=[];
+ const waveModel={teamIds:teams,lanes:world.waves};
+ const hp=context?.health||{};
+ const alive=p=>p.alive&&(world.dead?.[p.id]||0)<=t&&
+   p.intent!=='retreat'&&p.intent!=='dead'&&(hp[p.id]??100)>=38;
+ const offensivePower=p=>{
+  const row=world.powerEconomy?.entries?.[p.id];
+  return row?(core.PowerEconomy?.boost(world.powerEconomy,p.id,'attack')||0):0;
+ };
+ for(const team of teams){
+  const foe=enemy(nav,team),ours=teamAgents(nav,team).filter(alive),
+   theirs=teamAgents(nav,foe).filter(alive);
+  const powerEdge=ours.length&&theirs.length?
+   (ours.reduce((sum,p)=>sum+offensivePower(p),0)/ours.length-
+    theirs.reduce((sum,p)=>sum+offensivePower(p),0)/theirs.length):0;
+  const deadEnemies=teamAgents(nav,foe).filter(p=>
+   (world.dead?.[p.id]||0)>t).length;
+  const lead=(world.gold?.[team]||0)-(world.gold?.[foe]||0);
+  const finished=new Set((core.PowerEconomy?.ITEM_CATALOG||[]).map(i=>i.id));
+  const completed=ours.reduce((n,p)=>n+(world.powerEconomy?.entries?.[p.id]?.items||[])
+   .filter(id=>finished.has(id)).length,0);
+  for(const lane of LANES){
+   const stage=world.lanes?.[foe]?.[lane];
+   if(!Number.isInteger(stage)||stage<0||stage>3||
+      !world.waves?.[lane])continue;
+   const goal=stage===3?getSide(nav,foe)+'_nexus':
+    towerNode(getSide(nav,foe),lane,stage+1);
+   const wave=core.LaneEconomy.pressureFor(waveModel,team,lane);
+   // A kill only creates a tower siege opportunity in the lane of the
+   // eliminated laner. A lead or purchased power may justify a separate push.
+   const laneKill=laneRivalDead(nav,team,lane,world.dead||{},t);
+   // An advanced lane needs less push momentum than an untouched outer
+   // tower, but a losing wave never creates a free tower/nexus attempt.
+   const committed=nav.siegeTeam===team&&nav.siegeLane===lane&&nav.siegeUntil>t;
+   const minimumWave=committed?-.20:stage===3?-.20:stage>0?.35:.48;
+   if(wave<minimumWave)continue;
+   // Neither a stopwatch nor a tiny early wave authorizes abandoning lanes.
+   // An untouched outer tower requires its lane kill, a substantial lead
+   // alongside the wave, or bought equipment able to convert into pressure.
+   // Distance is graph travel, NOT a global asiedio timer. A nearby
+   // competent pair can rotate before a rich but distant team.
+   const escorts=ours.map(p=>({id:p.id,role:p.role,hops:hops(p.node,goal),
+    lanePresent:isLaneNode(p.node,lane)}))
+    .filter(p=>p.hops<=7&&(stage===3||p.role!=='JUN')).sort((a,b)=>a.hops-b.hops||
+     a.id.localeCompare(b.id));
+   if(escorts.length<2||escorts[0].hops>5)continue;
+   const local=escorts.filter(p=>p.lanePresent||p.hops<=3).length;
+   const travel=(escorts[0].hops+escorts[1].hops)/2;
+   // Never read invisible opponent positions to choose a push.
+   // The team's own vision determines how risky an unknown defense is.
+   const vision=world.map?.lanes?.[lane]?.vision?.[team]??50;
+   const revealed=vision>=58;
+   const defenders=revealed?theirs.filter(p=>hops(p.node,goal)<=2).length:0;
+   const fogCost=revealed?0:1.0;
+   const nearbyPower=Math.max(-2,Math.min(2,powerEdge*.075));
+   const localEdge=escorts.length-defenders;
+   const earned=stage===3?deadEnemies>0:laneKill||
+    lead>=2200&&wave>=1.05||completed>=2&&wave>=.85||completed>=4&&wave>=.45;
+   if(stage===0&&!earned)continue;
+   const structuralProgress=stage*1.5+(stage===3?3:0);
+   const position=local*.85+Math.min(3,escorts.length)*.4-
+    travel*.24;
+   const score=wave*2.25+position+structuralProgress+
+    nearbyPower+Math.min(2,stage===3?deadEnemies:Number(laneKill))*1.35-
+    defenders*.9-fogCost;
+   // Victory route and actual eliminated defenders matter, but neither
+   // a gold lead nor an absolute minute may authorize a push on its own.
+   const required=stage===3?1.6:stage>0?2.4:3.2;
+   // On an already opened Nexus route, numerical inferiority is a
+   // combat risk, not an absolute ban on a physical assault. The Nexus
+   // damage ledger still requires a real wave, two living attackers
+   // at the base and applies the actual defenders' damage reduction.
+   if(score<required||(stage<3&&localEdge<1&&!laneKill))continue;
+   out.push({team,lane,goal,stage,wave,score,escorts:escorts.map(p=>p.id),
+    travel,local,defenders,vision,powerEdge,deadEnemies,
+    required,minimumWave});
   }
-  proposals.sort((x,y)=>y.score-x.score||y.wave-x.wave||
+ }
+ return out.sort((x,y)=>y.score-x.score||
+   y.stage-x.stage||x.travel-y.travel||
    LANES.indexOf(x.lane)-LANES.indexOf(y.lane)||
    x.team.localeCompare(y.team));
-  if(!proposals.length){
-   // No permanent directive from an expired early opportunity.
-   nav.siegeTeam=null;nav.siegeLane=null;nav.sideLane=null;
-   return;
-  }
-  const chosen=proposals[0];
-  nav.siegeTeam=chosen.team;
-  nav.siegeLane=chosen.lane;
-  nav.sideLane=secondaryLane(nav,worldState,chosen.team,chosen.lane);
-  nav.siegeUntil=t+4;
-  return;
+}
+// A repelled Nexus attack leaves an observable reason to regroup. This
+// is a rally on the already-cleared route, not an extra wave or HP grant.
+// Release only after a real three-person formation has arrived; it may
+// then travel to the Nexus together rather than feeding isolated players.
+function nexusRally(nav,world,team,lane,t,health={}){
+ const request=nav.nexusRegroup?.[team];
+ if(!request||world.lanes?.[enemy(nav,team)]?.[lane]!==3)return null;
+ const goal=towerNode(getSide(nav,enemy(nav,team)),lane,2);
+ const ready=teamAgents(nav,team).filter(p=>p.alive&&
+  (world.dead?.[p.id]||0)<=t&&p.intent!=='retreat'&&
+  (health[p.id]??100)>=65&&p.node===goal);
+ if(ready.length>=3){
+  delete nav.nexusRegroup[team];
+  return null;
  }
- // A team behind on the public scoreboard may temporarily redirect its
- // siege only after actually eliminating an opponent while escorting a
- // favourable wave. This is a tactical opportunity, NOT a comeback buff:
- // movement, structural HP, presence and defended attacks remain authoritative.
- const counterSieges=[];
- for(const team of [nav.a,nav.b]){
-  const other=enemy(nav,team);
-  if(score(other)-score(team)<1500)continue;
-  const deadOpp=teamAgents(nav,other).filter(p=>
-   (worldState.dead?.[p.id]||0)>t).length;
-  if(!deadOpp)continue;
-  for(const lane of LANES){
-   if((worldState.lanes?.[other]?.[lane]??3)>=3)continue;
+ return {goal,lane,created:request.created,ready:ready.map(p=>p.id)};
+}
+function determineSiege(nav,worldState,t,context=null){
+ if(nav.siegeChecked===t)return;
+ nav.siegeChecked=t;
+ const options=siegeOpportunities(nav,worldState,t,context);
+ const old=options.find(p=>p.team===nav.siegeTeam&&
+  p.lane===nav.siegeLane);
+ const best=options[0]||null;
+ // Commitment lasts only while the physical advantage continues. Avoid
+ // changing lanes for tiny score variations; never guarantee an eight-minute
+ // siege just because the clock reached a particular phase.
+ // On a real opened Nexus route, finishing is worth more than repeatedly
+ // restarting unrelated outer-tower marches. A major opposing earned
+ // opportunity can still interrupt the current plan.
+ const endgame=options.find(p=>p.team===nav.siegeTeam&&p.stage===3&&
+  p.wave>=-.20&&p.escorts.length>=2);
+ // An unproductive outer-tower march must not renew its commitment
+ // forever. Judge the actual persistent tower HP, not the match clock.
+ // If a different earned lane is viable, stop repeating a stalled push.
+ const progress=nav.siegeProgress;
+ const stalled=old&&old.stage<3&&progress?.team===old.team&&
+  progress.lane===old.lane&&progress.stage===old.stage&&
+  worldState.waves?.[old.lane]?.hp?.[enemy(nav,old.team)]?.[old.stage]===progress.hp&&
+  t-progress.since>=Math.max(7,Math.ceil(old.travel)+5);
+ const alternative=stalled?options.find(p=>p.team===old.team&&
+  p.lane!==old.lane&&p.score>=p.required&&p.wave>=.48):null;
+ const top=endgame||alternative||best;
+ // Once attackers have a real viable wave and local escorts, sustain
+ // their push rather than re-assigning them to TOP/MID/BOT on consecutive
+ // minutes. Only an open Nexus route or a substantially stronger opposing
+ // opportunity should dislodge an earned commitment.
+ const continuing=old&&old.escorts.length>=2&&
+  old.wave>=.30&&old.score>=old.required-1.0;
+ const urgent=top&&top.team===old?.team&&top.stage===3&&
+  top.lane!==old.lane;
+ const lostInitiative=old&&top&&top.team!==old.team&&
+  top.score>=old.score+6.0&&top.deadEnemies>0;
+ const chosen=alternative&&!endgame?alternative:
+   continuing&&!urgent&&!lostInitiative?old:
+   old&&nav.siegeUntil>t&&
+     (!top||top.team===old.team&&top.stage!==3&&
+      top.score<old.score+5.5||
+      top.team!==old.team&&top.score<old.score+4.2)?
+     old:top;
+ if(!chosen){
+  // A broken lane is a physically earned path to victory. A momentary
+  // absence of a fresh lane proposal must not pull its two travelling
+  // attackers away from the Nexus every alternate minute.
+  const team=nav.siegeTeam,foe=team&&enemy(nav,team),lane=nav.siegeLane;
+  if(team&&lane&&nav.siegeUntil>t&&worldState.lanes?.[foe]?.[lane]===3){
    const wave=core.LaneEconomy.pressureFor(
     {teamIds:[nav.a,nav.b],lanes:worldState.waves},team,lane);
-   if(wave<1.05)continue;
-   const escorts=teamAgents(nav,team).filter(p=>
-    p.alive&&(worldState.dead?.[p.id]||0)<=t&&
-    p.intent!=='retreat'&&isLaneNode(p.node,lane)).length;
-   if(escorts<2)continue;
-   counterSieges.push({team,lane,wave,escorts});
-  }
- }
- if(counterSieges.length){
-  counterSieges.sort((a,b)=>b.escorts-a.escorts||
-   b.wave-a.wave||LANES.indexOf(a.lane)-LANES.indexOf(b.lane)||
-   a.team.localeCompare(b.team));
-  const chosen=counterSieges[0];
-  nav.siegeTeam=chosen.team;
-  nav.siegeLane=chosen.lane;
-  nav.sideLane=secondaryLane(nav,worldState,chosen.team,chosen.lane);
-  nav.siegeUntil=t+3;
-  return;
- }
- // A committed leader must not monopolize the strategic initiative
- // forever. If the defending underdog physically reverses a lane's wave
- // with two living escorts, it may choose a real counter-siege even
- // before it overtakes cumulative gold. No tower/HP/damage is granted.
- // This is observable lane control, not a time-scripted comeback roll.
- if(t>=32&&t<=60&&nav.siegeTeam){
-  const trailing=enemy(nav,nav.siegeTeam);
-  const deficit=score(nav.siegeTeam)-score(trailing);
-  // An already opened route to the trailing team's Nexus must not be
-  // abandoned: the counter-wave is a tower strategy, not a denial of an
-  // actual final siege. This also prevents endless switching of plans.
-  const finalSiege=LANES.some(lane=>
-   (worldState.lanes?.[trailing]?.[lane]??0)>=3);
-  if(deficit>=1200&&!finalSiege){
-   const openings=[];
-   for(const lane of LANES){
-    if((worldState.lanes?.[nav.siegeTeam]?.[lane]??3)>=3)continue;
-    const wave=core.LaneEconomy.pressureFor(
-     {teamIds:[nav.a,nav.b],lanes:worldState.waves},trailing,lane);
-    if(wave<.85)continue;
-    const escorts=teamAgents(nav,trailing).filter(p=>
-     p.alive&&(worldState.dead?.[p.id]||0)<=t&&
-     p.intent!=='retreat'&&isLaneNode(p.node,lane)).length;
-    if(escorts<2)continue;
-    openings.push({lane,wave,escorts});
-   }
-   openings.sort((a,b)=>b.escorts-a.escorts||b.wave-a.wave||
-    LANES.indexOf(a.lane)-LANES.indexOf(b.lane));
-   if(openings.length){
-    const opportunity=openings[0];
-    nav.siegeTeam=trailing;nav.siegeLane=opportunity.lane;
-    nav.sideLane=secondaryLane(nav,worldState,trailing,opportunity.lane);
-    nav.siegeUntil=t+5;
+   const goal=getSide(nav,foe)+'_nexus';
+   const escorts=teamAgents(nav,team).filter(p=>p.alive&&
+    (worldState.dead?.[p.id]||0)<=t&&
+    p.intent!=='retreat'&&hops(p.node,goal)<=8);
+   if(wave>=-.25&&escorts.length>=2){
+    nav.siegeDecision={version:1,minute:t,teamId:team,lane,stage:3,
+     score:nav.siegeDecision?.score??0,wave,
+     travel:Math.min(...escorts.map(p=>hops(p.node,goal))),
+     escorts:escorts.map(p=>p.id),defenders:0,vision:50,
+     powerEdge:0,reason:'continue_open_nexus_route'};
+    const rally=nexusRally(nav,worldState,team,lane,t,context?.health);
+    if(rally)nav.siegeDecision.rally=rally;
     return;
    }
   }
+  nav.siegeTeam=null;nav.siegeLane=null;nav.sideLane=null;
+  nav.siegeUntil=0;nav.siegeDecision=null;
+  return;
  }
- if(!nav.siegeTeam&&t<44&&advantage<1100)return;
- const proposed=advantage<100?
-   (seedHash(nav.seed,'siege',Math.floor(t/8))%2?nav.a:nav.b):
-   delta>0?nav.a:nav.b;
- if(nav.siegeTeam&&t<(nav.siegeUntil||0))return;
- // A siege can remain committed for its real eight-minute window,
- // but must not permanently freeze the initially favoured team after
- // minute 60. Otherwise a earned late comeback cannot redirect a push.
- // The losing side can seize the initiative if its comeback actually
- // overtakes the opponent; do not ping-pong after tiny market fluctuations.
- if(nav.siegeTeam&&nav.siegeTeam!==proposed&&advantage<1600)return;
- nav.siegeTeam=proposed;
- nav.siegeLane=siegeLane(nav,worldState,proposed);
- nav.sideLane=secondaryLane(nav,worldState,proposed,nav.siegeLane);
- nav.siegeUntil=t+8;
+ const same=chosen.team===nav.siegeTeam&&chosen.lane===nav.siegeLane;
+ const hp=worldState.waves?.[chosen.lane]?.hp?.[enemy(nav,chosen.team)]?.[chosen.stage];
+ if(!same||progress?.stage!==chosen.stage||progress?.hp!==hp)
+  nav.siegeProgress={team:chosen.team,lane:chosen.lane,stage:chosen.stage,hp,since:t};
+ nav.siegeTeam=chosen.team;
+ nav.siegeLane=chosen.lane;
+ nav.sideLane=secondaryLane(nav,worldState,chosen.team,chosen.lane);
+ // A secondary lane is a real allocation, not just a label on the map.
+ // Reserve at most one independent solo laner BEFORE assigning escorts,
+ // only when a crashing wave and a safe route are already observable.
+ // Keep two healthy non-jungler escorts on the main route; an exposed
+ // Nexus retains full finishing priority.
+ let sidePlan=null;
+ const escorts=[...chosen.escorts];
+ if(chosen.stage<3){
+  const foe=enemy(nav,chosen.team),lane=nav.sideLane;
+  const stage=(worldState.lanes?.[foe]?.[lane]??3)+1;
+  const wave=worldState.waves?.[lane]?core.LaneEconomy.pressureFor(
+   {teamIds:[nav.a,nav.b],lanes:worldState.waves},chosen.team,lane):0;
+  const solo=teamAgents(nav,chosen.team).find(p=>p.role===lane);
+  const hp=context?.health?.[solo?.id]??100;
+  const vision=worldState.map?.lanes?.[lane]?.vision?.[chosen.team]??50;
+  const goal=stage<=3?towerNode(getSide(nav,foe),lane,stage):null;
+  const remaining=escorts.filter(id=>id!==solo?.id);
+  const safe=solo&&solo.alive&&(worldState.dead?.[solo.id]||0)<=t&&
+   solo.intent!=='retreat'&&hp>=65&&goal&&hops(solo.node,goal)<=5&&
+   vision>=58&&wave>=1.45;
+  if(safe&&remaining.length>=2){
+   sidePlan={actorId:solo.id,lane,goal,wave,vision};
+   escorts.splice(0,escorts.length,...remaining);
+  }
+ }
+ // A plan's budget is its estimated graph journey, not the match clock;
+ // it is reviewed again every simulated minute against the real wave.
+ if(!same||nav.siegeUntil<=t||continuing)
+  nav.siegeUntil=t+Math.max(3,Math.min(8,Math.ceil(chosen.travel)+2));
+ nav.siegeDecision={version:1,minute:t,teamId:chosen.team,lane:chosen.lane,
+  stage:chosen.stage,score:+chosen.score.toFixed(2),wave:chosen.wave,
+  travel:+chosen.travel.toFixed(2),escorts,
+  ...(sidePlan?{sidePlan}:{}),
+  defenders:chosen.defenders,vision:chosen.vision,
+  powerEdge:+chosen.powerEdge.toFixed(2)};
+ if(chosen.stage===3){
+  const rally=nexusRally(nav,worldState,chosen.team,chosen.lane,t,context?.health);
+  if(rally)nav.siegeDecision.rally=rally;
+ }
 }
 // Only these regions belong to the JUN's travel network before teamfights.
 // Gank staging nodes are off-lane; simply being in a node adjacent to a lane
@@ -341,12 +421,134 @@ function chooseGoal(nav,agent,t,worldState,context=null){
  const partner=role==='SUP'?teamAgents(nav,team).find(p=>p.role==='ADC'&&p.alive):null;
  const followADC=()=>partner?.goal&&adjacency[partner.goal]?partner.goal:anchor('BOT');
 
+ // Following a repelled base attack, healthy escorts gather at a real
+ // waypoint before the next assault. Recovery and actual retreat still
+ // outrank this order; buying can wait until the formation has regrouped.
+ const rally=nav.siegeDecision?.stage===3&&nav.siegeDecision.teamId===team?
+  nav.siegeDecision.rally:null;
+ if(rally&&(role!=='JUN'||nav.siegeDecision.escorts.includes(agent.id)))
+  return {goal:rally.goal,intent:'siege',lane:rally.lane,
+   reason:'regroup_after_repulse',decisionVersion:2};
+
  // An affordable power spike can justify physically returning to base.
  // A single professional per squad may recall; there is no teleport/instant buy.
  if(worldState.powerEconomy&&
     core.PowerEconomy.shouldRecall(worldState.powerEconomy,nav,agent,t,worldState,context))
   return {goal:side+'_nexus',intent:'shop_recall',
     reason:'affordable_item_spike',decisionVersion:3};
+
+ // An already opened, physically escorted path to the enemy Nexus
+ // takes priority over another neutral objective timer. Players still
+ // traverse one real graph edge per minute; this grants zero structure HP.
+ const finish=nav.siegeDecision?.stage===3&&
+  nav.siegeDecision?.teamId===nav.siegeTeam;
+ const siegeEscort=nav.siegeDecision?.teamId===team&&
+  nav.siegeDecision.escorts.includes(agent.id);
+ // A completed lane is an opportunity, NOT telepathic notice that all
+ // five opponents must camp the Nexus. The attacking group commits, while
+ // defenders respond only when an actual enemy is observed approaching.
+ // Endgame orders belong only to the escorts recorded for this route.
+ // A non-jungler's role does not implicitly grant Nexus-siege duty.
+ if(finish&&team===nav.siegeTeam&&siegeEscort)
+  return {goal:getSide(nav,foe)+'_nexus',intent:'siege',
+   lane:nav.siegeLane,reason:'earned_nexus_finish',decisionVersion:2};
+ if(finish&&team!==nav.siegeTeam){
+  const base=side+'_nexus',lane=nav.siegeLane;
+  const vision=worldState.map?.lanes?.[lane]?.vision?.[team]??50;
+  const approaching=teamAgents(nav,foe).filter(p=>p.alive&&
+   (worldState.dead?.[p.id]||0)<=t&&p.intent!=='retreat'&&
+   hops(p.node,base)<=4);
+  const spotted=approaching.some(p=>vision>=58||
+   teamAgents(nav,team).some(ally=>ally.alive&&
+    hops(ally.node,p.node)<=3));
+  const laneDefender=role===lane||
+   lane==='BOT'&&(role==='ADC'||role==='SUP');
+  // The breached lane and its support may defend, but proximity to
+  // the base is NOT blanket permission for all five to camp forever.
+  // Other roles retain their farm, crossmap trade and counterpush choices.
+  const available=laneDefender||role==='SUP'&&t>=29;
+  if(approaching.length>=2&&spotted&&available)
+   return {goal:base,intent:'defend',lane,
+    reason:'visible_nexus_defense',decisionVersion:7};
+ }
+
+ // A credible Baron call competes with a non-finishing siege. Reserve
+ // the objective's actual JUN/SUP pair if at least two other attackers
+ // can continue the siege; a real opened Nexus still takes priority.
+ const objectiveCall=nav.neutralPlans?.[team];
+ // A formed objective squad is a competing team-level commitment.
+ // Do not peel one member at a time into the river while the others siege.
+ // Preserve an open Nexus route, the reserved splitpusher, and a strong
+ // local siege with attackers already on site.
+ const groupPlan=objectiveCall?.reinforcementIds?.length>0&&
+  ['take','contest'].includes(objectiveCall.action)&&objectiveCall.until>=t;
+ const mainSiege=team===nav.siegeTeam?nav.siegeDecision:null;
+ // A viable wave and two reachable escorts already constitute a real
+ // siege investment. Do not repeatedly pull them into river formations
+ // before the first tower is hit. Distant or cleared pushes may yield.
+ const strongSiege=mainSiege&&mainSiege.wave>=.48&&
+  mainSiege.travel<=4&&mainSiege.escorts.length>=2;
+ if(!finish&&groupPlan&&!strongSiege&&
+    mainSiege?.sidePlan?.actorId!==agent.id&&
+    (['JUN','SUP'].includes(role)||objectiveCall.reinforcementIds.includes(agent.id))&&
+    (context?.health?.[agent.id]??100)>=55){
+  const formationMove=core.NeutralObjectives?.movement(nav,agent,t,worldState);
+  if(formationMove)return formationMove;
+ }
+ const baronPlan=objectiveCall?.target==='baron_pit'&&
+  ['take','contest'].includes(objectiveCall.action)&&
+  objectiveCall.until>=t;
+ if(!finish&&team===nav.siegeTeam&&baronPlan&&
+    ['JUN','SUP'].includes(role)){
+  const remaining=nav.siegeDecision?.escorts.filter(id=>
+   !['JUN','SUP'].includes(nav.agents[id]?.role)).length??0;
+  if(remaining>=2||!siegeEscort){
+   const objectiveMove=core.NeutralObjectives?.movement(nav,agent,t,worldState);
+   if(objectiveMove)return objectiveMove;
+  }
+ }
+
+ // A documented side-lane assignment precedes the generic siege order.
+ // The player walks the map and still faces real combat/retreat checks.
+ const split=nav.siegeDecision?.sidePlan;
+ if(!finish&&team===nav.siegeTeam&&split?.actorId===agent.id)
+  return {goal:split.goal,intent:'splitpush',lane:split.lane,
+   reason:'reserved_secondary_wave',decisionVersion:3};
+
+ // An earned attacking group commits its actual escorts. Unassigned
+ // professionals keep their lane/farm/objective responsibilities, instead
+ // of a global siege call redirecting all ten agents to one tower.
+ if(team===nav.siegeTeam&&siegeEscort&&nav.siegeDecision.stage<3){
+  const lane=nav.siegeLane,stage=worldState.lanes[foe][lane]+1;
+  return {goal:stage<=3?towerNode(getSide(nav,foe),lane,stage):
+    getSide(nav,foe)+'_nexus',intent:'siege',lane,
+    reason:'earned_siege_escort',decisionVersion:3};
+ }
+
+ // Defenders of the threatened lane answer an observed push instead of
+ // remaining idle while their tower takes damage. They must travel along
+ // graph edges and actually encounter attackers. Distant hidden HP and
+ // enemy positions never authorize this call.
+ const ownLane=role==='ADC'||role==='SUP'?'BOT':
+  role==='TOP'||role==='MID'?role:null;
+ if(ownLane&&worldState.lanes?.[team]?.[ownLane]<3&&
+    worldState.waves?.[ownLane]){
+  const stage=worldState.lanes[team][ownLane]+1;
+  const goal=towerNode(side,ownLane,stage);
+  const foeWave=core.LaneEconomy.pressureFor(
+   {teamIds:[nav.a,nav.b],lanes:worldState.waves},foe,ownLane);
+  const vision=worldState.map?.lanes?.[ownLane]?.vision?.[team]??50;
+  const nearbyAllies=teamAgents(nav,team).filter(p=>p.alive);
+  const threat=teamAgents(nav,foe).some(p=>p.alive&&
+   (worldState.dead?.[p.id]||0)<=t&&p.intent!=='retreat'&&
+   hops(p.node,goal)<=3&&
+   (vision>=58||nearbyAllies.some(ally=>hops(ally.node,p.node)<=3))&&
+   (['siege','splitpush','counterpush','macro_pressure'].includes(p.intent)||
+    foeWave>=.48));
+  if(threat&&foeWave>=.35)
+   return {goal,intent:'defend',lane:ownLane,
+    reason:'visible_structure_defense',decisionVersion:7};
+ }
 
  // Neutral objectives are a real opportunity cost: the two escorts must
  // travel to Dragon, or a splitpusher can pressure TOP instead. This is a
@@ -364,54 +566,40 @@ function chooseGoal(nav,agent,t,worldState,context=null){
  const resourceChoice=core.MacroPolicy?.movement(nav,agent,t);
  if(resourceChoice)return resourceChoice;
 
- // Only actual economic or wave advantage commits an attacking team.
- // Junglers preserve their own corridors until minute 36, after which
- // they can join a coordinated push without teleportation.
- if(t>=16){
-  determineSiege(nav,worldState,t);
- }
+ // The strategic plan was evaluated once from a common pre-movement
+ // snapshot in advance(). No player is able to choose an easier opportunity
+ // just because an earlier teammate moved first.
  // Support keeps the ADC-protection/roaming contract during early lane
  // phase; it may join an *earned* BOT counterpush via Counterplay above.
  // A generic gold advantage is not permission to abandon the carry.
- if(nav.siegeTeam&&(role!=='JUN'||t>=36)&&!(role==='SUP'&&t<30)){
-  const main=nav.siegeLane,sideLane=nav.sideLane||'TOP';
+ // An independently favourable secondary wave may justify a solo split.
+ // Unlike the old global siege, this does not order every other teammate
+ // or defender to abandon their own lanes.
+ if(nav.siegeTeam&&nav.siegeDecision?.stage<3){
+  const sideLane=nav.sideLane||'TOP';
   const sideRole=sideLane==='TOP'?'TOP':'MID';
-  if(team===nav.siegeTeam){
-   // A solo-laner can threaten a second line, but never teleport there:
-   // their regular path is followed one edge per minute.
-   if(role===sideRole&&worldState.lanes[foe][sideLane]<3){
-    const stage=worldState.lanes[foe][sideLane]+1;
-    return {goal:towerNode(getSide(nav,foe),sideLane,stage),
-      intent:'splitpush',lane:sideLane,reason:'secondary_wave_pressure',
-      decisionVersion:2};
-   }
-   const stage=worldState.lanes[foe][main]+1;
-   return {goal:stage<=3?towerNode(getSide(nav,foe),main,stage):getSide(nav,foe)+'_nexus',
-     intent:'siege',lane:main,reason:'primary_siege',decisionVersion:2};
-  }
   if(role===sideRole&&worldState.lanes[foe][sideLane]<3){
-   const wave=worldState.waves?.[sideLane];
-   const enemyWave=core.LaneEconomy?.pressureFor(
-     {teamIds:[nav.a,nav.b],lanes:worldState.waves},foe,sideLane)||0;
-   const plateThreat=wave?.plates?.[team]?.[worldState.lanes[team][sideLane]]||0;
-   // A defender responds to witnessed sustained pressure, not perfect
-   // knowledge of an opponent's hidden path.
-   const vision=worldState.map?.lanes?.[sideLane]?.vision?.[team]??50;
-   const threatened=enemyWave>=1.35||plateThreat>=2&&vision>=58;
-   if(threatened){
-    const stage=worldState.lanes[team][sideLane]+1;
-    return {goal:stage<=3?towerNode(side,sideLane,stage):side+'_nexus',
-      intent:'counter_siege',lane:sideLane,reason:'protect_secondary_lane',
-      decisionVersion:2};
-   }
+   const wave=core.LaneEconomy.pressureFor(
+    {teamIds:[nav.a,nav.b],lanes:worldState.waves},team,sideLane);
    const stage=worldState.lanes[foe][sideLane]+1;
-   return {goal:towerNode(getSide(nav,foe),sideLane,stage),
-     intent:'counterpush',lane:sideLane,reason:'trade_crossmap_pressure',
-     decisionVersion:2};
+   const enemyWave=core.LaneEconomy.pressureFor(
+    {teamIds:[nav.a,nav.b],lanes:worldState.waves},nav.siegeTeam,sideLane);
+   const visible=(worldState.map?.lanes?.[sideLane]?.vision?.[team]??50)>=58;
+   if(team!==nav.siegeTeam&&visible&&enemyWave>=1.35&&
+      worldState.lanes[team][sideLane]<3)
+    return {goal:towerNode(side,sideLane,worldState.lanes[team][sideLane]+1),
+     intent:'counter_siege',lane:sideLane,reason:'protect_secondary_lane',
+     decisionVersion:3};
+   if(team===nav.siegeTeam&&wave>=.35)
+    return {goal:towerNode(getSide(nav,foe),sideLane,stage),
+     intent:'splitpush',lane:sideLane,reason:'secondary_wave_pressure',
+     decisionVersion:3};
+   if(team!==nav.siegeTeam&&wave>=.35&&
+      (worldState.map?.lanes?.[sideLane]?.vision?.[team]??50)>=58)
+    return {goal:towerNode(getSide(nav,foe),sideLane,stage),
+     intent:'counterpush',lane:sideLane,reason:'visible_crossmap_trade',
+     decisionVersion:3};
   }
-  const stage=worldState.lanes[team][main]+1;
-  return {goal:stage<=3?towerNode(side,main,stage):side+'_nexus',
-    intent:'defend',lane:main,reason:'defend_main_lane',decisionVersion:2};
  }
 
  if(role==='JUN')return jungleGoal(nav,agent,t);
@@ -456,10 +644,13 @@ function forceRetreat(nav,id,minute,goal){
  const agent=nav.agents[id];
  if(!agent?.alive||!adjacency[goal])return false;
  const side=getSide(nav,agent.teamId);
- if(agent.role==='JUN'&&minute<36&&!jungleAllowed(side,goal))
+ if(agent.role==='JUN'&&!jungleAllowed(side,goal)&&
+    !(nav.siegeDecision?.teamId===agent.teamId&&
+      nav.siegeDecision.stage===3&&nav.siegeDecision.escorts.includes(id)))
   throw Error('Jungla no puede retirarse por un carril');
- const allowed=agent.role==='JUN'&&minute<36?node=>jungleAllowed(side,node):null;
- const steps=path(agent.node,goal,allowed);
+ // Survival decisions always use legal graph edges. A previously committed
+ // jungler may be outside its ordinary corridor when it must retreat.
+ const steps=path(agent.node,goal);
  agent.retreatGoal=goal;
  agent.retreatUntil=minute+Math.max(4,steps.length+2);
  agent.goal=goal;agent.intent='retreat';
@@ -468,6 +659,8 @@ function forceRetreat(nav,id,minute,goal){
 function advance(nav,t,dead,worldState,context=null){
  if(t<=nav.minute)throw Error('Navigation minutes must advance');
  nav.minute=t;
+ // Decide pressure from the SAME unmodified positions for both sides.
+ determineSiege(nav,{...worldState,dead},t,context);
  nav.neutralPlans=core.NeutralObjectives?.plan(nav,worldState,t,context?.health)||null;
  nav.macroPlans=core.MacroPolicy?.plan(nav,worldState,t,context?.health,dead)||{};
  // All tactics inspect the same initial positions (no turn-order advantage).
@@ -495,8 +688,29 @@ function advance(nav,t,dead,worldState,context=null){
   agent.goal=plan.goal;agent.intent=plan.intent;agent.lane=plan.lane||null;
   agent.tacticReason=plan.reason||null;
   agent.decisionVersion=plan.decisionVersion||null;
-  const safe=agent.role==='JUN'&&t<36 ?node=>jungleAllowed(side,node):null;
-  agent.route=path(agent.node,agent.goal,safe);
+  // Only a specifically selected Nexus escort may leave the jungle.
+  // Generic team siege/defense orders never grant movement permissions.
+  const assigned=agent.role==='JUN'&&
+   nav.siegeDecision?.teamId===agent.teamId&&
+   nav.siegeDecision.stage===3&&
+   nav.siegeDecision.escorts.includes(agent.id);
+  if(agent.role==='JUN'&&!assigned){
+   if(!jungleAllowed(side,agent.goal)){
+    agent.goal=side+'_jungle_lower';
+    agent.intent='farm_jungle';
+    agent.tacticReason='jungle_corridor';
+   }
+   if(!jungleAllowed(side,agent.node)){
+    // A previously selected escort exits the lane through real edges.
+    agent.intent='siege_return';
+    agent.tacticReason='return_to_jungle';
+    agent.route=path(agent.node,agent.goal);
+   }else{
+    agent.route=path(agent.node,agent.goal,node=>jungleAllowed(side,node));
+   }
+  }else{
+   agent.route=path(agent.node,agent.goal);
+  }
   // One edge a minute; no position jumps to satisfy an event later.
   if(agent.route.length>1)agent.node=agent.route[1];
  }
@@ -552,7 +766,22 @@ function auditNavigation(match,world){
  if(agentIds.length!==10)errs.push('La partida no tiene diez agentes.');
  let prior=null,eventIndex=0;
  const deadUntil={};
+ // A jungler's early crossing is legal only if a real siege opportunity
+ // was registered recently. The short grace is graph-travel clearance
+ // after the call expires, NOT a match-clock unlock.
+ const siegeTravelProof=Object.fromEntries(agentIds.map(id=>[id,-100]));
  for(const frame of frames){
+  const call=frame.siegeDecision;
+  if(call?.version===1&&call.minute===frame.minute&&
+     [match.fixture.a,match.fixture.b].includes(call.teamId)&&
+     LANES.includes(call.lane)&&Number.isFinite(call.wave)&&
+     Number.isFinite(call.score)&&call.stage===3&&
+     call.escorts?.length>=2){
+   for(const id of call.escorts)if(
+    frame.navigation?.before?.[id]?.teamId===call.teamId&&
+    frame.navigation.before[id].role==='JUN')
+    siegeTravelProof[id]=frame.minute;
+  }
   const nav=frame.navigation;
   if(!nav?.before||!nav?.after){errs.push('Frame sin estado de navegación: '+frame.minute);continue}
   for(const id of agentIds){
@@ -565,9 +794,11 @@ function auditNavigation(match,world){
     errs.push('Respawn con salto ilegal: '+id+' minuto '+frame.minute);
    const shouldLive=(deadUntil[id]||0)<=frame.minute;
    if(before.alive!==shouldLive)errs.push('Estado vivo/muerto incoherente: '+id+' minuto '+frame.minute);
-   if(before.role==='JUN'&&before.alive&&frame.minute<36){
+   if(before.role==='JUN'&&before.alive){
     const side=before.teamId===match.fixture.a?'blue':'red';
-    if(!jungleAllowed(side,before.node))
+    const authorized=frame.minute-siegeTravelProof[id]<=8&&
+     ['siege','siege_return','retreat'].includes(before.intent);
+    if(!jungleAllowed(side,before.node)&&!authorized)
       errs.push('JUN invadió un carril sin ser evento: '+id+' minuto '+frame.minute);
     if(before.intent==='gank_setup'&&!LANES.includes(before.lane))
       errs.push('JUN prepara gank sin carril válido: '+id+' minuto '+frame.minute);
@@ -710,7 +941,7 @@ function auditNavigation(match,world){
 }
 core.Navigation=Object.freeze({links,adjacency,path,hops,adjacent,nearby,combatRange,isLaneNode,gankApproach,
  jungleAllowed,gankPlan,jungleGoal,
- towerNode,determineSiege,createNavigation,teamAgents,getAgent,at,participants,engagement,forceRetreat,
+ towerNode,siegeOpportunities,determineSiege,createNavigation,teamAgents,getAgent,laneRivalRoles,laneRivalDead,at,participants,engagement,forceRetreat,
  gankPlanForLane,
  advance,snapshot,nexusOpportunity,nexusSiegeDamage,auditNavigation});
 })(globalThis);

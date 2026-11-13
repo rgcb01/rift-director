@@ -46,6 +46,22 @@ test('250 seeds: movimiento causal y auditores deportivo/minimapa concuerdan',()
   for(let seed=1;seed<=250;seed++){
     world.rng=seed*38291;
     const match=sim.simulateMatch(fixture);
+    if(!match.winner){
+      const last=match.frames.at(-1);
+      const names=Object.fromEntries(world.players.map(p=>[p.id,p.role]));
+      const t=last.minute;
+      console.log('NAV_STALL='+JSON.stringify({
+       seed,t,winner:match.winner,nexus:last.siege?.hp,
+       towers:last.towers,lanes:match.events.filter(e=>e.facts?.action==='tower')
+        .map(e=>({m:e.minute,team:e.teamId,lane:e.facts.lane,stage:e.facts.stage})).slice(-12),
+       recent:match.frames.filter(x=>x.minute>=t-12&&x.minute%2===0)
+        .map(fr=>({t:fr.minute,plan:fr.siegeDecision,
+         waves:Object.fromEntries(['TOP','MID','BOT'].map(l=>[l,fr.laneEconomy?.lanes?.[l]?.front])),
+         attackers:Object.entries(fr.navigation?.before||{})
+          .filter(([id,p])=>p.intent==='siege'||p.intent==='splitpush')
+          .map(([id,p])=>({r:names[id],t:p.teamId,node:p.node,goal:p.goal}))}))
+      }));
+    }
     assert.ok(match.winner,'Seed '+seed+' sin ganador');
     assert.ok(match.frames.length<79);
     const report=core.Navigation.auditNavigation(match,world);

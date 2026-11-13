@@ -4,6 +4,12 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Auditoría del PR #54: kills y asedios por carril
+- Una kill solo cuenta como ventaja ganada para el carril de su rival; una baja en MID ya no suma automáticamente como ventaja de TOP o BOT. Las oportunidades independientes por oleada, presencia local y equipo comprado conservan sus propios criterios.
+- En un cierre de Nexo, solo los escoltas registrados reciben la orden de avanzar; los demás roles conservan sus planes propios.
+- Asistencias de combate requieren que el participante alcance a al menos una víctima eliminada; el auditor rechaza asistencia a una baja de otra zona del mismo combate.
+- Las kills siguen exigiendo HP cero y la disputa de estructuras sigue resolviéndose mediante combates físicos. Se agregaron pruebas de bajas locales y atribución de asistencias.
+
 ## [0.7.17-alpha] — 2026-11-09 (release validada)
 
 ### Primer vertical slice: escalado real de los diez campeones

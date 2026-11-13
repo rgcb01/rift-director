@@ -218,6 +218,8 @@ function simulateMatch(f){
     map:RiftCore.cloneMapState(m.map),playerStats:RiftCore.clonePlayerStats(playerStats),
     health:{...health},laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
     powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
+    siegeDecision:navigation.siegeDecision?{...navigation.siegeDecision,
+     escorts:[...navigation.siegeDecision.escorts]}:null,
     shutdowns:RiftCore.Shutdowns.snapshot(shutdowns),
     siege:RiftCore.NexusSiege.snapshot(nexusSiege),
     vision:RiftCore.Vision.snapshot(navigation.vision,minute),
@@ -264,28 +266,105 @@ function simulateMatch(f){
  const combatDetails=(facts)=>affected(facts)+'. '+
     (facts.victimIds.length?'Eliminación confirmada.':
      facts.outcome==='retreat'?'El rival cede espacio y se retira.':'Ambos siguen en el mapa.');
+ // Structural control is earned in combat. A nearby living defender is
+ // an actual opponent, not merely a flat subtraction from tower damage.
+ // Encounters owns the HP/kill/retreat result; this decision awards no HP.
+ const contestStructure=(attacker,defender,node,lane,t,minAttackers=1,attackingIds=null)=>{
+  const livingHere=c=>positioned(c,node).filter(p=>
+   (health[p.id]??0)>0&&(lane!=='NEXUS'||
+    p.node!==(c.id===a.id?'blue':'red')+'_fountain'));
+  const attackingHere=()=>livingHere(attacker).filter(p=>!attackingIds||attackingIds.includes(p.id));
+  const offense=attackingHere();
+  if(offense.length<minAttackers)return false;
+  const defense=livingHere(defender);
+  const inReach=(x,y)=>nav.combatRange(x.node,y.node,2);
+  const contesting=defense.filter(d=>offense.some(x=>inReach(x,d)));
+  if(!contesting.length)return false;
+  const inReachAttackers=offense.filter(x=>contesting.some(d=>inReach(x,d)));
+  // The locally stronger side has initiative; a defender may punish an
+  // unsupported dive. Everyone still needs physical striking range.
+  const attackerInitiates=inReachAttackers.length>=contesting.length;
+  const initiators=attackerInitiates?inReachAttackers:contesting;
+  const targets=attackerInitiates?contesting:inReachAttackers;
+  const initiatorClub=attackerInitiates?attacker:defender;
+  const facts=RiftCore.Encounters.resolveCombat({
+   nav:navigation,dead:m.dead,minute:t,
+   players:Object.fromEntries([...aP,...bP].map(p=>[p.id,p])),
+   health,seed:commentarySeed,powerState:powerEconomy,
+   mode:'teamfight',teamId:initiatorClub.id,
+   attackerIds:initiators.map(p=>p.id),
+   targetIds:targets.map(p=>p.id)
+  });
+  if(facts){
+   // An injured Nexus defender must actually return to the fountain.
+   // Otherwise a retreat to the tile it already occupies would instantly
+   // reactivate its defense without traveling or losing local control.
+   if(lane==='NEXUS')for(const hit of facts.impacts){
+    if(hit.retreat){
+     const victim=nav.getAgent(navigation,hit.id);
+     hit.retreatGoal=(victim.teamId===a.id?'blue':'red')+'_fountain';
+    }
+   }
+   facts.action=facts.victimIds.length?'teamfight':'clash';
+   // The sports ledger requires exact multikill cardinality for all
+   // teamfight actions, including those born from a defended structure.
+   facts.multiKill=facts.victimIds.length;
+   facts.structureContest={version:1,lane,node,attackerTeamId:attacker.id,
+    defenderTeamId:defender.id,initiatorTeamId:initiatorClub.id};
+   facts.node=nav.getAgent(navigation,facts.actorId).node;
+   applyCombat(facts,t);
+   if(lane==='NEXUS'&&!attackerInitiates&&
+      facts.impacts.some(hit=>hit.hpAfter===0||hit.retreat)){
+    navigation.nexusRegroup??={};
+    navigation.nexusRegroup[attacker.id]??={created:t};
+    facts.repulsedNexusAssault=true;
+   }
+   makeEv(t,facts.victimIds.length?'¡Combate por el control de '+lane+'!':
+    '¡Defensa disputada en '+lane+'!',
+    player(facts.actorId).name+' se enfrenta a los defensores de '+
+    (lane==='NEXUS'?'la base':'la torre')+'. '+combatDetails(facts),
+    facts.victimIds.length?'fight':'normal',initiatorClub,facts);
+  }
+  // Re-evaluate AFTER actual damage and retreats. A living defender in
+  // attack range contests the objective; the opponent cannot chip it
+  // through that defender without first winning or disengaging.
+  const currentAttackers=attackingHere();
+  if(currentAttackers.length<minAttackers)return true;
+  return livingHere(defender).some(d=>currentAttackers.some(x=>inReach(x,d)));
+ };
  const attackTower=(c,t,lane)=>{
   const target=enemy(c),stage=m.lanes[target.id][lane]+1;
   if(stage>3)return false;
   const node=nav.towerNode(target.id===a.id?'blue':'red',lane,stage);
-  const present=positioned(c,node);
+  const targetNexus=(target.id===a.id?'blue':'red')+'_nexus';
+  const towerAttackers=()=>positioned(c,node).filter(p=>!(p.intent==='siege'&&p.goal===targetNexus));
+  const present=towerAttackers();
   if(!present.length)return false;
+  // A nearby player is not automatically diving a tower. Require an
+  // eligible wave before starting the structural combat; an unrelated
+  // tower must not spend the health of a passing Nexus assault.
+  if(!RiftCore.LaneEconomy.canPressureTower(laneEconomy,c.id,lane,stage,t))
+   return false;
+  if(contestStructure(c,target,node,lane,t,1,present.map(p=>p.id)))return false;
+  // A combat decision may have killed or forced an attacker to retreat.
+  const attackersNow=towerAttackers();
+  if(!attackersNow.length)return false;
   const defenders=positioned(target,node);
   const wave=RiftCore.LaneEconomy.pressureFor(laneEconomy,c.id,lane);
-  const solo=present.length===1&&
-   ['splitpush','counterpush'].includes(present[0].intent)&&
-   present[0].lane===lane&&wave>=1.45&&defenders.length===0&&
+  const solo=attackersNow.length===1&&
+   ['splitpush','counterpush'].includes(attackersNow[0].intent)&&
+   attackersNow[0].lane===lane&&wave>=1.45&&defenders.length===0&&
    !Object.entries(movementBefore).some(([id,p])=>
     p.teamId===target.id&&p.alive&&p.intent!=='retreat'&&
     (m.dead[id]||0)<=t&&nav.at(navigation,id,node));
   const baron=m.baronBuff[c.id]>0;
   const hit=RiftCore.LaneEconomy.damageTower(laneEconomy,{
    teamId:c.id,defenderId:target.id,lane,stage,minute:t,
-   attackers:present.length,defenders:defenders.length,soloAllowed:solo,baron});
+   attackers:attackersNow.length,defenders:defenders.length,soloAllowed:solo,baron});
   if(!hit)return false;
   const priority=lane==='BOT'?'ADC':lane;
-  const who=player((present.find(p=>p.role===priority)||present[0]).id);
-  const participants=present.map(p=>p.id),defenderIds=defenders.map(p=>p.id);
+  const who=player((attackersNow.find(p=>p.role===priority)||attackersNow[0]).id);
+  const participants=attackersNow.map(p=>p.id),defenderIds=defenders.map(p=>p.id);
   const facts={action:'tower_damage',towerVersion:1,actorId:who.id,
    participantIds:participants,defenderIds,lane,stage,node,
    before:hit.before,after:hit.after,damage:hit.damage,rawDamage:hit.rawDamage,
@@ -294,13 +373,13 @@ function simulateMatch(f){
   // damage receives a separate tower_damage event, avoiding duplicate news.
   if(!hit.plate)makeEv(t,'¡Asedio a torre en '+lane+'!',
    c.name+' golpea la torre '+stage+' de '+lane+' por '+hit.damage+
-   ' puntos con '+present.length+' atacantes presentes; conserva '+
+   ' puntos con '+attackersNow.length+' atacantes presentes; conserva '+
    hit.after+' de '+RiftCore.LaneEconomy.TOWER_HP[stage-1]+' de vida.',
    'normal',c,facts);
   const earnedFightPressure=!!(navigation.counterPressure?.[c.id]&&
    navigation.counterPressure[c.id].lane===lane&&
    t<=navigation.counterPressure[c.id].until&&
-   present.some(p=>p.intent==='counterpush'));
+   attackersNow.some(p=>p.intent==='counterpush'));
   const crossmapTrade=lane==='TOP'&&
    navigation.neutralPlans?.[c.id]?.action==='trade'&&t>=m.nextDragon;
   if(hit.plate){
@@ -330,6 +409,8 @@ function simulateMatch(f){
   nexusIntegrity:{...m.nexusIntegrity},
   laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
   powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
+  siegeDecision:navigation.siegeDecision?{...navigation.siegeDecision,
+   escorts:[...navigation.siegeDecision.escorts]}:null,
   shutdowns:RiftCore.Shutdowns.snapshot(shutdowns),
   siege:RiftCore.NexusSiege.snapshot(nexusSiege),
   vision:RiftCore.Vision.snapshot(navigation.vision,t),
@@ -339,7 +420,7 @@ function simulateMatch(f){
  makeEv(0,'Comienza el mapa',`${a.name} y ${b.name} entran a la Grieta. Ambos equipos buscan imponer su plan de juego.`, 'normal');nextSnapshot(0);
  const lastLaneTrade={TOP:-10,MID:-10,BOT:-10};
  const lastGankAttempt=Object.create(null);
- let lastCounterFight=-10;
+ let lastCounterFight=-10,lastGroupFight=-10;
  for(let t=1;t<=76&&!m.winner;t++){
   m.minute=t;
   const teamIncome={};
@@ -463,10 +544,55 @@ function simulateMatch(f){
   // Causal objective skirmishes. A numerical 2v1 near Dragon/Baron
   // becomes actual damage, a possible kill, or a forced, visible retreat.
   // It never disappears behind an unrelated lane-pressure commentary.
+  // Coordinated teamfights are distinct from picks or tower defense.
+  // Both teams have at least three actual reachable fighters at initiation.
+  // Resolve the first exchange, then let surviving opponents respond using
+  // the same damage, health, retreat and KDA contract. Nobody retaliates
+  // after death or while fleeing, and no victory roll grants free kills.
+  const rosterForFight=Object.fromEntries([...aP,...bP].map(p=>[p.id,p]));
+  const group=RiftCore.Encounters.groupOpportunity({
+   nav:navigation,dead:m.dead,minute:t,players:rosterForFight,
+   health,seed:commentarySeed,world:m,powerState:powerEconomy,
+   previous:lastGroupFight
+  });
+  if(group){
+   lastGroupFight=t;
+   const first=club(group.firstTeam),second=enemy(first);
+   const fightId=t+':'+group.zone;
+   for(const [round,attacker,defender] of [[1,first,second],[2,second,first]]){
+    const facts=RiftCore.Encounters.resolveCombat({
+     nav:navigation,dead:m.dead,minute:t,players:rosterForFight,
+     health,seed:commentarySeed,powerState:powerEconomy,mode:'teamfight',
+     teamId:attacker.id,attackerIds:group.groups[attacker.id],
+     targetIds:group.groups[defender.id],groupExchange:true
+    });
+    if(!facts)continue;
+    facts.action=facts.victimIds.length?'teamfight':'clash';
+    facts.node=facts.actorNode;
+    facts.groupFight={version:1,id:fightId,zone:group.zone,round,
+     firstTeam:group.firstTeam,groups:group.groups};
+    applyCombat(facts,t);
+    facts.multiKill=facts.victimIds.length;
+    facts.ace=facts.victimIds.length>0&&living(defender,t).length===0;
+    const pressure=RiftCore.Counterplay.pressureAfterKill(navigation,facts,t,m);
+    if(pressure)facts.counterPressure={...pressure,
+     sourceVictims:[...pressure.sourceVictims],allowed:[...pressure.allowed]};
+    const title=round===1?'¡Teamfight en el mapa!':'¡Respuesta en la teamfight!';
+    const where=group.zone==='dragon_pit'?'Dragón':
+     group.zone==='baron_pit'?'Barón':'carril central';
+    makeEv(t,title,attacker.name+(round===1?' inicia':' responde en')+
+     ' una pelea grupal en '+where+'. '+combatDetails(facts),
+     'fight',attacker,facts);
+   }
+   lastCounterFight=t;
+  }
   if(t>=5){
    const roster=Object.fromEntries([...aP,...bP].map(p=>[p.id,p]));
    for(const zone of ['dragon_pit','baron_pit']){
     if(zone==='baron_pit'&&t<20)continue;
+    // The larger formation has already exchanged damage at this pit.
+    // Do not consume the same engagement again as a standalone pick.
+    if(group?.zone===zone)continue;
     const facts=RiftCore.Encounters.resolve({
       nav:navigation,dead:m.dead,minute:t,zone,
       players:roster,health,seed:commentarySeed,powerState:powerEconomy,previous:lastSkirmish
@@ -499,7 +625,8 @@ function simulateMatch(f){
   }
   // Every tower stores real HP. Damage and plates require wave pressure and
   // actual players at the structure; no instant destruction or clock roll.
-  if(t>=8)for(const c of [a,b])for(const lane of ['TOP','MID','BOT'])
+  // Tower pressure is earned by wave + actual attackers at any minute.
+  for(const c of [a,b])for(const lane of ['TOP','MID','BOT'])
    attackTower(c,t,lane);
   // The Dragon is earned at the actual pit, not by a scheduled owner roll.
   // Teams choose objective/contest/trade before moving; either can fail to
@@ -623,10 +750,35 @@ function simulateMatch(f){
    const leader=m.gold[a.id]>m.gold[b.id]?a:b;const dif=Math.abs(m.gold[a.id]-m.gold[b.id]);
    makeEv(t,dif<1800?'Máxima igualdad en la Grieta':'Lectura del mapa',dif<1800?'Los equipos intercambian oleadas y control de visión. La diferencia económica sigue siendo reducida.':`${leader.name} mantiene una ventaja aproximada de ${(dif/1000).toFixed(1)}k de oro. El rival debe elegir cuidadosamente sus próximos objetivos.`,'normal')
   }
-  // The Nexus has its own persistent HP. Only a physically escorted wave
-  // in a broken lane can damage it. No minute-based random winner roll.
+  // A defended Nexus is also a fight, not just a discounted HP bar.
+  // Only an opened, physically occupied route can start this contest.
+  const nexusBlocked=[];
+  for(const c of all){
+   const foe=enemy(c);
+   if(!['TOP','MID','BOT'].some(l=>m.lanes[foe.id][l]===3))continue;
+   const node=(foe.id===a.id?'blue':'red')+'_nexus';
+   const blocked=contestStructure(c,foe,node,'NEXUS',t,2);
+   if(blocked){
+    nexusBlocked.push(c.id);
+    // A surviving defender can also stall a numerically superior push.
+    // Two actual blocked assaults within a short interval justify a rally,
+    // even if neither exchange happened to kill an attacker.
+    navigation.nexusBlockedAt??={};
+    navigation.nexusRegroup??={};
+    const previous=navigation.nexusBlockedAt[c.id];
+    if(Number.isInteger(previous)&&t-previous<=5)
+     navigation.nexusRegroup[c.id]??={created:t};
+    navigation.nexusBlockedAt[c.id]=t;
+   }
+  }
+  // The Nexus has persistent HP. It cannot be chipped while a physically
+  // present defender still contests the attacking squad at the objective.
   for(const hit of RiftCore.NexusSiege.advance(
-   nexusSiege,navigation,m,t,health,m.dead)){
+   nexusSiege,navigation,m,t,health,m.dead,nexusBlocked)){
+   // Real damage restores initiative; old blocked attempts no longer
+   // constitute a reason to call the surviving squad back.
+   if(navigation.nexusRegroup)delete navigation.nexusRegroup[hit.teamId];
+   if(navigation.nexusBlockedAt)delete navigation.nexusBlockedAt[hit.teamId];
    const winner=club(hit.teamId),actorId=hit.participantIds.find(id=>
      player(id).role==='ADC')||hit.participantIds[0];
    const actor=player(actorId);

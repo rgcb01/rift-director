@@ -25,9 +25,13 @@ function recover(health,nav,dead,minute){
   if(health[agent.id]===0||health[agent.id]===undefined){
    health[agent.id]=100;continue;
   }
-  const nearBase=agent.node.endsWith('_fountain')||agent.node.endsWith('_nexus');
+  // The healing zone is the fountain, never the contested Nexus.
+  // In particular, attackers at the ENEMY Nexus cannot regenerate as if
+  // they were shopping safely in their own base.
+  const side=agent.teamId===nav.a?'blue':'red';
+  const inFountain=agent.node===side+'_fountain';
   const retreat=agent.intent==='retreat';
-  health[agent.id]=clamp(health[agent.id]+(nearBase?35:retreat?17:6),1,100);
+  health[agent.id]=clamp(health[agent.id]+(inFountain?35:retreat?17:6),1,100);
  }
 }
 const point=node=>graph.pointAt(node);
@@ -136,7 +140,96 @@ function retreatDestination(nav,agent,minute){
  const lane=agent.role==='ADC'||agent.role==='SUP'?'bot':agent.role.toLowerCase();
  return side+'_'+lane+'_inner';
 }
-function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attackerIds,targetIds,lane=null,powerState=null}){
+// A genuine group fight needs opposing formations, not merely a pick
+// labelled "teamfight". Every member must be alive, close to the arena
+// and able to reach at least one member of the opposite group.
+function groupOpportunity({nav,dead,minute,players,health,seed,world,powerState=null,previous=-10}){
+ if(minute-previous<3)return null;
+ const zones=[];
+ if(minute>=world.nextDragon)zones.push('dragon_pit');
+ if(minute>=world.nextBaron)zones.push('baron_pit');
+ zones.push('mid_center');
+ const choices=[];
+ for(const zone of zones){
+  const groups={};
+  for(const team of [nav.a,nav.b])groups[team]=Object.values(nav.agents).filter(p=>
+   p.teamId===team&&p.alive&&(dead[p.id]||0)<=minute&&
+   p.intent!=='retreat'&&(health[p.id]??0)>=34&&
+   core.Navigation.hops(p.node,zone)<=2&&nearZone(p,zone));
+  const first=groups[nav.a],second=groups[nav.b];
+  const a=first.filter(p=>second.some(q=>hitRange(p,q,'teamfight')));
+  const b=second.filter(p=>first.some(q=>hitRange(p,q,'teamfight')));
+  if(a.length<3||b.length<3)continue;
+  const strength=ps=>ps.reduce((n,p)=>n+
+   power(players[p.id],powerState,'attack')*.65+(health[p.id]??100)*.35,0);
+  const edge=strength(a)-strength(b);
+  const initiative=edge+(hash(seed,minute,zone,'group-initiative')%31-15);
+  const firstTeam=initiative>=0?nav.a:nav.b;
+  choices.push({zone,firstTeam,groups:{[nav.a]:a.map(p=>p.id),
+   [nav.b]:b.map(p=>p.id)},score:a.length+b.length+(zone==='mid_center'?0:2)});
+ }
+ return choices.sort((x,y)=>y.score-x.score||x.zone.localeCompare(y.zone))[0]||null;
+}
+// Composition is derived from the drafted champion, not a hard-coded
+// lane label. Only nearby, participating living champions can contribute.
+// No ability is cast here: the independent kit experiment owns that layer.
+function compositionEffect({leader,target,allies,defenders,powerState}){
+ const archetype=p=>core.ChampionScaling?.definition(powerState?.entries?.[p.id])?.archetype;
+ const type=archetype(leader);
+ if(!type||!powerState?.entries?.[leader.id]?.championId||
+    !powerState?.entries?.[target.id]?.championId)return null;
+ const close=(a,b)=>core.Navigation.combatRange(a.node,b.node,2);
+ const frontline=p=>['tank','fighter'].includes(archetype(p));
+ const carry=['marksman','mage'].includes(type);
+ const protectedCarry=['marksman','mage','assassin'].includes(archetype(target));
+ const cover=defenders.filter(p=>p.id!==target.id&&close(p,target)&&
+  (frontline(p)||archetype(p)==='support'));
+ const ownFront=allies.filter(p=>p.id!==leader.id&&frontline(p)&&close(p,leader));
+ const ownSupport=allies.filter(p=>p.id!==leader.id&&archetype(p)==='support'&&close(p,leader));
+ const isolated=defenders.every(p=>p.id===target.id||!close(p,target));
+ const offense=(carry&&ownFront.length ? .06 : 0)+(carry&&ownSupport.length ? .04 : 0)+
+  (type==='assassin'&&isolated ? .12 : 0);
+ const protection=protectedCarry?Math.min(.14,cover.length*.07):0;
+ const multiplier=+(1+offense-protection).toFixed(3);
+ return {version:1,archetype:type,frontlineIds:ownFront.map(p=>p.id),
+  supportIds:ownSupport.map(p=>p.id),coverIds:protectedCarry?cover.map(p=>p.id):[],
+  isolated,multiplier};
+}
+// Target choice is local and archetype-aware. A marksman fights the
+// accessible frontline, an assassin looks for an exposed carry and a
+// support prioritizes enemies threatening allied carries. These are
+// preferences, not ranged attacks, crowd control or free damage.
+function groupTargetPriority({leader,target,allies,defenders,health,powerState}){
+ const kind=p=>core.ChampionScaling?.definition(powerState?.entries?.[p.id])?.archetype;
+ const type=kind(leader),targetType=kind(target);
+ const carry=p=>['marksman','mage'].includes(kind(p));
+ const front=p=>['tank','fighter'].includes(kind(p));
+ const reach=(a,b)=>core.Navigation.combatRange(a.node,b.node,2);
+ const hp=health[target.id]??100;
+ const cover=defenders.filter(p=>p.id!==target.id&&reach(p,target)&&
+  (front(p)||kind(p)==='support')).length;
+ const exposed=cover===0;
+ const threatening=allies.filter(p=>carry(p)&&reach(target,p)).length;
+ const distance=core.Navigation.hops(leader.node,target.node);
+ let score=(100-hp)*.55-distance*9;
+ let reason='finish_vulnerable';
+ if(type==='assassin'&&carry(target)){
+  score+=exposed?32:4-cover*9;
+  reason=exposed?'exposed_carry':'covered_carry';
+ }else if(type==='marksman'){
+  score+=front(target)?18:0;
+  score-=cover*5;
+  reason=front(target)?'front_to_back':'finish_vulnerable';
+ }else if(type==='support'||type==='tank'){
+  score+=threatening*12+(kind(target)==='assassin'?12:0);
+  reason=threatening?'protect_ally':'frontline_engage';
+ }else if(type==='mage'){
+  score+=defenders.filter(p=>p.id!==target.id&&reach(p,target)).length*5;
+  reason='clustered_enemies';
+ }
+ return {score:+score.toFixed(2),reason};
+}
+function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attackerIds,targetIds,lane=null,powerState=null,groupExchange=false}){
  if(!['lane','gank','teamfight'].includes(mode)||![nav.a,nav.b].includes(teamId))
   throw Error('Invalid combat mode/team');
  const get=id=>nav.agents[id],alive=id=>get(id)?.alive&&
@@ -154,8 +247,11 @@ function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attacker
    viable.find(a=>a.id===attackerIds[0]):viable.sort(rank)[0];
  // In teamfight mode one author can deal damage to several nearby targets.
  // Nonlethal damage is retained and replayed, not turned into fake kills.
+ const priorities=groupExchange?Object.fromEntries(targets.map(target=>[target.id,
+  groupTargetPriority({leader,target,allies:viable,defenders,health,powerState})])):null;
  const chosen=(mode==='teamfight'?targets.filter(d=>hitRange(leader,d,mode,lane))
-   .sort((a,b)=>(health[a.id]??100)-(health[b.id]??100)||a.id.localeCompare(b.id)).slice(0,3)
+   .sort((a,b)=>(priorities?priorities[b.id].score-priorities[a.id].score:
+    (health[a.id]??100)-(health[b.id]??100))||a.id.localeCompare(b.id)).slice(0,3)
    :targets.sort((a,b)=>(health[a.id]??100)-(health[b.id]??100)||a.id.localeCompare(b.id)).slice(0,1));
  if(!chosen.length)return null;
  const comrades=attackers.filter(a=>chosen.some(d=>
@@ -168,11 +264,15 @@ function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attacker
   const before=health[target.id]??100;
   const variance=(hash(seed,minute,mode,leader.id,target.id)%1000)/1000;
   const base={lane:21,gank:52,teamfight:42}[mode];
-  const outnumber=clamp(allies.length-1,0,3);
+  // In a group engagement, enemies can cover one another. Equal-sized
+  // groups exchange damage rather than treating each rival as an isolated
+  // 3v1. Picks, ganks and structure contests retain their existing rules.
+  const outnumber=clamp(groupExchange?allies.length-defenders.length:allies.length-1,0,3);
   const delta=power(players[leader.id],powerState,'attack')-power(players[target.id],powerState,'defense');
   const burst=variance>.88?(mode==='lane'?12:26):0;
-  const rawDamage=base+outnumber*(mode==='lane'?8:19)+
-    delta*.28+variance*16+burst;
+  const composition=groupExchange?compositionEffect({leader,target,allies,defenders,powerState}):null;
+  const rawDamage=(base+outnumber*(mode==='lane'?8:19)+
+    delta*.28+variance*16+burst)*(composition?.multiplier??1);
   const mitigation=core.ChampionScaling?.mitigation(
     powerState?.entries?.[leader.id],powerState?.entries?.[target.id],
     [...(core.PowerEconomy?.ITEM_CATALOG||[]),...(core.PowerEconomy?.COMPONENT_CATALOG||[])])??1;
@@ -180,15 +280,21 @@ function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attacker
   const after=Math.max(0,before-damage);
   const retreat=after>0&&(after<48||(allies.length>defenders.length&&after<72));
   impacts.push({id:target.id,node:target.node,hpBefore:before,hpAfter:after,
-   damage,mitigation,retreat,retreatGoal:retreat?retreatDestination(nav,target,minute):null});
+   damage,mitigation,retreat,retreatGoal:retreat?retreatDestination(nav,target,minute):null,
+   ...(composition?{composition}:{}),
+   ...(priorities?{targetPriority:priorities[target.id]}:{})});
  }
  if(!impacts.length)return null;
  const victims=impacts.filter(p=>p.hpAfter===0).map(p=>p.id);
+ // Assists are credited only to participants who could reach at least one
+ // actual victim in this exchange; being near a different target is not enough.
+ const assistIds=victims.length?attackers.filter(a=>a.id!==leader.id&&
+   victims.some(id=>hitRange(a,nav.agents[id],mode,lane)))
+   .sort(rank).slice(0,2).map(a=>a.id):[];
  const outcome=victims.length?'kill':impacts.some(p=>p.retreat)?'retreat':'trade';
  return {
   combatVersion:1,mode,outcome,actorId:leader.id,actorNode:leader.node,
-  teamId,participantIds:participants,assistIds:victims.length?
-   participants.filter(id=>id!==leader.id).slice(0,2):[],
+  teamId,participantIds:participants,assistIds,
   victimIds:victims,impacts,targetId:impacts[0].id,targetNode:impacts[0].node,
   attackerCount:participants.length,defenderCount:defenders.length,
   ...(lane?{lane}:{}),
@@ -196,6 +302,7 @@ function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attacker
 }
 function audit(match,world){
  const errs=[],players=Object.fromEntries(world.players.map(x=>[x.id,x]));
+ const groupStarts=new Map();
  if(!match.moments?.length)return errs; // v2 pre-0.7 replay fallback
  for(let index=0;index<match.events.length;index++){
   const event=match.events[index],f=event.facts;
@@ -203,6 +310,42 @@ function audit(match,world){
    const moment=match.moments[index],positions=moment?.navigation?.before,after=moment?.navigation?.after;
    if(!positions||!after||!moment?.health){errs.push('Combate sin fotograma: '+index);continue;}
    const actor=positions[f.actorId],mode=f.mode;
+   if(f.groupFight){
+    const g=f.groupFight,teams=[match.fixture.a,match.fixture.b];
+    const prior=match.moments[index-1];
+    const live=prior?.minute===event.minute?prior.navigation.after:positions;
+    const group=g.groups?.[event.teamId]||[];
+    const foe=teams.find(id=>id!==event.teamId);
+    const enemies=g.groups?.[foe]||[];
+    const valid=g.version===1&&g.id===event.minute+':'+g.zone&&
+     ['dragon_pit','baron_pit','mid_center'].includes(g.zone)&&
+     teams.includes(g.firstTeam)&&mode==='teamfight'&&
+     [1,2].includes(g.round)&&group.length>=3&&enemies.length>=3&&
+     new Set([...group,...enemies]).size===group.length+enemies.length&&
+     group.every(id=>positions[id]?.teamId===event.teamId)&&
+     enemies.every(id=>positions[id]?.teamId===foe)&&
+     (f.participantIds||[]).every(id=>group.includes(id)&&live[id]?.alive&&
+      live[id].intent!=='retreat')&&
+     (f.impacts||[]).every(hit=>enemies.includes(hit.id)&&live[hit.id]?.alive&&
+      live[hit.id].intent!=='retreat');
+    if(!valid){errs.push('Teamfight sin formación o respuesta verificable: '+index);}
+    if(g.round===1){
+     const both=[...group,...enemies];
+     if(groupStarts.has(g.id)||g.firstTeam!==event.teamId||
+        both.some(id=>!live[id]?.alive||live[id].intent==='retreat'||
+         !nearZone(live[id],g.zone)||core.Navigation.hops(live[id].node,g.zone)>2)||
+        !group.every(id=>enemies.some(other=>hitRange(live[id],live[other],'teamfight')))||
+        !enemies.every(id=>group.some(other=>hitRange(live[id],live[other],'teamfight'))))
+      errs.push('Teamfight inicial sin tres rivales físicos por lado: '+index);
+     groupStarts.set(g.id,{...g,responded:false});
+    }else{
+     const start=groupStarts.get(g.id);
+     if(!start||start.responded||event.teamId===start.firstTeam||
+        JSON.stringify(g.groups)!==JSON.stringify(start.groups))
+      errs.push('Respuesta de teamfight sin intercambio previo: '+index);
+     if(start)start.responded=true;
+    }
+   }
    if(!['lane','gank','teamfight'].includes(mode)||!actor?.alive||
       actor.node!==f.actorNode||event.teamId!==actor.teamId)
      errs.push('Iniciador del combate falso: '+index);
@@ -213,6 +356,22 @@ function audit(match,world){
    const impacts=f.impacts||[],kills=[];
    for(const p of impacts){
     const target=positions[p.id];
+    if(p.composition){
+     const c=p.composition,live=match.moments[index-1]?.minute===event.minute?
+      match.moments[index-1].navigation.after:positions;
+     const supports=[...(c.frontlineIds||[]),...(c.supportIds||[])];
+     const protectors=c.coverIds||[];
+     if(!f.groupFight||c.version!==1||
+       !Number.isFinite(c.multiplier)||c.multiplier<.86||c.multiplier>1.12||
+       supports.some(id=>!live[id]?.alive||live[id].intent==='retreat'||
+        live[id].teamId!==event.teamId||!f.groupFight.groups[event.teamId].includes(id)||
+        !core.Navigation.combatRange(live[id].node,actor.node,2))||
+       protectors.some(id=>!live[id]?.alive||live[id].intent==='retreat'||
+        live[id].teamId!==target.teamId||id===target.id||
+        !f.groupFight.groups[target.teamId].includes(id)||
+        !core.Navigation.combatRange(live[id].node,target.node,2)))
+      errs.push('Composition effect without physical champion support: '+index);
+    }
     if(!target?.alive||target.node!==p.node||target.teamId===event.teamId||
        !actor||!hitRange(actor,target,mode,f.lane))
       errs.push('Impacto sin rival en alcance: '+index+' / '+p.id);
@@ -245,6 +404,8 @@ function audit(match,world){
    }
    if(new Set(f.assistIds||[]).size!==(f.assistIds||[]).length||
       (f.assistIds||[]).some(id=>id===f.actorId||!f.participantIds.includes(id))||
+      (f.assistIds||[]).some(id=>!kills.some(victim=>
+       hitRange(positions[id],positions[victim],mode,f.lane)))||
       (!kills.length&&(f.assistIds||[]).length))
      errs.push('Asistencia inventada en combate: '+index);
    continue;
@@ -287,5 +448,5 @@ function audit(match,world){
  }
  return errs;
 }
-core.Encounters=Object.freeze({create,recover,locate,resolve,resolveCombat,laneRange,hitRange,retreatDestination,power,distance,nearZone,threat,audit});
+core.Encounters=Object.freeze({create,recover,locate,resolve,groupOpportunity,compositionEffect,groupTargetPriority,resolveCombat,laneRange,hitRange,retreatDestination,power,distance,nearZone,threat,audit});
 })(globalThis);

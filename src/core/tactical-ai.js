@@ -175,9 +175,15 @@ function audit(match,world){
     errors.push('Inferioridad sin retroceso: '+id);
    if(p.reason==='protect_injured_adc'&&p.role!=='SUP')
     errors.push('Protección de ADC atribuida a otro rol: '+id);
-   if(p.role==='JUN'&&frame.minute<36&&!core.Navigation.jungleAllowed(
-      p.teamId===match.fixture.a?'blue':'red',p.goal))
-    errors.push('IA ordena al jungla entrar en línea: '+id);
+   if(p.role==='JUN'&&!core.Navigation.jungleAllowed(
+      p.teamId===match.fixture.a?'blue':'red',p.goal)){
+    // No clock-based exemption: a real open Nexus route must personally
+    // include this jungler among its travelling escorts.
+    const call=frame.siegeDecision;
+    if(!(call?.stage===3&&call.teamId===p.teamId&&
+         call.escorts?.includes(id)&&p.intent==='siege'))
+     errors.push('IA ordena al jungla entrar en línea: '+id);
+   }
   }
  }
  return errors;

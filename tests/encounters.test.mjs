@@ -170,3 +170,97 @@ test('manipular vida o desenlace en un replay se detecta',()=>{
  assert.ok(core.Encounters.audit(fake,world).length>0);
  assert.ok(core.auditMatch(fake,world).length>0);
 });
+
+test('a real 3v3 at Baron permits two exchanges; remote players cannot join',()=>{
+ const x=setup(),{core,world,fixture}=x;
+ const {nav,players}=staged(x);
+ const health=core.Encounters.create(world.players);
+ for(const p of Object.values(nav.agents)){
+  p.node=p.teamId===fixture.a?'blue_fountain':'red_fountain';
+  p.intent='lane';
+  if(['MID','JUN','SUP'].includes(p.role)){
+   p.node='baron_pit';p.intent='objective_setup';
+  }
+ }
+ const ctx={nav,dead:{},minute:24,players,health,seed:32,
+  world:{nextDragon:29,nextBaron:20}};
+ const group=core.Encounters.groupOpportunity(ctx);
+ assert.equal(group?.zone,'baron_pit');
+ assert.equal(group.groups[fixture.a].length,3);
+ assert.equal(group.groups[fixture.b].length,3);
+ assert.equal(core.Encounters.groupOpportunity({...ctx,previous:23}),null);
+ const first=group.firstTeam,second=first===fixture.a?fixture.b:fixture.a;
+ const resolve=(teamId,other)=>core.Encounters.resolveCombat({
+  ...ctx,mode:'teamfight',teamId,attackerIds:group.groups[teamId],
+  targetIds:group.groups[other],groupExchange:true});
+ const hit=resolve(first,second);
+ assert.ok(hit?.impacts.length);
+ for(const impact of hit.impacts){
+  health[impact.id]=impact.hpAfter;
+  if(impact.hpAfter===0)ctx.dead[impact.id]=28;
+  else if(impact.retreat)nav.agents[impact.id].intent='retreat';
+ }
+ const remaining=group.groups[second].filter(id=>!ctx.dead[id]&&
+  nav.agents[id].intent!=='retreat');
+ const response=resolve(second,first);
+ if(remaining.length){
+  assert.ok(response);
+  assert.ok(response.participantIds.every(id=>remaining.includes(id)));
+ }else assert.equal(response,null);
+ for(const p of Object.values(nav.agents).filter(p=>p.teamId===second))
+  p.node='red_fountain';
+ assert.equal(core.Encounters.groupOpportunity(ctx),null,
+  'remote defenders cannot become a teamfight');
+});
+
+test('drafted frontline and support protect nearby carries; assassins exploit isolation',()=>{
+ const x=setup(),{core,fixture}=x;
+ const {nav}=staged(x);
+ const pick=(team,role)=>Object.values(nav.agents).find(p=>p.teamId===team&&p.role===role);
+ const adc=pick(fixture.a,'ADC'),tank=pick(fixture.a,'TOP'),sup=pick(fixture.a,'SUP');
+ const target=pick(fixture.b,'ADC'),guard=pick(fixture.b,'TOP'),assassin=pick(fixture.a,'JUN');
+ for(const p of [adc,tank,sup,target,guard,assassin])p.node='baron_pit';
+ const entries=Object.fromEntries([[adc,'nyra'],[tank,'korvek'],[sup,'thessa'],
+  [target,'velin'],[guard,'korvek'],[assassin,'veyra']].map(([p,championId])=>
+   [p.id,{championId,role:p.role}]));
+ const effect=(leader,allies,defenders)=>core.Encounters.compositionEffect({
+  leader,target,allies,defenders,powerState:{entries}});
+ assert.equal(effect(adc,[adc,tank,sup],[target]).multiplier,1.10);
+ assert.equal(effect(adc,[adc,tank,sup],[target,guard]).multiplier,1.03);
+ assert.equal(effect(assassin,[assassin],[target]).multiplier,1.12);
+ assert.equal(effect(assassin,[assassin],[target,guard]).multiplier,.93);
+ guard.node='red_fountain';tank.node='blue_fountain';sup.node='blue_fountain';
+ assert.equal(effect(adc,[adc,tank,sup],[target,guard]).multiplier,1,
+  'Remote champions cannot provide cover');
+});
+
+test('group targeting distinguishes a nearby frontline from an exposed carry',()=>{
+ const x=setup(),{core,fixture}=x;
+ const {nav}=staged(x);
+ const pick=(team,role)=>Object.values(nav.agents).find(p=>p.teamId===team&&p.role===role);
+ const adc=pick(fixture.a,'ADC'),assassin=pick(fixture.a,'JUN');
+ const carry=pick(fixture.b,'ADC'),tank=pick(fixture.b,'TOP');
+ for(const p of [adc,assassin,carry,tank])p.node='baron_pit';
+ const entries=Object.fromEntries([[adc,'nyra'],[assassin,'veyra'],
+  [carry,'velin'],[tank,'korvek']].map(([p,championId])=>
+   [p.id,{championId,role:p.role}]));
+ const health=Object.fromEntries([adc,assassin,carry,tank].map(p=>[p.id,100]));
+ const score=(leader,target)=>core.Encounters.groupTargetPriority({
+  leader,target,allies:[leader],defenders:[carry,tank],health,powerState:{entries}});
+ assert.ok(score(adc,tank).score>score(adc,carry).score);
+ assert.equal(score(adc,tank).reason,'front_to_back');
+ const covered=score(assassin,carry);
+ assert.equal(covered.reason,'covered_carry');
+ tank.node='red_fountain';
+ const isolated=score(assassin,carry);
+ assert.equal(isolated.reason,'exposed_carry');
+ assert.ok(isolated.score>covered.score);
+ // Ranking does not make a remote champion a legal combat target.
+ const result=core.Encounters.resolveCombat({nav,dead:{},minute:26,
+  players:staged(x).players,health,seed:42,mode:'teamfight',teamId:fixture.a,
+  attackerIds:[assassin.id],targetIds:[carry.id,tank.id],
+  powerState:{entries},groupExchange:true});
+ assert.ok(result);
+ assert.ok(result.impacts.every(hit=>hit.id===carry.id));
+ assert.equal(result.impacts[0].targetPriority.reason,'exposed_carry');
+});
