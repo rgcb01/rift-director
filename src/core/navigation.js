@@ -96,6 +96,11 @@ function createNavigation(clubs,teams,seed){
 }
 function teamAgents(nav,id){return Object.values(nav.agents).filter(x=>x.teamId===id)}
 function getAgent(nav,id){return nav.agents[id]||null}
+function laneRivalRoles(lane){return lane==='BOT'?['ADC','SUP']:[lane]}
+function laneRivalDead(nav,team,lane,dead={},minute=nav.minute){
+ return teamAgents(nav,enemy(nav,team)).some(p=>laneRivalRoles(lane).includes(p.role)&&
+  (!p.alive||(dead[p.id]||0)>minute));
+}
 function at(nav,id,node,maxHops=1){
  const agent=nav.agents[id];
  if(!agent?.alive||!nearby(agent.node,node,maxHops))return false;
@@ -178,17 +183,17 @@ function siegeOpportunities(nav,world,t,context=null){
    const goal=stage===3?getSide(nav,foe)+'_nexus':
     towerNode(getSide(nav,foe),lane,stage+1);
    const wave=core.LaneEconomy.pressureFor(waveModel,team,lane);
+   // A kill only creates a tower siege opportunity in the lane of the
+   // eliminated laner. A lead or purchased power may justify a separate push.
+   const laneKill=laneRivalDead(nav,team,lane,world.dead||{},t);
    // An advanced lane needs less push momentum than an untouched outer
    // tower, but a losing wave never creates a free tower/nexus attempt.
    const committed=nav.siegeTeam===team&&nav.siegeLane===lane&&nav.siegeUntil>t;
    const minimumWave=committed?-.20:stage===3?-.20:stage>0?.35:.48;
    if(wave<minimumWave)continue;
    // Neither a stopwatch nor a tiny early wave authorizes abandoning lanes.
-   // An untouched outer tower requires an earned kill, a substantial lead
+   // An untouched outer tower requires its lane kill, a substantial lead
    // alongside the wave, or bought equipment able to convert into pressure.
-   const earned=deadEnemies>0||lead>=2200&&wave>=1.05||
-    completed>=2&&wave>=.85||completed>=4&&wave>=.45;
-   if(stage===0&&!earned)continue;
    // Distance is graph travel, NOT a global asiedio timer. A nearby
    // competent pair can rotate before a rich but distant team.
    const escorts=ours.map(p=>({id:p.id,role:p.role,hops:hops(p.node,goal),
@@ -206,11 +211,14 @@ function siegeOpportunities(nav,world,t,context=null){
    const fogCost=revealed?0:1.0;
    const nearbyPower=Math.max(-2,Math.min(2,powerEdge*.075));
    const localEdge=escorts.length-defenders;
+   const earned=stage===3?deadEnemies>0:laneKill||
+    lead>=2200&&wave>=1.05||completed>=2&&wave>=.85||completed>=4&&wave>=.45;
+   if(stage===0&&!earned)continue;
    const structuralProgress=stage*1.5+(stage===3?3:0);
    const position=local*.85+Math.min(3,escorts.length)*.4-
     travel*.24;
    const score=wave*2.25+position+structuralProgress+
-    nearbyPower+Math.min(2,deadEnemies)*1.35-
+    nearbyPower+Math.min(2,stage===3?deadEnemies:Number(laneKill))*1.35-
     defenders*.9-fogCost;
    // Victory route and actual eliminated defenders matter, but neither
    // a gold lead nor an absolute minute may authorize a push on its own.
@@ -219,7 +227,7 @@ function siegeOpportunities(nav,world,t,context=null){
    // combat risk, not an absolute ban on a physical assault. The Nexus
    // damage ledger still requires a real wave, two living attackers
    // at the base and applies the actual defenders' damage reduction.
-   if(score<required||(stage<3&&localEdge<1&&!deadEnemies))continue;
+   if(score<required||(stage<3&&localEdge<1&&!laneKill))continue;
    out.push({team,lane,goal,stage,wave,score,escorts:escorts.map(p=>p.id),
     travel,local,defenders,vision,powerEdge,deadEnemies,
     required,minimumWave});
@@ -439,7 +447,9 @@ function chooseGoal(nav,agent,t,worldState,context=null){
  // A completed lane is an opportunity, NOT telepathic notice that all
  // five opponents must camp the Nexus. The attacking group commits, while
  // defenders respond only when an actual enemy is observed approaching.
- if(finish&&team===nav.siegeTeam&&(role!=='JUN'||siegeEscort))
+ // Endgame orders belong only to the escorts recorded for this route.
+ // A non-jungler's role does not implicitly grant Nexus-siege duty.
+ if(finish&&team===nav.siegeTeam&&siegeEscort)
   return {goal:getSide(nav,foe)+'_nexus',intent:'siege',
    lane:nav.siegeLane,reason:'earned_nexus_finish',decisionVersion:2};
  if(finish&&team!==nav.siegeTeam){
@@ -931,7 +941,7 @@ function auditNavigation(match,world){
 }
 core.Navigation=Object.freeze({links,adjacency,path,hops,adjacent,nearby,combatRange,isLaneNode,gankApproach,
  jungleAllowed,gankPlan,jungleGoal,
- towerNode,siegeOpportunities,determineSiege,createNavigation,teamAgents,getAgent,at,participants,engagement,forceRetreat,
+ towerNode,siegeOpportunities,determineSiege,createNavigation,teamAgents,getAgent,laneRivalRoles,laneRivalDead,at,participants,engagement,forceRetreat,
  gankPlanForLane,
  advance,snapshot,nexusOpportunity,nexusSiegeDamage,auditNavigation});
 })(globalThis);

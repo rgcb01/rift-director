@@ -286,11 +286,15 @@ function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attacker
  }
  if(!impacts.length)return null;
  const victims=impacts.filter(p=>p.hpAfter===0).map(p=>p.id);
+ // Assists are credited only to participants who could reach at least one
+ // actual victim in this exchange; being near a different target is not enough.
+ const assistIds=victims.length?attackers.filter(a=>a.id!==leader.id&&
+   victims.some(id=>hitRange(a,nav.agents[id],mode,lane)))
+   .sort(rank).slice(0,2).map(a=>a.id):[];
  const outcome=victims.length?'kill':impacts.some(p=>p.retreat)?'retreat':'trade';
  return {
   combatVersion:1,mode,outcome,actorId:leader.id,actorNode:leader.node,
-  teamId,participantIds:participants,assistIds:victims.length?
-   participants.filter(id=>id!==leader.id).slice(0,2):[],
+  teamId,participantIds:participants,assistIds,
   victimIds:victims,impacts,targetId:impacts[0].id,targetNode:impacts[0].node,
   attackerCount:participants.length,defenderCount:defenders.length,
   ...(lane?{lane}:{}),
@@ -400,6 +404,8 @@ function audit(match,world){
    }
    if(new Set(f.assistIds||[]).size!==(f.assistIds||[]).length||
       (f.assistIds||[]).some(id=>id===f.actorId||!f.participantIds.includes(id))||
+      (f.assistIds||[]).some(id=>!kills.some(victim=>
+       hitRange(positions[id],positions[victim],mode,f.lane)))||
       (!kills.length&&(f.assistIds||[]).length))
      errs.push('Asistencia inventada en combate: '+index);
    continue;

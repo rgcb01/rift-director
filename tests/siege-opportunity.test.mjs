@@ -26,6 +26,7 @@ test('siege decision depends on physical wave/escort rather than match minute',(
  for(const minute of [8,21,41,63]){
   const x=scene();
   x.state.waves.BOT.front=1.4;
+  x.state.dead={[x.b.lineup.ADC]:minute+2,[x.b.lineup.SUP]:minute+2};
   const before=JSON.stringify({gold:x.state.gold,lanes:x.state.lanes});
   x.core.Navigation.determineSiege(x.nav,x.state,minute);
   assert.equal(x.nav.siegeTeam,x.a.id,'minute '+minute);
@@ -37,6 +38,19 @@ test('siege decision depends on physical wave/escort rather than match minute',(
   blank.core.Navigation.determineSiege(blank.nav,blank.state,minute);
   assert.equal(blank.nav.siegeTeam,null,'No free siege in minute '+minute);
  }
+});
+test('a kill on another lane cannot authorize a tower siege while its lane rival is alive',()=>{
+ const {core,nav,state,a,b}=scene();
+ state.gold[a.id]=state.gold[b.id];state.waves.TOP.front=.5;
+ state.dead={[b.lineup.MID]:24};
+ assert.equal(core.Navigation.laneRivalDead(nav,a.id,'TOP',state.dead,20),false);
+ core.Navigation.determineSiege(nav,state,20);
+ assert.equal(nav.siegeDecision,null,
+  'a MID death cannot start TOP while the TOP rival lives');
+ state.dead[b.lineup.TOP]=24;
+ assert.equal(core.Navigation.laneRivalDead(nav,a.id,'TOP',state.dead,20),true);
+ core.Navigation.determineSiege(nav,state,21);
+ assert.equal(nav.siegeLane,'TOP');
 });
 test('an earned open Nexus remains a physical objective when defenders outnumber the escorts',()=>{
  const {core,nav,state,a,b}=scene();
