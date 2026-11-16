@@ -672,6 +672,11 @@ function advance(nav,t,dead,worldState,context=null){
    continue;
   }
   if(wasDead){agent.node=fountain;agent.retreatUntil=0;agent.retreatGoal=null;}
+  if(agent.intent==='recall_recover'&&agent.node===fountain&&
+     (context?.health?.[agent.id]??100)<core.Recall.THRESHOLDS.readyHP){
+   agent.goal=fountain;agent.route=[fountain];agent.tacticReason='fountain_recovery';
+   continue;
+  }
   const escaping=agent.retreatGoal&&agent.node!==agent.retreatGoal&&
     (agent.retreatUntil||0)>=t;
   const baseline=escaping?null:chooseGoal(nav,agent,t,worldState,context);
