@@ -158,6 +158,8 @@ function simulateMatch(f,options=null){
  const powerEconomy=RiftCore.PowerEconomy.create([...aP,...bP],champions);
  const shutdowns=RiftCore.Shutdowns.create([...aP,...bP]);
  const abilityState=RiftCore.ChampionKits.create(powerEconomy);
+ const recallState=RiftCore.Recall.create();
+ let recallFrame={starts:[],receipts:[],recoveries:[]};
  m.waves=laneEconomy.lanes;
  m.powerEconomy=powerEconomy;
  m.abilityState=abilityState;
@@ -420,7 +422,7 @@ function simulateMatch(f,options=null){
   }
   return true;
  };
- const nextSnapshot=t=>m.frames.push({minute:t,kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
+ const nextSnapshot=t=>m.frames.push({minute:t,recall:recallFrame,kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
   nexusIntegrity:{...m.nexusIntegrity},
   laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
   powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
@@ -448,6 +450,10 @@ function simulateMatch(f,options=null){
   }
   nav.advance(navigation,t,m.dead,m,{health,map:m.map});
   RiftCore.Encounters.recover(health,navigation,m.dead,t);
+  const recoveries=RiftCore.ChampionKits.fountainRestore(abilityState,navigation,t);
+  const starts=RiftCore.Recall.beginMinute(recallState,navigation,health,abilityState,t);
+  const recallEventStart=m.events.length;
+  recallFrame={starts,receipts:[],recoveries};
   const farmIncome=RiftCore.LaneEconomy.advance(laneEconomy,
     {minute:t,nav:navigation,map:m.map,health,gold:m.gold,structures:m.lanes});
   RiftCore.PowerEconomy.advance(powerEconomy,
@@ -814,9 +820,10 @@ function simulateMatch(f,options=null){
      actorId,participantIds:hit.participantIds,
      siegeVersion:1});
   }
+  recallFrame.receipts=RiftCore.Recall.settleMinute(recallState,navigation,health,starts,m.events.slice(recallEventStart),t,m.dead);
   nextSnapshot(t)
  }
- const report={abilityState:RiftCore.ChampionKits.snapshot(abilityState),champions,fixture:{a:f.a,b:f.b,round:f.round,playoff:!!f.playoff},frames:m.frames,events:m.events,moments:m.moments,health:{...health},powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),shutdowns:RiftCore.Shutdowns.snapshot(shutdowns),playerStats:RiftCore.clonePlayerStats(playerStats),elapsed:0,speed:1,running:true,committed:false,winner:m.winner,finished:false};
+ const report={recallVersion:1,abilityState:RiftCore.ChampionKits.snapshot(abilityState),champions,fixture:{a:f.a,b:f.b,round:f.round,playoff:!!f.playoff},frames:m.frames,events:m.events,moments:m.moments,health:{...health},powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),shutdowns:RiftCore.Shutdowns.snapshot(shutdowns),playerStats:RiftCore.clonePlayerStats(playerStats),elapsed:0,speed:1,running:true,committed:false,winner:m.winner,finished:false};
  RiftCore.attachMinimap(report,s);RiftCore.attachBroadcast(report,s,commentarySeed);
  RiftCore.MatchReplay.attachReplay(report,s);return report
 }
