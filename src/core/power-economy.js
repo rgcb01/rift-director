@@ -109,7 +109,7 @@ function advance(model,{nav,dead,minute,teamIncome,health}){
   }
  }
  for(const a of Object.values(nav.agents)){
-  if(!a.alive||(dead[a.id]||0)>minute)continue;
+  if(!a.alive||(dead[a.id]||0)>minute||a.intent==='recall_channel')continue;
   const lane=['TOP','MID','BOT'].find(l=>core.Navigation.isLaneNode(a.node,l));
   const isBase=a.node.endsWith('_fountain')||a.node.endsWith('_nexus');
   const side=a.teamId===nav.a?'blue':'red';
@@ -128,7 +128,7 @@ function advance(model,{nav,dead,minute,teamIncome,health}){
 }
 function awardFarm(model,{teamId,lane,gold},nav,health){
  const participants=Object.values(nav.agents).filter(a=>a.teamId===teamId&&
-  a.alive&&(health[a.id]??100)>=26&&core.Navigation.isLaneNode(a.node,lane)&&
+  a.alive&&a.intent!=='recall_channel'&&(health[a.id]??100)>=26&&core.Navigation.isLaneNode(a.node,lane)&&
   (a.role===lane||(lane==='BOT'&&['ADC','SUP'].includes(a.role))||
    ['siege','splitpush','counterpush','counter_siege'].includes(a.intent)))
   .sort((a,b)=>a.id.localeCompare(b.id));
