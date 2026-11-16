@@ -4,6 +4,11 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental — Event Director (Alpha 0.7.19)
+- Clasificación editorial determinista de cinco niveles; acciones rutinarias quedan disponibles en el registro completo, sin saturar la retransmisión.
+- Match Center incorpora Siguiente destacado y filtro Registro completo, preservando los índices originales, los eventos, las auditorías y la navegación de guardados históricos.
+- No cambia las reglas deportivas ni la generación de acontecimientos. Los recalls aún no están conectados al simulador; la clasificación anticipa sus futuros eventos.
+
 ## [0.7.18-alpha] — 2026-11-16 (candidato consolidado)
 
 - PR #57 fusionado en main: asedios causales, recalls, economía por rol y kits activos integrados. Benchmark oficial del candidato: 252/252 pruebas y 2,200/2,200 mapas, cero errores y cero bloqueantes; UX aprobada. 33.03 min, 5.68 kills, 27.54 casts/mapa, 12% sin Barón y 14.9% con teamfight. [CI](https://github.com/rgcb01/rift-director/actions/runs/43162097675). Los apartados experimentales siguientes conservan el historial de pilotos; sus estados pendientes corresponden a aquellas iteraciones, no al gate final del #57.
