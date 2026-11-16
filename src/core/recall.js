@@ -51,5 +51,105 @@ function advance(state,{id,at,node,alive,damageTaken=0,actionInterrupted=false})
 }
 function snapshot(state){return {version:1,entries:Object.fromEntries(
  Object.entries(state.entries).map(([id,row])=>[id,{...row}]))};}
-core.Recall=Object.freeze({CHANNEL_SECONDS,COOLDOWN_SECONDS,THRESHOLDS,create,reason,start,advance,snapshot});
+// Minute adapter: movement precedes channeling; all combat/participation
+// in the coarse minute is treated conservatively as an interruption.
+// Only a fully quiet minute permits the eight-second receipt to commit.
+function involved(events,id){
+ return events.some(e=>{
+  const f=e.facts||{};
+  return f.actorId===id||f.targetId===id||f.initiatorId===id||
+   (f.participantIds||[]).includes(id)||(f.victimIds||[]).includes(id)||
+   (f.impacts||[]).some(h=>h.id===id)||(f.abilityCasts||[]).some(c=>c.casterId===id||c.targetId===id);
+ });
+}
+function safeNode(nav,agent){
+ const N=core.Navigation,side=agent.teamId===nav.a?'blue':'red';
+ // Only own territory, with no nearby rival. This deliberately avoids
+ // speculative enemy movement or safety claims based on unseen future.
+ if(!agent.node.startsWith(side+'_')||[side+'_fountain',side+'_nexus'].includes(agent.node))return false;
+ return !Object.values(nav.agents).some(p=>p.teamId!==agent.teamId&&p.alive&&N.combatRange(agent.node,p.node,2));
+}
+function beginMinute(state,nav,health,abilityState,minute){
+ const starts=[];
+ for(const team of [nav.a,nav.b]){
+  const choices=Object.values(nav.agents).filter(a=>a.teamId===team&&a.alive&&
+   !['retreat','shop_recall','siege','siege_return','defend','recall_recover'].includes(a.intent)&&safeNode(nav,a))
+   .map(a=>{
+    const r=abilityState?.entries?.[a.id],type=core.ChampionKits?.DEFINITIONS[r?.championId]?.resourceType;
+    const resource=r?core.ChampionKits.projected(r,minute*60):100;
+    return {a,hp:health[a.id],resource,resourceType:type,
+     why:reason({hp:health[a.id],resource,resourceType:type})};
+   }).filter(x=>x.why).sort((a,b)=>a.hp-b.hp||a.resource-b.resource||a.a.id.localeCompare(b.a.id));
+  for(const x of choices){
+   const a=x.a,side=team===nav.a?'blue':'red';
+   const receipt=start(state,{id:a.id,side,node:a.node,at:minute*60,alive:true,safe:true,
+    hp:x.hp,resource:x.resource,resourceType:x.resourceType});
+   if(!receipt)continue;
+   starts.push({...receipt,hp:x.hp,resource:x.resource,resourceType:x.resourceType||null});
+   a.intent='recall_channel';a.goal=a.node;a.route=[a.node];
+   a.tacticReason=receipt.reason;
+   break;
+  }
+ }
+ return starts;
+}
+function settleMinute(state,nav,health,starts,events,minute){
+ const receipts=[];
+ for(const s of starts){
+  const a=nav.agents[s.id];
+  const result=advance(state,{id:s.id,at:minute*60+59,node:a.node,alive:a.alive,
+   damageTaken:Math.max(0,s.hp-health[a.id]),actionInterrupted:involved(events,s.id)});
+  if(!result)throw Error('Unresolved recall '+s.id);
+  receipts.push(result);
+  if(result.status==='completed'){
+   a.node=result.to;a.goal=result.to;a.route=[result.to];a.intent='recall_recover';
+   a.retreatGoal=null;a.retreatUntil=0;a.tacticReason='recall_completed';
+  }else if(a.alive&&a.intent==='recall_channel'){
+   a.intent='recall_cancelled';a.tacticReason='recall_'+result.interruption;
+  }
+ }
+ return receipts;
+}
+function audit(match){
+ if(match.recallVersion!==1)return [];
+ const errors=[],state=create();let previousCount=0;
+ for(const frame of match.frames){
+  const t=frame.minute,starts=frame.recall?.starts||[],receipts=frame.recall?.receipts||[];
+  const events=match.events.slice(previousCount,frame.eventsCount);previousCount=frame.eventsCount;
+  const before=frame.navigation?.before||{},after=frame.navigation?.after||{};
+  const completed=new Set(),seen=new Set(),teams=new Set();
+  if(starts.length!==receipts.length)errors.push('Recall receipt count '+t);
+  for(let i=0;i<starts.length;i++){
+   const s=starts[i],r=receipts[i],p=before[s.id],q=after[s.id];
+   const side=p?.teamId===match.fixture.a?'blue':'red';
+   if(!p?.alive||p.intent!=='recall_channel'||p.node!==s.from||s.side!==side||
+    !q||seen.has(s.id)||teams.has(p.teamId)||s.startedAt!==t*60||
+    s.completesAt!==t*60+CHANNEL_SECONDS||
+    !safeNode({a:match.fixture.a,b:match.fixture.b,agents:before}, {...p,id:s.id})){
+    errors.push('Invalid recall start '+t+' '+s.id);continue;
+   }
+   seen.add(s.id);teams.add(p.teamId);
+   const expected=start(state,{id:s.id,side,node:p.node,at:t*60,alive:true,safe:true,
+    hp:s.hp,resource:s.resource,resourceType:s.resourceType});
+   if(!expected||expected.reason!==s.reason){errors.push('Invalid recall reason/cooldown '+s.id);continue;}
+   // The actual node of a surviving channeler is unchanged before its
+   // completion; death snapshots can already be at the fountain.
+   const proof=advance(state,{id:s.id,at:t*60+59,node:q.alive?p.node:q.node,alive:q.alive,
+    damageTaken:Math.max(0,s.hp-(frame.health?.[s.id]??s.hp)),actionInterrupted:involved(events,s.id)});
+   if(JSON.stringify(proof)!==JSON.stringify(r))errors.push('Forged recall receipt '+t+' '+s.id);
+   if(proof?.status==='completed'){
+    completed.add(s.id);
+    if(q.node!==side+'_fountain'||q.intent!=='recall_recover')errors.push('Recall destination '+s.id);
+   }
+  }
+  for(const [id,p] of Object.entries(before)){
+   const q=after[id];
+   if(p.alive&&q?.alive&&p.node!==q.node&&!completed.has(id))
+    errors.push('Unproved within-minute movement '+t+' '+id);
+   if(p.intent==='recall_channel'&&!seen.has(id))errors.push('Channel without receipt '+t+' '+id);
+  }
+ }
+ return errors;
+}
+core.Recall=Object.freeze({CHANNEL_SECONDS,COOLDOWN_SECONDS,THRESHOLDS,create,reason,start,advance,snapshot,beginMinute,settleMinute,audit});
 })(globalThis);
