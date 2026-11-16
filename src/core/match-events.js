@@ -426,6 +426,7 @@
       for(const err of core.Encounters.audit(match,world))fail(err);
     }
     if(core.Recall?.audit)for(const err of core.Recall.audit(match))fail(err);
+    if(core.ResetRouting?.audit)for(const err of core.ResetRouting.audit(match))fail(err);
     validateRows(match.playerStats,'final');
     const teamTotal = { [a]:0,[b]:0 }, deaths = { [a]:0,[b]:0 };
     for (const [id,row] of Object.entries(stats)) {
