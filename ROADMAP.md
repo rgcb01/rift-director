@@ -12,6 +12,12 @@ Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prome
 
 **Publicada anteriormente: Alpha 0.7.17** mediante PR #46: crecimiento real por campeón, XP 1–18, HP máximo/AD/armadura/MR/AS/AP, rangos pasivos Q/W/E/R y builds con compras físicas; atributos efectivos en TAB y replay. 205/205 pruebas y 2,000 mapas con cero regresiones bloqueantes: remontadas 4.1%→4.6%, kills 6.44→6.50, duración 49.78→49.48. Nuevas métricas de daño, HP y TTK proxy en minutos simulados. Las habilidades activas no están implementadas.
 
+### Alpha 0.7.19 — Resets, decisiones y relevancia narrativa
+
+- 19A–D: canalización de recall, recuperación en fuente, retorno y rotaciones, coordinación de resets.
+- 19E: Event Director, clasificación determinista por relevancia, narración selectiva y registro completo accesible para análisis. No eliminar eventos deportivos ni alterar RNG, replay o auditorías.
+- 19F–H: trades, escaramuzas, teamfights, integración y benchmark.
+
 **Prioridad:** terminar escalado y observabilidad 0.7.17 → habilidades ejecutables 0.7.18 → IA de kits/builds 0.7.19 → balance profundo 0.7.20. La defensa de asedios, inhibidores y conversión del Barón que se pospusieron siguen pendientes.
 
 **Pendientes del roadmap original (numeración por reordenar después de 0.7.16):**
