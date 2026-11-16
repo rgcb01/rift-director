@@ -57,7 +57,7 @@ function snapshot(state){return {version:1,entries:Object.fromEntries(
 function involved(events,id){
  return events.some(e=>{
   const f=e.facts||{};
-  return f.actorId===id||f.targetId===id||f.initiatorId===id||
+  return f.action==='nexus'||f.actorId===id||f.targetId===id||f.initiatorId===id||
    (f.participantIds||[]).includes(id)||(f.victimIds||[]).includes(id)||
    (f.impacts||[]).some(h=>h.id===id)||(f.abilityCasts||[]).some(c=>c.casterId===id||c.targetId===id);
  });
@@ -93,18 +93,18 @@ function beginMinute(state,nav,health,abilityState,minute){
  }
  return starts;
 }
-function settleMinute(state,nav,health,starts,events,minute){
+function settleMinute(state,nav,health,starts,events,minute,dead={}){
  const receipts=[];
  for(const s of starts){
   const a=nav.agents[s.id];
-  const result=advance(state,{id:s.id,at:minute*60+59,node:a.node,alive:a.alive,
+  const result=advance(state,{id:s.id,at:minute*60+59,node:a.node,alive:a.alive&&(dead[a.id]||0)<=minute,
    damageTaken:Math.max(0,s.hp-health[a.id]),actionInterrupted:involved(events,s.id)});
   if(!result)throw Error('Unresolved recall '+s.id);
   receipts.push(result);
   if(result.status==='completed'){
    a.node=result.to;a.goal=result.to;a.route=[result.to];a.intent='recall_recover';
    a.retreatGoal=null;a.retreatUntil=0;a.recallArrivedAt=minute;a.tacticReason='recall_completed';
-  }else if(a.alive&&a.intent==='recall_channel'){
+  }else if(a.alive&&(dead[a.id]||0)<=minute&&a.intent==='recall_channel'){
    a.intent='recall_cancelled';a.tacticReason='recall_'+result.interruption;
   }
  }
@@ -112,7 +112,7 @@ function settleMinute(state,nav,health,starts,events,minute){
 }
 function audit(match){
  if(match.recallVersion!==1)return [];
- const errors=[],state=create();let previousCount=0;
+ const errors=[],state=create();let previousCount=0,previousFrame=null;
  for(const frame of match.frames){
   const t=frame.minute,starts=frame.recall?.starts||[],receipts=frame.recall?.receipts||[];
   const events=match.events.slice(previousCount,frame.eventsCount);previousCount=frame.eventsCount;
@@ -128,6 +128,13 @@ function audit(match){
     !safeNode({a:match.fixture.a,b:match.fixture.b,agents:before}, {...p,id:s.id})){
     errors.push('Invalid recall start '+t+' '+s.id);continue;
    }
+   const previousHP=previousFrame?.health?.[s.id];
+   const previousKit=previousFrame?.abilityState?.entries?.[s.id];
+   const expectedHP=previousHP===0||previousHP===undefined?100:Math.min(100,previousHP+6);
+   const expectedType=core.ChampionKits?.DEFINITIONS[previousKit?.championId]?.resourceType||null;
+   const expectedResource=previousKit?core.ChampionKits.projected(previousKit,t*60):100;
+   if(s.hp!==expectedHP||s.resource!==expectedResource||s.resourceType!==expectedType)
+    errors.push('Recall resources do not match previous ledger '+t+' '+s.id);
    seen.add(s.id);teams.add(p.teamId);
    const expected=start(state,{id:s.id,side,node:p.node,at:t*60,alive:true,safe:true,
     hp:s.hp,resource:s.resource,resourceType:s.resourceType});
@@ -148,6 +155,7 @@ function audit(match){
     errors.push('Unproved within-minute movement '+t+' '+id);
    if(p.intent==='recall_channel'&&!seen.has(id))errors.push('Channel without receipt '+t+' '+id);
   }
+  previousFrame=frame;
  }
  return errors;
 }
