@@ -4,7 +4,7 @@
 
 [**Jugar en el navegador**](https://rgcb01.github.io/rift-director/) · [Roadmap](ROADMAP.md) · [Cambios](CHANGELOG.md) · [Cómo contribuir](CONTRIBUTING.md)
 
-> **Alpha 0.7.17 — escalado de campeones validado tras 205/205 pruebas y 2,000 partidas auditadas/espejadas.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
+> **Alpha 0.7.18 — motor consolidado; candidato validado con 252/252 pruebas y 2,200 partidas auditadas.** Universo, nombres, ligas y equipos ficticios. Proyecto independiente, sin afiliación con Riot Games ni con organizaciones profesionales.
 
 ## La idea
 
@@ -19,6 +19,12 @@ Los meses impulsan las finanzas y el mundo. Las noticias y los rumores reflejan 
 - **Local:** descarga el repositorio y abre `index.html` con tu navegador. Como alternativa, ejecuta `python -m http.server 8080` y visita `http://localhost:8080`.
 - No hay instalación de paquetes, cuenta ni backend para jugar.
 - **Guardados:** automáticos en `localStorage` de ese navegador. En **Partida** puedes **exportar/importar JSON**. Los guardados no se sincronizan entre dispositivos; expórtalos antes de borrar datos del navegador.
+
+## Alpha 0.7.18 — Motor consolidado
+
+Integra el PR #57: asedios por oportunidad, combate estructural y teamfights, recalls según oleadas, farm y XP por rol, y diez kits activos con recursos, cooldowns y encuentros locales de cinco segundos. El replay conserva la causalidad de los eventos.
+
+**Benchmark del candidato integrado:** 252/252 pruebas, UX aprobada, 1,000 partidas estándar + 500 pares espejados + 100 pares de sustitución (2,200 mapas), cero errores y cero bloqueantes. Duración 33.03 min, 5.68 kills, 27.54 casts/mapa, 12% sin Barón, 14.9% con teamfight. Quedan cinco advertencias no bloqueantes; la frecuencia de combate y los drafts siguen siendo prioridades. [Benchmark](https://github.com/rgcb01/rift-director/actions/runs/43162097675).
 
 ## Alpha 0.7.17 — Estadísticas de campeón y power spikes
 
