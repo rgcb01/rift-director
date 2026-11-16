@@ -4,6 +4,9 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental — Alpha 0.7.19C: return routing
+- Recovered players evaluate threatened home waves, actual team objective calls with travel budget, allied ADC location, jungle corridors and covered side-lane opportunities. Physical graph routes persist briefly and cancel for danger, expiring calls, threatened own lane or higher-priority orders. Route proof in navigation snapshots; no new commentary events. Experimental, pending integrated gates.
+
 ### Experimental — Alpha 0.7.19A/B: tactical recall and fountain recovery
 - Recall by low HP/mana, one channel per team per minute in safe own territory; no purchase requirement. Channel receipt is eight seconds but the map adapter conservatively waits until the minute's combat is resolved: any action/damage/death cancels. No claim of continuous sub-minute movement or exact interruption timing.
 - Completed channels move only to own fountain. Stay at least one tick and until 90% HP; existing fountain healing, explicit mana restoration ledger without cooldown reset, and normal graph navigation on departure. No extra farm/XP for channeling agents.
