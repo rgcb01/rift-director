@@ -28,7 +28,7 @@ function pressureFor(model,id,lane){
  return id===a?front:id===b?-front:0;
 }
 function presence(nav,team,lane,health){
- return Object.values(nav.agents).filter(p=>p.teamId===team&&p.alive&&
+ return Object.values(nav.agents).filter(p=>p.teamId===team&&p.alive&&p.intent!=='recall_channel'&&
   (roleLane(p.role)===lane||
    ['siege','splitpush','counterpush','counter_siege'].includes(p.intent))&&
   core.Navigation.isLaneNode(p.node,lane)&&
