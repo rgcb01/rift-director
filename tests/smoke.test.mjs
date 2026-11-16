@@ -18,20 +18,35 @@ test('universo inicial: equipos, roles y calendario válidos', () => {
   }
 });
 
-test('un partido termina con ganador, nexo y eventos cronológicos', () => {
-  const sim = boot();
-  const s = sim.newGame('balanced', 'QA Esports');
-  const fixture = Object.values(s.fixtures).flat().find(f => f.a === s.userClub || f.b === s.userClub);
-  assert.ok(fixture, 'No se encontró un partido del usuario');
-  for (let seed = 1; seed <= 50; seed++) {
-    s.rng = seed * 1777;
-    const match = sim.simulateMatch(fixture);
-    assert.ok([fixture.a, fixture.b].includes(match.winner), 'Ganador inválido');
-    assert.ok(match.frames.length > 0, 'Sin snapshots de partido');
-    assert.ok(match.events.length > 0, 'Sin narración');
-    assert.match(match.events.at(-1).title, /NEXO/, 'No se narró la destrucción del nexo');
-    for (let i = 1; i < match.events.length; i++) {
-      assert.ok(match.events[i].minute >= match.events[i - 1].minute, 'Evento fuera de orden');
+test('200 partidos en cuatro mundos reproducibles: ganador causal, nexo y eventos cronológicos', () => {
+  // Separate the world-generation seed from the match seed. Both are
+  // fixed and logged so validation and balance CI exercise the same games.
+  for (const now of [1731111111000,1731152352211,1731441040688,1794456390000]) {
+    const {sim,core}=createHarness({now});
+    const s=sim.newGame('balanced', 'QA Esports');
+    const fixture=Object.values(s.fixtures).flat().find(f=>[f.a,f.b].includes(s.userClub));
+    assert.ok(fixture, 'No se encontró un partido del usuario');
+    for (let seed=1; seed<=50; seed++) {
+      s.rng=seed*1777;
+      const match=sim.simulateMatch(fixture);
+      const label='world '+now+' seed '+seed;
+      assert.ok([fixture.a,fixture.b].includes(match.winner), 'Ganador inválido: '+label);
+      assert.ok(match.frames.length>0, 'Sin snapshots: '+label);
+      assert.ok(match.events.length>0, 'Sin narración: '+label);
+      assert.match(match.events.at(-1).title, /NEXO/, 'Sin destrucción del nexo: '+label);
+      const errors=[...core.auditMatch(match,s),...core.Navigation.auditNavigation(match,s),...core.NexusSiege.audit(match)];
+      assert.equal(errors.length,0,label+': '+errors.slice(0,4).join(' | '));
+      for (const [i,e] of match.events.entries()) {
+        if(i>0)assert.ok(e.minute>=match.events[i-1].minute,'Evento fuera de orden: '+label);
+        if(!['tower_damage','tower','plate'].includes(e.facts?.action))continue;
+        const enemyNexus=(e.teamId===fixture.a?'red':'blue')+'_nexus';
+        const before=match.moments[i].navigation.before;
+        for(const id of e.facts.participantIds||[]){
+          const p=before[id];
+          assert.ok(p.intent!=='siege'||p.goal!==enemyNexus,
+            'Un atacante comprometido con el Nexo no debe ser reclutado por otra torre: '+label);
+        }
+      }
     }
   }
 });

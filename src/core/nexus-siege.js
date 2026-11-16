@@ -42,7 +42,10 @@
      (health?.[p.id]??100)>0&&p.intent!=='retreat'&&p.intent!=='dead';
    const participants=core.Navigation.participants(nav,attacker,target,1).filter(active);
    if(participants.length<2)continue;
-   const defenders=core.Navigation.participants(nav,defender,target,1).filter(active);
+   // Fountain residents have not moved out to defend the contested Nexus.
+   // Physical adjacency alone never recruits safe spawn occupants.
+   const defenders=core.Navigation.participants(nav,defender,target,1)
+    .filter(p=>p.node!==side(nav,defender)+'_fountain'&&active(p));
    const baron=(world.baronBuff?.[attacker]??0)>0;
    const damage=damageFor(participants.length,defenders.length,wave.wave,baron);
    if(damage<=0)continue;
@@ -57,9 +60,12 @@
   return output.sort((a,b)=>b.damage-a.damage||
    a.teamId.localeCompare(b.teamId));
  }
- function advance(model,nav,world,minute,health,dead){
+ function advance(model,nav,world,minute,health,dead,blockedTeams=[]){
   const hits=[];
   for(const attack of candidates(nav,world,minute,health,dead)){
+   // The match resolver first settles actual defenders in local combat.
+   // A still-contested base cannot lose HP merely because attackers arrived.
+   if(blockedTeams.includes(attack.teamId))continue;
    if(model.hp[attack.targetTeamId]===0)continue;
    const before=model.hp[attack.targetTeamId];
    const applied=Math.min(before,attack.damage);

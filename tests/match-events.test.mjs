@@ -37,7 +37,19 @@ test('350 partidos: narración, objetivos, bajas, roles y score son coherentes',
        towers:last.towers,lanes:match.events.filter(e=>e.facts?.action==='tower')
         .slice(-10).map(e=>({t:e.minute,team:e.teamId,lane:e.facts.lane,stage:e.facts.stage})),
        hits:match.events.filter(e=>['nexus','nexus_damage'].includes(e.facts?.action)).length,
-       recent,opens}));
+       recent,opens,
+       lastDecisions:match.frames.slice(-12).map(fr=>({
+        minute:fr.minute,call:fr.siegeDecision,
+        units:Object.entries(fr.navigation.before).map(([id,p])=>({
+         id,team:p.teamId,role:p.role,node:p.node,intent:p.intent,
+         reason:p.reason,goal:p.goal,hp:fr.health?.[id]}))
+       })),
+       lastFights:match.events.filter(e=>e.facts?.combatVersion===1)
+        .slice(-16).map(e=>({minute:e.minute,team:e.teamId,
+         action:e.facts.action,contest:e.facts.structureContest,
+         group:e.facts.groupFight,repulsed:e.facts.repulsedNexusAssault,
+         actor:e.facts.actorId,impacts:e.facts.impacts}))
+      }));
     }
     assert.equal(problems.length, 0, 'Seed '+seed+': '+problems.slice(0,8).join(' | '));
     for (const e of match.events) {

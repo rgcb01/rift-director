@@ -13,6 +13,16 @@ export function flatten(d){
  return {
   matches:s.completed,
   hpDamageMean:s.gameplay.championDiagnostics?.hpDamagePerMatch??null,
+  abilityCastsMean:s.gameplay.championDiagnostics?.castsPerMatch??null,
+  abilityQMean:s.gameplay.championDiagnostics?.slotCasts?.Q??null,
+  abilityWMean:s.gameplay.championDiagnostics?.slotCasts?.W??null,
+  abilityEMean:s.gameplay.championDiagnostics?.slotCasts?.E??null,
+  abilityRMean:s.gameplay.championDiagnostics?.slotCasts?.R??null,
+  localTtkSeconds:s.gameplay.championDiagnostics?.localTtkSeconds??null,
+  shieldHpMean:s.gameplay.championDiagnostics?.shieldsPerMatch??null,
+  healedHpMean:s.gameplay.championDiagnostics?.healsPerMatch??null,
+  controlCastsMean:s.gameplay.championDiagnostics?.controlCastsPerMatch??null,
+  resourceSpentMean:s.gameplay.championDiagnostics?.resourceSpentPerMatch??null,
   observedTTKMean:s.gameplay.championDiagnostics?.observedTtkMinutes??null,
   mitigationMean:s.gameplay.championDiagnostics?.meanMitigation??null,
   championHP20:s.gameplay.championDiagnostics?.hp20??null,
@@ -74,6 +84,11 @@ export function flatten(d){
   macroObjectiveTurnsMean:s.gameplay.macroObjectiveTurnsPerMatch??null,
   macroExposedPushMean:s.gameplay.macroExposedPushTurnsPerMatch??null,
   macroEscortedObjectiveMean:s.gameplay.macroEscortedObjectiveTurnsPerMatch??null,
+  groupFightMean:s.gameplay.groupFightsPerMatch??null,
+  groupFightRate:s.gameplay.groupFightGames===undefined?null:ratio(s.gameplay.groupFightGames,s.completed),
+  groupFightKillsMean:s.gameplay.groupFightKillsPerMatch??null,
+  fullFiveOnFive:s.gameplay.fullFiveOnFive??null,
+  groupFightResponses:s.gameplay.groupFightResponses??null,
   counterplayFightsMean:s.gameplay.counterplayFightsPerMatch??null,
   counterplayKillsMean:s.gameplay.counterplayKillsPerMatch??null,
   underdogFightsMean:s.gameplay.underdogFightsPerMatch??null,
@@ -275,6 +290,11 @@ const keys=[
  ['macroObjectiveTurnsMean','Minutos-jugador dedicados a rotar por objetivos por mapa','num'],
  ['macroExposedPushMean','Minutos-jugador de pushes con riesgo alto observado','num'],
  ['macroEscortedObjectiveMean','Minutos-jugador de rotaciones con escoltas propias','num'],
+ ['groupFightMean','Teamfights reales por mapa','num'],
+ ['groupFightRate','Mapas con teamfight real','rate'],
+ ['groupFightKillsMean','Kills en teamfights por mapa','num'],
+ ['fullFiveOnFive','Teamfights 5v5 en la muestra','num'],
+ ['groupFightResponses','Respuestas en teamfights en la muestra','num'],
  ['counterplayFightsMean','Peleas iniciadas por oportunidad visible por mapa','num'],
  ['counterplayKillsMean','Kills por peleas tácticas por mapa','num'],
  ['underdogFightsMean','Contraataques estando atrás por mapa','num'],
@@ -325,6 +345,16 @@ const keys=[
  ['equipmentSpentMean','Oro convertido en equipamiento por mapa','num'],
  ['avgFinalLevel','Nivel individual promedio al final','num'],
  ['hpDamageMean','Daño efectivo de HP normalizada por mapa','num'],
+ ['abilityCastsMean','Lanzamientos de habilidades por mapa','num'],
+ ['abilityQMean','Q activadas por mapa','num'],
+ ['abilityWMean','W activadas por mapa','num'],
+ ['abilityEMean','E activadas por mapa','num'],
+ ['abilityRMean','R activadas por mapa','num'],
+ ['localTtkSeconds','TTK de ventana local de 5 segundos (solo kills en ella)','num'],
+ ['shieldHpMean','Daño bloqueado por escudos por mapa (HP normalizada)','num'],
+ ['healedHpMean','Vida restaurada por habilidades por mapa (HP normalizada)','num'],
+ ['controlCastsMean','Control local ejecutado por mapa','num'],
+ ['resourceSpentMean','Recursos consumidos por habilidades por mapa','num'],
  ['observedTTKMean','TTK observable en minutos simulados (proxy)','num'],
  ['mitigationMean','Factor medio de vida y resistencia aplicado al daño','num'],
  ['championHP20','HP máximo medio de campeón min 20','num'],
@@ -374,6 +404,20 @@ export function generate(current,previous,output){
    {label:'Disputado',value:(assessment.current.contestedDragonRate||0)*100},
    {label:'Torre de intercambio',value:(assessment.current.crossmapTowerRate||0)*100}
   ],{max:100,decimals:0})],
+  ...(s.gameplay.groupFightGames===undefined?[]:[['teamfights.svg',bars('Teamfights reales por cada 100 mapas',[
+   {label:'Teamfights',value:(assessment.current.groupFightMean||0)*100},
+   {label:'Kills',value:(assessment.current.groupFightKillsMean||0)*100},
+   {label:'Mapas con teamfight',value:(assessment.current.groupFightRate||0)*100},
+   {label:'5v5',value:ratio(assessment.current.fullFiveOnFive||0,s.completed)*100}
+  ],{decimals:1})]]),
+  ...(s.gameplay.roleEconomy?[
+   ['role-levels.svg',bars('Nivel final promedio por rol',Object.entries(s.gameplay.roleEconomy)
+    .map(([label,p])=>({label,value:p.level})),{max:18,decimals:1})],
+   ['role-farm.svg',bars('Oro de farm promedio por jugador y rol',Object.entries(s.gameplay.roleEconomy)
+    .map(([label,p])=>({label,value:p.farm})),{decimals:0})],
+   ['role-equipment.svg',bars('Oro invertido en equipamiento por jugador y rol',Object.entries(s.gameplay.roleEconomy)
+    .map(([label,p])=>({label,value:p.spent})),{decimals:0})]
+  ]:[]),
   ['counterplay.svg',bars('Peleas tácticas y conversión territorial por 100 mapas',[
    {label:'Peleas con kill',value:(assessment.current.counterplayWinRate||0)*100},
    {label:'Torres de respuesta',value:(assessment.current.earnedFightTowerRate||0)*100},
@@ -407,6 +451,29 @@ export function generate(current,previous,output){
   ])],
   ['champion-ttk.svg',bars('TTK observado: minutos simulados desde primera herida',[
    {label:'Minutos',value:assessment.current.observedTTKMean||0}
+  ])],
+  ...(current.championMatchups?.rows?.length?[
+   ['champion-matchups.svg',bars('Victorias en sustituciones controladas (%)',
+    current.championMatchups.rows.flatMap(row=>row.champions.map(c=>({
+      label:c.id,value:(c.winRate??0)*100}))),{max:100,decimals:0})],
+   ['champion-matchup-flips.svg',bars('Pares que cambian de ganador por rol (%)',
+    current.championMatchups.rows.map(row=>({label:row.role,
+      value:row.paired.validPairs?100*(row.paired.firstOnly+row.paired.secondOnly)/row.paired.validPairs:0})),
+    {max:100,decimals:0})]
+  ]:[]),
+  ['ability-casts.svg',bars('Habilidades Q/W/E/R usadas por mapa',[
+   {label:'Q',value:assessment.current.abilityQMean||0},
+   {label:'W',value:assessment.current.abilityWMean||0},
+   {label:'E',value:assessment.current.abilityEMean||0},
+   {label:'R',value:assessment.current.abilityRMean||0}
+  ])],
+  ['ability-effects.svg',bars('Efectos de habilidades por mapa (HP normalizada)',[
+   {label:'Escudo',value:assessment.current.shieldHpMean||0},
+   {label:'Curacion',value:assessment.current.healedHpMean||0},
+   {label:'Control (usos)',value:assessment.current.controlCastsMean||0}
+  ])],
+  ['ttk-seconds.svg',bars('TTK en ventana local de cinco segundos (segundos)',[
+   {label:'TTK local',value:assessment.current.localTtkSeconds||0}
   ])],
   ['previous.svg',bars('Version anterior vs actual: porcentaje de partidas sin Dragon',[
    {label:previous.version,value:assessment.baseline.noDragonRate*100,color:'#f27e8a'},

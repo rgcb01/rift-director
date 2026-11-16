@@ -97,6 +97,17 @@ function row(p,championId,frame){
  const progress=frame.powerEconomy?.entries?.[p.id];
  const level=Number.isInteger(progress?.level)?progress.level:null;
  const items=Array.isArray(progress?.items)?progress.items.slice(0,6):[];
+ const ability=frame.abilityState?.entries?.[p.id];
+ const at=(frame.minute||0)*60+45;
+ const resource=ability&&root.RiftCore?.ChampionKits?
+  root.RiftCore.ChampionKits.projected(ability,at):ability?.resource;
+ const abilityLine=ability?'<small class="rift-tab-effective" aria-label="Habilidades y recursos activos">'+
+  'Recurso '+resource+'/100 · '+
+  ['Q','W','E','R'].map(slot=>slot+':'+(
+   progress?.effectiveStats?.abilityRanks?.[slot]===0?'bloq.':
+   ability.cooldowns?.[slot]>at?
+    Math.ceil((ability.cooldowns[slot]-at)/60)+'m':'lista')).join(' · ')+
+  '</small>':'';
  const effective=progress?.effectiveStats;
  const statsLine=effective?'<small class="rift-tab-effective" aria-label="Atributos efectivos">'+
   'HP '+Math.round(effective.maxHp)+' · DA '+Math.round(effective.attackDamage)+
@@ -107,7 +118,7 @@ function row(p,championId,frame){
  return `<div class="rift-tab-player" role="row">
  <span class="rift-tab-role" role="cell">${escape(p.role)}</span>
  <span class="rift-tab-portrait" role="cell">${portrait(c)}<img class="rift-tab-portrait-image" src="${escape(c.portrait)}" width="64" height="64" alt="" aria-hidden="true" onerror="this.remove()"><span class="rift-tab-level" title="Nivel">${level??'—'}</span></span>
- <span class="rift-tab-ident" role="cell"><strong>${escape(c.name)}</strong><small title="${escape(p.name)}">${escape(p.name)}</small>${statsLine}</span>
+ <span class="rift-tab-ident" role="cell"><strong>${escape(c.name)}</strong><small title="${escape(p.name)}">${escape(p.name)}</small>${statsLine}${abilityLine}</span>
  <span class="rift-tab-kda num" role="cell" title="Kills / muertes / asistencias">${kda}</span>
  <span class="rift-tab-items" role="cell" aria-label="Inventario de ${escape(c.name)}">${Array.from({length:6},(_,i)=>itemSlot(items[i],i)).join('')}</span>
  </div>`;
@@ -132,7 +143,7 @@ function render({match,frame,teams,renderCrest=(team,size)=>root.RiftBranding?.c
  }).join('')}</div></section>`).join('');
  return `<section class="panel rift-tab-panel" aria-label="Tabla de campeones y objetos del partido">
  <div class="panel-head"><h2>Campeones y builds</h2><span class="chip">TAB · espectador</span></div>
- <p class="helper">Datos del momento seleccionado · ${match?.champions?.entries?'Campeones asignados al partido.':'Replay histórico: identidad de campeón reconstruida únicamente para la presentación.'} Los componentes y objetos usan compras reales; los atributos escalan con XP y compras en las partidas nuevas. Las habilidades activas siguen pendientes.</p>
+ <p class="helper">Datos del momento seleccionado · ${match?.champions?.entries?'Campeones asignados al partido.':'Replay histórico: identidad de campeón reconstruida únicamente para la presentación.'} Los componentes y objetos usan compras reales; los atributos escalan con XP y compras en las partidas nuevas. Las habilidades Q/W/E/R se activan con recursos, alcance y enfriamientos; sus efectos quedan registrados en las peleas.</p>
  <div class="rift-tab-grid">${rows}</div></section>`;
 }
 root.RiftMatchTab=Object.freeze({assign,render,itemSlot,championFor,portraitFor,CHAMPIONS,ITEMS});

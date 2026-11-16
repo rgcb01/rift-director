@@ -158,8 +158,14 @@ test('90 partidas: decisiones reproducibles, movimientos legales y replays audit
     assert.ok(p.reason,'No tactical reason for '+id);
     if(p.decisionVersion===1)seen.add(p.role);
     if(p.reason)reasons.add(p.reason);
-    if(p.role==='JUN')assert.equal(
-      core.Navigation.jungleAllowed(p.teamId===fixture.a?'blue':'red',p.goal),true);
+    if(p.role==='JUN'){
+     const authorized=frame.siegeDecision?.stage===3&&
+      frame.siegeDecision?.teamId===p.teamId&&
+      frame.siegeDecision?.escorts?.includes(id);
+     assert.ok(core.Navigation.jungleAllowed(
+      p.teamId===fixture.a?'blue':'red',p.goal)||authorized,
+      'JUN sin una orden individual de cierre: '+id);
+    }
    }
   }
  }

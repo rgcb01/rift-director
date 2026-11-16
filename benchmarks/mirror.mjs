@@ -20,7 +20,19 @@ export function runMirror(){
         world.rng=seed;
         const m=sim.simulateMatch({...f,a,b});
         const last=m.frames.at(-1);
-        if(!m.winner||!last)throw Error('No winner/final frame');
+        if(!m.winner||!last){
+          // Preserve exact failing orientation and physical endgame evidence.
+          // This is diagnostics only: the gate still rejects any missing win.
+          const snapshot=last&&{minute:last.minute,towers:last.towers,
+            gold:last.gold,nexus:last.siege?.hp,
+            siegeDecision:last.siegeDecision,
+            units:Object.values(last.navigation?.after||{}).map(p=>({
+              role:p.role,team:p.teamId,node:p.node,intent:p.intent,goal:p.goal
+            }))};
+          console.error('[mirror-failure] '+JSON.stringify({
+            batch,pair,seed,a,b,flipped,snapshot}));
+          throw Error('No winner/final frame');
+        }
         return {batch,pair,seed,a,b,flipped,blueWon:m.winner===a,
           winner:m.winner,minute:last.minute,
           kills:last.kills[a]+last.kills[b],

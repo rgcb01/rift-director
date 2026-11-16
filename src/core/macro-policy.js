@@ -136,11 +136,16 @@
  function plan(nav,world,minute,health,dead={}){
   if(!nav.macroCalls)nav.macroCalls={};
   const selected={};
-  if(minute<14||minute>29||nav.siegeTeam)return selected;
+  if(minute<14||minute>29)return selected;
   for(const id of [nav.a,nav.b]){
    for(const role of roles){
     const actor=Object.values(nav.agents).find(a=>a.teamId===id&&a.role===role);
     if(!actor||!((dead[actor.id]??0)<=minute))continue;
+    // A team-wide siege call cannot suppress all farming decisions.
+    // Only agents who are personally assigned to the attacking squad
+    // sacrifice their independent lane-resource opportunities.
+    if(nav.siegeDecision?.teamId===id&&
+       nav.siegeDecision.escorts.includes(actor.id))continue;
     // The existing TOP policy already handles earned solo splitpush when
     // winning a lane. Do not overwrite that credible, punishable route with
     // a permanent safe staging order. Tactical threat checks still apply.

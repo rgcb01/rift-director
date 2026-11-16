@@ -50,3 +50,9 @@ La comparación de objetivos neutrales añade un noveno SVG, `dragon.svg`. Adem�
 El baseline inmediato es `benchmarks/baselines/0.7.9-alpha.json`, congelado a partir del run auditado 42451174596. Las nuevas decisiones conservan la verificación de navegación, replays, oro y KDA; ningún cambio de plan por sí solo cuenta como objetivo.
 
 **Gate de competencia entre objetivos:** Además de `gamesWithoutDragon`, el reporte conserva `gamesWithoutBaron` y advierte cuando Barón pierde más de ocho puntos porcentuales de presencia frente a Alpha 0.7.9. La política no promete ambos objetivos: JUN/SUP deben priorizar uno según oro, estructuras, visión, control de oleadas y recompensas rivales. Una toma o robo solo existe si los profesionales están físicamente en el foso.
+
+## Verificación experimental del PR #54
+
+Los asedios iniciados por oportunidades físicas, sin desbloqueos por minuto, deben pasar la misma batería que una versión publicada: **1,000 mapas auditados + 500 pares de semillas espejadas**. Este cambio en la documentación activa el workflow de balance del pull request; no incrementa la versión publicada ni autoriza su fusión. Comparar también explícitamente los resultados con Alpha 0.7.17, no solo con el predecesor que recupere la automatización.
+
+Criterios adicionales del experimento: cero partidos sin ganador, cero cruces ilegales del jungla, daño de torres/Nexo sustentado en oleadas y presencia real, y revisión de duración, kills, remontadas, Dragón, Barón, shutdowns y variedad de carriles. Si falla cualquiera de esos controles, el PR permanece en borrador.

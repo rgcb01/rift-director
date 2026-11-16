@@ -4,6 +4,28 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental: balance contrafactual de campeones
+- PR #57 inicial: 250/250 pruebas, UX aprobada, 1,999/2,000 partidas con ganador causal. Un mapa estándar (índice 307, semilla 2869273992) no terminó. 33.55 min, 5.76 kills, 28.11 casts/mapa y 17.2% mapas con teamfight.
+- Corregida la cesión de escoltas al Barón: la reserva de JUN/SUP requiere dos atacantes sanos no JUN/SUP a una arista o menos de la torre; el caso 307 termina al minuto 50. Piloto de 120 mapas estándar (tres mundos), 120/120 con ganador, cero errores de las seis auditorías comprobadas; duración 33.44, kills 5.43 y 8 sin Barón. Pendiente benchmark oficial.
+- Nueva opción explícita de draft para experimentos, validada por rol, sin cambiar asignación normal ni RNG. 100 pares controlados (20 por rol), mismos profesionales/fixture/semilla y nueve picks fijos; 200/200 mapas válidos en piloto. Cambiaron de ganador tres pares; diferencias de victoria pequeñas, sin justificación para buffs/nerfs definitivos.
+- Benchmark añade ledger JSON y dos gráficas de sustituciones controladas, separado de las 2,000 partidas oficiales. El runner exige que los pares adicionales sean válidos. No se cambian los gates originales.
+
+### Experimental: habilidades activas integradas
+- Integra los diez kits originales del PR #49 sobre el candidato acumulado de asedios, teamfights, recalls y progresión por rol del PR #56, sin modificar las ramas originales.
+- Los intercambios de carril, ganks, escaramuzas, teamfights grupales, counterplay y disputas de estructuras utilizan ventanas locales de cinco segundos, con recursos, cooldowns, daño/escudos/curaciones y ledger de casts. Se preservan el targeting y las sinergias de grupo; los objetivos secundarios no clonan hechizos.
+- TAB, pruebas de kits y diagnósticos de combate incluidos. Pendiente validación de la combinación mediante 1,000 partidas estándar + 500 pares espejados. No se declara release.
+
+### Experimental: farm y XP por rol (candidato separado)
+- Distribución entera del oro de oleadas existente: dueño del carril/ADC peso 4, visitante peso 2, SUP peso 1. La suma coincide exactamente con el oro generado por la oleada.
+- XP por presencia física: 72 en línea sin compañero cercano, 56 con uno, 43 con dos o más; jungla propia con orden de farm 58, rotaciones 35, base 10. No se inventan campamentos individuales ni CS.
+- Hasta 10% del presupuesto de ingreso agregado del equipo se atribuye al jungla cuando está vivo, saludable y farmeando físicamente en sus nodos de jungla propia; se resta del reparto pasivo, no aumenta el oro del equipo. Subledger jungleFarm incluido dentro de farm.
+- Piloto 80 + 80 sobre PR #55: ambos candidatos 80/80 sin errores de auditoría comprobados; niveles TOP 11.55→13.18, JUN 9.86→10.10, MID 11.57→13.09, ADC 11.69→12.34, SUP 11.09→11.47. Farm JUN 0→1,085, ADC 1,099→1,417, SUP 728→351. Compras 10.41→9.75, kills 6.04→5.63, teamfights 26→23, duración 34.70→34.21. Estos sacrificios se deben medir en la batería completa; no es una mejora universal demostrada.
+- Pruebas de conservación de oro y experiencia compartida; reporte con niveles, farm, gasto e inventario por rol. Pendiente validación completa.
+
+### Experimental: recalls según oleadas (rama independiente)
+- Primer regreso para comprar con oleada favorable ≥1.05, visión ≥55 y viaje real de hasta cuatro aristas desde el minuto 14. No abandona un asedio comprometido, no compra sin cartera suficiente, no teletransporta y conserva los límites existentes de resets.
+- Exploración controlada (80 partidas por variante, mismas semillas y mundos, base PR #54 `e8ebaf2`): 80/80 terminadas por variante y cero errores de las auditorías comprobadas. Compras 6.99→10.41, gasto 20,251→30,973, cartera final 60,971→56,220, primera compra 15.38→14.25 min, kills 5.26→6.04, duración 31.69→34.70, teamfights 9→26. Minutos-jugador de recall 4.75→11.50 por partida: revisar coste de oportunidad. No equivale a la batería de 2,000 ni a un release validado.
+
 ## [0.7.17-alpha] — 2026-11-09 (release validada)
 
 ### Primer vertical slice: escalado real de los diez campeones

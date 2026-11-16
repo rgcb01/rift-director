@@ -97,6 +97,12 @@ export function runStandard() {
            e.facts.defenderIds?.length>0).length,
           firstNexusHitMinute:m.events.find(e=>
            ['nexus_damage','nexus'].includes(e.facts?.action))?.minute??null,
+          groupFights:m.events.filter(e=>e.facts?.groupFight?.round===1).length,
+          groupFightResponses:m.events.filter(e=>e.facts?.groupFight?.round===2).length,
+          groupFightKills:m.events.reduce((n,e)=>n+
+            (e.facts?.groupFight?(e.facts.victimIds?.length||0):0),0),
+          fullFiveOnFive:m.events.filter(e=>e.facts?.groupFight?.round===1&&
+            Object.values(e.facts.groupFight.groups).every(ids=>ids.length===5)).length,
           counterplayFights:m.events.filter(e=>e.facts?.counterplayVersion===1).length,
           counterplayKills:m.events.reduce((n,e)=>n+
             (e.facts?.counterplayVersion===1?(e.facts?.victimIds?.length||0):0),0),
@@ -146,6 +152,11 @@ export function runStandard() {
           recallTravelMinutes:m.frames.reduce((n,fr)=>n+
             Object.values(fr.navigation?.before||{}).filter(a=>a.intent==='shop_recall').length,0),
           totalSpent:Object.values(f.powerEconomy?.entries||{}).reduce((n,p)=>n+p.spent,0),
+          roleEconomy:Object.fromEntries(core.ROLES.map(role=>{
+            const players=Object.values(f.powerEconomy?.entries||{}).filter(p=>p.role===role);
+            return [role,Object.fromEntries(['level','farm','jungleFarm','spent','wallet','items'].map(key=>
+              [key,avg(players.map(p=>key==='items'?p.items.length:(p[key]??0)))]))];
+          })),
           meanLevel:avg(Object.values(f.powerEconomy?.entries||{}).map(p=>p.level)),
           maxLevel:Math.max(...Object.values(f.powerEconomy?.entries||{}).map(p=>p.level)),
           bothTeamsBought:[a,b].every(team=>Object.values(f.powerEconomy?.entries||{})
@@ -205,6 +216,7 @@ export function runStandard() {
             ...core.MacroPolicy.audit(m),
             ...core.TacticalAI.audit(m,world),
             ...core.Encounters.audit(m,world),
+            ...core.ChampionKits.audit(m),
             ...core.auditMatch(m,world),
             ...core.auditMinimap(m,world),
             ...core.MatchReplay.auditMoments(m,world),
@@ -267,6 +279,11 @@ export function runStandard() {
       macroExposedPushTurnsPerMatch:+avg(rows.map(r=>r.macroRisk.exposedPush)).toFixed(2),
       macroEscortedObjectiveTurnsPerMatch:+avg(rows.map(r=>r.macroRisk.escortedObjective)).toFixed(2),
       shutdownsPerMatch:+avg(rows.map(r=>r.shutdowns)).toFixed(2),
+      groupFightsPerMatch:+avg(rows.map(r=>r.groupFights)).toFixed(2),
+      groupFightGames:rows.filter(r=>r.groupFights>0).length,
+      groupFightResponses:sum(rows,'groupFightResponses'),
+      groupFightKillsPerMatch:+avg(rows.map(r=>r.groupFightKills)).toFixed(2),
+      fullFiveOnFive:sum(rows,'fullFiveOnFive'),
       counterplayFightsPerMatch:+avg(rows.map(r=>r.counterplayFights)).toFixed(2),
       counterplayKillsPerMatch:+avg(rows.map(r=>r.counterplayKills)).toFixed(2),
       underdogFightsPerMatch:+avg(rows.map(r=>r.underdogFights)).toFixed(2),
@@ -298,6 +315,9 @@ export function runStandard() {
       earlyPurchasesPerMatch:+avg(rows.map(r=>r.before30Purchases)).toFixed(2),
       recallTravelMinutesPerMatch:+avg(rows.map(r=>r.recallTravelMinutes)).toFixed(2),
       equipmentGoldPerMatch:+avg(rows.map(r=>r.totalSpent)).toFixed(2),
+      roleEconomy:Object.fromEntries(['TOP','JUN','MID','ADC','SUP'].map(role=>
+        [role,Object.fromEntries(['level','farm','jungleFarm','spent','wallet','items'].map(key=>
+          [key,+avg(rows.map(r=>r.roleEconomy[role][key])).toFixed(2)]))])),
       avgFinalLevel:+avg(rows.map(r=>r.meanLevel)).toFixed(2),
       maxLevelObserved:Math.max(...rows.map(r=>r.maxLevel)),
       noItemGames:rows.filter(r=>r.purchases===0).length,

@@ -55,7 +55,7 @@ const ROW=(p,championId=null)=>({id:p.id,teamId:p.teamId,role:p.role,
  ...(championId?{championId}:{}),level:1,xp:0,
  wallet:500,earned:500,spent:0,items:[],lastPurchaseMinute:-100,
  voluntaryBuys:0,
- passive:0,farm:0,killGold:0,objectiveGold:0,kills:0});
+ passive:0,farm:0,jungleFarm:0,killGold:0,objectiveGold:0,kills:0});
 function create(players,champions=null){
  const entries={};
  for(const p of players){
@@ -91,15 +91,38 @@ function advance(model,{nav,dead,minute,teamIncome,health}){
     .sort((a,b)=>a.id.localeCompare(b.id));
   const income=teamIncome[team];
   if(!Number.isSafeInteger(income)||income<0)throw Error('Invalid team passive gold');
-  const base=Math.floor(income/agents.length),extra=income%agents.length;
+  // The aggregate team-income budget already abstracts jungle resources.
+  // Attribute a bounded portion to an actual farming jungler rather than
+  // equally paying that portion to everyone. No additional team gold.
+  const side=team===nav.a?'blue':'red';
+  const jungler=agents.find(p=>p.role==='JUN'&&p.alive&&
+   (dead[p.id]||0)<=minute&&(health?.[p.id]??100)>=26&&
+   p.intent==='farm_jungle'&&
+   [side+'_jungle_upper',side+'_jungle_lower'].includes(p.node));
+  const jungleGold=jungler?Math.floor(income*.10):0;
+  const passive=income-jungleGold;
+  const base=Math.floor(passive/agents.length),extra=passive%agents.length;
   agents.forEach((p,i)=>goldAward(model,p.id,base+(i<extra?1:0),'passive'));
+  if(jungleGold){
+   goldAward(model,jungler.id,jungleGold,'farm');
+   model.entries[jungler.id].jungleFarm+=jungleGold;
+  }
  }
  for(const a of Object.values(nav.agents)){
   if(!a.alive||(dead[a.id]||0)>minute)continue;
-  const inLane=['TOP','MID','BOT'].some(lane=>
-    core.Navigation.isLaneNode(a.node,lane));
+  const lane=['TOP','MID','BOT'].find(l=>core.Navigation.isLaneNode(a.node,l));
   const isBase=a.node.endsWith('_fountain')||a.node.endsWith('_nexus');
-  const xp=isBase?10:inLane?51:a.role==='JUN'?41:35;
+  const side=a.teamId===nav.a?'blue':'red';
+  const farmingJungle=a.role==='JUN'&&a.intent==='farm_jungle'&&
+   [side+'_jungle_upper',side+'_jungle_lower'].includes(a.node);
+  // Experience reflects time spent near minion waves or farming actual
+  // jungle nodes. Sharing a nearby wave has a cost; simply rotating in
+  // the river does not produce the same XP as farming.
+  const sharing=lane?Object.values(nav.agents).filter(p=>p.teamId===a.teamId&&
+   p.alive&&(dead[p.id]||0)<=minute&&core.Navigation.isLaneNode(p.node,lane)&&
+   core.Navigation.hops(a.node,p.node)<=2).length:0;
+  const xp=isBase?10:lane?(sharing===1?72:sharing===2?56:43):
+   farmingJungle?58:35;
   xpAward(model,a.id,xp);
  }
 }
@@ -110,8 +133,16 @@ function awardFarm(model,{teamId,lane,gold},nav,health){
    ['siege','splitpush','counterpush','counter_siege'].includes(a.intent)))
   .sort((a,b)=>a.id.localeCompare(b.id));
  if(!participants.length)return;
- const base=Math.floor(gold/participants.length),extra=gold%participants.length;
- participants.forEach((a,i)=>goldAward(model,a.id,base+(i<extra?1:0),'farm'));
+ // Allocate the existing last-hit income, never mint additional gold.
+ // Lane owners (ADC in BOT) take priority; visiting damage dealers receive
+ // a smaller share, supports receive utility income without taking CS.
+ const weight=p=>p.role==='SUP'?1:(p.role===lane||lane==='BOT'&&p.role==='ADC')?4:2;
+ const total=participants.reduce((n,p)=>n+weight(p),0);
+ const shares=participants.map(p=>({p,gold:Math.floor(gold*weight(p)/total),
+  remainder:(gold*weight(p))%total}));
+ let left=gold-shares.reduce((n,x)=>n+x.gold,0);
+ shares.sort((a,b)=>b.remainder-a.remainder||a.p.id.localeCompare(b.p.id));
+ for(const x of shares){if(left>0){x.gold++;left--;}goldAward(model,x.p.id,x.gold,'farm');}
 }
 function teamGoldAward(model,teamId,amount){
  if(!Number.isSafeInteger(amount)||amount<0)throw Error('Invalid objective payout');
@@ -246,6 +277,18 @@ function shouldRecall(model,nav,agent,minute,worldState,context=null){
  if(agent.role==='JUN'&&minute<36||agent.role==='SUP'&&minute<29)return false;
  const hp=id=>context?.health?.[id]??100;
  const committed=nav.siegeTeam!==null&&minute>=24;
+ // A healthy laner may reset after crashing a wave, not merely because
+ // gold is accumulating. Nearby base, real wave and role coverage limit
+ // the opportunity cost. Existing ongoing sieges remain protected.
+ const safeWaveReset=p=>{
+  const lane=p.role==='ADC'?'BOT':p.role;
+  if(!['TOP','MID','BOT'].includes(lane)||!worldState.waves?.[lane]||
+     minute<14||committed||p.intent==='retreat')return false;
+  const wave=core.LaneEconomy.pressureFor(
+   {teamIds:[nav.a,nav.b],lanes:worldState.waves},p.teamId,lane);
+  return wave>=1.05&&core.Navigation.hops(p.node,side+'_nexus')<=4&&
+    (worldState.map?.lanes?.[lane]?.vision?.[p.teamId]??50)>=55;
+ };
  const accepted=p=>{
   const r=model.entries[p.id];
   if(!r||r.voluntaryBuys>=2||minute-r.lastPurchaseMinute<10||
@@ -253,7 +296,9 @@ function shouldRecall(model,nav,agent,minute,worldState,context=null){
      (p.role==='JUN'&&minute<36||p.role==='SUP'&&minute<29))return false;
   const buy=nextPurchase(model,p.id,enemyLead);
   if(!buy||buy.kind!=='combine'||r.wallet<buy.goldCost+450)return false;
+  if(p.intent==='retreat'||[side+'_nexus',side+'_fountain'].includes(p.node))return false;
   const health=hp(p.id);
+  if(r.voluntaryBuys===0&&safeWaveReset(p))return true;
   // During an active siege, preserve the squad's map presence. Only a
   // heavily injured professional may concede pressure to secure an item.
   if(committed&&health>54)return false;
@@ -355,7 +400,16 @@ function audit(match){
       !Number.isSafeInteger(p.voluntaryBuys)||p.voluntaryBuys<0||
       p.voluntaryBuys>2)
     errors.push('Unbalanced personal wallet/items: '+id+'/'+frame.minute);
+   // Historical snapshots predate the jungle subledger. In new matches
+   // it is a subset of farm, never an extra source of gold.
+   if(p.jungleFarm!==undefined&&(!Number.isSafeInteger(p.jungleFarm)||
+      p.jungleFarm<0||p.jungleFarm>p.farm||
+      (p.role!=='JUN'&&p.jungleFarm!==0)||
+      p.earned!==500+p.passive+p.farm+p.killGold+p.objectiveGold))
+    errors.push('Invalid jungle or income subledger: '+id+'/'+frame.minute);
    const prior=prev?.[id];
+   if(prior&&p.jungleFarm!==undefined&&p.jungleFarm<(prior.jungleFarm??0))
+    errors.push('Jungle farm reversed: '+id+'/'+frame.minute);
    if(prior&&(p.level<prior.level||p.earned<prior.earned||
      p.spent<prior.spent||
      p.voluntaryBuys<prior.voluntaryBuys))

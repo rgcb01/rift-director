@@ -198,3 +198,65 @@ test('segundo regreso: oro realmente disponible, viaje físico, cooldown y asedi
  assert.equal(E.shouldRecall(model,nav,agent,51,w,{health}),false,'No tercer reset');
  assert.equal(row.wallet+row.spent,row.earned);
 });
+
+test('healthy first recall requires a real favorable wave and affordable nearby base',()=>{
+ const {core}=boot();
+ const E=core.PowerEconomy,model=E.create(testRoster());
+ const nav={a:'a',b:'b',siegeTeam:null,agents:Object.fromEntries(testRoster().map(p=>
+  [p.id,{...p,alive:true,intent:'lane',
+    node:p.teamId==='a'?'blue_top_inner':'red_top_inner'}]))};
+ const w={gold:{a:13000,b:13000},waves:core.LaneEconomy.create('a','b').lanes,
+  map:{lanes:{TOP:{vision:{a:65,b:65}}}}};
+ const p=nav.agents['a-TOP'],r=model.entries[p.id];
+ const health=Object.fromEntries(testRoster().map(p=>[p.id,100]));
+ r.wallet+=4000;r.earned+=4000;
+ w.waves.TOP.front=1.6;
+ assert.equal(E.shouldRecall(model,nav,p,20,w,{health}),true);
+ w.waves.TOP.front=-1.6;
+ assert.equal(E.shouldRecall(model,nav,p,20,w,{health}),false);
+ w.waves.TOP.front=1.6;w.map.lanes.TOP.vision.a=45;
+ assert.equal(E.shouldRecall(model,nav,p,20,w,{health}),false);
+ w.map.lanes.TOP.vision.a=65;nav.siegeTeam='a';
+ assert.equal(E.shouldRecall(model,nav,p,25,w,{health}),false);
+ nav.siegeTeam=null;p.intent='retreat';
+ assert.equal(E.shouldRecall(model,nav,p,20,w,{health}),false);
+ p.intent='lane';r.wallet=500;r.earned=500;
+ assert.equal(E.shouldRecall(model,nav,p,20,w,{health}),false);
+});
+
+test('role economy conserves team income, credits only physical jungle farming and shares lane XP',()=>{
+ const {core}=boot();
+ const E=core.PowerEconomy,model=E.create(testRoster());
+ const nodes={TOP:'top_front',MID:'mid_front',ADC:'bot_front',SUP:'bot_front',JUN:'jungle_upper'};
+ const nav={a:'a',b:'b',agents:Object.fromEntries(testRoster().map(p=>
+  [p.id,{...p,alive:true,node:(p.teamId==='a'?'blue_':'red_')+nodes[p.role],
+    intent:p.role==='JUN'?'farm_jungle':'lane'}]))};
+ nav.agents['b-JUN'].node='baron_pit';
+ nav.agents['b-JUN'].intent='objective_setup';
+ const health=Object.fromEntries(testRoster().map(p=>[p.id,100]));
+ E.advance(model,{nav,dead:{},minute:1,teamIncome:{a:1000,b:1000},health});
+ const rows=model.entries;
+ assert.equal(rows['a-JUN'].jungleFarm,100);
+ assert.equal(rows['a-JUN'].farm,100);
+ assert.equal(rows['b-JUN'].jungleFarm,0);
+ assert.equal(rows['a-JUN'].xp,58);
+ assert.equal(rows['b-JUN'].xp,35);
+ assert.equal(rows['a-TOP'].xp,72);
+ assert.equal(rows['a-MID'].xp,72);
+ assert.equal(rows['a-ADC'].xp,56);
+ assert.equal(rows['a-SUP'].xp,56);
+ for(const team of ['a','b']){
+  const earned=Object.values(rows).filter(p=>p.teamId===team).reduce((n,p)=>n+p.earned-500,0);
+  assert.equal(earned,1000,'Jungle allocation must not inflate team income');
+ }
+ E.awardFarm(model,{teamId:'a',lane:'BOT',gold:101},nav,health);
+ assert.equal(rows['a-ADC'].farm,81);
+ assert.equal(rows['a-SUP'].farm,20);
+ const laneIncome=Object.values(rows).filter(p=>p.teamId==='a').reduce((n,p)=>n+p.farm-p.jungleFarm,0);
+ assert.equal(laneIncome,101,'Exact integer distribution of existing lane gold');
+ nav.agents['a-JUN'].intent='objective_setup';
+ E.advance(model,{nav,dead:{},minute:2,teamIncome:{a:1000,b:1000},health});
+ assert.equal(rows['a-JUN'].jungleFarm,100,'Rotating instead of farming does not grant jungle income');
+ assert.equal(Object.values(rows).filter(p=>p.teamId==='a').reduce((n,p)=>n+p.earned-500,0),2101);
+ for(const p of Object.values(rows))assert.equal(p.wallet+p.spent,p.earned);
+});
