@@ -86,7 +86,7 @@ function beginMinute(state,nav,health,abilityState,minute){
     hp:x.hp,resource:x.resource,resourceType:x.resourceType});
    if(!receipt)continue;
    starts.push({...receipt,hp:x.hp,resource:x.resource,resourceType:x.resourceType||null});
-   a.intent='recall_channel';a.goal=a.node;a.route=[a.node];
+   a.intent='recall_channel';a.goal=a.node;a.route=[a.node];a.resetRoute=null;
    a.tacticReason='recall_'+receipt.reason;a.decisionVersion=8;
    break;
   }
