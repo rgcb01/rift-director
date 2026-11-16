@@ -103,7 +103,7 @@ function settleMinute(state,nav,health,starts,events,minute){
   receipts.push(result);
   if(result.status==='completed'){
    a.node=result.to;a.goal=result.to;a.route=[result.to];a.intent='recall_recover';
-   a.retreatGoal=null;a.retreatUntil=0;a.tacticReason='recall_completed';
+   a.retreatGoal=null;a.retreatUntil=0;a.recallArrivedAt=minute;a.tacticReason='recall_completed';
   }else if(a.alive&&a.intent==='recall_channel'){
    a.intent='recall_cancelled';a.tacticReason='recall_'+result.interruption;
   }
