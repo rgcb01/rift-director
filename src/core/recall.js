@@ -87,7 +87,7 @@ function beginMinute(state,nav,health,abilityState,minute){
    if(!receipt)continue;
    starts.push({...receipt,hp:x.hp,resource:x.resource,resourceType:x.resourceType||null});
    a.intent='recall_channel';a.goal=a.node;a.route=[a.node];
-   a.tacticReason=receipt.reason;
+   a.tacticReason='recall_'+receipt.reason;a.decisionVersion=8;
    break;
   }
  }
@@ -103,9 +103,9 @@ function settleMinute(state,nav,health,starts,events,minute,dead={}){
   receipts.push(result);
   if(result.status==='completed'){
    a.node=result.to;a.goal=result.to;a.route=[result.to];a.intent='recall_recover';
-   a.retreatGoal=null;a.retreatUntil=0;a.recallArrivedAt=minute;a.tacticReason='recall_completed';
+   a.retreatGoal=null;a.retreatUntil=0;a.recallArrivedAt=minute;a.tacticReason='recall_completed';a.decisionVersion=8;
   }else if(a.alive&&(dead[a.id]||0)<=minute&&a.intent==='recall_channel'){
-   a.intent='recall_cancelled';a.tacticReason='recall_'+result.interruption;
+   a.intent='recall_cancelled';a.tacticReason='recall_'+result.interruption;a.decisionVersion=8;
   }
  }
  return receipts;
