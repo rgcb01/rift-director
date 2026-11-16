@@ -820,7 +820,7 @@ function simulateMatch(f,options=null){
      actorId,participantIds:hit.participantIds,
      siegeVersion:1});
   }
-  recallFrame.receipts=RiftCore.Recall.settleMinute(recallState,navigation,health,starts,m.events.slice(recallEventStart),t);
+  recallFrame.receipts=RiftCore.Recall.settleMinute(recallState,navigation,health,starts,m.events.slice(recallEventStart),t,m.dead);
   nextSnapshot(t)
  }
  const report={recallVersion:1,abilityState:RiftCore.ChampionKits.snapshot(abilityState),champions,fixture:{a:f.a,b:f.b,round:f.round,playoff:!!f.playoff},frames:m.frames,events:m.events,moments:m.moments,health:{...health},powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),shutdowns:RiftCore.Shutdowns.snapshot(shutdowns),playerStats:RiftCore.clonePlayerStats(playerStats),elapsed:0,speed:1,running:true,committed:false,winner:m.winner,finished:false};
