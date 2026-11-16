@@ -24,6 +24,7 @@ function choose({nav,agent,minute,world,health={},baseline}){
   return {version:1,created:minute,until:minute+Math.max(1,hops)+1,goal,intent,
    reason,lane:targetLane,evidence:{...evidence,hp,travelHops:hops}};
  };
+ if(agent.role==='SUP'&&['ward_roam','objective_setup'].includes(baseline?.intent))return null;
  const ownWave=lane?wave(nav,world,team,lane):0;
  const threatened=lane&&ownWave<=-.9&&(world.lanes?.[team]?.[lane]??3)<3;
  if(threatened){
@@ -50,7 +51,7 @@ function choose({nav,agent,minute,world,health={},baseline}){
   if(['objective_setup','ward_roam'].includes(baseline?.intent))return null;
   const adc=allies.find(p=>p.role==='ADC');
   // Only follow an allied carry outside base with a legal actual node.
-  const goal=adc&&!adc.node.endsWith('_fountain')&&!adc.node.endsWith('_nexus')?
+  const goal=adc&&(N.isLaneNode(adc.node,'BOT')||minute>=26&&N.isLaneNode(adc.node,'MID'))?
    adc.node:front('BOT');
   return plan(goal,'protect_adc','reset_rejoin_adc',{adcId:adc?.id||null},'BOT');
  }
@@ -63,7 +64,7 @@ function choose({nav,agent,minute,world,health={},baseline}){
   if(target)return plan(front(target.lane),'rotation','reset_cover_side',
    {ownWave,targetWave:target.w,vision:target.vision,allyId:target.ally.id},target.lane);
  }
- if(agent.role==='ADC'&&(world.lanes?.[team]?.BOT??0)>=1&&ownWave>=0&&
+ if(agent.role==='ADC'&&minute>=14&&(world.lanes?.[team]?.BOT??0)>=1&&ownWave>=0&&
     vision('MID')>=58&&allies.some(p=>p.role==='SUP'&&N.hops(p.node,front('MID'))<=2))
   return plan(front('MID'),'rotation','reset_adc_mid',{ownWave,midVision:vision('MID')},'MID');
  return plan(front(lane),'lane','reset_return_lane',{ownWave},lane);
@@ -71,6 +72,7 @@ function choose({nav,agent,minute,world,health={},baseline}){
 function continuation({nav,agent,minute,world,health={},baseline,route}){
  if(!route||agent.node===route.goal||minute>route.until||
     (health[agent.id]??100)<55||protectedIntents.has(baseline?.intent))return null;
+ if(['ward_roam','gank_setup','objective_setup'].includes(baseline?.intent)&&route.intent!==baseline.intent)return null;
  if(route.reason==='reset_objective'){
   const c=nav.neutralPlans?.[agent.teamId];
   if(!['take','contest'].includes(c?.action)||c.target!==route.goal||
@@ -80,5 +82,34 @@ function continuation({nav,agent,minute,world,health={},baseline,route}){
  if(route.intent==='rotation'&&own&&wave(nav,world,agent.teamId,own)<=-.9)return null;
  return route;
 }
-core.ResetRouting=Object.freeze({choose,continuation});
+function audit(match){
+ const errors=[];let prior=null;
+ for(const f of match.frames||[]){
+  const before=f.navigation?.before||{};
+  for(const [id,p] of Object.entries(before)){
+   const r=p.resetRoute;
+   if(p.decisionVersion!==9)continue;
+   const old=prior?.navigation?.after?.[id],side=p.teamId===match.fixture.a?'blue':'red';
+   if(!r||r.version!==1||r.goal!==p.goal||r.reason!==p.reason||
+      r.intent!==p.intent||!Number.isInteger(r.created)||r.created>f.minute||
+      f.minute>r.until||!Number.isFinite(r.evidence?.travelHops)||
+      r.evidence.travelHops<0||r.evidence.hp<90)
+    {errors.push('Invalid reset route '+id+' minute '+f.minute);continue;}
+   if(r.created===f.minute){
+    if(old?.node!==side+'_fountain'||old.intent!=='recall_recover'||
+       r.evidence.travelHops!==core.Navigation.hops(old.node,r.goal))
+     errors.push('Reset departure without own fountain proof '+id);
+   }else if(JSON.stringify(old?.resetRoute)!==JSON.stringify(r))
+    errors.push('Unproved reset route continuation '+id);
+   if(p.role==='JUN'&&!core.Navigation.jungleAllowed(side,p.goal))
+    errors.push('Reset jungle corridor '+id);
+   if(r.reason==='reset_cover_side'&&(p.role!=='MID'||r.evidence.ownWave<.8||
+      r.evidence.targetWave>-.8||r.evidence.vision<58||!r.evidence.allyId))
+    errors.push('Reset side rotation without evidence '+id);
+  }
+  prior=f;
+ }
+ return errors;
+}
+core.ResetRouting=Object.freeze({choose,continuation,audit});
 })(globalThis);
