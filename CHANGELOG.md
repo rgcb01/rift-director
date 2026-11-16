@@ -4,6 +4,11 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental — Alpha 0.7.19A/B: tactical recall and fountain recovery
+- Recall by low HP/mana, one channel per team per minute in safe own territory; no purchase requirement. Channel receipt is eight seconds but the map adapter conservatively waits until the minute's combat is resolved: any action/damage/death cancels. No claim of continuous sub-minute movement or exact interruption timing.
+- Completed channels move only to own fountain. Stay at least one tick and until 90% HP; existing fountain healing, explicit mana restoration ledger without cooldown reset, and normal graph navigation on departure. No extra farm/XP for channeling agents.
+- Technical records in frame.recall, not RiftCast events. Replay audits reject unexplained live position jumps, invalid reasons and receipts; kit audit reconstructs mana restores. Existing walking purchase recalls remain unchanged. Pending full CI and balance; do not publish as a release.
+
 ### Experimental: balance contrafactual de campeones
 - PR #57 inicial: 250/250 pruebas, UX aprobada, 1,999/2,000 partidas con ganador causal. Un mapa estándar (índice 307, semilla 2869273992) no terminó. 33.55 min, 5.76 kills, 28.11 casts/mapa y 17.2% mapas con teamfight.
 - Corregida la cesión de escoltas al Barón: la reserva de JUN/SUP requiere dos atacantes sanos no JUN/SUP a una arista o menos de la torre; el caso 307 termina al minuto 50. Piloto de 120 mapas estándar (tres mundos), 120/120 con ganador, cero errores de las seis auditorías comprobadas; duración 33.44, kills 5.43 y 8 sin Barón. Pendiente benchmark oficial.
