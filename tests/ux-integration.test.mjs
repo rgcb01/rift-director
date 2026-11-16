@@ -17,7 +17,7 @@ test('UX integrated: all four modules/scripts and version are loaded exactly onc
  }
  assert.ok(html.indexOf('src/ui/club-command.js')<html.indexOf('game.js'));
  assert.ok(html.indexOf('src/ui/balance-lab.js')<html.indexOf('game.js'));
- assert.match(html,/Alpha 0\.7\.17/);
+ assert.match(html,/Alpha 0\.7\.18/);
  const js=read('game.js');
  for(const action of ['replay-prev','replay-latest','replay-filter','match-toggle-roster']){
   assert.match(js,new RegExp("case '"+action+"'"));
