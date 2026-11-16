@@ -668,6 +668,7 @@ function advance(nav,t,dead,worldState,context=null){
   agent.movedFrom=agent.node;
   agent.alive=(dead[agent.id]||0)<=t;
   if(!agent.alive){
+   agent.resetRoute=null;
    agent.node=fountain;agent.goal=fountain;agent.intent='dead';agent.route=[fountain];
    continue;
   }
@@ -680,7 +681,13 @@ function advance(nav,t,dead,worldState,context=null){
   const escaping=agent.retreatGoal&&agent.node!==agent.retreatGoal&&
     (agent.retreatUntil||0)>=t;
   const baseline=escaping?null:chooseGoal(nav,agent,t,worldState,context);
+  const departure=agent.intent==='recall_recover'&&agent.node===fountain;
+  const resetArgs={nav,agent,minute:t,world:worldState,health:context?.health,baseline};
+  const route=escaping?null:departure?core.ResetRouting?.choose(resetArgs):
+    core.ResetRouting?.continuation({...resetArgs,route:agent.resetRoute});
+  agent.resetRoute=route||null;
   const plan=escaping?{goal:agent.retreatGoal,intent:'retreat',reason:'damage_retreat'}:
+    route?{...route,decisionVersion:9}:
     core.TacticalAI?.choose({nav,agent,minute:t,worldState,
       context:tacticalContext,baseline})||baseline;
   if(!escaping){agent.retreatUntil=0;agent.retreatGoal=null;}
@@ -753,7 +760,8 @@ function snapshot(nav,dead,t){
     from:agent.movedFrom,role:agent.role,teamId:agent.teamId,
     ...(agent.lane?{lane:agent.lane}:{}),
     ...(agent.tacticReason?{reason:agent.tacticReason}:{}),
-    ...(agent.decisionVersion?{decisionVersion:agent.decisionVersion}:{})};
+    ...(agent.decisionVersion?{decisionVersion:agent.decisionVersion}:{}),
+    ...(agent.resetRoute?{resetRoute:{...agent.resetRoute,evidence:{...agent.resetRoute.evidence}}}:{})};
  }
  return out;
 }
