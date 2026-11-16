@@ -4,6 +4,10 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+## [0.7.18-alpha] — 2026-11-16 (candidato consolidado)
+
+- PR #57 fusionado en main: asedios causales, recalls, economía por rol y kits activos integrados. Benchmark oficial del candidato: 252/252 pruebas y 2,200/2,200 mapas, cero errores y cero bloqueantes; UX aprobada. 33.03 min, 5.68 kills, 27.54 casts/mapa, 12% sin Barón y 14.9% con teamfight. [CI](https://github.com/rgcb01/rift-director/actions/runs/43162097675). Los apartados experimentales siguientes conservan el historial de pilotos; sus estados pendientes corresponden a aquellas iteraciones, no al gate final del #57.
+
 ### Experimental: balance contrafactual de campeones
 - PR #57 inicial: 250/250 pruebas, UX aprobada, 1,999/2,000 partidas con ganador causal. Un mapa estándar (índice 307, semilla 2869273992) no terminó. 33.55 min, 5.76 kills, 28.11 casts/mapa y 17.2% mapas con teamfight.
 - Corregida la cesión de escoltas al Barón: la reserva de JUN/SUP requiere dos atacantes sanos no JUN/SUP a una arista o menos de la torre; el caso 307 termina al minuto 50. Piloto de 120 mapas estándar (tres mundos), 120/120 con ganador, cero errores de las seis auditorías comprobadas; duración 33.44, kills 5.43 y 8 sin Barón. Pendiente benchmark oficial.
