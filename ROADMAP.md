@@ -10,6 +10,15 @@ Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prome
 
 **Publicada: Alpha 0.7.17** mediante PR #46: crecimiento real por campeón, XP 1–18, HP máximo/AD/armadura/MR/AS/AP, rangos pasivos Q/W/E/R y builds con compras físicas; atributos efectivos en TAB y replay. 205/205 pruebas y 2,000 mapas con cero regresiones bloqueantes: remontadas 4.1%→4.6%, kills 6.44→6.50, duración 49.78→49.48. Nuevas métricas de daño, HP y TTK proxy en minutos simulados. Las habilidades activas no están implementadas.
 
+### Alpha 0.7.19 — Tactical resets and combat AI
+
+- **19A:** recall independiente de compras, canal de ocho segundos cancelable por daño, movimiento, muerte o acción; recibos causales y auditoría de navegación. Primer módulo aislado; no activar hasta integrar el reloj de combate con navegación y replay.
+- **19B:** recuperación de HP y maná exclusivamente en la fuente propia, sin reiniciar cooldowns ni fabricar recursos; registrar y auditar cambios.
+- **19C:** retorno físico a línea y rotaciones dinámicas por rol y oportunidades del mapa.
+- **19D:** resets coordinados, oleadas y objetivos.
+- **19E–F:** trades, ganks, escaramuzas, posicionamiento y teamfights.
+- **19G:** pruebas, benchmark oficial y consolidación; preservar cierre causal del Nexo.
+
 **Prioridad:** terminar escalado y observabilidad 0.7.17 → habilidades ejecutables 0.7.18 → IA de kits/builds 0.7.19 → balance profundo 0.7.20. La defensa de asedios, inhibidores y conversión del Barón que se pospusieron siguen pendientes.
 
 **Pendientes del roadmap original (numeración por reordenar después de 0.7.16):**
