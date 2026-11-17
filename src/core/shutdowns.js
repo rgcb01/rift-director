@@ -63,7 +63,17 @@ function audit(match){
   const moment=match.moments[i];
   if(!moment) {errors.push('Missing shutdown moment '+i);continue;}
   const victims=f?.victimIds;
-  if(Array.isArray(victims)&&victims.length){
+  if(f?.action==='simultaneous_fight'){
+   const p=f.simultaneous;
+   if(JSON.stringify(ledger.streaks)!==JSON.stringify(p.initial.sport.shutdowns.streaks))errors.push('Atomic initial shutdown ledger mismatch '+i);
+   for(const r of p.receipts){
+    const before={...ledger.streaks},dead=new Set(r.awards.map(a=>a.victimId));
+    for(const a of r.awards)if(a.bountyGold!==bounty(before[a.victimId]))errors.push('Atomic bounty mismatch '+i);
+    for(const id of ids)ledger.streaks[id]=dead.has(id)?0:Math.min(MAX_STREAK,before[id]+r.awards.filter(a=>a.killerId===id).length);
+   }
+   for(const id of ids){const paid=p.receipts.flatMap(r=>r.awards).filter(a=>a.killerId===id).reduce((n,a)=>n+a.gold,0);
+    if(moment.powerEconomy.entries[id].killGold-previousKillGold[id]!==paid)errors.push('Atomic gold mismatch '+i);}
+  }else if(Array.isArray(victims)&&victims.length){
    try{
     const replica={facts:{actorId:f.actorId,victimIds:victims}};
     apply(ledger,replica);
