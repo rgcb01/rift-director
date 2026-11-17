@@ -93,13 +93,32 @@ function auditPreview(p){
  if(JSON.stringify({state,abilityState,sport})!==JSON.stringify(p.final))errors.push('Simultaneous pilot final ledger mismatch');
  return errors;
 }
-function eventFacts(p,group){
+// A won fight can earn a reversible push order, never a structure or gold.
+// Use the existing lane-pressure policy, but only actual surviving members
+// of the side with a positive kill differential may follow up.
+function conversion(p,nav,world){
+ const awards=p.receipts.flatMap(r=>r.awards),teams=[nav.a,nav.b];
+ const counts=teams.map(team=>awards.filter(a=>a.teamId===team).length);
+ if(counts[0]===counts[1])return null;
+ const team=teams[counts[0]>counts[1]?0:1];
+ const survivors=Object.values(p.final.state.players).filter(a=>a.teamId===team&&a.alive&&a.hp>=67&&
+  nav.agents[a.id]?.alive&&nav.agents[a.id].intent!=='retreat');
+ const own=awards.filter(a=>a.teamId===team);
+ const killer=own.find(a=>survivors.some(s=>s.id===a.killerId));
+ if(!killer||survivors.length<2)return null;
+ const facts={teamId:team,actorId:killer.killerId,victimIds:own.map(a=>a.victimId),
+  participantIds:survivors.map(a=>a.id)};
+ // Copy the writable pressure slot: this function is a pure planner.
+ const copy={...nav,counterPressure:{...(nav.counterPressure||{})}};
+ return core.Counterplay.pressureAfterKill(copy,facts,p.minute,world);
+}
+function eventFacts(p,group,order=null){
  const awards=p.receipts.flatMap(r=>r.awards);
  const ids=Object.keys(p.initial.state.players);
  return {action:'simultaneous_fight',simultaneousVersion:1,actorId:group.groups[group.firstTeam][0],
   participantIds:ids,victimIds:awards.map(a=>a.victimId),node:p.zone,
   groupFight:{version:4,id:p.initial.state.id,zone:p.zone,round:1,firstTeam:group.firstTeam,groups:group.groups},
-  simultaneous:p};
+  simultaneous:p,...(order?{conversion:{...order,sourceVictims:[...order.sourceVictims],allowed:[...order.allowed]}}:{})};
 }
 function auditEvent(match,index){
  const e=match.events[index],f=e.facts,p=f.simultaneous,m=match.moments[index];
@@ -107,7 +126,7 @@ function auditEvent(match,index){
   if(f.simultaneousVersion!==1||p.minute!==e.minute||p.zone!==f.node||
      f.groupFight.firstTeam!==e.teamId||!p.receipts.length||p.receipts.length>4)
    throw Error('Invalid simultaneous event header');
-  const expected=eventFacts(p,f.groupFight);
+  const expected=eventFacts(p,f.groupFight,f.conversion||null);
   if(JSON.stringify(expected)!==JSON.stringify(f))throw Error('Invalid simultaneous event facts');
   const errs=auditPreview(p);if(errs.length)return errs;
   const prior=match.moments[index-1],pre=prior?.minute===e.minute?prior.navigation.after:m.navigation.before;
@@ -129,8 +148,15 @@ function auditEvent(match,index){
    if(m.health[id]!==a.hp||m.navigation.after[id].alive!==a.alive)
     throw Error('Final HP/death mismatch '+id);
   }
+  if(f.conversion){
+   const teams=[match.fixture.a,match.fixture.b];
+   const nav={a:teams[0],b:teams[1],agents:Object.fromEntries(Object.entries(m.navigation.after).map(([id,a])=>[id,{...a,id}]))};
+   const lanes=Object.fromEntries(teams.map(team=>[team,Object.fromEntries(['TOP','MID','BOT'].map(l=>[l,m.laneEconomy.lanes[l].hp[team].filter(h=>h===0).length]))]));
+   const expectedOrder=conversion(p,nav,{gold:m.gold,lanes,waves:m.laneEconomy.lanes,dead:p.final.sport.dead});
+   if(JSON.stringify(expectedOrder)!==JSON.stringify(f.conversion))throw Error('Invalid simultaneous conversion order');
+  }
   return [];
  }catch(err){return [String(err.message)];}
 }
-core.SimultaneousSport=Object.freeze({step,audit,preview,auditPreview,eventFacts,auditEvent});
+core.SimultaneousSport=Object.freeze({step,audit,preview,auditPreview,eventFacts,auditEvent,conversion});
 })(globalThis);
