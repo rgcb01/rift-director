@@ -35,5 +35,18 @@ function movement(nav,agent,minute){
  if(!p||p.minute!==minute||p.teamId!==agent.teamId||!p.members.some(m=>m.id===agent.id))return null;
  return {goal:p.goal,intent:'defend',lane:p.lane,reason:'visible_siege_reinforcement',decisionVersion:7};
 }
-core.StructureFormation=Object.freeze({plan,movement});
+function audit(match){
+ const errors=[];
+ for(let i=1;i<match.frames.length;i++){
+  const frame=match.frames[i],p=frame.structureDefense;if(!p)continue;
+  const prior=match.frames[i-1],teams=[match.fixture.a,match.fixture.b];
+  const nav={a:teams[0],b:teams[1],siegeDecision:frame.siegeDecision,vision:prior.vision,
+   agents:Object.fromEntries(Object.entries(prior.navigation.after).map(([id,a])=>[id,{...a,id}]))};
+  const lanes=Object.fromEntries(teams.map(team=>[team,Object.fromEntries(['TOP','MID','BOT'].map(l=>[l,prior.laneEconomy.lanes[l].hp[team].filter(h=>h===0).length]))]));
+  const expected=plan({nav,world:{lanes,waves:prior.laneEconomy.lanes},minute:frame.minute,health:prior.health});
+  if(JSON.stringify(expected)!==JSON.stringify(p))errors.push('Invalid visible tower defense formation '+frame.minute);
+ }
+ return errors;
+}
+core.StructureFormation=Object.freeze({plan,movement,audit});
 })(globalThis);
