@@ -4,6 +4,16 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental — Objective formation pilot
+- Existing neutral objective calls can nominate a bounded 3–4 player squad from the same pre-movement snapshot. Require healthy jungler, support, at least one MID/ADC, affordable lane pressure and legal routes within the actual call deadline. No new objective timers, no guaranteed arrivals or captures; existing siege, exposed Nexus, defense, reset and safety priorities remain.
+- Record intended squads separately in match frames for benchmark and replay analysis. This pilot remains separate from #66; full causal and balance gates required before merging.
+
+### Experimental — Alpha 0.7.19G: individual teamfight tactics
+- Supersedes the failed #65 experiment: its broader objective preparation and siege priority changes are reverted to validated #63. No timeout wins or synthetic kills.
+- Real group fights can occur in side lanes, rivers and pre-spawn pits; still require three living, mutually reachable fighters per side. Up to four alternating exchanges with distinct actors; one target per exchange rather than free damage to three rivals.
+- Target policy uses current HP, physical reach, champion archetype, protection, allied carry threats and verified earlier hits. Focus, exposed dives, peel and front-to-back preferences do not grant movement, extra damage or new abilities. Assists require direct range to each victim.
+- V3 group receipts retain historical v1/v2 support and audit target evidence. Full validation pending; frequency and fight length not yet established.
+
 ### Experimental — Alpha 0.7.19C: return routing
 - Recovered players evaluate threatened home waves, actual team objective calls with travel budget, allied ADC location, jungle corridors and covered side-lane opportunities. Physical graph routes persist briefly and cancel for danger, expiring calls, threatened own lane or higher-priority orders. Route proof in navigation snapshots; no new commentary events. Experimental, pending integrated gates.
 

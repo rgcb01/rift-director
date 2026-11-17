@@ -151,30 +151,51 @@ function retreatDestination(nav,agent,minute){
 // A genuine group fight needs opposing formations, not merely a pick
 // labelled "teamfight". Every member must be alive, close to the arena
 // and able to reach at least one member of the opposite group.
-function groupOpportunity({nav,dead,minute,players,health,seed,world,powerState=null,previous=-10}){
- if(minute-previous<3)return null;
- const zones=[];
- if(minute>=world.nextDragon)zones.push('dragon_pit');
- if(minute>=world.nextBaron)zones.push('baron_pit');
- zones.push('mid_center');
- const choices=[];
+function groupScan({nav,dead,minute,health,world}){
+ // Group fights can start before an objective spawns or away from a pit.
+ // Every candidate still requires three mutually reachable players per side.
+ const zones=['mid_center','upper_river','lower_river','top_center','bot_center','top_corner','bot_corner'];
+ if(minute>=world.nextDragon-3)zones.push('dragon_pit');
+ if(minute>=Math.max(17,world.nextBaron-3))zones.push('baron_pit');
+ const scan=[];
  for(const zone of zones){
   const groups={};
   for(const team of [nav.a,nav.b])groups[team]=Object.values(nav.agents).filter(p=>
    p.teamId===team&&p.alive&&(dead[p.id]||0)<=minute&&
-   p.intent!=='retreat'&&(health[p.id]??0)>=34&&
+   !['retreat','recall_channel','recall_recover'].includes(p.intent)&&(health[p.id]??0)>=34&&
    core.Navigation.hops(p.node,zone)<=2&&nearZone(p,zone));
   const first=groups[nav.a],second=groups[nav.b];
   const a=first.filter(p=>second.some(q=>hitRange(p,q,'teamfight')));
   const b=second.filter(p=>first.some(q=>hitRange(p,q,'teamfight')));
+  scan.push({zone,near:{[nav.a]:first.length,[nav.b]:second.length},
+   groups:{[nav.a]:a.map(p=>p.id),[nav.b]:b.map(p=>p.id)}});
+ }
+ return scan;
+}
+function summarizeGroupScan(scan){
+ const rank=(x,y)=>Math.min(...y.reachable)-Math.min(...x.reachable)||
+   y.reachable.reduce((a,b)=>a+b,0)-x.reachable.reduce((a,b)=>a+b,0)||
+   x.zone.localeCompare(y.zone);
+ const rows=scan.map(x=>({zone:x.zone,near:Object.values(x.near),
+  reachable:Object.values(x.groups).map(ids=>ids.length)}));
+ const best=rows.sort(rank)[0]||null;
+ return {best,nearBoth:rows.some(x=>x.near.every(n=>n>=3)),
+  reachableBoth:rows.some(x=>x.reachable.every(n=>n>=3))};
+}
+function groupOpportunity({nav,dead,minute,players,health,seed,world,powerState=null,previous=-10,scan=null}){
+ if(minute-previous<3)return null;
+ const choices=[];
+ for(const entry of scan||groupScan({nav,dead,minute,health,world})){
+  const {zone,groups}=entry;
+  const a=groups[nav.a].map(id=>nav.agents[id]),b=groups[nav.b].map(id=>nav.agents[id]);
   if(a.length<3||b.length<3)continue;
-  const strength=ps=>ps.reduce((n,p)=>n+
-   power(players[p.id],powerState,'attack')*.65+(health[p.id]??100)*.35,0);
+  const strength=ps=>core.TeamfightTactics?.strength({group:ps,players,health,powerState,zone})??
+   ps.reduce((n,p)=>n+power(players[p.id],powerState,'attack')*.65+(health[p.id]??100)*.35,0);
   const edge=strength(a)-strength(b);
   const initiative=edge+(hash(seed,minute,zone,'group-initiative')%31-15);
   const firstTeam=initiative>=0?nav.a:nav.b;
   choices.push({zone,firstTeam,groups:{[nav.a]:a.map(p=>p.id),
-   [nav.b]:b.map(p=>p.id)},score:a.length+b.length+(zone==='mid_center'?0:2)});
+   [nav.b]:b.map(p=>p.id)},score:a.length+b.length+((zone==='dragon_pit'&&minute>=world.nextDragon||zone==='baron_pit'&&minute>=world.nextBaron)?2:0)});
  }
  return choices.sort((x,y)=>y.score-x.score||x.zone.localeCompare(y.zone))[0]||null;
 }
@@ -237,11 +258,12 @@ function groupTargetPriority({leader,target,allies,defenders,health,powerState})
  }
  return {score:+score.toFixed(2),reason};
 }
-function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attackerIds,targetIds,lane=null,powerState=null,groupExchange=false,abilityState=null}){
+function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attackerIds,targetIds,lane=null,powerState=null,groupExchange=false,abilityState=null,groupRound=1,usedActorIds=[],focusIds=[]}){
  if(!['lane','gank','teamfight'].includes(mode)||![nav.a,nav.b].includes(teamId))
   throw Error('Invalid combat mode/team');
  const get=id=>nav.agents[id],alive=id=>get(id)?.alive&&
-   (dead[id]||0)<=minute&&get(id).intent!=='retreat';
+   (dead[id]||0)<=minute&&get(id).intent!=='retreat'&&
+   (!groupExchange||!['recall_channel','recall_recover'].includes(get(id).intent));
  const attackers=[...new Set(attackerIds||[])].filter(id=>alive(id)&&get(id).teamId===teamId)
    .map(get);
  const defenders=[...new Set(targetIds||[])].filter(id=>alive(id)&&get(id).teamId!==teamId)
@@ -251,15 +273,18 @@ function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attacker
  if(!targets.length)return null;
  const viable=attackers.filter(a=>targets.some(d=>hitRange(a,d,mode,lane)));
  const rank=(a,b)=>power(players[b.id],powerState,'attack')-power(players[a.id],powerState,'attack')||a.id.localeCompare(b.id);
- const leader=mode==='gank'&&viable.some(a=>a.id===attackerIds[0])?
+ const leader=groupExchange&&core.TeamfightTactics?
+   core.TeamfightTactics.leader({viable,targets,players,health,powerState,abilityState,minute,usedIds:usedActorIds,round:groupRound}):
+   mode==='gank'&&viable.some(a=>a.id===attackerIds[0])?
    viable.find(a=>a.id===attackerIds[0]):viable.sort(rank)[0];
+ if(!leader)return null;
  // In teamfight mode one author can deal damage to several nearby targets.
  // Nonlethal damage is retained and replayed, not turned into fake kills.
- const priorities=groupExchange?Object.fromEntries(targets.map(target=>[target.id,
-  groupTargetPriority({leader,target,allies:viable,defenders,health,powerState})])):null;
+ const priorities=groupExchange?Object.fromEntries(targets.filter(target=>hitRange(leader,target,mode,lane)).map(target=>[target.id,
+  core.TeamfightTactics.targetDecision({leader,target,allies:attackers,defenders,health,powerState,focusIds})])):null;
  const chosen=(mode==='teamfight'?targets.filter(d=>hitRange(leader,d,mode,lane))
    .sort((a,b)=>(priorities?priorities[b.id].score-priorities[a.id].score:
-    (health[a.id]??100)-(health[b.id]??100))||a.id.localeCompare(b.id)).slice(0,3)
+    (health[a.id]??100)-(health[b.id]??100))||a.id.localeCompare(b.id)).slice(0,groupExchange?1:3)
    :targets.sort((a,b)=>(health[a.id]??100)-(health[b.id]??100)||a.id.localeCompare(b.id)).slice(0,1));
  if(!chosen.length)return null;
  const comrades=attackers.filter(a=>chosen.some(d=>
@@ -307,7 +332,8 @@ function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attacker
  return {
   combatVersion:1,mode,outcome,actorId:leader.id,actorNode:leader.node,
   teamId,participantIds:participants,assistIds:victims.length?
-   participants.filter(id=>id!==leader.id).slice(0,2):[],
+   participants.filter(id=>id!==leader.id&&(!groupExchange||victims.every(v=>hitRange(get(id),get(v),mode,lane)))).slice(0,2):[],
+  ...(groupExchange?{targetPolicyVersion:1}:{}),
   victimIds:victims,impacts,targetId:impacts[0].id,targetNode:impacts[0].node,
   attackerCount:participants.length,defenderCount:defenders.length,
   ...(abilityState?{abilityCasts}:{}),
@@ -331,10 +357,12 @@ function audit(match,world){
     const group=g.groups?.[event.teamId]||[];
     const foe=teams.find(id=>id!==event.teamId);
     const enemies=g.groups?.[foe]||[];
-    const valid=g.version===1&&g.id===event.minute+':'+g.zone&&
-     ['dragon_pit','baron_pit','mid_center'].includes(g.zone)&&
+    const maxRounds=g.version>=2?4:2;
+    const valid=[1,2,3].includes(g.version)&&g.id===event.minute+':'+g.zone&&
+     (g.version<3?['dragon_pit','baron_pit','mid_center']:
+       ['dragon_pit','baron_pit','mid_center','upper_river','lower_river','top_center','bot_center','top_corner','bot_corner']).includes(g.zone)&&
      teams.includes(g.firstTeam)&&mode==='teamfight'&&
-     [1,2].includes(g.round)&&group.length>=3&&enemies.length>=3&&
+     Number.isInteger(g.round)&&g.round>=1&&g.round<=maxRounds&&group.length>=3&&enemies.length>=3&&
      new Set([...group,...enemies]).size===group.length+enemies.length&&
      group.every(id=>positions[id]?.teamId===event.teamId)&&
      enemies.every(id=>positions[id]?.teamId===foe)&&
@@ -343,6 +371,8 @@ function audit(match,world){
      (f.impacts||[]).every(hit=>enemies.includes(hit.id)&&live[hit.id]?.alive&&
       live[hit.id].intent!=='retreat');
     if(!valid){errs.push('Teamfight sin formación o respuesta verificable: '+index);}
+    if(g.version===3&&(f.targetPolicyVersion!==1||f.impacts?.length!==1))
+     errs.push('Teamfight individual sin impacto único o recibo: '+index);
     if(g.round===1){
      const both=[...group,...enemies];
      if(groupStarts.has(g.id)||g.firstTeam!==event.teamId||
@@ -351,13 +381,15 @@ function audit(match,world){
         !group.every(id=>enemies.some(other=>hitRange(live[id],live[other],'teamfight')))||
         !enemies.every(id=>group.some(other=>hitRange(live[id],live[other],'teamfight'))))
       errs.push('Teamfight inicial sin tres rivales físicos por lado: '+index);
-     groupStarts.set(g.id,{...g,responded:false});
+     groupStarts.set(g.id,{...g,lastRound:1,actors:[f.actorId]});
     }else{
      const start=groupStarts.get(g.id);
-     if(!start||start.responded||event.teamId===start.firstTeam||
+     if(!start||g.version!==start.version||g.round!==start.lastRound+1||
+        (g.round%2===1)!==(event.teamId===start.firstTeam)||
+        (g.version>=2&&start.actors.includes(f.actorId))||
         JSON.stringify(g.groups)!==JSON.stringify(start.groups))
       errs.push('Respuesta de teamfight sin intercambio previo: '+index);
-     if(start)start.responded=true;
+     if(start){start.lastRound=g.round;start.actors.push(f.actorId);}
     }
    }
    if(!['lane','gank','teamfight'].includes(mode)||!actor?.alive||
@@ -458,7 +490,8 @@ function audit(match,world){
   }else errs.push('Desenlace de escaramuza inválido: '+index);
   if(!players[f.actorId]||!players[f.targetId])errs.push('Jugador ajeno al partido: '+index);
  }
+ if(core.TeamfightTactics?.auditTargetDecisions)errs.push(...core.TeamfightTactics.auditTargetDecisions(match));
  return errs;
 }
-core.Encounters=Object.freeze({create,recover,locate,resolve,groupOpportunity,compositionEffect,groupTargetPriority,resolveCombat,laneRange,hitRange,retreatDestination,power,distance,nearZone,threat,audit});
+core.Encounters=Object.freeze({create,recover,locate,resolve,groupScan,summarizeGroupScan,groupOpportunity,compositionEffect,groupTargetPriority,resolveCombat,laneRange,hitRange,retreatDestination,power,distance,nearZone,threat,audit});
 })(globalThis);

@@ -422,7 +422,8 @@ function simulateMatch(f,options=null){
   }
   return true;
  };
- const nextSnapshot=t=>m.frames.push({minute:t,recall:recallFrame,kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
+ let teamfightDiagnostic=null;
+ const nextSnapshot=t=>m.frames.push({minute:t,recall:recallFrame,teamfightDiagnostic,fightFormations:navigation.fightFormations||{},kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
   nexusIntegrity:{...m.nexusIntegrity},
   laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
   powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
@@ -486,6 +487,8 @@ function simulateMatch(f,options=null){
      ' por '+purchase.goldCost+' de oro, alcanzando nivel '+purchase.level+'.',
      'normal',club(agent.teamId),purchase);
   }
+  const groupInput={nav:navigation,dead:m.dead,minute:t,health,world:m};
+  const beforeGroupScan=RiftCore.Encounters.summarizeGroupScan(RiftCore.Encounters.groupScan(groupInput));
   // Early lane trades are genuine ranged/close combat, including 2v2 bot.
   // The two opposing laners must belong to the narrated lane, be in lane
   // trading range and have enough health to participate. No fake kill rolls.
@@ -572,26 +575,33 @@ function simulateMatch(f,options=null){
   // the same damage, health, retreat and KDA contract. Nobody retaliates
   // after death or while fleeing, and no victory roll grants free kills.
   const rosterForFight=Object.fromEntries([...aP,...bP].map(p=>[p.id,p]));
+  const afterGroupScan=RiftCore.Encounters.groupScan(groupInput);
   const group=RiftCore.Encounters.groupOpportunity({
    nav:navigation,dead:m.dead,minute:t,players:rosterForFight,
    health,seed:commentarySeed,world:m,powerState:powerEconomy,
-   previous:lastGroupFight
+   previous:lastGroupFight,scan:afterGroupScan
   });
+  teamfightDiagnostic={before:beforeGroupScan,after:RiftCore.Encounters.summarizeGroupScan(afterGroupScan),
+   cooldown:t-lastGroupFight<3,selected:group?.zone||null};
   if(group){
    lastGroupFight=t;
    const first=club(group.firstTeam),second=enemy(first);
    const fightId=t+':'+group.zone;
-   for(const [round,attacker,defender] of [[1,first,second],[2,second,first]]){
+   const usedActorIds=[],focusByTeam={};
+   for(let round=1;round<=RiftCore.TeamfightTactics.MAX_ROUNDS;round++){
+    const attacker=round%2===1?first:second,defender=enemy(attacker);
     const facts=RiftCore.Encounters.resolveCombat({
      nav:navigation,dead:m.dead,minute:t,players:rosterForFight,
      health,seed:commentarySeed,powerState:powerEconomy,abilityState,mode:'teamfight',
      teamId:attacker.id,attackerIds:group.groups[attacker.id],
-     targetIds:group.groups[defender.id],groupExchange:true
+     targetIds:group.groups[defender.id],groupExchange:true,groupRound:round,usedActorIds,focusIds:focusByTeam[attacker.id]||[]
     });
-    if(!facts)continue;
+    if(!facts)break;
+    usedActorIds.push(facts.actorId);
+    focusByTeam[attacker.id]=facts.impacts.map(h=>h.id);
     facts.action=facts.victimIds.length?'teamfight':'clash';
     facts.node=facts.actorNode;
-    facts.groupFight={version:1,id:fightId,zone:group.zone,round,
+    facts.groupFight={version:3,id:fightId,zone:group.zone,round,
      firstTeam:group.firstTeam,groups:group.groups};
     applyCombat(facts,t);
     facts.multiKill=facts.victimIds.length;
@@ -599,9 +609,8 @@ function simulateMatch(f,options=null){
     const pressure=RiftCore.Counterplay.pressureAfterKill(navigation,facts,t,m);
     if(pressure)facts.counterPressure={...pressure,
      sourceVictims:[...pressure.sourceVictims],allowed:[...pressure.allowed]};
-    const title=round===1?'¡Teamfight en el mapa!':'¡Respuesta en la teamfight!';
-    const where=group.zone==='dragon_pit'?'Dragón':
-     group.zone==='baron_pit'?'Barón':'carril central';
+    const title=round===1?'¡Teamfight en el mapa!':round===2?'¡Respuesta en la teamfight!':'Continúa la teamfight';
+    const where=({dragon_pit:'el foso de Dragón',baron_pit:'el foso de Barón',mid_center:'el carril central',upper_river:'el río superior',lower_river:'el río inferior',top_center:'el carril superior',top_corner:'el carril superior',bot_center:'el carril inferior',bot_corner:'el carril inferior'})[group.zone];
     makeEv(t,title,attacker.name+(round===1?' inicia':' responde en')+
      ' una pelea grupal en '+where+'. '+combatDetails(facts),
      'fight',attacker,facts);
