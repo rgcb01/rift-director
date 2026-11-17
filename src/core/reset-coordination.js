@@ -69,10 +69,17 @@ function build({nav,world,minute,team,health,choices}){
   const resetting=['recall_channel','recall_recover','retreat','shop_recall'].includes(p.intent);
   if(['JUN','SUP'].includes(p.role))required.add(p.id);
   const destination=required.has(p.id)&&call?.target?call.target:p.node;
-  const path=N.path(fountain,destination,p.role==='JUN'?node=>N.jungleAllowed(side,node):undefined);
-  const returnMinutes=path.at(-1)===destination?3+path.length-1:99;
+  // A jungler can be temporarily outside its normal corridor during a
+  // siege or invade. That does not imply a legal fountain return route.
+  // Disallow discretionary admission when the destination is unreachable.
+  let returnMinutes=99;
+  if(x&&(p.role!=='JUN'||N.jungleAllowed(side,destination))){
+   try{const path=N.path(fountain,destination,p.role==='JUN'?node=>N.jungleAllowed(side,node):undefined);
+    if(path.at(-1)===destination)returnMinutes=3+path.length-1;
+   }catch(e){if(!String(e.message).startsWith('Disconnected navigation graph'))throw e;}
+  }
   const waveSafe=world.waves?.[lane]?core.LaneEconomy.pressureFor({teamIds:[nav.a,nav.b],lanes:world.waves},team,lane)>=.35:false;
-  return {id:p.id,role:p.role,teamId:team,alive:p.alive,inField,resetting,safe:Boolean(x),canStart:Boolean(x?.canStart),
+  return {id:p.id,role:p.role,teamId:team,alive:p.alive,inField,resetting,safe:Boolean(x),canStart:Boolean(x?.canStart)&&(returnMinutes<99||x.why==='critical_health'),
    reason:x?.why||null,hp:health[p.id]??100,returnMinutes,waveSafe,
    siegeEscort:nav.siegeDecision?.teamId===team&&nav.siegeDecision.escorts.includes(p.id),
    baseDefender:p.intent==='defend'};
