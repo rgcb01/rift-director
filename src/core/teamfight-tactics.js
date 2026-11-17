@@ -85,7 +85,8 @@ function auditTargetDecisions(match){
  const errors=[],memory=new Map();
  for(const [index,e] of (match.events||[]).entries()){
   const f=e.facts,g=f?.groupFight;
-  if(!g||f.targetPolicyVersion!==1)continue;
+  if(!g||g.version!==3)continue;
+  if(f.targetPolicyVersion!==1||f.impacts?.length!==1){errors.push('Missing individual fight receipt '+index);continue;}
   const moment=match.moments[index],prior=match.moments[index-1];
   const live=prior?.minute===e.minute?prior.navigation.after:moment.navigation.before;
   const key=g.id+'|'+e.teamId,focusIds=memory.get(key)||[];
