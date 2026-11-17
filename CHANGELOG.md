@@ -4,6 +4,11 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental — Simultaneous sporting projection
+- Opt-in `simulateMatch(fixture,{simultaneousPilot:true})` evaluates the new combat from actual group opportunities on copies of live health, resources, equipment, KDA, gold, XP, shutdown and death ledgers. Up to three five-second windows per opportunity within the current simulated minute. Both teams receive atomic kill rewards from the same pre-window state, including mutual eliminations; a death terminates its streak even when the victim landed a lethal strike simultaneously.
+- Separate preview receipts and final ledgers can be replayed and audited. The ordinary match result and RNG remain authoritative and unchanged; this is not live replacement yet. Two tests compare 80 deterministic maps against their authoritative versions, validate awards and reject forged receipts.
+- Previous local-positioning head passed 293/293 tests; latest shadow integration gates pending.
+
 ### Experimental — Local teamfight positioning
 - Optional positioned combat windows use bounded offsets from real map nodes, a shared pre-move snapshot, and two seconds of movement budget per five-second interval. Kite, screen, flank, approach and disengage decisions are role/health/contact dependent. No graph-node teleportation or macro-route changes; terrain collision is not modeled.
 - Local distance can invalidate a strike even when the map anchors are reachable. Basic attack range differs by archetype; movement reduces attacks and delays cast time. Control prevents movement while active at the window start. Replay audit reconstructs exact movements and cast receipts.
