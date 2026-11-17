@@ -8,7 +8,7 @@ const output=process.argv[3]||'.balance-output';
 const simultaneousCombat=process.argv.includes('--simultaneous');
 const structureTeamfights=process.argv.includes('--structure-teamfights');
 const coordinatedResets=process.argv.includes('--coordinated-resets');
-const options=simultaneousCombat?{simultaneousCombat:true,structureTeamfights,coordinatedResets}:{};
+const options=simultaneousCombat?{simultaneousCombat:true,structureTeamfights,coordinatedResets,objectiveDiagnostics:true}:{objectiveDiagnostics:true};
 console.log('[combat-mode] '+(simultaneousCombat?'simultaneous':'default'));
 mkdirSync(output,{recursive:true});
 const started=Date.now();
@@ -23,6 +23,7 @@ console.log('[group-fights] '+JSON.stringify({
   fiveOnFive:standard.gameplay.fullFiveOnFive
 }));
 console.log('[teamfight-diagnostics] '+JSON.stringify(standard.teamfightDiagnostics));
+console.log('[objective-readiness] '+JSON.stringify(standard.objectiveReadiness));
 if(standard.issueSamples?.length)
  console.error('[standard-failures] '+JSON.stringify(standard.issueSamples));
 const mirror=runMirror(options);
