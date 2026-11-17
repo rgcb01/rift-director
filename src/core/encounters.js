@@ -172,6 +172,16 @@ function groupScan({nav,dead,minute,health,world}){
  }
  return scan;
 }
+function summarizeGroupScan(scan){
+ const rank=(x,y)=>Math.min(...y.reachable)-Math.min(...x.reachable)||
+   y.reachable.reduce((a,b)=>a+b,0)-x.reachable.reduce((a,b)=>a+b,0)||
+   x.zone.localeCompare(y.zone);
+ const rows=scan.map(x=>({zone:x.zone,near:Object.values(x.near),
+  reachable:Object.values(x.groups).map(ids=>ids.length)}));
+ const best=rows.sort(rank)[0]||null;
+ return {best,nearBoth:rows.some(x=>x.near.every(n=>n>=3)),
+  reachableBoth:rows.some(x=>x.reachable.every(n=>n>=3))};
+}
 function groupOpportunity({nav,dead,minute,players,health,seed,world,powerState=null,previous=-10,scan=null}){
  if(minute-previous<3)return null;
  const choices=[];
@@ -483,5 +493,5 @@ function audit(match,world){
  if(core.TeamfightTactics?.auditTargetDecisions)errs.push(...core.TeamfightTactics.auditTargetDecisions(match));
  return errs;
 }
-core.Encounters=Object.freeze({create,recover,locate,resolve,groupScan,groupOpportunity,compositionEffect,groupTargetPriority,resolveCombat,laneRange,hitRange,retreatDestination,power,distance,nearZone,threat,audit});
+core.Encounters=Object.freeze({create,recover,locate,resolve,groupScan,summarizeGroupScan,groupOpportunity,compositionEffect,groupTargetPriority,resolveCombat,laneRange,hitRange,retreatDestination,power,distance,nearZone,threat,audit});
 })(globalThis);
