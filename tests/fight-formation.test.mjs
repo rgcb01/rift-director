@@ -73,3 +73,35 @@ test('live formations preserve graph travel and existing sports audits',()=>{
  console.log('FORMATION_PILOT='+JSON.stringify({maps:60,plans,arrivals}));
  assert.ok(plans>0,'Expected actual objective formations');
 });
+
+test('expanded formations require observed opposing players and preserve health and lane costs',()=>{
+ const {core,nav,state,health,a,b}=setup();
+ const run=()=>core.FightFormation.plan({nav,world:state,minute:24,health,expanded:true})[a];
+ const p=run();assert.ok(p.expanded);assert.equal(p.members.length,5);
+ assert.equal(p.visibleRivals.length,5);
+ const top=Object.values(nav.agents).find(p=>p.teamId===a&&p.role==='TOP');
+ health[top.id]=59;assert.equal(run().members.length,4);health[top.id]=100;
+ for(const r of Object.values(nav.agents).filter(p=>p.teamId===b))r.node='red_fountain';
+ const quiet=run();assert.ok(quiet);assert.equal(quiet.expanded,false);assert.equal(quiet.members.length,4);
+ nav.siegeDecision={stage:3,teamId:b};assert.equal(run(),undefined);
+});
+test('expanded formation option executes real maps with the simultaneous engine',()=>{
+ const {core,sim,world,fixture}=setup();let expanded=0,full=0,arrivals=0;
+ for(let i=1;i<=80;i++){
+  world.rng=i*12571;
+  const m=sim.simulateMatch(fixture,{simultaneousCombat:true,expandedFormations:true});
+  assert.ok(m.winner,'seed '+i);
+  assert.equal(core.auditMatch(m,world).length,0);
+  assert.equal(core.Navigation.auditNavigation(m,world).length,0);
+  for(const f of m.frames)for(const p of Object.values(f.fightFormations||{})){
+   assert.ok(p.members.length<=5);
+   if(!p.expanded)continue;
+   expanded++;assert.ok(p.visibleRivals.length>=2);
+   if(p.members.length===5)full++;
+   const present=p.members.filter(x=>f.navigation.before[x.id]?.alive&&core.Navigation.combatRange(f.navigation.before[x.id].node,p.target,2));
+   if(present.length>=3)arrivals++;
+  }
+ }
+ console.log('EXPANDED_FORMATIONS='+JSON.stringify({maps:80,expanded,full,arrivals}));
+ assert.ok(expanded>0,'Expected visible contested formation');
+});
