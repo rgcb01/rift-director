@@ -153,10 +153,11 @@ function retreatDestination(nav,agent,minute){
 // and able to reach at least one member of the opposite group.
 function groupOpportunity({nav,dead,minute,players,health,seed,world,powerState=null,previous=-10}){
  if(minute-previous<3)return null;
- const zones=[];
- if(minute>=world.nextDragon)zones.push('dragon_pit');
- if(minute>=world.nextBaron)zones.push('baron_pit');
- zones.push('mid_center');
+ // Group fights can start before an objective spawns or away from a pit.
+ // Every candidate still requires three mutually reachable players per side.
+ const zones=['mid_center','upper_river','lower_river','top_center','bot_center','top_corner','bot_corner'];
+ if(minute>=world.nextDragon-3)zones.push('dragon_pit');
+ if(minute>=Math.max(17,world.nextBaron-3))zones.push('baron_pit');
  const choices=[];
  for(const zone of zones){
   const groups={};
@@ -174,7 +175,7 @@ function groupOpportunity({nav,dead,minute,players,health,seed,world,powerState=
   const initiative=edge+(hash(seed,minute,zone,'group-initiative')%31-15);
   const firstTeam=initiative>=0?nav.a:nav.b;
   choices.push({zone,firstTeam,groups:{[nav.a]:a.map(p=>p.id),
-   [nav.b]:b.map(p=>p.id)},score:a.length+b.length+(zone==='mid_center'?0:2)});
+   [nav.b]:b.map(p=>p.id)},score:a.length+b.length+((zone==='dragon_pit'&&minute>=world.nextDragon||zone==='baron_pit'&&minute>=world.nextBaron)?2:0)});
  }
  return choices.sort((x,y)=>y.score-x.score||x.zone.localeCompare(y.zone))[0]||null;
 }
@@ -263,7 +264,7 @@ function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attacker
   core.TeamfightTactics.targetDecision({leader,target,allies:attackers,defenders,health,powerState,focusIds})])):null;
  const chosen=(mode==='teamfight'?targets.filter(d=>hitRange(leader,d,mode,lane))
    .sort((a,b)=>(priorities?priorities[b.id].score-priorities[a.id].score:
-    (health[a.id]??100)-(health[b.id]??100))||a.id.localeCompare(b.id)).slice(0,3)
+    (health[a.id]??100)-(health[b.id]??100))||a.id.localeCompare(b.id)).slice(0,groupExchange?1:3)
    :targets.sort((a,b)=>(health[a.id]??100)-(health[b.id]??100)||a.id.localeCompare(b.id)).slice(0,1));
  if(!chosen.length)return null;
  const comrades=attackers.filter(a=>chosen.some(d=>
@@ -338,7 +339,8 @@ function audit(match,world){
     const enemies=g.groups?.[foe]||[];
     const maxRounds=g.version===2?4:2;
     const valid=[1,2].includes(g.version)&&g.id===event.minute+':'+g.zone&&
-     ['dragon_pit','baron_pit','mid_center'].includes(g.zone)&&
+     (g.version===1?['dragon_pit','baron_pit','mid_center']:
+       ['dragon_pit','baron_pit','mid_center','upper_river','lower_river','top_center','bot_center','top_corner','bot_corner']).includes(g.zone)&&
      teams.includes(g.firstTeam)&&mode==='teamfight'&&
      Number.isInteger(g.round)&&g.round>=1&&g.round<=maxRounds&&group.length>=3&&enemies.length>=3&&
      new Set([...group,...enemies]).size===group.length+enemies.length&&
