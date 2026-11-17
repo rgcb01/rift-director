@@ -167,6 +167,7 @@ function simulateMatch(f,options=null){
  const nexusSiege=RiftCore.NexusSiege.create(a.id,b.id);
  const health=RiftCore.Encounters.create([...aP,...bP]);
  const lastSkirmish={};
+ const simultaneousPilot=options?.simultaneousPilot===true?[]:null;
  let movementBefore=RiftCore.Navigation.snapshot(navigation,{},0);
  const nav=RiftCore.Navigation;
  const positioned=(c,node,depth=1)=>nav.participants(navigation,c.id,node,depth)
@@ -584,6 +585,11 @@ function simulateMatch(f,options=null){
   teamfightDiagnostic={before:beforeGroupScan,after:RiftCore.Encounters.summarizeGroupScan(afterGroupScan),
    cooldown:t-lastGroupFight<3,selected:group?.zone||null};
   if(group){
+   if(simultaneousPilot){
+    const sample=RiftCore.SimultaneousSport.preview({group,nav:navigation,health,abilityState,minute:t,
+     sport:{gold:m.gold,kills:m.kills,dead:m.dead,playerStats,powerEconomy,shutdowns}});
+    if(sample)simultaneousPilot.push(sample);
+   }
    lastGroupFight=t;
    const first=club(group.firstTeam),second=enemy(first);
    const fightId=t+':'+group.zone;
@@ -833,6 +839,7 @@ function simulateMatch(f,options=null){
   nextSnapshot(t)
  }
  const report={recallVersion:1,abilityState:RiftCore.ChampionKits.snapshot(abilityState),champions,fixture:{a:f.a,b:f.b,round:f.round,playoff:!!f.playoff},frames:m.frames,events:m.events,moments:m.moments,health:{...health},powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),shutdowns:RiftCore.Shutdowns.snapshot(shutdowns),playerStats:RiftCore.clonePlayerStats(playerStats),elapsed:0,speed:1,running:true,committed:false,winner:m.winner,finished:false};
+ if(simultaneousPilot)report.simultaneousPilot=simultaneousPilot;
  RiftCore.attachMinimap(report,s);RiftCore.attachBroadcast(report,s,commentarySeed);
  RiftCore.MatchReplay.attachReplay(report,s);return report
 }
