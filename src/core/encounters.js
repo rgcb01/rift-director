@@ -237,11 +237,12 @@ function groupTargetPriority({leader,target,allies,defenders,health,powerState})
  }
  return {score:+score.toFixed(2),reason};
 }
-function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attackerIds,targetIds,lane=null,powerState=null,groupExchange=false,abilityState=null,groupRound=1,usedActorIds=[]}){
+function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attackerIds,targetIds,lane=null,powerState=null,groupExchange=false,abilityState=null,groupRound=1,usedActorIds=[],focusIds=[]}){
  if(!['lane','gank','teamfight'].includes(mode)||![nav.a,nav.b].includes(teamId))
   throw Error('Invalid combat mode/team');
  const get=id=>nav.agents[id],alive=id=>get(id)?.alive&&
-   (dead[id]||0)<=minute&&get(id).intent!=='retreat';
+   (dead[id]||0)<=minute&&get(id).intent!=='retreat'&&
+   (!groupExchange||!['recall_channel','recall_recover'].includes(get(id).intent));
  const attackers=[...new Set(attackerIds||[])].filter(id=>alive(id)&&get(id).teamId===teamId)
    .map(get);
  const defenders=[...new Set(targetIds||[])].filter(id=>alive(id)&&get(id).teamId!==teamId)
@@ -258,8 +259,8 @@ function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attacker
  if(!leader)return null;
  // In teamfight mode one author can deal damage to several nearby targets.
  // Nonlethal damage is retained and replayed, not turned into fake kills.
- const priorities=groupExchange?Object.fromEntries(targets.map(target=>[target.id,
-  groupTargetPriority({leader,target,allies:viable,defenders,health,powerState})])):null;
+ const priorities=groupExchange?Object.fromEntries(targets.filter(target=>hitRange(leader,target,mode,lane)).map(target=>[target.id,
+  core.TeamfightTactics.targetDecision({leader,target,allies:attackers,defenders,health,powerState,focusIds})])):null;
  const chosen=(mode==='teamfight'?targets.filter(d=>hitRange(leader,d,mode,lane))
    .sort((a,b)=>(priorities?priorities[b.id].score-priorities[a.id].score:
     (health[a.id]??100)-(health[b.id]??100))||a.id.localeCompare(b.id)).slice(0,3)
@@ -310,7 +311,8 @@ function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attacker
  return {
   combatVersion:1,mode,outcome,actorId:leader.id,actorNode:leader.node,
   teamId,participantIds:participants,assistIds:victims.length?
-   participants.filter(id=>id!==leader.id).slice(0,2):[],
+   participants.filter(id=>id!==leader.id&&(!groupExchange||victims.every(v=>hitRange(get(id),get(v),mode,lane)))).slice(0,2):[],
+  ...(groupExchange?{targetPolicyVersion:1}:{}),
   victimIds:victims,impacts,targetId:impacts[0].id,targetNode:impacts[0].node,
   attackerCount:participants.length,defenderCount:defenders.length,
   ...(abilityState?{abilityCasts}:{}),
@@ -464,6 +466,7 @@ function audit(match,world){
   }else errs.push('Desenlace de escaramuza inválido: '+index);
   if(!players[f.actorId]||!players[f.targetId])errs.push('Jugador ajeno al partido: '+index);
  }
+ if(core.TeamfightTactics?.auditTargetDecisions)errs.push(...core.TeamfightTactics.auditTargetDecisions(match));
  return errs;
 }
 core.Encounters=Object.freeze({create,recover,locate,resolve,groupOpportunity,compositionEffect,groupTargetPriority,resolveCombat,laneRange,hitRange,retreatDestination,power,distance,nearZone,threat,audit});
