@@ -4,6 +4,11 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental — Coordinated live resets
+- Port #64 to current engine. Opt-in `coordinatedResets:true` admits safe individual recalls using shared team availability, active neutral commitments, legal return path, lane pressure and siege/defense obligations. Allow ADC/SUP synchronized recalls only when both independently qualify and three field players remain. Critical safe recalls retain an emergency exception. Existing default one-recall policy unchanged.
+- Record admission inputs and decisions in recall frames; audit deterministic decisions, participant identities and correspondence to actual channels, alongside existing HP/resource/cooldown/physical receipts. Full independent reconstruction of all planning inputs remains future work.
+- Seven tests, including 120 live maps with simultaneous and structure combat. Independent benchmark enables both plus coordinated resets. Latest validations pending.
+
 ### Experimental — Structure defense teamfights
 - #68 (93bf9aa) passed 298/298 tests and both 2,200-map gates, including mirror regression 263. Group kills increased from 0.11 to 0.28/map; frequency remained 21.5%. #69 five-member objective expansion passed 300/300 and its gates but reached only 21.4% maps with group fights; no meaningful benefit.
 - Separate opt-in `structureTeamfights:true` adds a visible siege defense reinforcement plan from the pre-movement state. Requires two observed real escorts, a live tower, a favorable attacking wave, three or four healthy reachable non-junglers and affordable lane exits. Preserves base/Nexus priorities.
