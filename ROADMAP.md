@@ -17,7 +17,7 @@ Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prome
 - 19A/B: canal de recall independiente de compras, recuperación en fuente y ledger técnico. Piloto con resolución conservadora por minuto; planificación exacta por segundos pendiente.
 - 19C/D: retorno, rotaciones dinámicas por rol y coordinación de resets.
 - 19E: Event Director (PR #61 independiente), clasificación de relevancia, highlights y registro completo.
-- 19F–H: escaramuzas, teamfights, integración y benchmark. Piloto 19G: formación anticipada, iniciación por arquetipo y hasta cuatro intercambios alternados con actores distintos; medir frecuencia, bajas, distribución de 3v3/4v4/5v5 y cierre causal antes de integrar.
+- 19F–H: escaramuzas, teamfights, integración y benchmark. Piloto 19G: detección física en carriles y río, iniciación por arquetipo, focus/peel/dive y hasta cuatro intercambios alternados de un objetivo. Preparación anticipada del #65 revertida por regresión; medir frecuencia, bajas, distribución de 3v3/4v4/5v5 y cierre causal antes de integrar.
 
 **Prioridad:** terminar escalado y observabilidad 0.7.17 → habilidades ejecutables 0.7.18 → IA de kits/builds 0.7.19 → balance profundo 0.7.20. La defensa de asedios, inhibidores y conversión del Barón que se pospusieron siguen pendientes.
 
