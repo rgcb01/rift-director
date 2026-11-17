@@ -6,8 +6,9 @@ import { runChampionMatchups } from './champion-matchups.mjs';
 const version=process.argv[2]||'development';
 const output=process.argv[3]||'.balance-output';
 const simultaneousCombat=process.argv.includes('--simultaneous');
-const options=simultaneousCombat?{simultaneousCombat:true}:{};
-console.log('[combat-mode] '+(simultaneousCombat?'simultaneous':'default'));
+const expandedFormations=process.argv.includes('--expanded-formations');
+const options=simultaneousCombat?{simultaneousCombat:true,expandedFormations}:{};
+console.log('[combat-mode] '+(simultaneousCombat?'simultaneous':'default')+' expandedFormations='+expandedFormations);
 mkdirSync(output,{recursive:true});
 const started=Date.now();
 console.log('[balance] '+version+': iniciando 1,000 partidos + 1,000 partidos espejo');
@@ -31,7 +32,7 @@ console.log('[champion-matchups] '+JSON.stringify({validPairs:championMatchups.v
  requestedPairs:championMatchups.requestedPairs,failures:championMatchups.failures,
  rows:championMatchups.rows}));
 const result={schema:1,version,createdAt:new Date().toISOString(),
-  benchmarkRevision:'fixed-seed-1000-v1',combatMode:simultaneousCombat?'simultaneous':'default',durationMs:Date.now()-started,standard,mirror,
+  benchmarkRevision:'fixed-seed-1000-v1',combatMode:simultaneousCombat?'simultaneous':'default',expandedFormations,durationMs:Date.now()-started,standard,mirror,
   championMatchups:{...championMatchups,cases:undefined}};
 writeFileSync(output+'/summary.json',JSON.stringify(result,null,2)+'\n');
 console.log('[balance] output '+output+'/summary.json');
