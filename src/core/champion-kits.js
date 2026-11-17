@@ -54,7 +54,7 @@ function projected(row,at){
 }
 const itemCatalog=()=>[...(core.PowerEconomy?.ITEM_CATALOG||[]),
  ...(core.PowerEconomy?.COMPONENT_CATALOG||[])];
-function select(model,powerState,nav,id,targetId,at,mode,side){
+function select(model,powerState,nav,id,targetId,at,mode,side,allowedKinds=null){
  const entry=model?.entries?.[id],row=powerState?.entries?.[id],
   actor=nav?.agents?.[id],target=nav?.agents?.[targetId];
  if(!entry||!row||!actor?.alive||!target?.alive||entry.championId!==row.championId||
@@ -67,7 +67,7 @@ function select(model,powerState,nav,id,targetId,at,mode,side){
   mode==='teamfight'?['R','W']:['W','R'];
  for(const slot of wanted){
   const ability=def.abilities[slot],rank=stats.abilityRanks[slot];
-  if(!rank||side==='attack'&&!['damage','control'].includes(ability.kind)||
+  if(!rank||(allowedKinds&&!allowedKinds.includes(ability.kind))||side==='attack'&&!['damage','control'].includes(ability.kind)||
    side==='defense'&&!['shield','heal'].includes(ability.kind))continue;
   if((entry.cooldowns[slot]||0)>at||projected(entry,at)<ability.cost)continue;
   if(side==='attack'&&!core.Navigation.combatRange(actor.node,target.node,ability.range))
