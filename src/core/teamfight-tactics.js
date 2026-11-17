@@ -77,7 +77,8 @@ function targetDecision({leader,target,allies,defenders,health,powerState,focusI
  }else if(type==='marksman'){
   score-=coverIds.length*5;
  }
- return {version:1,intent,score:+score.toFixed(2),actorArchetype:type||null,
+ const reason=({dive_exposed:'exposed_carry',covered_target:'covered_carry',peel:'protect_ally',cluster:'clustered_enemies',finish:'finish_vulnerable',focus:'finish_vulnerable'})[intent]||intent;
+ return {version:1,intent,reason,score:+score.toFixed(2),actorArchetype:type||null,
   targetArchetype:targetType||null,targetId:target.id,hp,distance,focused,
   coverIds,threatenedCarryIds,clusterIds};
 }
