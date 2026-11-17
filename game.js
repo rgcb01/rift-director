@@ -458,8 +458,8 @@ function simulateMatch(f,options=null){
   }
   return true;
  };
- let teamfightDiagnostic=null;
- const nextSnapshot=t=>m.frames.push({minute:t,recall:recallFrame,teamfightDiagnostic,...(options?.structureTeamfights===true?{structureDefense:navigation.structureDefense}:{}),fightFormations:navigation.fightFormations||{},kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
+ let teamfightDiagnostic=null,objectiveReadiness=[];
+ const nextSnapshot=t=>m.frames.push({minute:t,recall:recallFrame,teamfightDiagnostic,...(options?.objectiveDiagnostics===true?{objectiveReadiness}:{}),...(options?.structureTeamfights===true?{structureDefense:navigation.structureDefense}:{}),fightFormations:navigation.fightFormations||{},kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
   nexusIntegrity:{...m.nexusIntegrity},
   laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
   powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
@@ -499,6 +499,7 @@ function simulateMatch(f,options=null){
   for(const earning of farmIncome)
    RiftCore.PowerEconomy.awardFarm(powerEconomy,earning,navigation,health);
   movementBefore=nav.snapshot(navigation,m.dead,t);
+  if(options?.objectiveDiagnostics===true)objectiveReadiness=RiftCore.ObjectiveReadiness.observe({nav:navigation,world:m,minute:t,health,abilityState});
   m.map=updateMap(t);
   // Wards are placed by physical, living JUN/SUP agents at contested nodes.
   // Their sight can inform later decisions but cannot reveal hidden global HP.
