@@ -74,3 +74,31 @@ test('duplicate actor, friendly fire, invalid damage, retreat and remote target 
  players.red1.node='red_fountain';
  assert.throws(create,/Isolated fighter/);
 });
+
+test('simultaneous shields and healing conserve life and cannot resurrect',()=>{
+ const {S,players,create}=setup();players.blue1.hp=40;
+ const state=create(),actions=[hit('red1','blue1',50)];
+ const effects=[{actorId:'blue2',targetId:'blue1',kind:'heal',amount:8},
+  {actorId:'blue3',targetId:'blue1',kind:'shield',amount:8}];
+ const r=S.resolve(state,actions,effects),impact=r.receipt.impacts[0];
+ assert.equal(impact.healed,8);assert.equal(impact.absorbed,8);
+ assert.equal(impact.damage,42);assert.equal(r.state.players.blue1.hp,6);
+ assert.equal(r.receipt.deaths.length,0);
+ assert.equal(S.audit(state,[r.receipt]).errors.length,0);
+ const dead=S.resolve(state,[hit('red1','blue1',80)]).state;
+ assert.throws(()=>S.resolve(dead,[],[effects[0]]),/Illegal simultaneous effect/);
+ assert.throws(()=>S.resolve(state,[],[{actorId:'red2',targetId:'blue1',kind:'heal',amount:8}]),/Illegal simultaneous effect/);
+ const capped=S.resolve(state,[],[{actorId:'blue2',targetId:'blue3',kind:'heal',amount:8}]);
+ assert.equal(capped.receipt.impacts[0].healed,0);
+});
+test('control is tied to a legal strike and has a bounded next-window effect',()=>{
+ const {S,create}=setup(),state=create();
+ const control={actorId:'blue1',targetId:'red1',kind:'control',amount:1};
+ assert.throws(()=>S.resolve(state,[],[control]),/Illegal simultaneous effect/);
+ const r=S.resolve(state,[hit('blue1','red1',12)],[control]);
+ assert.equal(r.state.players.red1.controlUntil,1506);
+ assert.equal(r.receipt.impacts[0].controlUntil,1506);
+ assert.throws(()=>S.resolve(r.state,[],[{actorId:'red1',targetId:'red2',kind:'shield',amount:3}]),/Illegal simultaneous effect/);
+ const forged=plain(r.receipt);forged.effects[0].amount=3;
+ assert.equal(S.audit(state,[forged]).errors.length,1);
+});
