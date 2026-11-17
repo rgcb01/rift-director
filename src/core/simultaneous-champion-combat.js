@@ -1,0 +1,61 @@
+/* Experimental adapter: derives simultaneous offensive packets from the
+ * authoritative champion stats, legal target preferences and cast ledger.
+ * No caller-provided damage. Pure preview; only returned copies change.
+ * Defensive casts, control, movement and sporting ledgers remain separate.
+ */
+((root)=>{
+'use strict';
+const core=root.RiftCore||(root.RiftCore={});
+const active=p=>p.alive&&p.hp>0&&!['retreat','recall_channel','recall_recover','dead'].includes(p.intent);
+const clamp=(v,lo,hi)=>Math.min(hi,Math.max(lo,v));
+function step({state,powerState,abilityState,focusByTeam={}}){
+ const K=core.ChampionKits,S=core.ChampionScaling,F=core.SimultaneousFight;
+ const catalog=[...core.PowerEconomy.ITEM_CATALOG,...core.PowerEconomy.COMPONENT_CATALOG];
+ const fighters=Object.values(state.players).filter(active).sort((a,b)=>a.id.localeCompare(b.id));
+ const health=Object.fromEntries(fighters.map(p=>[p.id,p.hp]));
+ const nav={agents:state.players};
+ const stats=Object.fromEntries(fighters.map(p=>{
+  const row=powerState?.entries?.[p.id],kit=abilityState?.entries?.[p.id];
+  if(!row?.championId||kit?.championId!==row.championId)throw Error('Missing champion ledger '+p.id);
+  const s=S.effective(row,catalog);
+  if(!s)throw Error('Unknown champion '+p.id);
+  return [p.id,s];
+ }));
+ const actions=[],casts=[],decisions=[];
+ for(const actor of fighters){
+  const allies=fighters.filter(p=>p.teamId===actor.teamId);
+  const defenders=fighters.filter(p=>p.teamId!==actor.teamId);
+  const targets=defenders.map(target=>({target,decision:core.TeamfightTactics.targetDecision({
+   leader:actor,target,allies,defenders,health,powerState,focusIds:focusByTeam[actor.teamId]||[]
+  })})).filter(x=>x.decision).sort((a,b)=>b.decision.score-a.decision.score||a.target.id.localeCompare(b.target.id));
+  if(!targets.length)continue;
+  const {target,decision}=targets[0],a=stats[actor.id],b=stats[target.id];
+  // Basic attacks use physical armor. A damage spell occupies one attack's
+  // time, uses its existing percent-HP amount and the champion mitigation.
+  const cast=K.select(abilityState,powerState,nav,actor.id,target.id,state.at,'teamfight','attack',['damage']);
+  const attacks=Math.max(0,Math.floor(a.attackSpeed*F.WINDOW_SECONDS)-(cast?1:0));
+  const basic=100*(attacks*a.attackDamage)/(b.maxHp*(1+b.armor/100));
+  const spell=cast?cast.amount*S.mitigation(powerState.entries[actor.id],powerState.entries[target.id],catalog):0;
+  const passive=K.DEFINITIONS[a.championId].passive;
+  const guard=K.DEFINITIONS[b.championId].passive;
+  const damage=clamp(Math.round(basic+spell+(passive.kind==='damage'?passive.amount:0)-
+   (guard.kind==='guard'?guard.amount:0)),1,120);
+  actions.push({actorId:actor.id,targetId:target.id,damage});
+  if(cast)casts.push(cast);
+  decisions.push({actorId:actor.id,targetId:target.id,priority:decision,
+   attacks,basic:+basic.toFixed(4),spell:+spell.toFixed(4),damage});
+ }
+ // Every cast uses the same pre-window ledger, with at most one per actor.
+ const nextKits=K.snapshot(abilityState);
+ K.commit(nextKits,casts);
+ const result=F.resolve(state,actions);
+ return {state:result.state,abilityState:nextKits,receipt:{...result.receipt,decisions,casts}};
+}
+function audit({state,powerState,abilityState,receipt,focusByTeam={}}){
+ try{
+  const expected=step({state,powerState,abilityState,focusByTeam});
+  return JSON.stringify(expected.receipt)===JSON.stringify(receipt)?[]:['Invalid champion-derived combat receipt'];
+ }catch(e){return [String(e.message)];}
+}
+core.SimultaneousChampionCombat=Object.freeze({step,audit});
+})(globalThis);
