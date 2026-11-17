@@ -103,3 +103,16 @@ test('live individual receipts survive replay and reject fabricated tactical evi
  event.facts.impacts[0].targetPriority.coverIds.push('fake-player');
  assert.ok(core.TeamfightTactics.auditTargetDecisions(forged).length>0);
 });
+
+test('physical 3v3 can emerge in a side lane without an available neutral objective',()=>{
+ const {core,nav,players,health}=prepare();
+ for(const p of Object.values(nav.agents)){
+  p.alive=['TOP','MID','ADC'].includes(p.role);p.node='top_center';p.intent=p.alive?'group':'dead';
+ }
+ const args={nav,dead:{},minute:22,players,health,seed:456,world:{nextDragon:50,nextBaron:50}};
+ const g=core.Encounters.groupOpportunity(args);
+ assert.ok(g);assert.ok(['top_center','top_corner'].includes(g.zone));
+ assert.ok(Object.values(g.groups).every(ids=>ids.length===3));
+ for(const p of Object.values(nav.agents))if(p.teamId===nav.b&&p.role==='MID')p.alive=false;
+ assert.equal(core.Encounters.groupOpportunity(args),null);
+});
