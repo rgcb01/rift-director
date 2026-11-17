@@ -83,7 +83,7 @@ function apply(state,movements){
  for(const m of movements){
   const p=players[m.actorId];
   if(!active(p)||seen.has(m.actorId)||p.node!==m.node||(p.controlUntil||0)>state.at||
-     m.seconds!==MOVE_SECONDS||dist(p.offset,m.from)>.001||
+     m.seconds!==MOVE_SECONDS||!Number.isFinite(m.from?.x)||!Number.isFinite(m.from?.y)||dist(p.offset,m.from)>.001||
      !Number.isFinite(m.to?.x)||!Number.isFinite(m.to?.y)||
      Math.hypot(m.to.x,m.to.y)>RADIUS+.002||dist(m.from,m.to)>STEP+.002)
     throw Error('Illegal local movement '+m.actorId);
