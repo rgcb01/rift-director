@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { boot } from '../tests/harness.mjs';
+import {diagnoseTeamfights,aggregateTeamfights} from './teamfight-diagnostics.mjs';
 import {diagnoseMatch,aggregateDiagnostics} from './economy-diagnostics.mjs';
 import {diagnoseChampionMatch,aggregateChampionDiagnostics} from './champion-diagnostics.mjs';
 
@@ -199,6 +200,7 @@ export function runStandard() {
             return Math.abs(at.gold[a]-at.gold[b])})(),
           economyDiagnosis:diagnoseMatch(m,fixture,core.PowerEconomy.ITEM_CATALOG),
           championDiagnostics:diagnoseChampionMatch(m),
+          teamfightDiagnostics:diagnoseTeamfights(m),
           actions:actionCounts
         };
         rows.push(row);batchRows.push(row);
@@ -247,6 +249,7 @@ export function runStandard() {
       towersAvg:+avg(rows.map(r=>r.towers)).toFixed(2),baronSteals:sum(rows,'baronSteals'),
       gamesWithoutDragon:rows.filter(r=>r.dragons===0).length,
       gamesWithoutBaron:rows.filter(r=>r.barons===0).length},
+    teamfightDiagnostics:aggregateTeamfights(rows.map(r=>r.teamfightDiagnostics)),
     gameplay:{meanEvents:+avg(rows.map(r=>r.events)).toFixed(2),
       zeroKills:rows.filter(r=>r.totalKills===0).length,
       earlyTowerMatches:rows.filter(r=>r.firstTowerMinute!==null&&r.firstTowerMinute<36).length,
