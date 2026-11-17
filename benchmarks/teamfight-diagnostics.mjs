@@ -18,7 +18,7 @@ export function diagnoseTeamfights(match){
  for(const e of match.events||[]){
   const g=e.facts?.groupFight;if(!g)continue;
   const prior=groups.get(g.id)||{g,rounds:0};
-  prior.rounds++;groups.set(g.id,prior);
+  prior.rounds+=e.facts.action==='simultaneous_fight'?e.facts.simultaneous.receipts.length:1;groups.set(g.id,prior);
  }
  for(const {g,rounds} of groups.values()){
   const sizes=Object.values(g.groups).map(ids=>ids.length).sort((a,b)=>a-b).join('v');
