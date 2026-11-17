@@ -4,6 +4,10 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental — Recall route regression and objective readiness diagnostics
+- Prior #72 failed 36/1,000 standard simulations on illegal restricted jungle return paths. Reject unreachable destinations without changing movement permissions; test exact seed 1446723853 and illegal corridor admission.
+- Read-only preparation evidence from six minutes before each real objective through live availability: active call, assigned members, physical presence, health/resources, resets, diverted assignments. Benchmark aggregates by target and time window. Compare against the existing default without changing play. No new objective scheduling policy yet; measure the actual formation bottleneck first.
+
 ### Experimental — Coordinated live resets
 - Port #64 to current engine. Opt-in `coordinatedResets:true` admits safe individual recalls using shared team availability, active neutral commitments, legal return path, lane pressure and siege/defense obligations. Allow ADC/SUP synchronized recalls only when both independently qualify and three field players remain. Critical safe recalls retain an emergency exception. Existing default one-recall policy unchanged.
 - Record admission inputs and decisions in recall frames; audit deterministic decisions, participant identities and correspondence to actual channels, alongside existing HP/resource/cooldown/physical receipts. Full independent reconstruction of all planning inputs remains future work.
