@@ -4,6 +4,11 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental — Authoritative simultaneous teamfight mode
+- `simulateMatch(fixture,{simultaneousCombat:true})` replaces eligible group exchanges with an atomic versioned event. Commits detached HP, kill/assist, gold, XP, cast, shutdown and respawn ledgers; surviving critically injured fighters receive a real retreat order. Existing combat remains the default and fallback when no window fits.
+- Event, KDA, navigation, minimap, champion and shutdown audits recognize atomic multi-team kills. Broadcast summarizes both sides. Receipts replay the full combat and are detached from later match mutations.
+- Prior shadow pilot passed 295/295 and 2,200 default-mode maps without blockers (80 paired maps, four fights, twelve windows, one kill). Added a 120-map authoritative test with full audits. Authoritative mode has not yet passed its gate or mass balance. Fight-to-structure conversion, exact timing, and detailed local-position replay remain incomplete.
+
 ### Experimental — Simultaneous sporting projection
 - Opt-in `simulateMatch(fixture,{simultaneousPilot:true})` evaluates the new combat from actual group opportunities on copies of live health, resources, equipment, KDA, gold, XP, shutdown and death ledgers. Up to three five-second windows per opportunity within the current simulated minute. Both teams receive atomic kill rewards from the same pre-window state, including mutual eliminations; a death terminates its streak even when the victim landed a lethal strike simultaneously.
 - Separate preview receipts and final ledgers can be replayed and audited. The ordinary match result and RNG remain authoritative and unchanged; this is not live replacement yet. Two tests compare 80 deterministic maps against their authoritative versions, validate awards and reject forged receipts.
