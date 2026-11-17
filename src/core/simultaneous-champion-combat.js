@@ -1,7 +1,8 @@
 /* Experimental adapter: derives simultaneous offensive packets from the
  * authoritative champion stats, legal target preferences and cast ledger.
  * No caller-provided damage. Pure preview; only returned copies change.
- * Defensive casts, control, movement and sporting ledgers remain separate.
+ * Defensive casts and bounded control are local to this prototype;
+ * movement and sporting ledgers remain separate.
  */
 ((root)=>{
 'use strict';
@@ -21,34 +22,54 @@ function step({state,powerState,abilityState,focusByTeam={}}){
   if(!s)throw Error('Unknown champion '+p.id);
   return [p.id,s];
  }));
- const actions=[],casts=[],decisions=[];
+ const actions=[],casts=[],decisions=[],effects=[];
  for(const actor of fighters){
   const allies=fighters.filter(p=>p.teamId===actor.teamId);
   const defenders=fighters.filter(p=>p.teamId!==actor.teamId);
   const targets=defenders.map(target=>({target,decision:core.TeamfightTactics.targetDecision({
    leader:actor,target,allies,defenders,health,powerState,focusIds:focusByTeam[actor.teamId]||[]
   })})).filter(x=>x.decision).sort((a,b)=>b.decision.score-a.decision.score||a.target.id.localeCompare(b.target.id));
+  const a=stats[actor.id];
+  const controlled=Math.min(F.WINDOW_SECONDS,Math.max(0,(actor.controlUntil||0)-state.at));
+  const available=F.WINDOW_SECONDS-controlled;
+  let cast=null;
+  // Supports may spend their single cast on an injured ally rather than
+  // damage. Self-defense remains available to every champion.
+  if(!controlled){
+   const protectedAllies=allies.filter(p=>p.hp<=65&&core.Navigation.combatRange(actor.node,p.node,2))
+    .sort((x,y)=>x.hp-y.hp||x.id.localeCompare(y.id));
+   for(const ally of protectedAllies){
+    cast=K.select(abilityState,powerState,nav,actor.id,ally.id,state.at,'teamfight','defense',['shield','heal'],true);
+    if(cast)break;
+   }
+  }
+  if(cast){casts.push(cast);effects.push({actorId:actor.id,targetId:cast.targetId,kind:cast.kind,amount:cast.amount});}
   if(!targets.length)continue;
-  const {target,decision}=targets[0],a=stats[actor.id],b=stats[target.id];
+  const {target,decision}=targets[0],b=stats[target.id];
   // Basic attacks use physical armor. A damage spell occupies one attack's
   // time, uses its existing percent-HP amount and the champion mitigation.
-  const cast=K.select(abilityState,powerState,nav,actor.id,target.id,state.at,'teamfight','attack',['damage']);
-  const attacks=Math.max(0,Math.floor(a.attackSpeed*F.WINDOW_SECONDS)-(cast?1:0));
+  if(!cast&&!controlled){
+   cast=K.select(abilityState,powerState,nav,actor.id,target.id,state.at,'teamfight','attack',decision.intent==='peel'?['control']:['damage']);
+   if(!cast)cast=K.select(abilityState,powerState,nav,actor.id,target.id,state.at,'teamfight','attack',['damage','control']);
+   if(cast){casts.push(cast);if(cast.kind==='control')effects.push({actorId:actor.id,targetId:target.id,kind:'control',amount:cast.controlSeconds});}
+  }
+  const attacks=Math.max(0,Math.floor(a.attackSpeed*available)-(cast?1:0));
+  const offensive=cast&&['damage','control'].includes(cast.kind);
+  if(!attacks&&!offensive)continue;
   const basic=100*(attacks*a.attackDamage)/(b.maxHp*(1+b.armor/100));
-  const spell=cast?cast.amount*S.mitigation(powerState.entries[actor.id],powerState.entries[target.id],catalog):0;
+  const spell=offensive?cast.amount*S.mitigation(powerState.entries[actor.id],powerState.entries[target.id],catalog):0;
   const passive=K.DEFINITIONS[a.championId].passive;
   const guard=K.DEFINITIONS[b.championId].passive;
   const damage=clamp(Math.round(basic+spell+(passive.kind==='damage'?passive.amount:0)-
    (guard.kind==='guard'?guard.amount:0)),1,120);
   actions.push({actorId:actor.id,targetId:target.id,damage});
-  if(cast)casts.push(cast);
   decisions.push({actorId:actor.id,targetId:target.id,priority:decision,
-   attacks,basic:+basic.toFixed(4),spell:+spell.toFixed(4),damage});
+   attacks,controlledSeconds:controlled,basic:+basic.toFixed(4),spell:+spell.toFixed(4),damage});
  }
  // Every cast uses the same pre-window ledger, with at most one per actor.
  const nextKits=K.snapshot(abilityState);
  K.commit(nextKits,casts);
- const result=F.resolve(state,actions);
+ const result=F.resolve(state,actions,effects);
  return {state:result.state,abilityState:nextKits,receipt:{...result.receipt,decisions,casts}};
 }
 function audit({state,powerState,abilityState,receipt,focusByTeam={}}){
