@@ -452,7 +452,7 @@ function simulateMatch(f,options=null){
    m.gold[c.id]+=earned;
    if(m.baronBuff[c.id]>0)m.baronBuff[c.id]--;
   }
-  nav.advance(navigation,t,m.dead,m,{health,map:m.map});
+  nav.advance(navigation,t,m.dead,m,{health,map:m.map,expandedFormations:options?.expandedFormations===true});
   RiftCore.Encounters.recover(health,navigation,m.dead,t);
   const recoveries=RiftCore.ChampionKits.fountainRestore(abilityState,navigation,t);
   const starts=RiftCore.Recall.beginMinute(recallState,navigation,health,abilityState,t);
