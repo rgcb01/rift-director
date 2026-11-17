@@ -49,7 +49,7 @@ test('80 live maps: group rounds have unique actors, alternate teams and retain 
   const groups=new Map();
   for(const e of match.events.filter(e=>e.facts?.groupFight)){
    const g=e.facts.groupFight,prior=groups.get(g.id)||[];
-   assert.equal(g.version,2);assert.equal(g.round,prior.length+1);
+   assert.equal(g.version,3);assert.equal(e.facts.impacts.length,1);assert.equal(g.round,prior.length+1);
    assert.equal(e.teamId,g.round%2===1?g.firstTeam:([fixture.a,fixture.b].find(id=>id!==g.firstTeam)));
    assert.ok(!prior.some(p=>p.facts.actorId===e.facts.actorId));
    prior.push(e);groups.set(g.id,prior);
