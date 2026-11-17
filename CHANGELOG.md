@@ -4,6 +4,10 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental — Simultaneous fight kernel
+- Isolated five-second windows accept one physically legal strike per living champion, evaluate all strikes from the same initial snapshot, then apply cumulative damage and deaths atomically. Mutual kills are legal when both attacks started alive; dead players cannot act in subsequent windows.
+- Effective damage is conserved under overkill and allocated deterministically to contributors; kill and assist receipts are reconstructible. No changes to production combat, RNG, economy, replay or match outcome yet. Damage packets are inputs, not validated champion damage calculations; ability timing, movement, disengagement and atomic sporting ledgers need integration. Four tests using the real navigation graph.
+
 ### Experimental — Objective formation pilot
 - Existing neutral objective calls can nominate a bounded 3–4 player squad from the same pre-movement snapshot. Require healthy jungler, support, at least one MID/ADC, affordable lane pressure and legal routes within the actual call deadline. No new objective timers, no guaranteed arrivals or captures; existing siege, exposed Nexus, defense, reset and safety priorities remain.
 - Record intended squads separately in match frames for benchmark and replay analysis. This pilot remains separate from #66; full causal and balance gates required before merging.
