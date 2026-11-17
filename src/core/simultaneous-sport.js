@@ -54,7 +54,7 @@ function audit(input,receipt){
  try{return JSON.stringify(step(input).receipt)===JSON.stringify(receipt)?[]:['Invalid simultaneous sporting receipt'];}
  catch(e){return [String(e.message)];}
 }
-function preview({group,nav,health,abilityState,sport,minute,maxWindows=3}){
+function preview({group,nav,health,abilityState,sport,minute,maxWindows=4}){
  const ids=Object.values(group.groups).flat();
  const players=Object.fromEntries(ids.map(id=>{
   const p=nav.agents[id];return [id,{id,teamId:p.teamId,role:p.role,node:p.node,
@@ -65,9 +65,13 @@ function preview({group,nav,health,abilityState,sport,minute,maxWindows=3}){
  let state=core.SimultaneousFight.create({id:minute+':'+group.zone,at,players});
  const initial={state,abilityState:core.ChampionKits.snapshot(abilityState),sport:copySport(sport)};
  let kits=initial.abilityState,ledger=initial.sport,focusByTeam={};const receipts=[];
- for(let i=0;i<Math.min(3,maxWindows)&&state.at+5<=(minute+1)*60;i++){
+ for(let i=0;i<Math.min(4,maxWindows)&&state.at+5<=(minute+1)*60;i++){
   const teams=new Set(Object.values(state.players).filter(p=>p.alive).map(p=>p.teamId));
   if(teams.size<2)break;
+  if(i>0){
+   const alive=Object.values(state.players).filter(p=>p.alive);
+   if(!alive.some(a=>alive.some(b=>a.teamId!==b.teamId&&core.FightPositioning.reach(a,b))))break;
+  }
   const r=step({state,abilityState:kits,sport:ledger,minute,focusByTeam});
   receipts.push(r.receipt);state=r.state;kits=r.abilityState;ledger=r.sport;
   focusByTeam={};
@@ -101,7 +105,7 @@ function auditEvent(match,index){
  const e=match.events[index],f=e.facts,p=f.simultaneous,m=match.moments[index];
  try{
   if(f.simultaneousVersion!==1||p.minute!==e.minute||p.zone!==f.node||
-     f.groupFight.firstTeam!==e.teamId||!p.receipts.length||p.receipts.length>3)
+     f.groupFight.firstTeam!==e.teamId||!p.receipts.length||p.receipts.length>4)
    throw Error('Invalid simultaneous event header');
   const expected=eventFacts(p,f.groupFight);
   if(JSON.stringify(expected)!==JSON.stringify(f))throw Error('Invalid simultaneous event facts');
