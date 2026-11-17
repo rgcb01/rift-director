@@ -595,7 +595,7 @@ function simulateMatch(f,options=null){
     focusByTeam[attacker.id]=facts.impacts.map(h=>h.id);
     facts.action=facts.victimIds.length?'teamfight':'clash';
     facts.node=facts.actorNode;
-    facts.groupFight={version:2,id:fightId,zone:group.zone,round,
+    facts.groupFight={version:3,id:fightId,zone:group.zone,round,
      firstTeam:group.firstTeam,groups:group.groups};
     applyCombat(facts,t);
     facts.multiKill=facts.victimIds.length;
