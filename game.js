@@ -581,17 +581,18 @@ function simulateMatch(f,options=null){
    lastGroupFight=t;
    const first=club(group.firstTeam),second=enemy(first);
    const fightId=t+':'+group.zone;
-   const usedActorIds=[];
+   const usedActorIds=[],focusByTeam={};
    for(let round=1;round<=RiftCore.TeamfightTactics.MAX_ROUNDS;round++){
     const attacker=round%2===1?first:second,defender=enemy(attacker);
     const facts=RiftCore.Encounters.resolveCombat({
      nav:navigation,dead:m.dead,minute:t,players:rosterForFight,
      health,seed:commentarySeed,powerState:powerEconomy,abilityState,mode:'teamfight',
      teamId:attacker.id,attackerIds:group.groups[attacker.id],
-     targetIds:group.groups[defender.id],groupExchange:true,groupRound:round,usedActorIds
+     targetIds:group.groups[defender.id],groupExchange:true,groupRound:round,usedActorIds,focusIds:focusByTeam[attacker.id]||[]
     });
     if(!facts)break;
     usedActorIds.push(facts.actorId);
+    focusByTeam[attacker.id]=facts.impacts.map(h=>h.id);
     facts.action=facts.victimIds.length?'teamfight':'clash';
     facts.node=facts.actorNode;
     facts.groupFight={version:2,id:fightId,zone:group.zone,round,
