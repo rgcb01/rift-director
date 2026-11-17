@@ -221,6 +221,10 @@ function audit(match){
   applyRecoveryThrough(event.minute);
   const f=event.facts||{},casts=f.abilityCasts||[];
   try{
+   if(f.action==='simultaneous_fight'){
+    if(JSON.stringify(snapshot(model))!==JSON.stringify(f.simultaneous.initial.abilityState))throw Error('Invalid atomic initial kit ledger');
+    for(const r of f.simultaneous.receipts)commit(model,r.combat.casts);
+   }
    if(casts.length){
     if(!['lane_trade','gank','gank_avoided','teamfight','clash','skirmish'].includes(f.action))
      throw Error('Cast has no combat encounter');
