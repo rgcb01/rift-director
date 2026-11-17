@@ -337,9 +337,9 @@ function audit(match,world){
     const group=g.groups?.[event.teamId]||[];
     const foe=teams.find(id=>id!==event.teamId);
     const enemies=g.groups?.[foe]||[];
-    const maxRounds=g.version===2?4:2;
-    const valid=[1,2].includes(g.version)&&g.id===event.minute+':'+g.zone&&
-     (g.version===1?['dragon_pit','baron_pit','mid_center']:
+    const maxRounds=g.version>=2?4:2;
+    const valid=[1,2,3].includes(g.version)&&g.id===event.minute+':'+g.zone&&
+     (g.version<3?['dragon_pit','baron_pit','mid_center']:
        ['dragon_pit','baron_pit','mid_center','upper_river','lower_river','top_center','bot_center','top_corner','bot_corner']).includes(g.zone)&&
      teams.includes(g.firstTeam)&&mode==='teamfight'&&
      Number.isInteger(g.round)&&g.round>=1&&g.round<=maxRounds&&group.length>=3&&enemies.length>=3&&
@@ -351,6 +351,8 @@ function audit(match,world){
      (f.impacts||[]).every(hit=>enemies.includes(hit.id)&&live[hit.id]?.alive&&
       live[hit.id].intent!=='retreat');
     if(!valid){errs.push('Teamfight sin formación o respuesta verificable: '+index);}
+    if(g.version===3&&(f.targetPolicyVersion!==1||f.impacts?.length!==1))
+     errs.push('Teamfight individual sin impacto único o recibo: '+index);
     if(g.round===1){
      const both=[...group,...enemies];
      if(groupStarts.has(g.id)||g.firstTeam!==event.teamId||
@@ -364,7 +366,7 @@ function audit(match,world){
      const start=groupStarts.get(g.id);
      if(!start||g.version!==start.version||g.round!==start.lastRound+1||
         (g.round%2===1)!==(event.teamId===start.firstTeam)||
-        (g.version===2&&start.actors.includes(f.actorId))||
+        (g.version>=2&&start.actors.includes(f.actorId))||
         JSON.stringify(g.groups)!==JSON.stringify(start.groups))
       errs.push('Respuesta de teamfight sin intercambio previo: '+index);
      if(start){start.lastRound=g.round;start.actors.push(f.actorId);}
