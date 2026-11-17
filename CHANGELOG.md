@@ -4,6 +4,11 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental — Alpha 0.7.19G: teamfight formations and exchanges
+- Mature teams can prepare a neutral objective five minutes before its public spawn; actual travel budget can extend a formation's commitment. A non-final siege retains priority only with two physically nearby escorts and a viable wave.
+- Real teamfights retain at least three reachable fighters per side at initiation. Initiative incorporates teamfight/communication skill, HP, position and champion composition; each side alternates up to four exchanges with distinct eligible actors. Opening preferences favor frontline and control; subsequent exchanges favor damage dealers. Actual damage, cooldowns, resources, retreats and kills remain in the existing ledgers.
+- Version 2 group receipts audit alternating rounds, distinct actors and the original formation. Historical v1 fights remain supported. No automatic 5v5, forced kills or timeout victories. Pending full validation and narrative consolidation with Event Director.
+
 ### Experimental — Alpha 0.7.19C: return routing
 - Recovered players evaluate threatened home waves, actual team objective calls with travel budget, allied ADC location, jungle corridors and covered side-lane opportunities. Physical graph routes persist briefly and cancel for danger, expiring calls, threatened own lane or higher-priority orders. Route proof in navigation snapshots; no new commentary events. Experimental, pending integrated gates.
 

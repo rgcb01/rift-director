@@ -162,14 +162,14 @@ function groupOpportunity({nav,dead,minute,players,health,seed,world,powerState=
   const groups={};
   for(const team of [nav.a,nav.b])groups[team]=Object.values(nav.agents).filter(p=>
    p.teamId===team&&p.alive&&(dead[p.id]||0)<=minute&&
-   p.intent!=='retreat'&&(health[p.id]??0)>=34&&
+   !['retreat','recall_channel','recall_recover'].includes(p.intent)&&(health[p.id]??0)>=34&&
    core.Navigation.hops(p.node,zone)<=2&&nearZone(p,zone));
   const first=groups[nav.a],second=groups[nav.b];
   const a=first.filter(p=>second.some(q=>hitRange(p,q,'teamfight')));
   const b=second.filter(p=>first.some(q=>hitRange(p,q,'teamfight')));
   if(a.length<3||b.length<3)continue;
-  const strength=ps=>ps.reduce((n,p)=>n+
-   power(players[p.id],powerState,'attack')*.65+(health[p.id]??100)*.35,0);
+  const strength=ps=>core.TeamfightTactics?.strength({group:ps,players,health,powerState,zone})??
+   ps.reduce((n,p)=>n+power(players[p.id],powerState,'attack')*.65+(health[p.id]??100)*.35,0);
   const edge=strength(a)-strength(b);
   const initiative=edge+(hash(seed,minute,zone,'group-initiative')%31-15);
   const firstTeam=initiative>=0?nav.a:nav.b;
@@ -237,7 +237,7 @@ function groupTargetPriority({leader,target,allies,defenders,health,powerState})
  }
  return {score:+score.toFixed(2),reason};
 }
-function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attackerIds,targetIds,lane=null,powerState=null,groupExchange=false,abilityState=null}){
+function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attackerIds,targetIds,lane=null,powerState=null,groupExchange=false,abilityState=null,groupRound=1,usedActorIds=[]}){
  if(!['lane','gank','teamfight'].includes(mode)||![nav.a,nav.b].includes(teamId))
   throw Error('Invalid combat mode/team');
  const get=id=>nav.agents[id],alive=id=>get(id)?.alive&&
@@ -251,8 +251,11 @@ function resolveCombat({nav,dead,minute,players,health,seed,mode,teamId,attacker
  if(!targets.length)return null;
  const viable=attackers.filter(a=>targets.some(d=>hitRange(a,d,mode,lane)));
  const rank=(a,b)=>power(players[b.id],powerState,'attack')-power(players[a.id],powerState,'attack')||a.id.localeCompare(b.id);
- const leader=mode==='gank'&&viable.some(a=>a.id===attackerIds[0])?
+ const leader=groupExchange&&core.TeamfightTactics?
+   core.TeamfightTactics.leader({viable,targets,players,health,powerState,abilityState,minute,usedIds:usedActorIds,round:groupRound}):
+   mode==='gank'&&viable.some(a=>a.id===attackerIds[0])?
    viable.find(a=>a.id===attackerIds[0]):viable.sort(rank)[0];
+ if(!leader)return null;
  // In teamfight mode one author can deal damage to several nearby targets.
  // Nonlethal damage is retained and replayed, not turned into fake kills.
  const priorities=groupExchange?Object.fromEntries(targets.map(target=>[target.id,
@@ -331,10 +334,11 @@ function audit(match,world){
     const group=g.groups?.[event.teamId]||[];
     const foe=teams.find(id=>id!==event.teamId);
     const enemies=g.groups?.[foe]||[];
-    const valid=g.version===1&&g.id===event.minute+':'+g.zone&&
+    const maxRounds=g.version===2?4:2;
+    const valid=[1,2].includes(g.version)&&g.id===event.minute+':'+g.zone&&
      ['dragon_pit','baron_pit','mid_center'].includes(g.zone)&&
      teams.includes(g.firstTeam)&&mode==='teamfight'&&
-     [1,2].includes(g.round)&&group.length>=3&&enemies.length>=3&&
+     Number.isInteger(g.round)&&g.round>=1&&g.round<=maxRounds&&group.length>=3&&enemies.length>=3&&
      new Set([...group,...enemies]).size===group.length+enemies.length&&
      group.every(id=>positions[id]?.teamId===event.teamId)&&
      enemies.every(id=>positions[id]?.teamId===foe)&&
@@ -351,13 +355,15 @@ function audit(match,world){
         !group.every(id=>enemies.some(other=>hitRange(live[id],live[other],'teamfight')))||
         !enemies.every(id=>group.some(other=>hitRange(live[id],live[other],'teamfight'))))
       errs.push('Teamfight inicial sin tres rivales físicos por lado: '+index);
-     groupStarts.set(g.id,{...g,responded:false});
+     groupStarts.set(g.id,{...g,lastRound:1,actors:[f.actorId]});
     }else{
      const start=groupStarts.get(g.id);
-     if(!start||start.responded||event.teamId===start.firstTeam||
+     if(!start||g.version!==start.version||g.round!==start.lastRound+1||
+        (g.round%2===1)!==(event.teamId===start.firstTeam)||
+        (g.version===2&&start.actors.includes(f.actorId))||
         JSON.stringify(g.groups)!==JSON.stringify(start.groups))
       errs.push('Respuesta de teamfight sin intercambio previo: '+index);
-     if(start)start.responded=true;
+     if(start){start.lastRound=g.round;start.actors.push(f.actorId);}
     }
    }
    if(!['lane','gank','teamfight'].includes(mode)||!actor?.alive||
