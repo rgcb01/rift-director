@@ -601,8 +601,10 @@ function simulateMatch(f,options=null){
    if(actual?.receipts.length){
     const final=actual.final;
     Object.assign(m.gold,final.sport.gold);Object.assign(m.kills,final.sport.kills);Object.assign(m.dead,final.sport.dead);
-    Object.assign(playerStats,final.sport.playerStats);powerEconomy.entries=final.sport.powerEconomy.entries;
-    shutdowns.streaks=final.sport.shutdowns.streaks;abilityState.entries=final.abilityState.entries;
+    Object.assign(playerStats,RiftCore.clonePlayerStats(final.sport.playerStats));
+    powerEconomy.entries=RiftCore.PowerEconomy.snapshot(final.sport.powerEconomy).entries;
+    shutdowns.streaks={...final.sport.shutdowns.streaks};
+    abilityState.entries=RiftCore.ChampionKits.snapshot(final.abilityState).entries;
     for(const [id,p] of Object.entries(final.state.players)){
      health[id]=p.hp;
      if(p.alive&&p.hp<=25)nav.forceRetreat(navigation,id,t,RiftCore.Encounters.retreatDestination(navigation,navigation.agents[id],t));
@@ -1188,6 +1190,7 @@ function matchEventDetail(e){
  let detail='';
  if(f.combatVersion===1)detail=`${f.mode==='gank'?'Gank':f.mode==='lane'?'Línea '+f.lane:'Pelea'} · ${f.attackerCount} atacante(s) · ${f.impacts.map(p=>who(p.id)+' '+p.hpBefore+'%→'+p.hpAfter+'%').join('; ')} · ${f.victimIds.length?'Baja(s): '+f.victimIds.length:f.outcome==='retreat'?'Retirada confirmada':'Intercambio sin baja'}`;
  else if(f.action==='gank')detail=`${f.lane||'Carril'} · Ruta ${f.route||'desconocida'} · Jungla: ${who(f.initiatorId)} · Kill: ${who(f.actorId)} · Visión rival ${f.defenderVision??'—'}/100`;
+ else if(f.action==='simultaneous_fight')detail=f.simultaneous.receipts.flatMap(r=>r.awards).map(x=>who(x.killerId)+' → '+who(x.victimId)).join(' · ')||'Intercambio sin bajas';
  else if(f.action==='teamfight')detail=`${who(f.actorId)} · ${f.victimIds.length} eliminaciones${f.ace?' · Exterminio confirmado':''}`;
  if(f.bountyGold>0)detail+=' · Shutdown '+f.bountyGold+' oro contra '+
   f.shutdowns.map(x=>who(x.victimId)+' ('+x.streakBefore+' kills de racha)').join(', ');
