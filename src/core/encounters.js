@@ -151,14 +151,13 @@ function retreatDestination(nav,agent,minute){
 // A genuine group fight needs opposing formations, not merely a pick
 // labelled "teamfight". Every member must be alive, close to the arena
 // and able to reach at least one member of the opposite group.
-function groupOpportunity({nav,dead,minute,players,health,seed,world,powerState=null,previous=-10}){
- if(minute-previous<3)return null;
+function groupScan({nav,dead,minute,health,world}){
  // Group fights can start before an objective spawns or away from a pit.
  // Every candidate still requires three mutually reachable players per side.
  const zones=['mid_center','upper_river','lower_river','top_center','bot_center','top_corner','bot_corner'];
  if(minute>=world.nextDragon-3)zones.push('dragon_pit');
  if(minute>=Math.max(17,world.nextBaron-3))zones.push('baron_pit');
- const choices=[];
+ const scan=[];
  for(const zone of zones){
   const groups={};
   for(const team of [nav.a,nav.b])groups[team]=Object.values(nav.agents).filter(p=>
@@ -168,6 +167,17 @@ function groupOpportunity({nav,dead,minute,players,health,seed,world,powerState=
   const first=groups[nav.a],second=groups[nav.b];
   const a=first.filter(p=>second.some(q=>hitRange(p,q,'teamfight')));
   const b=second.filter(p=>first.some(q=>hitRange(p,q,'teamfight')));
+  scan.push({zone,near:{[nav.a]:first.length,[nav.b]:second.length},
+   groups:{[nav.a]:a.map(p=>p.id),[nav.b]:b.map(p=>p.id)}});
+ }
+ return scan;
+}
+function groupOpportunity({nav,dead,minute,players,health,seed,world,powerState=null,previous=-10,scan=null}){
+ if(minute-previous<3)return null;
+ const choices=[];
+ for(const entry of scan||groupScan({nav,dead,minute,health,world})){
+  const {zone,groups}=entry;
+  const a=groups[nav.a].map(id=>nav.agents[id]),b=groups[nav.b].map(id=>nav.agents[id]);
   if(a.length<3||b.length<3)continue;
   const strength=ps=>core.TeamfightTactics?.strength({group:ps,players,health,powerState,zone})??
    ps.reduce((n,p)=>n+power(players[p.id],powerState,'attack')*.65+(health[p.id]??100)*.35,0);
@@ -473,5 +483,5 @@ function audit(match,world){
  if(core.TeamfightTactics?.auditTargetDecisions)errs.push(...core.TeamfightTactics.auditTargetDecisions(match));
  return errs;
 }
-core.Encounters=Object.freeze({create,recover,locate,resolve,groupOpportunity,compositionEffect,groupTargetPriority,resolveCombat,laneRange,hitRange,retreatDestination,power,distance,nearZone,threat,audit});
+core.Encounters=Object.freeze({create,recover,locate,resolve,groupScan,groupOpportunity,compositionEffect,groupTargetPriority,resolveCombat,laneRange,hitRange,retreatDestination,power,distance,nearZone,threat,audit});
 })(globalThis);
