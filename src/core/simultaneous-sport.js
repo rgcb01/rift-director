@@ -118,7 +118,7 @@ function eventFacts(p,group,order=null){
  return {action:'simultaneous_fight',simultaneousVersion:1,actorId:group.groups[group.firstTeam][0],
   participantIds:ids,victimIds:awards.map(a=>a.victimId),node:p.zone,
   groupFight:{version:4,id:p.initial.state.id,zone:p.zone,round:1,firstTeam:group.firstTeam,groups:group.groups},
-  simultaneous:p,...(order?{conversion:{...order,sourceVictims:[...order.sourceVictims],allowed:[...order.allowed]}}:{})};
+  simultaneous:p,conversionVersion:1,conversion:order?{...order,sourceVictims:[...order.sourceVictims],allowed:[...order.allowed]}:null};
 }
 function auditEvent(match,index){
  const e=match.events[index],f=e.facts,p=f.simultaneous,m=match.moments[index];
@@ -148,7 +148,7 @@ function auditEvent(match,index){
    if(m.health[id]!==a.hp||m.navigation.after[id].alive!==a.alive)
     throw Error('Final HP/death mismatch '+id);
   }
-  if(f.conversion){
+  if(f.conversionVersion===1){
    const teams=[match.fixture.a,match.fixture.b];
    const nav={a:teams[0],b:teams[1],agents:Object.fromEntries(Object.entries(m.navigation.after).map(([id,a])=>[id,{...a,id}]))};
    const lanes=Object.fromEntries(teams.map(team=>[team,Object.fromEntries(['TOP','MID','BOT'].map(l=>[l,m.laneEconomy.lanes[l].hp[team].filter(h=>h===0).length]))]));
