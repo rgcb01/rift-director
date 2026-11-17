@@ -4,6 +4,11 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental — Local teamfight positioning
+- Optional positioned combat windows use bounded offsets from real map nodes, a shared pre-move snapshot, and two seconds of movement budget per five-second interval. Kite, screen, flank, approach and disengage decisions are role/health/contact dependent. No graph-node teleportation or macro-route changes; terrain collision is not modeled.
+- Local distance can invalidate a strike even when the map anchors are reachable. Basic attack range differs by archetype; movement reduces attacks and delays cast time. Control prevents movement while active at the window start. Replay audit reconstructs exact movements and cast receipts.
+- Five additional positioning tests. Production matches still use the validated #67 combat; local positions and simultaneous KDA/gold integration remain experimental.
+
 ### Experimental — Simultaneous fight kernel
 - Isolated five-second windows accept one physically legal strike per living champion, evaluate all strikes from the same initial snapshot, then apply cumulative damage and deaths atomically. Mutual kills are legal when both attacks started alive; dead players cannot act in subsequent windows.
 - Effective damage is conserved under overkill and allocated deterministically to contributors; kill and assist receipts are reconstructible. No changes to production combat, RNG, economy, replay or match outcome yet. An experimental offensive adapter now derives packets from actual AD/AS, armor/HP, item stats, legal damage spells, resources and cooldowns; it previews and audits a copied cast ledger. The prototype now also allows nearby allied shields and healing from explicitly opted-in support kits, with one cast per champion, bounded healing before damage and temporary shields. Control applies to the start of the next five-second window, limits basic attack time and prevents a new cast at that start; it does not retroactively erase already committed attacks. Eleven isolated tests use the real navigation graph. Damage tuning, exact second-level CC, movement, disengagement and atomic sporting ledgers still need integration; the production simulator remains unchanged.
