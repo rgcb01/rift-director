@@ -422,7 +422,8 @@ function simulateMatch(f,options=null){
   }
   return true;
  };
- const nextSnapshot=t=>m.frames.push({minute:t,recall:recallFrame,kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
+ let teamfightDiagnostic=null;
+ const nextSnapshot=t=>m.frames.push({minute:t,recall:recallFrame,teamfightDiagnostic,kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
   nexusIntegrity:{...m.nexusIntegrity},
   laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
   powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
@@ -486,6 +487,8 @@ function simulateMatch(f,options=null){
      ' por '+purchase.goldCost+' de oro, alcanzando nivel '+purchase.level+'.',
      'normal',club(agent.teamId),purchase);
   }
+  const groupInput={nav:navigation,dead:m.dead,minute:t,health,world:m};
+  const beforeGroupScan=RiftCore.Encounters.summarizeGroupScan(RiftCore.Encounters.groupScan(groupInput));
   // Early lane trades are genuine ranged/close combat, including 2v2 bot.
   // The two opposing laners must belong to the narrated lane, be in lane
   // trading range and have enough health to participate. No fake kill rolls.
@@ -572,11 +575,14 @@ function simulateMatch(f,options=null){
   // the same damage, health, retreat and KDA contract. Nobody retaliates
   // after death or while fleeing, and no victory roll grants free kills.
   const rosterForFight=Object.fromEntries([...aP,...bP].map(p=>[p.id,p]));
+  const afterGroupScan=RiftCore.Encounters.groupScan(groupInput);
   const group=RiftCore.Encounters.groupOpportunity({
    nav:navigation,dead:m.dead,minute:t,players:rosterForFight,
    health,seed:commentarySeed,world:m,powerState:powerEconomy,
-   previous:lastGroupFight
+   previous:lastGroupFight,scan:afterGroupScan
   });
+  teamfightDiagnostic={before:beforeGroupScan,after:RiftCore.Encounters.summarizeGroupScan(afterGroupScan),
+   cooldown:t-lastGroupFight<3,selected:group?.zone||null};
   if(group){
    lastGroupFight=t;
    const first=club(group.firstTeam),second=enemy(first);
