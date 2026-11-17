@@ -30,10 +30,8 @@ function strategicScore(nav,world,id,health,objective='dragon'){
 }
 function objectiveTarget(nav,world,id,minute){
  const foe=other(nav,id);
- // Mature formations can start their walk earlier, using public spawn times.
- const preparation=minute>=22?5:3;
- const dragon=minute>=(world.nextDragon??Infinity)-preparation;
- const baron=minute>=20&&minute>=(world.nextBaron??Infinity)-preparation;
+ const dragon=minute>=(world.nextDragon??Infinity)-3;
+ const baron=minute>=20&&minute>=(world.nextBaron??Infinity)-3;
  if(!dragon&&!baron)return null;
  if(!baron)return 'dragon';
  if(!dragon)return 'baron';
@@ -54,9 +52,8 @@ function activeCall(nav,world,minute,health){
  // Once Baron is available, a credible objective call may be considered
  // outside the old rotation windows. An actual open Nexus still has its
  // own finishing priority; a two-tower lane is not a global Baron veto.
- const baronReady=minute>=22&&minute>=(world.nextBaron??Infinity)-5;
- const dragonReady=minute>=22&&minute>=(world.nextDragon??Infinity)-5;
- if(!roleWindow&&!baronReady&&!dragonReady)return false;
+ const baronReady=minute>=22&&minute>=(world.nextBaron??Infinity)-3;
+ if(!roleWindow&&!baronReady)return false;
  return [nav.a,nav.b].some(id=>objectiveTarget(nav,world,id,minute));
 }
 function plan(nav,world,minute,health){
@@ -105,7 +102,7 @@ function plan(nav,world,minute,health){
     p.alive&&['JUN','SUP'].includes(p.role));
   const travel=escorts.length===2?Math.max(...escorts.map(p=>
    core.Navigation.hops(p.node,target))):3;
-  const commitment=objective==='baron'||minute>=22?clamp(travel+2,3,6):3;
+  const commitment=objective==='baron'?clamp(travel+2,3,6):3;
   const call={action,reason:objective+'_'+action,target,
    targetSpawn:objective==='dragon'?world.nextDragon:world.nextBaron,
    score:+score.toFixed(2),
@@ -133,8 +130,7 @@ function plan(nav,world,minute,health){
    // A real formation has a travel budget based on its furthest member.
    // The original early Dragon window remains unchanged.
    if(extra.length){
-    const untilSpawn=Math.max(0,call.targetSpawn-minute);
-    const duration=clamp(Math.max(commitment,untilSpawn+1,...extra.map(x=>x.travel+1)),3,8);
+    const duration=clamp(Math.max(commitment,...extra.map(x=>x.travel+1)),3,6);
     call.until=minute+duration;
     call.cooldownUntil=minute+(objective==='baron'?duration+3:12);
    }
