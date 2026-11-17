@@ -604,8 +604,7 @@ function simulateMatch(f,options=null){
     if(pressure)facts.counterPressure={...pressure,
      sourceVictims:[...pressure.sourceVictims],allowed:[...pressure.allowed]};
     const title=round===1?'¡Teamfight en el mapa!':round===2?'¡Respuesta en la teamfight!':'Continúa la teamfight';
-    const where=group.zone==='dragon_pit'?'Dragón':
-     group.zone==='baron_pit'?'Barón':'carril central';
+    const where=({dragon_pit:'el foso de Dragón',baron_pit:'el foso de Barón',mid_center:'el carril central',upper_river:'el río superior',lower_river:'el río inferior',top_center:'el carril superior',top_corner:'el carril superior',bot_center:'el carril inferior',bot_corner:'el carril inferior'})[group.zone];
     makeEv(t,title,attacker.name+(round===1?' inicia':' responde en')+
      ' una pelea grupal en '+where+'. '+combatDetails(facts),
      'fight',attacker,facts);
