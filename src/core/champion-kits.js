@@ -174,13 +174,47 @@ function commit(model,casts){
   row.cooldowns[cast.slot]=cast.cooldownUntil;row.casts[cast.slot]++;
  }
 }
+function restoreMana(model,id,at){
+ const row=model.entries[id];
+ if(!row||DEFINITIONS[row.championId]?.resourceType!=='mana'||
+    !Number.isSafeInteger(at)||at<row.lastAt)return null;
+ const before=projected(row,at);
+ if(before>=100)return null;
+ row.resource=100;row.lastAt=at;
+ return {id,at,before,after:100};
+}
+function fountainRestore(model,nav,minute){
+ const receipts=[];
+ for(const a of Object.values(nav.agents)){
+  const side=a.teamId===nav.a?'blue':'red';
+  if(!a.alive||a.intent!=='recall_recover'||a.node!==side+'_fountain')continue;
+  const r=restoreMana(model,a.id,minute*60);
+  if(r)receipts.push(r);
+ }
+ return receipts;
+}
 function audit(match){
  const errors=[];
  if(!match.abilityState)return errors; // old replay: no invented casts
  const initial={entries:Object.fromEntries(Object.entries(match.abilityState.entries)
   .map(([id,p])=>[id,{id,championId:p.championId}]))};
  const model=create(initial);
+ let nextFrame=0;
+ const applyRecoveryThrough=minute=>{
+  while(nextFrame<(match.frames||[]).length&&match.frames[nextFrame].minute<=minute){
+   const frame=match.frames[nextFrame++];
+   for(const r of frame.recall?.recoveries||[]){
+    const p=frame.navigation?.before?.[r.id];
+    const side=p?.teamId===match.fixture.a?'blue':'red';
+    if(match.recallVersion!==1||!p?.alive||p.intent!=='recall_recover'||
+       p.node!==side+'_fountain'||r.at!==frame.minute*60||
+       JSON.stringify(restoreMana(model,r.id,r.at))!==JSON.stringify(r))
+      errors.push('Invalid fountain mana recovery '+r.id+' minute '+frame.minute);
+   }
+  }
+ };
  for(const [i,event] of (match.events||[]).entries()){
+  applyRecoveryThrough(event.minute);
   const f=event.facts||{},casts=f.abilityCasts||[];
   try{
    if(casts.length){
@@ -243,10 +277,11 @@ function audit(match){
    }
   }catch(e){errors.push('Champion kit event '+i+': '+e.message)}
  }
+ applyRecoveryThrough(Infinity);
  if(JSON.stringify(snapshot(model))!==JSON.stringify(match.abilityState))
   errors.push('Final ability ledger differs from replay');
  return errors;
 }
 core.ChampionKits=Object.freeze({DEFINITIONS,SLOTS,create,snapshot,projected,
- select,preview,impact,commit,audit});
+ select,preview,impact,commit,fountainRestore,audit});
 })(globalThis);

@@ -18,6 +18,19 @@ const legalSiegeTravel=(match,frame,teamId,id)=>
   f.siegeDecision?.teamId===teamId&&f.siegeDecision.stage===3&&
   f.siegeDecision.escorts.includes(id));
 
+const validReset=(match,id,t)=>{
+ const frame=match.frames.find(f=>f.minute===t),p=frame?.navigation.after[id];
+ if(!p||!['recall_recover','recall_cancelled'].includes(p.intent))return false;
+ const receipt=frame.recall?.receipts.find(r=>r.id===id);
+ if(p.intent==='recall_cancelled')return receipt?.status==='cancelled'&&p.node===receipt.from;
+ const side=p.teamId===match.fixture.a?'blue':'red';
+ if(p.node!==side+'_fountain'||p.goal!==p.node)return false;
+ return match.frames.some(f=>f.minute<=t&&f.recall?.receipts.some(r=>
+  r.id===id&&r.status==='completed'&&r.to===p.node)&&
+  match.frames.filter(x=>x.minute>f.minute&&x.minute<=t)
+   .every(x=>x.navigation.after[id].intent==='recall_recover'));
+};
+
 const validRetreat=(match,id,t)=>match.events.some(e=>
  e.minute<=t&&(
    (e.facts?.action==='skirmish'&&e.facts.outcome==='retreat'&&e.facts.targetId===id)||
@@ -38,7 +51,7 @@ test('fase de líneas minuto 10: ADC y SUP permanecen en su mitad y no en el mis
    assert.notEqual(s.node,'top_corner','SUP nunca debe atascarse en TOP durante fase de líneas');
    // Characters can be dead or traveling back from fountain. Check stable
    // lane positions when both have stayed alive until this point.
-   const casualties=match.events.some(e=>e.minute<=10&&(
+   const casualties=validReset(match,adc,10)||validReset(match,sup,10)||match.events.some(e=>e.minute<=10&&(
     (e.facts?.victimIds||[]).some(id=>id===adc||id===sup)||
     (e.facts?.action==='skirmish'&&
       (e.facts.targetId===adc||e.facts.targetId===sup))||
@@ -121,11 +134,11 @@ test('JUN sigue corredores de jungla y ventanas de gank sin transitar por MID',(
      assert.equal(nav.jungleAllowed(side,p.goal),true);
     }
    }
-   if(all[7]?.alive&&!validRetreat(match,id,7)&&
+   if(all[7]?.alive&&!validReset(match,id,7)&&!validRetreat(match,id,7)&&
       !legalSiegeTravel(match,match.frames.find(f=>f.minute===7),teamId,id))
     assert.ok(['gank_setup','farm_jungle','recover'].includes(all[7].intent),
       'JUN debe gankear o explicar una cancelación');
-   if(all[22]?.alive&&
+   if(all[22]?.alive&&!validReset(match,id,22)&&
       !(all[22].intent==='shop_recall'&&
         all[22].reason==='affordable_item_spike')&&
       !(all[22].intent==='defend'&&
@@ -134,7 +147,7 @@ test('JUN sigue corredores de jungla y ventanas de gank sin transitar por MID',(
       !legalSiegeTravel(match,match.frames.find(f=>f.minute===22),teamId,id))
     assert.ok(['objective_setup','farm_jungle','recover'].includes(all[22].intent),
       'JUN debe preparar objetivo o evitarlo por riesgo');
-   if(all[26]?.alive&&
+   if(all[26]?.alive&&!validReset(match,id,26)&&
       !(all[26].intent==='shop_recall'&&
         all[26].reason==='affordable_item_spike')&&
       !(all[26].intent==='defend'&&
@@ -143,7 +156,7 @@ test('JUN sigue corredores de jungla y ventanas de gank sin transitar por MID',(
       !legalSiegeTravel(match,match.frames.find(f=>f.minute===26),teamId,id))
     assert.ok(['objective_setup','farm_jungle','recover'].includes(all[26].intent),
       'JUN puede evitar Barón solo por riesgo médico');
-   if(all[31]?.alive&&
+   if(all[31]?.alive&&!validReset(match,id,31)&&
       !(all[31].intent==='shop_recall'&&
         all[31].reason==='affordable_item_spike')&&
       !(all[31].intent==='defend'&&
@@ -171,6 +184,7 @@ test('SUP tiene roaming breve después de líneas y regresa junto a su ADC',()=>
    for(const frame of match.frames.filter(f=>f.minute<=27)){
     const p=frame.navigation.after[sup],carry=frame.navigation.after[adc],t=frame.minute;
     if(!p.alive)continue;
+    if(validReset(match,sup,t))continue;
     if(p.intent==='defend'&&p.reason==='visible_structure_defense'){
      assert.equal(p.lane,'BOT','SUP only defends its assigned botlane');
      const side=teamId===fixture.a?'blue':'red';

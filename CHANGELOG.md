@@ -4,6 +4,14 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental — Alpha 0.7.19C: return routing
+- Recovered players evaluate threatened home waves, actual team objective calls with travel budget, allied ADC location, jungle corridors and covered side-lane opportunities. Physical graph routes persist briefly and cancel for danger, expiring calls, threatened own lane or higher-priority orders. Route proof in navigation snapshots; no new commentary events. Experimental, pending integrated gates.
+
+### Experimental — Alpha 0.7.19A/B: tactical recall and fountain recovery
+- Recall by low HP/mana, one channel per team per minute in safe own territory; no purchase requirement. Channel receipt is eight seconds but the map adapter conservatively waits until the minute's combat is resolved: any action/damage/death cancels. No claim of continuous sub-minute movement or exact interruption timing.
+- Completed channels move only to own fountain. Stay at least one tick and until 90% HP; existing fountain healing, explicit mana restoration ledger without cooldown reset, and normal graph navigation on departure. No extra farm/XP for channeling agents.
+- Technical records in frame.recall, not RiftCast events. Replay audits reject unexplained live position jumps, invalid reasons and receipts; kit audit reconstructs mana restores. Existing walking purchase recalls remain unchanged. Pending full CI and balance; do not publish as a release.
+
 ## [0.7.18-alpha] — 2026-11-16 (candidato consolidado)
 
 - PR #57 fusionado en main: asedios causales, recalls, economía por rol y kits activos integrados. Benchmark oficial del candidato: 252/252 pruebas y 2,200/2,200 mapas, cero errores y cero bloqueantes; UX aprobada. 33.03 min, 5.68 kills, 27.54 casts/mapa, 12% sin Barón y 14.9% con teamfight. [CI](https://github.com/rgcb01/rift-director/actions/runs/43162097675). Los apartados experimentales siguientes conservan el historial de pilotos; sus estados pendientes corresponden a aquellas iteraciones, no al gate final del #57.
