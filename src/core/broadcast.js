@@ -321,7 +321,8 @@ function broadcastFeed(match){
    title:variants?.[i]?.title||e.title,
    body:variants?.[i]?.body||e.body,source:'match',eventIndex:i}));
  const insights=(match.broadcast?.insights||[]).map(e=>({...e,source:'insight'}));
- return [...originals,...insights].sort((x,y)=>x.minute-y.minute||x.time.localeCompare(y.time));
+ const feed=[...originals,...insights].sort((x,y)=>x.minute-y.minute||x.time.localeCompare(y.time));
+ return core.EventDirector?.select(feed)||feed;
 }
 function feedCountAt(match,frameIndex){
  const frame=match.frames[Math.max(0,Math.min(match.frames.length-1,frameIndex))];
