@@ -20,6 +20,7 @@ export function runStandard(options={}) {
   const actionMatches=Object.fromEntries(actions.map(k=>[k,0]));
   const tacticReasons={};const issues=[], worldStats=[];
   let audited=0, auditFailures=0;
+  const objectiveReadiness={};
   for(let batch=0;batch<10;batch++){
     const {sim,core}=boot({now:1731111111000+batch*41241211});
     const world=sim.newGame('balanced','QA Balance '+batch);
@@ -32,6 +33,17 @@ export function runStandard(options={}) {
       world.rng=seed;
       try{
         const m=sim.simulateMatch(fixture,options);
+        for(const fr of m.frames)for(const r of fr.objectiveReadiness||[]){
+          const key=r.target+':'+(r.lead<=0?'live':r.lead<=3?'1-3':'4-6');
+          const bucket=objectiveReadiness[key]??={teamMinutes:0,calls:0,assigned3:0,ready3:0,present3:0,assignedReadyPresent3:0,resetting:0,divertedAssigned:0};
+          bucket.teamMinutes++;bucket.calls+=Number(Boolean(r.call));
+          bucket.assigned3+=Number(r.members.filter(p=>p.assigned).length>=3);
+          bucket.ready3+=Number(r.members.filter(p=>p.ready).length>=3);
+          bucket.present3+=Number(r.members.filter(p=>p.ready&&p.present).length>=3);
+          bucket.assignedReadyPresent3+=Number(r.members.filter(p=>p.assigned&&p.ready&&p.present).length>=3);
+          bucket.resetting+=r.members.filter(p=>p.resetting).length;
+          bucket.divertedAssigned+=r.members.filter(p=>p.assigned&&p.goal!==r.target&&!p.present).length;
+        }
         const f=m.frames.at(-1);
         if(!f){issues.push({i,seed,error:'No final frame'});continue}
         const actionCounts=Object.fromEntries(actions.map(k=>[k,0]));
@@ -249,7 +261,7 @@ export function runStandard(options={}) {
       towersAvg:+avg(rows.map(r=>r.towers)).toFixed(2),baronSteals:sum(rows,'baronSteals'),
       gamesWithoutDragon:rows.filter(r=>r.dragons===0).length,
       gamesWithoutBaron:rows.filter(r=>r.barons===0).length},
-    teamfightDiagnostics:aggregateTeamfights(rows.map(r=>r.teamfightDiagnostics)),
+    teamfightDiagnostics:aggregateTeamfights(rows.map(r=>r.teamfightDiagnostics)),objectiveReadiness,
     gameplay:{meanEvents:+avg(rows.map(r=>r.events)).toFixed(2),
       zeroKills:rows.filter(r=>r.totalKills===0).length,
       earlyTowerMatches:rows.filter(r=>r.firstTowerMinute!==null&&r.firstTowerMinute<36).length,
