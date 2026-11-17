@@ -289,6 +289,23 @@ function simulateMatch(f,options=null){
  // Structural control is earned in combat. A nearby living defender is
  // an actual opponent, not merely a flat subtraction from tower damage.
  // Encounters owns the HP/kill/retreat result; this decision awards no HP.
+ const commitSimultaneous=(actual,group,t)=>{
+  const final=actual.final;
+  Object.assign(m.gold,final.sport.gold);Object.assign(m.kills,final.sport.kills);Object.assign(m.dead,final.sport.dead);
+  Object.assign(playerStats,RiftCore.clonePlayerStats(final.sport.playerStats));
+  powerEconomy.entries=RiftCore.PowerEconomy.snapshot(final.sport.powerEconomy).entries;
+  shutdowns.streaks={...final.sport.shutdowns.streaks};
+  abilityState.entries=RiftCore.ChampionKits.snapshot(final.abilityState).entries;
+  for(const [id,p] of Object.entries(final.state.players)){
+   health[id]=p.hp;
+   if(p.alive&&p.hp<=25)nav.forceRetreat(navigation,id,t,RiftCore.Encounters.retreatDestination(navigation,navigation.agents[id],t));
+  }
+  const order=RiftCore.SimultaneousSport.conversion(actual,navigation,m);
+  if(order){navigation.counterPressure??={};navigation.counterPressure[order.teamId]=order;}
+  const facts=RiftCore.SimultaneousSport.eventFacts(actual,group,order);
+  const awards=actual.receipts.flatMap(r=>r.awards);
+  makeEv(t,'¡Teamfight simultánea!',a.name+' '+awards.filter(x=>x.teamId===a.id).length+' bajas · '+b.name+' '+awards.filter(x=>x.teamId===b.id).length+' bajas.','fight',club(group.firstTeam),facts);
+ };
  const contestStructure=(attacker,defender,node,lane,t,minAttackers=1,attackingIds=null)=>{
   const livingHere=c=>positioned(c,node).filter(p=>
    (health[p.id]??0)>0&&(lane!=='NEXUS'||
@@ -303,6 +320,22 @@ function simulateMatch(f,options=null){
   const inReachAttackers=offense.filter(x=>contesting.some(d=>inReach(x,d)));
   // The locally stronger side has initiative; a defender may punish an
   // unsupported dive. Everyone still needs physical striking range.
+  if(options?.simultaneousCombat===true&&options?.structureTeamfights===true&&lane!=='NEXUS'&&t-lastGroupFight>=3){
+   const eligible=p=>health[p.id]>=34&&!['recall_channel','recall_recover','retreat'].includes(p.intent)&&nav.hops(p.node,node)<=2&&RiftCore.Encounters.nearZone(p,node);
+   const aa=inReachAttackers.filter(eligible),dd=contesting.filter(eligible);
+   const aa2=aa.filter(p=>dd.some(q=>inReach(p,q))),dd2=dd.filter(p=>aa.some(q=>inReach(p,q)));
+   if(aa2.length>=3&&dd2.length>=3){
+    const group={zone:node,firstTeam:aa2.length>=dd2.length?attacker.id:defender.id,
+     groups:{[attacker.id]:aa2.map(p=>p.id),[defender.id]:dd2.map(p=>p.id)}};
+    const actual=RiftCore.SimultaneousSport.preview({group,nav:navigation,health,abilityState,minute:t,
+     sport:{gold:m.gold,kills:m.kills,dead:m.dead,playerStats,powerEconomy,shutdowns}});
+    if(actual?.receipts.length){
+     commitSimultaneous(actual,group,t);lastGroupFight=t;lastCounterFight=t;
+     const current=attackingHere();
+     return current.length<minAttackers||livingHere(defender).some(d=>current.some(x=>inReach(x,d)));
+    }
+   }
+  }
   const attackerInitiates=inReachAttackers.length>=contesting.length;
   const initiators=attackerInitiates?inReachAttackers:contesting;
   const targets=attackerInitiates?contesting:inReachAttackers;
@@ -426,7 +459,7 @@ function simulateMatch(f,options=null){
   return true;
  };
  let teamfightDiagnostic=null;
- const nextSnapshot=t=>m.frames.push({minute:t,recall:recallFrame,teamfightDiagnostic,fightFormations:navigation.fightFormations||{},kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
+ const nextSnapshot=t=>m.frames.push({minute:t,recall:recallFrame,teamfightDiagnostic,...(options?.structureTeamfights===true?{structureDefense:navigation.structureDefense}:{}),fightFormations:navigation.fightFormations||{},kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
   nexusIntegrity:{...m.nexusIntegrity},
   laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
   powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
@@ -452,7 +485,7 @@ function simulateMatch(f,options=null){
    m.gold[c.id]+=earned;
    if(m.baronBuff[c.id]>0)m.baronBuff[c.id]--;
   }
-  nav.advance(navigation,t,m.dead,m,{health,map:m.map});
+  nav.advance(navigation,t,m.dead,m,{health,map:m.map,structureTeamfights:options?.structureTeamfights===true});
   RiftCore.Encounters.recover(health,navigation,m.dead,t);
   const recoveries=RiftCore.ChampionKits.fountainRestore(abilityState,navigation,t);
   const starts=RiftCore.Recall.beginMinute(recallState,navigation,health,abilityState,t);
@@ -599,21 +632,7 @@ function simulateMatch(f,options=null){
    const actual=options?.simultaneousCombat===true?RiftCore.SimultaneousSport.preview({group,nav:navigation,health,abilityState,minute:t,
     sport:{gold:m.gold,kills:m.kills,dead:m.dead,playerStats,powerEconomy,shutdowns}}):null;
    if(actual?.receipts.length){
-    const final=actual.final;
-    Object.assign(m.gold,final.sport.gold);Object.assign(m.kills,final.sport.kills);Object.assign(m.dead,final.sport.dead);
-    Object.assign(playerStats,RiftCore.clonePlayerStats(final.sport.playerStats));
-    powerEconomy.entries=RiftCore.PowerEconomy.snapshot(final.sport.powerEconomy).entries;
-    shutdowns.streaks={...final.sport.shutdowns.streaks};
-    abilityState.entries=RiftCore.ChampionKits.snapshot(final.abilityState).entries;
-    for(const [id,p] of Object.entries(final.state.players)){
-     health[id]=p.hp;
-     if(p.alive&&p.hp<=25)nav.forceRetreat(navigation,id,t,RiftCore.Encounters.retreatDestination(navigation,navigation.agents[id],t));
-    }
-    const order=RiftCore.SimultaneousSport.conversion(actual,navigation,m);
-    if(order){navigation.counterPressure??={};navigation.counterPressure[order.teamId]=order;}
-    const facts=RiftCore.SimultaneousSport.eventFacts(actual,group,order);
-    const awards=actual.receipts.flatMap(r=>r.awards);
-    makeEv(t,'¡Teamfight simultánea!',a.name+' '+awards.filter(x=>x.teamId===a.id).length+' bajas · '+b.name+' '+awards.filter(x=>x.teamId===b.id).length+' bajas.','fight',first,facts);
+    commitSimultaneous(actual,group,t);
    }else for(let round=1;round<=RiftCore.TeamfightTactics.MAX_ROUNDS;round++){
     const attacker=round%2===1?first:second,defender=enemy(attacker);
     const facts=RiftCore.Encounters.resolveCombat({
