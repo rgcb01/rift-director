@@ -609,7 +609,9 @@ function simulateMatch(f,options=null){
      health[id]=p.hp;
      if(p.alive&&p.hp<=25)nav.forceRetreat(navigation,id,t,RiftCore.Encounters.retreatDestination(navigation,navigation.agents[id],t));
     }
-    const facts=RiftCore.SimultaneousSport.eventFacts(actual,group);
+    const order=RiftCore.SimultaneousSport.conversion(actual,navigation,m);
+    if(order){navigation.counterPressure??={};navigation.counterPressure[order.teamId]=order;}
+    const facts=RiftCore.SimultaneousSport.eventFacts(actual,group,order);
     const awards=actual.receipts.flatMap(r=>r.awards);
     makeEv(t,'¡Teamfight simultánea!',a.name+' '+awards.filter(x=>x.teamId===a.id).length+' bajas · '+b.name+' '+awards.filter(x=>x.teamId===b.id).length+' bajas.','fight',first,facts);
    }else for(let round=1;round<=RiftCore.TeamfightTactics.MAX_ROUNDS;round++){
