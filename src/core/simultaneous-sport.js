@@ -89,5 +89,44 @@ function auditPreview(p){
  if(JSON.stringify({state,abilityState,sport})!==JSON.stringify(p.final))errors.push('Simultaneous pilot final ledger mismatch');
  return errors;
 }
-core.SimultaneousSport=Object.freeze({step,audit,preview,auditPreview});
+function eventFacts(p,group){
+ const awards=p.receipts.flatMap(r=>r.awards);
+ const ids=Object.keys(p.initial.state.players);
+ return {action:'simultaneous_fight',simultaneousVersion:1,actorId:group.groups[group.firstTeam][0],
+  participantIds:ids,victimIds:awards.map(a=>a.victimId),node:p.zone,
+  groupFight:{version:4,id:p.initial.state.id,zone:p.zone,round:1,firstTeam:group.firstTeam,groups:group.groups},
+  simultaneous:p};
+}
+function auditEvent(match,index){
+ const e=match.events[index],f=e.facts,p=f.simultaneous,m=match.moments[index];
+ try{
+  if(f.simultaneousVersion!==1||p.minute!==e.minute||p.zone!==f.node||
+     f.groupFight.firstTeam!==e.teamId||!p.receipts.length||p.receipts.length>3)
+   throw Error('Invalid simultaneous event header');
+  const expected=eventFacts(p,f.groupFight);
+  if(JSON.stringify(expected)!==JSON.stringify(f))throw Error('Invalid simultaneous event facts');
+  const errs=auditPreview(p);if(errs.length)return errs;
+  const prior=match.moments[index-1],pre=prior?.minute===e.minute?prior.navigation.after:m.navigation.before;
+  for(const [id,a] of Object.entries(p.initial.state.players)){
+   if(!pre[id]?.alive||pre[id].node!==a.node||pre[id].teamId!==a.teamId||
+      pre[id].intent!==a.intent||a.hp<34||!core.Encounters.nearZone(a,p.zone))
+    throw Error('Invalid simultaneous initial participant '+id);
+   if(prior?.minute===e.minute&&prior.health[id]!==a.hp)throw Error('Initial combat HP mismatch '+id);
+  }
+  if(prior?.minute===e.minute){
+   for(const k of ['gold','kills','playerStats','powerEconomy','shutdowns'])
+    if(JSON.stringify(prior[k])!==JSON.stringify(p.initial.sport[k]))throw Error('Initial sporting ledger mismatch '+k);
+   if(JSON.stringify(prior.abilityState)!==JSON.stringify(p.initial.abilityState))throw Error('Initial cast ledger mismatch');
+  }
+  for(const k of ['gold','kills','playerStats','powerEconomy','shutdowns'])
+   if(JSON.stringify(m[k])!==JSON.stringify(p.final.sport[k]))throw Error('Final sporting ledger mismatch '+k);
+  if(JSON.stringify(m.abilityState)!==JSON.stringify(p.final.abilityState))throw Error('Final cast ledger mismatch');
+  for(const [id,a] of Object.entries(p.final.state.players)){
+   if(m.health[id]!==a.hp||m.navigation.after[id].alive!==a.alive)
+    throw Error('Final HP/death mismatch '+id);
+  }
+  return [];
+ }catch(err){return [String(err.message)];}
+}
+core.SimultaneousSport=Object.freeze({step,audit,preview,auditPreview,eventFacts,auditEvent});
 })(globalThis);
