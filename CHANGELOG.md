@@ -4,6 +4,30 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental — Extended simultaneous fights and earned pressure
+- First authoritative benchmark: 1,000 standard maps audited without errors; 240 teamfights in 215 maps, only one 5v5. 89.5% of sampled minutes lacked opposing formations. Mirrored seed 1135397554 (pair 263) failed to produce a causal winner; added explicit regression coverage.
+- Allow a fourth five-second window only if both sides remain alive and physically in contact; stop when contact is lost. Winning side may earn a reversible lane-pressure order from real kills, a surviving killer, and healthy survivors using the existing counterplay policy. No free tower, gold or forced outcome. Verify the order against the combat receipt and map snapshot.
+- Latest changes not yet validated; default production combat remains unchanged.
+
+### Experimental — Authoritative simultaneous teamfight mode
+- `simulateMatch(fixture,{simultaneousCombat:true})` replaces eligible group exchanges with an atomic versioned event. Commits detached HP, kill/assist, gold, XP, cast, shutdown and respawn ledgers; surviving critically injured fighters receive a real retreat order. Existing combat remains the default and fallback when no window fits.
+- Event, KDA, navigation, minimap, champion and shutdown audits recognize atomic multi-team kills. Broadcast summarizes both sides. Receipts replay the full combat and are detached from later match mutations.
+- Prior shadow pilot passed 295/295 and 2,200 default-mode maps without blockers (80 paired maps, four fights, twelve windows, one kill). Added a 120-map authoritative test with full audits. Authoritative mode has not yet passed its gate or mass balance. Fight-to-structure conversion, exact timing, and detailed local-position replay remain incomplete.
+
+### Experimental — Simultaneous sporting projection
+- Opt-in `simulateMatch(fixture,{simultaneousPilot:true})` evaluates the new combat from actual group opportunities on copies of live health, resources, equipment, KDA, gold, XP, shutdown and death ledgers. Up to three five-second windows per opportunity within the current simulated minute. Both teams receive atomic kill rewards from the same pre-window state, including mutual eliminations; a death terminates its streak even when the victim landed a lethal strike simultaneously.
+- Separate preview receipts and final ledgers can be replayed and audited. The ordinary match result and RNG remain authoritative and unchanged; this is not live replacement yet. Two tests compare 80 deterministic maps against their authoritative versions, validate awards and reject forged receipts.
+- Previous local-positioning head passed 293/293 tests; latest shadow integration gates pending.
+
+### Experimental — Local teamfight positioning
+- Optional positioned combat windows use bounded offsets from real map nodes, a shared pre-move snapshot, and two seconds of movement budget per five-second interval. Kite, screen, flank, approach and disengage decisions are role/health/contact dependent. No graph-node teleportation or macro-route changes; terrain collision is not modeled.
+- Local distance can invalidate a strike even when the map anchors are reachable. Basic attack range differs by archetype; movement reduces attacks and delays cast time. Control prevents movement while active at the window start. Replay audit reconstructs exact movements and cast receipts.
+- Five additional positioning tests. Production matches still use the validated #67 combat; local positions and simultaneous KDA/gold integration remain experimental.
+
+### Experimental — Simultaneous fight kernel
+- Isolated five-second windows accept one physically legal strike per living champion, evaluate all strikes from the same initial snapshot, then apply cumulative damage and deaths atomically. Mutual kills are legal when both attacks started alive; dead players cannot act in subsequent windows.
+- Effective damage is conserved under overkill and allocated deterministically to contributors; kill and assist receipts are reconstructible. No changes to production combat, RNG, economy, replay or match outcome yet. An experimental offensive adapter now derives packets from actual AD/AS, armor/HP, item stats, legal damage spells, resources and cooldowns; it previews and audits a copied cast ledger. The prototype now also allows nearby allied shields and healing from explicitly opted-in support kits, with one cast per champion, bounded healing before damage and temporary shields. Control applies to the start of the next five-second window, limits basic attack time and prevents a new cast at that start; it does not retroactively erase already committed attacks. Eleven isolated tests use the real navigation graph. Damage tuning, exact second-level CC, movement, disengagement and atomic sporting ledgers still need integration; the production simulator remains unchanged.
+
 ### Experimental — Objective formation pilot
 - Existing neutral objective calls can nominate a bounded 3–4 player squad from the same pre-movement snapshot. Require healthy jungler, support, at least one MID/ADC, affordable lane pressure and legal routes within the actual call deadline. No new objective timers, no guaranteed arrivals or captures; existing siege, exposed Nexus, defense, reset and safety priorities remain.
 - Record intended squads separately in match frames for benchmark and replay analysis. This pilot remains separate from #66; full causal and balance gates required before merging.

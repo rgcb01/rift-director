@@ -54,7 +54,7 @@ function projected(row,at){
 }
 const itemCatalog=()=>[...(core.PowerEconomy?.ITEM_CATALOG||[]),
  ...(core.PowerEconomy?.COMPONENT_CATALOG||[])];
-function select(model,powerState,nav,id,targetId,at,mode,side){
+function select(model,powerState,nav,id,targetId,at,mode,side,allowedKinds=null,allowAlly=false){
  const entry=model?.entries?.[id],row=powerState?.entries?.[id],
   actor=nav?.agents?.[id],target=nav?.agents?.[targetId];
  if(!entry||!row||!actor?.alive||!target?.alive||entry.championId!==row.championId||
@@ -67,12 +67,16 @@ function select(model,powerState,nav,id,targetId,at,mode,side){
   mode==='teamfight'?['R','W']:['W','R'];
  for(const slot of wanted){
   const ability=def.abilities[slot],rank=stats.abilityRanks[slot];
-  if(!rank||side==='attack'&&!['damage','control'].includes(ability.kind)||
+  if(!rank||(allowedKinds&&!allowedKinds.includes(ability.kind))||side==='attack'&&!['damage','control'].includes(ability.kind)||
    side==='defense'&&!['shield','heal'].includes(ability.kind))continue;
   if((entry.cooldowns[slot]||0)>at||projected(entry,at)<ability.cost)continue;
   if(side==='attack'&&!core.Navigation.combatRange(actor.node,target.node,ability.range))
    continue;
-  if(side==='defense'&&id!==targetId)continue; // self mitigation, not a remote rescue
+  if(side==='defense'&&id!==targetId){
+   // Explicit experimental opt-in; historical self-defense remains unchanged.
+   if(!allowAlly||!['thessa','elaris','drathos'].includes(def.id)||
+      actor.teamId!==target.teamId||!core.Navigation.combatRange(actor.node,target.node,2))continue;
+  }
   const amount=clamp(Math.round(ability.base+ability.growth*(rank-1)+
    (['damage','control'].includes(ability.kind)?
     stats.attackDamage*.011+stats.abilityPower*.024:
@@ -217,6 +221,10 @@ function audit(match){
   applyRecoveryThrough(event.minute);
   const f=event.facts||{},casts=f.abilityCasts||[];
   try{
+   if(f.action==='simultaneous_fight'){
+    if(JSON.stringify(snapshot(model))!==JSON.stringify(f.simultaneous.initial.abilityState))throw Error('Invalid atomic initial kit ledger');
+    for(const r of f.simultaneous.receipts)commit(model,r.combat.casts);
+   }
    if(casts.length){
     if(!['lane_trade','gank','gank_avoided','teamfight','clash','skirmish'].includes(f.action))
      throw Error('Cast has no combat encounter');

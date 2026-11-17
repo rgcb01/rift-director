@@ -829,6 +829,13 @@ function auditNavigation(match,world){
    const together=(x,y,d=1)=>active(x)&&active(y)&&combatRange(positions[x].node,positions[y].node,d);
    const inGankRange=(x,y)=>active(x)&&active(y)&&
      combatRange(positions[x].node,positions[y].node,2);
+   if(f.action==='simultaneous_fight'){
+    for(const r of f.simultaneous.receipts){
+     for(const x of r.awards)if(!active(x.killerId)||!active(x.victimId)||!together(x.killerId,x.victimId,2))errs.push('Invalid simultaneous physical kill '+e.minute);
+     for(const x of r.awards)deadUntil[x.victimId]=x.respawnAt;
+    }
+    continue;
+   }
    if(!active(f.actorId))errs.push('Actor muerto en evento: '+f.action);
    if((f.action==='gank'||f.action==='gank_avoided')&&f.plannedGankVersion===1){
     const starter=positions[f.initiatorId];

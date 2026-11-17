@@ -167,6 +167,7 @@ function simulateMatch(f,options=null){
  const nexusSiege=RiftCore.NexusSiege.create(a.id,b.id);
  const health=RiftCore.Encounters.create([...aP,...bP]);
  const lastSkirmish={};
+ const simultaneousPilot=options?.simultaneousPilot===true?[]:null;
  let movementBefore=RiftCore.Navigation.snapshot(navigation,{},0);
  const nav=RiftCore.Navigation;
  const positioned=(c,node,depth=1)=>nav.participants(navigation,c.id,node,depth)
@@ -193,7 +194,7 @@ function simulateMatch(f,options=null){
   const prior=m.events[m.events.length-1];
   // New encounter timestamps use their own deterministic clock: no additional
   // gameplay RNG is consumed by an incidental 2v1 commentary.
-  const skirmish=['plate','tower_damage','tower','item_purchase','ward_place','nexus_damage','nexus'].includes(facts?.action)||facts?.action==='skirmish'||facts?.combatVersion===1;
+  const skirmish=['plate','tower_damage','tower','item_purchase','ward_place','nexus_damage','nexus'].includes(facts?.action)||facts?.action==='skirmish'||facts?.combatVersion===1||facts?.action==='simultaneous_fight';
   const stamp=skirmish?(Math.imul((commentarySeed^minute)>>>0,1664525)+
     Math.imul(m.events.length+1,1013904223))>>>0:0;
   const sec=minute===0?0:prior?.minute===minute?
@@ -203,6 +204,7 @@ function simulateMatch(f,options=null){
     title,body,kind,teamId:team?.id||null};
   if(facts){
    event.facts=facts;
+   if(facts.action!=='simultaneous_fight'){
    const bounty=RiftCore.Shutdowns.apply(shutdowns,event);
    if(bounty>0){
     m.gold[team.id]+=bounty;
@@ -223,6 +225,7 @@ function simulateMatch(f,options=null){
    }
    RiftCore.applyPlayerEvent(playerStats,event);
    RiftCore.PowerEconomy.rewardEvent(powerEconomy,event);
+   }
   }
   m.events.push(event);
   // Snapshot immediately after the actual event: no new RNG or invented kills.
@@ -584,11 +587,34 @@ function simulateMatch(f,options=null){
   teamfightDiagnostic={before:beforeGroupScan,after:RiftCore.Encounters.summarizeGroupScan(afterGroupScan),
    cooldown:t-lastGroupFight<3,selected:group?.zone||null};
   if(group){
+   if(simultaneousPilot){
+    const sample=RiftCore.SimultaneousSport.preview({group,nav:navigation,health,abilityState,minute:t,
+     sport:{gold:m.gold,kills:m.kills,dead:m.dead,playerStats,powerEconomy,shutdowns}});
+    if(sample)simultaneousPilot.push(sample);
+   }
    lastGroupFight=t;
    const first=club(group.firstTeam),second=enemy(first);
    const fightId=t+':'+group.zone;
    const usedActorIds=[],focusByTeam={};
-   for(let round=1;round<=RiftCore.TeamfightTactics.MAX_ROUNDS;round++){
+   const actual=options?.simultaneousCombat===true?RiftCore.SimultaneousSport.preview({group,nav:navigation,health,abilityState,minute:t,
+    sport:{gold:m.gold,kills:m.kills,dead:m.dead,playerStats,powerEconomy,shutdowns}}):null;
+   if(actual?.receipts.length){
+    const final=actual.final;
+    Object.assign(m.gold,final.sport.gold);Object.assign(m.kills,final.sport.kills);Object.assign(m.dead,final.sport.dead);
+    Object.assign(playerStats,RiftCore.clonePlayerStats(final.sport.playerStats));
+    powerEconomy.entries=RiftCore.PowerEconomy.snapshot(final.sport.powerEconomy).entries;
+    shutdowns.streaks={...final.sport.shutdowns.streaks};
+    abilityState.entries=RiftCore.ChampionKits.snapshot(final.abilityState).entries;
+    for(const [id,p] of Object.entries(final.state.players)){
+     health[id]=p.hp;
+     if(p.alive&&p.hp<=25)nav.forceRetreat(navigation,id,t,RiftCore.Encounters.retreatDestination(navigation,navigation.agents[id],t));
+    }
+    const order=RiftCore.SimultaneousSport.conversion(actual,navigation,m);
+    if(order){navigation.counterPressure??={};navigation.counterPressure[order.teamId]=order;}
+    const facts=RiftCore.SimultaneousSport.eventFacts(actual,group,order);
+    const awards=actual.receipts.flatMap(r=>r.awards);
+    makeEv(t,'¡Teamfight simultánea!',a.name+' '+awards.filter(x=>x.teamId===a.id).length+' bajas · '+b.name+' '+awards.filter(x=>x.teamId===b.id).length+' bajas.','fight',first,facts);
+   }else for(let round=1;round<=RiftCore.TeamfightTactics.MAX_ROUNDS;round++){
     const attacker=round%2===1?first:second,defender=enemy(attacker);
     const facts=RiftCore.Encounters.resolveCombat({
      nav:navigation,dead:m.dead,minute:t,players:rosterForFight,
@@ -833,6 +859,8 @@ function simulateMatch(f,options=null){
   nextSnapshot(t)
  }
  const report={recallVersion:1,abilityState:RiftCore.ChampionKits.snapshot(abilityState),champions,fixture:{a:f.a,b:f.b,round:f.round,playoff:!!f.playoff},frames:m.frames,events:m.events,moments:m.moments,health:{...health},powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),shutdowns:RiftCore.Shutdowns.snapshot(shutdowns),playerStats:RiftCore.clonePlayerStats(playerStats),elapsed:0,speed:1,running:true,committed:false,winner:m.winner,finished:false};
+ if(simultaneousPilot)report.simultaneousPilot=simultaneousPilot;
+ if(options?.simultaneousCombat===true)report.simultaneousCombatVersion=1;
  RiftCore.attachMinimap(report,s);RiftCore.attachBroadcast(report,s,commentarySeed);
  RiftCore.MatchReplay.attachReplay(report,s);return report
 }
@@ -1164,6 +1192,7 @@ function matchEventDetail(e){
  let detail='';
  if(f.combatVersion===1)detail=`${f.mode==='gank'?'Gank':f.mode==='lane'?'Línea '+f.lane:'Pelea'} · ${f.attackerCount} atacante(s) · ${f.impacts.map(p=>who(p.id)+' '+p.hpBefore+'%→'+p.hpAfter+'%').join('; ')} · ${f.victimIds.length?'Baja(s): '+f.victimIds.length:f.outcome==='retreat'?'Retirada confirmada':'Intercambio sin baja'}`;
  else if(f.action==='gank')detail=`${f.lane||'Carril'} · Ruta ${f.route||'desconocida'} · Jungla: ${who(f.initiatorId)} · Kill: ${who(f.actorId)} · Visión rival ${f.defenderVision??'—'}/100`;
+ else if(f.action==='simultaneous_fight')detail=f.simultaneous.receipts.flatMap(r=>r.awards).map(x=>who(x.killerId)+' → '+who(x.victimId)).join(' · ')||'Intercambio sin bajas';
  else if(f.action==='teamfight')detail=`${who(f.actorId)} · ${f.victimIds.length} eliminaciones${f.ace?' · Exterminio confirmado':''}`;
  if(f.bountyGold>0)detail+=' · Shutdown '+f.bountyGold+' oro contra '+
   f.shutdowns.map(x=>who(x.victimId)+' ('+x.streakBefore+' kills de racha)').join(', ');

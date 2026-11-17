@@ -15,7 +15,7 @@ const sum=(a,k)=>a.reduce((t,x)=>t+(x[k]||0),0);
 const durationBins=[[0,24,'0–24'],[25,34,'25–34'],[35,44,'35–44'],[45,54,'45–54'],[55,64,'55–64'],[65,75,'65–75'],[76,999,'76+']];
 const killBins=[[0,4,'0–4'],[5,9,'5–9'],[10,14,'10–14'],[15,19,'15–19'],[20,29,'20–29'],[30,999,'30+']];
 const actions=['lane_trade','gank','gank_avoided','teamfight','clash','skirmish','dragon','baron','tower','plate','nexus'];
-export function runStandard() {
+export function runStandard(options={}) {
   const rows=[], actionTotals=Object.fromEntries(actions.map(k=>[k,0]));
   const actionMatches=Object.fromEntries(actions.map(k=>[k,0]));
   const tacticReasons={};const issues=[], worldStats=[];
@@ -31,7 +31,7 @@ export function runStandard() {
       const seed=(Math.imul(i+1,2654435761) ^ Math.imul(batch+1,1013904223))>>>0;
       world.rng=seed;
       try{
-        const m=sim.simulateMatch(fixture);
+        const m=sim.simulateMatch(fixture,options);
         const f=m.frames.at(-1);
         if(!f){issues.push({i,seed,error:'No final frame'});continue}
         const actionCounts=Object.fromEntries(actions.map(k=>[k,0]));
@@ -99,7 +99,7 @@ export function runStandard() {
           firstNexusHitMinute:m.events.find(e=>
            ['nexus_damage','nexus'].includes(e.facts?.action))?.minute??null,
           groupFights:m.events.filter(e=>e.facts?.groupFight?.round===1).length,
-          groupFightResponses:m.events.filter(e=>e.facts?.groupFight?.round===2).length,
+          groupFightResponses:m.events.reduce((n,e)=>n+(e.facts?.action==='simultaneous_fight'?Math.max(0,e.facts.simultaneous.receipts.length-1):e.facts?.groupFight?.round===2?1:0),0),
           groupFightKills:m.events.reduce((n,e)=>n+
             (e.facts?.groupFight?(e.facts.victimIds?.length||0):0),0),
           fullFiveOnFive:m.events.filter(e=>e.facts?.groupFight?.round===1&&

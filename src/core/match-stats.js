@@ -23,6 +23,11 @@
   function applyPlayerEvent(stats, event) {
     const facts = event?.facts;
     if (!facts) return stats;
+    if(facts.action==='simultaneous_fight'){
+      for(const a of facts.simultaneous.receipts.flatMap(r=>r.awards))
+        applyPlayerEvent(stats,{facts:{action:'teamfight',actorId:a.killerId,victimIds:[a.victimId],assistIds:a.assistIds}});
+      return stats;
+    }
     const row = stats[facts.actorId];
     if (!row) throw new Error('Autor no forma parte de la partida: '+facts.actorId);
     if (facts.action === 'gank' || facts.action === 'teamfight' ||

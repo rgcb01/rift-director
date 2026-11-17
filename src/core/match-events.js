@@ -128,7 +128,17 @@
       if (!isRecord(event) || !integer(event.minute) || !isRecord(event.facts)) return;
       const { facts } = event, t = event.minute;
       if (![a,b].includes(event.teamId)) { fail('Equipo del evento inexistente.'); return; }
-      if (facts.action === 'gank' || facts.action === 'teamfight') {
+      if(facts.action==='simultaneous_fight'){
+        for(const r of facts.simultaneous.receipts){
+          for(const x of r.awards){
+            const k=players.get(x.killerId),v=players.get(x.victimId);
+            if(!alive(k,t)||!alive(v,t)||k.teamId!==x.teamId||v.teamId===x.teamId||
+               x.assistIds.some(id=>!alive(players.get(id),t)||players.get(id).teamId!==x.teamId))fail('Invalid simultaneous kill');
+          }
+          for(const x of r.awards){dead.set(x.victimId,x.respawnAt);totals.kills[x.teamId]++;}
+        }
+        for(const err of core.SimultaneousSport.auditEvent(match,match.events.indexOf(event)))fail(err);
+      } else if (facts.action === 'gank' || facts.action === 'teamfight') {
         recordKills(event, facts, t,frame);
       } else if(facts.action==='lane_trade'||facts.action==='clash'){
         if(facts.combatVersion!==1||!['lane','teamfight'].includes(facts.mode))

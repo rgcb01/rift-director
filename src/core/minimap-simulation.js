@@ -192,7 +192,7 @@
             throw new Error('Torre del minimapa fuera de secuencia');
           state.towers[defending][f.lane]=f.stage;
         }
-        if(f.action==='gank'||f.action==='teamfight'||
+        if(f.action==='gank'||f.action==='teamfight'||f.action==='simultaneous_fight'||
           (f.action==='skirmish'&&f.outcome==='kill'))
           for(const id of f.victimIds){
             if(!ctx.playerIndex.has(id))throw new Error('Víctima no es participante');

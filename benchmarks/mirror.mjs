@@ -3,7 +3,7 @@ import {boot} from '../tests/harness.mjs';
 
 // Controlled follow-up to the Alpha 0.7.7 baseline.
 // Each pair plays the same two rosters / RNG seed with reversed A/B slots.
-export function runMirror(){
+export function runMirror(options={}){
   const rows=[];const problems=[];
   const bucket=(xs,key)=>Object.fromEntries([...new Set(xs.map(x=>String(x[key])))].sort((a,b)=>Number(a)-Number(b))
     .map(k=>[k,xs.filter(x=>String(x[key])===k).length]));
@@ -18,7 +18,7 @@ export function runMirror(){
       const seed=(Math.imul(pair+1,2654435761)^Math.imul(batch+1,1013904223))>>>0;
       const attempt=(a,b,flipped)=>{
         world.rng=seed;
-        const m=sim.simulateMatch({...f,a,b});
+        const m=sim.simulateMatch({...f,a,b},options);
         const last=m.frames.at(-1);
         if(!m.winner||!last){
           // Preserve exact failing orientation and physical endgame evidence.

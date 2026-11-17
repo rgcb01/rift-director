@@ -104,3 +104,25 @@ jobs:
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 90
+
+  simultaneous:
+    name: Combate simultáneo — 2200 mapas experimentales
+    if: github.event_name == 'pull_request' && github.head_ref == 'experiment/alpha-0719g-simultaneous-combat'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Simular motor simultáneo explícito
+        run: node benchmarks/run.mjs 0.7.19-simultaneous .simultaneous-output --simultaneous
+      - name: Adjuntar resultados independientes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: balance-simultaneous-experiment
+          path: .simultaneous-output/
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 90
