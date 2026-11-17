@@ -1418,7 +1418,7 @@ function handleClick(ev){let target=ev.target.closest('[data-action],[data-nav]'
  if(a==='demo-start'){startDemoMatch();return}
  if(a==='demo-replay'){replayDemoMatch();return}
  if(a==='demo-exit'||(demoBackup&&a==='leave-match')){exitDemoMatch();return}
- if(demoBackup&&!['replay-next','replay-prev','replay-latest','replay-seek','replay-filter','match-toggle-roster','instant'].includes(a))return;
+ if(demoBackup&&!['replay-next-highlight','replay-next','replay-prev','replay-latest','replay-seek','replay-filter','match-toggle-roster','instant'].includes(a))return;
  if(a==='close-backdrop'){if(ev.target===target&&modal?.type!=='crisis'){modal=null;render()}return}
  if(a==='choose-start'){readBrandDraft();draftName=document.getElementById('new-club-name')?.value||draftName;theme=id;render();return}
  if(a==='create'){let name=document.getElementById('new-club-name')?.value.trim().slice(0,32)||'Aurora Esports';readBrandDraft();newGame(theme,name);if(globalThis.RiftBranding){const c=currentClub();c.branding=RiftBranding.identity(c,draftBrand);c.color=c.branding.primaryColor}modal=null;view='home';save();render();return}
