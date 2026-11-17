@@ -547,6 +547,8 @@ function chooseGoal(nav,agent,t,worldState,context=null){
  // Neutral objectives are a real opportunity cost: the two escorts must
  // travel to Dragon, or a splitpusher can pressure TOP instead. This is a
  // per-team decision made before any agent moves, never turn-order magic.
+ const defensePlan=core.StructureFormation?.movement(nav,agent,t);
+ if(defensePlan)return defensePlan;
  const formationPlan=core.FightFormation?.movement(nav,agent,t);
  if(formationPlan)return formationPlan;
  const dragonPlan=core.NeutralObjectives?.movement(nav,agent,t,worldState);
@@ -659,6 +661,7 @@ function advance(nav,t,dead,worldState,context=null){
  determineSiege(nav,{...worldState,dead},t,context);
  nav.neutralPlans=core.NeutralObjectives?.plan(nav,worldState,t,context?.health)||null;
  nav.macroPlans=core.MacroPolicy?.plan(nav,worldState,t,context?.health,dead)||{};
+ nav.structureDefense=context?.structureTeamfights===true?core.StructureFormation.plan({nav,world:worldState,minute:t,health:context?.health,dead}):null;
  nav.fightFormations=core.FightFormation?.plan({nav,world:worldState,minute:t,health:context?.health,dead})||{};
  // All tactics inspect the same initial positions (no turn-order advantage).
  const positions=Object.fromEntries(Object.entries(nav.agents).map(([id,a])=>

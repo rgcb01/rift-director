@@ -5,8 +5,12 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 ## [Unreleased]
 
 ### Experimental — Event Director (current engine)
-- Port the original #61 presentation-only classifier onto the validated simultaneous engine. Show match start, group initiation, real kills, objectives and decisive actions; suppress repeated nonlethal exchanges of the same group and rate-limit routine tactical commentary. All raw events and replay indices remain addressable. Atomic simultaneous events are a single highlight, including multi-team eliminations and shutdowns.
-- Default Destacados filter, Registro completo and Siguiente destacado / Siguiente evento controls. Selection is prefix-stable; never reveals unobserved outcomes. Five tests, including original replay invariants and group filtering. No sports or RNG changes.
+- Presentation-only classification: show group initiation, real kills, objectives and decisive events; suppress repeated nonlethal exchanges. Default Destacados, Registro completo, next highlight and next raw event. Preserve raw indices, receipts and RNG. Includes simultaneous and structure teamfights; demo controls remain read-only.
+
+### Experimental — Structure defense teamfights
+- #68 (93bf9aa) passed 298/298 tests and both 2,200-map gates, including mirror regression 263. Group kills increased from 0.11 to 0.28/map; frequency remained 21.5%. #69 five-member objective expansion passed 300/300 and its gates but reached only 21.4% maps with group fights; no meaningful benefit.
+- Separate opt-in `structureTeamfights:true` adds a visible siege defense reinforcement plan from the pre-movement state. Requires two observed real escorts, a live tower, a favorable attacking wave, three or four healthy reachable non-junglers and affordable lane exits. Preserves base/Nexus priorities.
+- Existing contested tower encounters use simultaneous combat only when at least three physical fighters per side qualify and the group cooldown permits; otherwise use the existing combat. No additional tower damage or fabricated participants. Re-evaluate actual defenders after combat. Audit defensive formation evidence from preceding frame. Added 120 varied paired maps and an independent full benchmark; results pending.
 
 ### Experimental — Extended simultaneous fights and earned pressure
 - First authoritative benchmark: 1,000 standard maps audited without errors; 240 teamfights in 215 maps, only one 5v5. 89.5% of sampled minutes lacked opposing formations. Mirrored seed 1135397554 (pair 263) failed to produce a causal winner; added explicit regression coverage.
