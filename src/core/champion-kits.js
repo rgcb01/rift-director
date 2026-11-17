@@ -54,7 +54,7 @@ function projected(row,at){
 }
 const itemCatalog=()=>[...(core.PowerEconomy?.ITEM_CATALOG||[]),
  ...(core.PowerEconomy?.COMPONENT_CATALOG||[])];
-function select(model,powerState,nav,id,targetId,at,mode,side,allowedKinds=null){
+function select(model,powerState,nav,id,targetId,at,mode,side,allowedKinds=null,allowAlly=false){
  const entry=model?.entries?.[id],row=powerState?.entries?.[id],
   actor=nav?.agents?.[id],target=nav?.agents?.[targetId];
  if(!entry||!row||!actor?.alive||!target?.alive||entry.championId!==row.championId||
@@ -72,7 +72,11 @@ function select(model,powerState,nav,id,targetId,at,mode,side,allowedKinds=null)
   if((entry.cooldowns[slot]||0)>at||projected(entry,at)<ability.cost)continue;
   if(side==='attack'&&!core.Navigation.combatRange(actor.node,target.node,ability.range))
    continue;
-  if(side==='defense'&&id!==targetId)continue; // self mitigation, not a remote rescue
+  if(side==='defense'&&id!==targetId){
+   // Explicit experimental opt-in; historical self-defense remains unchanged.
+   if(!allowAlly||!['thessa','elaris','drathos'].includes(def.id)||
+      actor.teamId!==target.teamId||!core.Navigation.combatRange(actor.node,target.node,2))continue;
+  }
   const amount=clamp(Math.round(ability.base+ability.growth*(rank-1)+
    (['damage','control'].includes(ability.kind)?
     stats.attackDamage*.011+stats.abilityPower*.024:
