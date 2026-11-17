@@ -88,3 +88,31 @@ test('coordinated live recalls preserve physical and sporting audits',()=>{
  console.log('COORDINATED_RESETS='+JSON.stringify({maps:120,starts,paired,held,emergency,issues:issues.slice(0,5)}));
  assert.ok(starts>0);assert.equal(issues.length,0,JSON.stringify(issues.slice(0,5)));
 });
+
+test('regression: invaded jungle nodes do not abort legal recall planning',()=>{
+ const {core,sim}=boot({now:1731111111000});
+ const world=sim.newGame('balanced','Reset corridor QA');
+ const fixture=Object.values(world.fixtures).flat().find(f=>[f.a,f.b].includes(world.userClub));
+ const clubs=[fixture.a,fixture.b].map(id=>world.clubs.find(c=>c.id===id));
+ const teams=Object.fromEntries(clubs.map(c=>[c.id,core.ROLES.map(r=>world.players.find(p=>p.id===c.lineup[r]))]));
+ const nav=core.Navigation.createNavigation(clubs,teams,117),a=nav.a,b=nav.b;
+ const jungler=Object.values(nav.agents).find(p=>p.teamId===a&&p.role==='JUN');
+ jungler.node='red_jungle_upper';
+ const health=Object.fromEntries(Object.keys(nav.agents).map(id=>[id,100]));
+ const state={lanes:{[a]:{TOP:0,MID:0,BOT:0},[b]:{TOP:0,MID:0,BOT:0}},waves:core.LaneEconomy.create(a,b).lanes};
+ const input=core.ResetCoordination.build({nav,world:state,minute:25,team:a,health,
+  choices:[{a:jungler,why:'low_mana',canStart:true}]});
+ const p=input.players.find(x=>x.id===jungler.id);
+ assert.equal(p.returnMinutes,99);assert.equal(p.canStart,false);
+ assert.ok(!core.ResetCoordination.admit(input).ids.includes(jungler.id));
+});
+test('exact coordinated recall regression seed 1446723853 finishes with audited winner',()=>{
+ const batch=2,i=15,seed=1446723853;
+ const {core,sim}=boot({now:1731111111000+batch*41241211});
+ const world=sim.newGame('balanced','QA Balance '+batch),fixtures=Object.values(world.fixtures).flat();
+ const f=fixtures[(i*13+batch*7)%fixtures.length];world.rng=seed;
+ const m=sim.simulateMatch(f,{simultaneousCombat:true,structureTeamfights:true,coordinatedResets:true});
+ assert.ok(m.winner);
+ assert.equal(core.auditMatch(m,world).length,0);
+ assert.equal(core.Navigation.auditNavigation(m,world).length,0);
+});
