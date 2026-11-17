@@ -659,7 +659,7 @@ function advance(nav,t,dead,worldState,context=null){
  determineSiege(nav,{...worldState,dead},t,context);
  nav.neutralPlans=core.NeutralObjectives?.plan(nav,worldState,t,context?.health)||null;
  nav.macroPlans=core.MacroPolicy?.plan(nav,worldState,t,context?.health,dead)||{};
- nav.fightFormations=core.FightFormation?.plan({nav,world:worldState,minute:t,health:context?.health,dead})||{};
+ nav.fightFormations=core.FightFormation?.plan({nav,world:worldState,minute:t,health:context?.health,dead,expanded:context?.expandedFormations===true})||{};
  // All tactics inspect the same initial positions (no turn-order advantage).
  const positions=Object.fromEntries(Object.entries(nav.agents).map(([id,a])=>
   [id,{id:a.id,node:a.node,teamId:a.teamId,role:a.role,
