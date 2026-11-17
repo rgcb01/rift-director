@@ -8,7 +8,7 @@ const core=root.RiftCore||(root.RiftCore={});
 const lanes=['TOP','MID','BOT'];
 const laneOf=p=>p.role==='ADC'?'BOT':p.role;
 const unavailable=new Set(['retreat','recall_channel','recall_recover','shop_recall','dead','siege_return']);
-function plan({nav,world,minute,health={},dead={}}){
+function plan({nav,world,minute,health={},dead={},expanded=false}){
  const N=core.Navigation,out={};
  if(minute<22||nav.siegeDecision?.stage===3)return out;
  // A threatened base or an active offensive siege retains priority.
@@ -19,8 +19,13 @@ function plan({nav,world,minute,health={},dead={}}){
      nav.siegeDecision?.teamId===team||lanes.some(l=>world.lanes?.[team]?.[l]===3))continue;
   const spawn=call.target==='dragon_pit'?world.nextDragon:world.nextBaron;
   if(!Number.isFinite(spawn)||call.targetSpawn!==spawn||spawn>call.until)continue;
+  const visibleRivals=expanded?Object.values(nav.agents).filter(p=>p.teamId!==team&&p.alive&&
+   (dead[p.id]||0)<=minute&&N.hops(p.node,call.target)<=2&&
+   (core.Vision.canSee(nav.vision,team,p.node,minute)||Object.values(nav.agents).some(q=>q.teamId===team&&q.alive&&
+    (dead[q.id]||0)<=minute&&N.combatRange(q.node,p.node,1)))).map(p=>p.id).sort():[];
+  const contested=expanded&&visibleRivals.length>=2;
   const allied=Object.values(nav.agents).filter(p=>p.teamId===team&&p.alive&&
-   (dead[p.id]||0)<=minute&&!unavailable.has(p.intent)&&(health[p.id]??100)>=65);
+   (dead[p.id]||0)<=minute&&!unavailable.has(p.intent)&&(health[p.id]??100)>=(contested?60:65));
   const budget=call.until-minute+1;
   const waveModel={teamIds:[nav.a,nav.b],lanes:world.waves};
   const candidates=allied.map(p=>{
@@ -32,18 +37,18 @@ function plan({nav,world,minute,health={},dead={}}){
     core.LaneEconomy.pressureFor(waveModel,team,lane):null;
    return {id:p.id,role:p.role,hp:health[p.id]??100,node:p.node,hops,wave};
   }).filter(p=>p.hops<=budget&&
-    (p.role==='JUN'||p.role==='SUP'||p.wave!==null&&p.wave>=-.65&&!(p.role==='TOP'&&p.wave>=1.45)));
+    (p.role==='JUN'||p.role==='SUP'||p.wave!==null&&p.wave>=(contested?-1.05:-.65)&&!(p.role==='TOP'&&p.wave>=1.45)));
   const jungler=candidates.find(p=>p.role==='JUN'),support=candidates.find(p=>p.role==='SUP');
   if(!jungler||!support)continue;
   const reinforcements=candidates.filter(p=>['MID','ADC','TOP'].includes(p.role))
    .sort((a,b)=>a.hops-b.hops||b.wave-a.wave||a.id.localeCompare(b.id));
   if(!reinforcements.length)continue;
-  const members=[jungler,support,...reinforcements.slice(0,2)];
+  const members=[jungler,support,...reinforcements.slice(0,contested?3:2)];
   // A team needs at least one potential damage dealer. Preserve TOP's
   // strong side wave, and never pull all five players by default.
   if(!members.some(p=>['ADC','MID'].includes(p.role)))continue;
   out[team]={version:1,minute,teamId:team,target:call.target,spawn,until:call.until,
-   action:call.action,reason:call.reason,members,vision:world.map?.riverVision?.[team]??50};
+   action:call.action,reason:call.reason,members,...(expanded?{expanded:contested,visibleRivals}:{}),vision:world.map?.riverVision?.[team]??50};
  }
  return out;
 }
