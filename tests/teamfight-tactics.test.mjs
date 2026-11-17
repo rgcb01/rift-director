@@ -61,3 +61,45 @@ test('80 live maps: group rounds have unique actors, alternate teams and retain 
  console.log('TEAMFIGHT_SAMPLE='+JSON.stringify({maps:80,fights,exchanges,extended}));
  assert.ok(fights>0);assert.ok(extended>0,'expected at least one multi-exchange group fight');
 });
+
+test('individual policy focuses an accessible carry, respects protection and peels physical threats',()=>{
+ const {core,nav}=prepare();
+ const own=Object.values(nav.agents).filter(p=>p.teamId===nav.a);
+ const enemies=Object.values(nav.agents).filter(p=>p.teamId===nav.b);
+ const actor=own.find(p=>p.role==='JUN'),carry=own.find(p=>p.role==='ADC');
+ const support=own.find(p=>p.role==='SUP'),victim=enemies.find(p=>p.role==='ADC');
+ const guard=enemies.find(p=>p.role==='TOP'),dive=enemies.find(p=>p.role==='JUN');
+ for(const p of [...own,...enemies]){p.node='baron_pit';p.alive=true;p.intent='objective_setup';}
+ const ids=[[actor,'veyra'],[carry,'nyra'],[support,'thessa'],[victim,'velin'],[guard,'korvek'],[dive,'veyra']];
+ const powerState={entries:Object.fromEntries(ids.map(([p,c])=>[p.id,{id:p.id,championId:c}]))};
+ const policy=core.TeamfightTactics.targetDecision;
+ const args={leader:actor,target:victim,allies:[actor,carry,support],defenders:[victim],health:{[victim.id]:80},powerState};
+ assert.equal(policy(args).intent,'dive_exposed');
+ const covered=policy({...args,defenders:[victim,guard]});
+ assert.equal(covered.intent,'covered_target');assert.deepEqual(Array.from(covered.coverIds),[guard.id]);
+ const peel=policy({...args,leader:support,target:dive,defenders:[dive,guard]});
+ assert.equal(peel.intent,'peel');assert.ok(peel.threatenedCarryIds.includes(carry.id));
+ const hit=policy({...args,leader:carry,target:guard,defenders:[guard,victim]});
+ assert.equal(hit.intent,'front_to_back');
+ const focus=policy({...args,leader:carry,target:guard,defenders:[guard,victim],focusIds:[guard.id]});
+ assert.equal(focus.focused,true);assert.equal(focus.score-hit.score,18);
+ victim.node=nav.b===victim.teamId?'red_fountain':'blue_fountain';
+ assert.equal(policy(args),null);
+});
+test('live individual receipts survive replay and reject fabricated tactical evidence',()=>{
+ const {sim,core,world,fixture}=prepare();
+ let example=null,receipts=0;
+ for(let i=1;i<=60;i++){
+  world.rng=i*12571;
+  const m=sim.simulateMatch(fixture);
+  const errors=core.TeamfightTactics.auditTargetDecisions(m);
+  assert.equal(errors.length,0,'seed '+i+' '+errors.slice(0,5).join(' | '));
+  const event=m.events.find(e=>e.facts?.targetPolicyVersion===1);
+  if(event){receipts++;example??=m;}
+ }
+ assert.ok(receipts>0);
+ const forged=JSON.parse(JSON.stringify(example));
+ const event=forged.events.find(e=>e.facts?.targetPolicyVersion===1);
+ event.facts.impacts[0].targetPriority.coverIds.push('fake-player');
+ assert.ok(core.TeamfightTactics.auditTargetDecisions(forged).length>0);
+});
