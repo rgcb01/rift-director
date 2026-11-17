@@ -107,7 +107,7 @@ jobs:
 
   simultaneous:
     name: Combate simultáneo — 2200 mapas experimentales
-    if: github.event_name == 'pull_request' && github.head_ref == 'experiment/alpha-0719g-simultaneous-combat'
+    if: github.event_name == 'pull_request' && (github.head_ref == 'experiment/alpha-0719g-simultaneous-combat' || github.head_ref == 'experiment/alpha-0719g-structure-teamfights')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -116,7 +116,10 @@ jobs:
         with:
           node-version: '22'
       - name: Simular motor simultáneo explícito
-        run: node benchmarks/run.mjs 0.7.19-simultaneous .simultaneous-output --simultaneous
+        run: |
+          extra=''
+          if [[ "$GITHUB_HEAD_REF" == 'experiment/alpha-0719g-structure-teamfights' ]]; then extra='--structure-teamfights'; fi
+          node benchmarks/run.mjs 0.7.19-simultaneous .simultaneous-output --simultaneous $extra
       - name: Adjuntar resultados independientes
         if: always()
         uses: actions/upload-artifact@v4
