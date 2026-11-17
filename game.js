@@ -488,9 +488,10 @@ function simulateMatch(f,options=null){
   nav.advance(navigation,t,m.dead,m,{health,map:m.map,structureTeamfights:options?.structureTeamfights===true});
   RiftCore.Encounters.recover(health,navigation,m.dead,t);
   const recoveries=RiftCore.ChampionKits.fountainRestore(abilityState,navigation,t);
-  const starts=RiftCore.Recall.beginMinute(recallState,navigation,health,abilityState,t);
+  const coordination=options?.coordinatedResets===true?{world:m,plans:[]}:null;
+  const starts=RiftCore.Recall.beginMinute(recallState,navigation,health,abilityState,t,coordination);
   const recallEventStart=m.events.length;
-  recallFrame={starts,receipts:[],recoveries};
+  recallFrame={starts,receipts:[],recoveries,...(coordination?{coordination:coordination.plans}:{})};
   const farmIncome=RiftCore.LaneEconomy.advance(laneEconomy,
     {minute:t,nav:navigation,map:m.map,health,gold:m.gold,structures:m.lanes});
   RiftCore.PowerEconomy.advance(powerEconomy,
