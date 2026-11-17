@@ -8,6 +8,7 @@
 const core=root.RiftCore||(root.RiftCore={});
 const WINDOW_SECONDS=5;
 const active=p=>p.alive&&p.hp>0&&!['retreat','recall_channel','recall_recover','dead'].includes(p.intent);
+const reachable=(a,b)=>core.FightPositioning&& (a.offset||b.offset)?core.FightPositioning.reach(a,b):core.Navigation.combatRange(a.node,b.node,2);
 const clone=players=>Object.fromEntries(Object.entries(players).map(([id,p])=>[id,{...p}]));
 function create({id,at,players}){
  if(typeof id!=='string'||!id||!Number.isSafeInteger(at)||at<0||!players||
@@ -35,7 +36,7 @@ function resolve(state,actions,effects=[]){
   const {actorId,targetId,damage}=action;
   const actor=before[actorId],target=before[targetId];
   if(seen.has(actorId)||!actor||!target||!active(actor)||!active(target)||
-     actor.teamId===target.teamId||!core.Navigation.combatRange(actor.node,target.node,2)||
+     actor.teamId===target.teamId||!reachable(actor,target)||
      !Number.isSafeInteger(damage)||damage<1||damage>120)
     throw Error('Illegal simultaneous strike '+actorId+' -> '+targetId);
   seen.add(actorId);
@@ -52,7 +53,7 @@ function resolve(state,actions,effects=[]){
   if(!actor||!target||!active(actor)||!active(target)||effectActors.has(actorId)||
      (actor.controlUntil||0)>state.at||
      !['shield','heal','control'].includes(kind)||hostile===(actor.teamId===target.teamId)||
-     !core.Navigation.combatRange(actor.node,target.node,2)||!Number.isSafeInteger(amount)||
+     !reachable(actor,target)||!Number.isSafeInteger(amount)||
      amount<1||amount>(hostile?2:8)||
      hostile&&!accepted.some(a=>a.actorId===actorId&&a.targetId===targetId))
     throw Error('Illegal simultaneous effect '+actorId+' -> '+targetId);
