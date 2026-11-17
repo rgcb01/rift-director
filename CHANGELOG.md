@@ -4,6 +4,11 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental — Extended simultaneous fights and earned pressure
+- First authoritative benchmark: 1,000 standard maps audited without errors; 240 teamfights in 215 maps, only one 5v5. 89.5% of sampled minutes lacked opposing formations. Mirrored seed 1135397554 (pair 263) failed to produce a causal winner; added explicit regression coverage.
+- Allow a fourth five-second window only if both sides remain alive and physically in contact; stop when contact is lost. Winning side may earn a reversible lane-pressure order from real kills, a surviving killer, and healthy survivors using the existing counterplay policy. No free tower, gold or forced outcome. Verify the order against the combat receipt and map snapshot.
+- Latest changes not yet validated; default production combat remains unchanged.
+
 ### Experimental — Authoritative simultaneous teamfight mode
 - `simulateMatch(fixture,{simultaneousCombat:true})` replaces eligible group exchanges with an atomic versioned event. Commits detached HP, kill/assist, gold, XP, cast, shutdown and respawn ledgers; surviving critically injured fighters receive a real retreat order. Existing combat remains the default and fallback when no window fits.
 - Event, KDA, navigation, minimap, champion and shutdown audits recognize atomic multi-team kills. Broadcast summarizes both sides. Receipts replay the full combat and are detached from later match mutations.
