@@ -49,5 +49,64 @@ function physicallyCommitted(nav,call){
  return call.escorts.filter(id=>nav.agents[id]?.alive&&
   core.Navigation.hops(nav.agents[id].node,goal)<=2).length>=2;
 }
-core.TeamfightTactics=Object.freeze({leader,strength,physicallyCommitted,MAX_ROUNDS:4});
+// A target preference never authorizes a hit outside the existing graph range.
+const carry=t=>['marksman','mage'].includes(t);
+const active=p=>p?.alive&&!['retreat','recall_channel','recall_recover','dead'].includes(p.intent);
+const reach=(a,b)=>core.Navigation.combatRange(a.node,b.node,2);
+function targetDecision({leader,target,allies,defenders,health,powerState,focusIds=[]}){
+ if(!active(leader)||!active(target)||leader.teamId===target.teamId||!reach(leader,target))return null;
+ const type=kind(leader,powerState),targetType=kind(target,powerState);
+ const hp=health[target.id]??100,distance=core.Navigation.hops(leader.node,target.node);
+ const coverIds=defenders.filter(p=>active(p)&&p.id!==target.id&&reach(p,target)&&
+  (front(kind(p,powerState))||kind(p,powerState)==='support')).map(p=>p.id).sort();
+ const threatenedCarryIds=allies.filter(p=>active(p)&&p.id!==leader.id&&carry(kind(p,powerState))&&
+  reach(target,p)&&reach(leader,p)).map(p=>p.id).sort();
+ const clusterIds=defenders.filter(p=>active(p)&&p.id!==target.id&&reach(p,target)).map(p=>p.id).sort();
+ const focused=focusIds.includes(target.id);
+ let score=(100-hp)*.55-distance*9+(focused?18:0),intent=focused?'focus':'finish';
+ if(type==='assassin'&&carry(targetType)&&coverIds.length===0){
+  score+=36;intent='dive_exposed';
+ }else if(type==='assassin'&&carry(targetType)){
+  score-=coverIds.length*12;intent='covered_target';
+ }else if(type==='marksman'&&front(targetType)){
+  score+=20;intent='front_to_back';
+ }else if((type==='support'||type==='tank')&&threatenedCarryIds.length){
+  score+=28+threatenedCarryIds.length*12+(targetType==='assassin'?14:0);intent='peel';
+ }else if(type==='mage'&&clusterIds.length){
+  score+=clusterIds.length*5;intent='cluster';
+ }else if(type==='marksman'){
+  score-=coverIds.length*5;
+ }
+ return {version:1,intent,score:+score.toFixed(2),actorArchetype:type||null,
+  targetArchetype:targetType||null,targetId:target.id,hp,distance,focused,
+  coverIds,threatenedCarryIds,clusterIds};
+}
+function auditTargetDecisions(match){
+ const errors=[],memory=new Map();
+ for(const [index,e] of (match.events||[]).entries()){
+  const f=e.facts,g=f?.groupFight;
+  if(!g||f.targetPolicyVersion!==1)continue;
+  const moment=match.moments[index],prior=match.moments[index-1];
+  const live=prior?.minute===e.minute?prior.navigation.after:moment.navigation.before;
+  const key=g.id+'|'+e.teamId,focusIds=memory.get(key)||[];
+  const foe=e.teamId===match.fixture.a?match.fixture.b:match.fixture.a;
+  const allies=g.groups[e.teamId].map(id=>({...live[id],id})).filter(active);
+  const defenders=g.groups[foe].map(id=>({...live[id],id})).filter(active);
+  const actor={...live[f.actorId],id:f.actorId};
+  const powerState=moment.powerEconomy;
+  for(const hit of f.impacts||[]){
+   const target={...live[hit.id],id:hit.id};
+   const expected=targetDecision({leader:actor,target,allies,defenders,
+    health:{[hit.id]:hit.hpBefore},powerState,focusIds});
+   if(JSON.stringify(expected)!==JSON.stringify(hit.targetPriority))
+    errors.push('Invalid individual teamfight decision '+index+' '+hit.id);
+  }
+  if((f.assistIds||[]).some(id=>(f.victimIds||[]).some(v=>
+   !live[id]?.alive||!live[v]?.alive||!reach(live[id],live[v]))))
+   errors.push('Teamfight assist outside victim range '+index);
+  memory.set(key,(f.impacts||[]).map(h=>h.id));
+ }
+ return errors;
+}
+core.TeamfightTactics=Object.freeze({leader,strength,physicallyCommitted,targetDecision,auditTargetDecisions,MAX_ROUNDS:4});
 })(globalThis);
