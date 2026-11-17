@@ -668,7 +668,7 @@ function advance(nav,t,dead,worldState,context=null){
   agent.movedFrom=agent.node;
   agent.alive=(dead[agent.id]||0)<=t;
   if(!agent.alive){
-   agent.resetRoute=null;
+   agent.resetRoute=null;agent.decisionVersion=null;agent.tacticReason=null;agent.lane=null;
    agent.node=fountain;agent.goal=fountain;agent.intent='dead';agent.route=[fountain];
    continue;
   }
@@ -704,12 +704,12 @@ function advance(nav,t,dead,worldState,context=null){
    if(!jungleAllowed(side,agent.goal)){
     agent.goal=side+'_jungle_lower';
     agent.intent='farm_jungle';
-    agent.tacticReason='jungle_corridor';
+    agent.tacticReason='jungle_corridor';agent.resetRoute=null;agent.decisionVersion=null;
    }
    if(!jungleAllowed(side,agent.node)){
     // A previously selected escort exits the lane through real edges.
     agent.intent='siege_return';
-    agent.tacticReason='return_to_jungle';
+    agent.tacticReason='return_to_jungle';agent.resetRoute=null;agent.decisionVersion=null;
     agent.route=path(agent.node,agent.goal);
    }else{
     agent.route=path(agent.node,agent.goal,node=>jungleAllowed(side,node));
