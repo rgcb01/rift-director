@@ -581,17 +581,20 @@ function simulateMatch(f,options=null){
    lastGroupFight=t;
    const first=club(group.firstTeam),second=enemy(first);
    const fightId=t+':'+group.zone;
-   for(const [round,attacker,defender] of [[1,first,second],[2,second,first]]){
+   const usedActorIds=[];
+   for(let round=1;round<=RiftCore.TeamfightTactics.MAX_ROUNDS;round++){
+    const attacker=round%2===1?first:second,defender=enemy(attacker);
     const facts=RiftCore.Encounters.resolveCombat({
      nav:navigation,dead:m.dead,minute:t,players:rosterForFight,
      health,seed:commentarySeed,powerState:powerEconomy,abilityState,mode:'teamfight',
      teamId:attacker.id,attackerIds:group.groups[attacker.id],
-     targetIds:group.groups[defender.id],groupExchange:true
+     targetIds:group.groups[defender.id],groupExchange:true,groupRound:round,usedActorIds
     });
-    if(!facts)continue;
+    if(!facts)break;
+    usedActorIds.push(facts.actorId);
     facts.action=facts.victimIds.length?'teamfight':'clash';
     facts.node=facts.actorNode;
-    facts.groupFight={version:1,id:fightId,zone:group.zone,round,
+    facts.groupFight={version:2,id:fightId,zone:group.zone,round,
      firstTeam:group.firstTeam,groups:group.groups};
     applyCombat(facts,t);
     facts.multiKill=facts.victimIds.length;
@@ -599,7 +602,7 @@ function simulateMatch(f,options=null){
     const pressure=RiftCore.Counterplay.pressureAfterKill(navigation,facts,t,m);
     if(pressure)facts.counterPressure={...pressure,
      sourceVictims:[...pressure.sourceVictims],allowed:[...pressure.allowed]};
-    const title=round===1?'¡Teamfight en el mapa!':'¡Respuesta en la teamfight!';
+    const title=round===1?'¡Teamfight en el mapa!':round===2?'¡Respuesta en la teamfight!':'Continúa la teamfight';
     const where=group.zone==='dragon_pit'?'Dragón':
      group.zone==='baron_pit'?'Barón':'carril central';
     makeEv(t,title,attacker.name+(round===1?' inicia':' responde en')+
