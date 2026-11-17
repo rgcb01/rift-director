@@ -33,7 +33,11 @@ function createBroadcast(match,world,seed) {
   if(!f)return null;
   const club=name(e.teamId),enemy=name(foe(e.teamId)),actor=who(f.actorId);
   let entries;
-  if(f.combatVersion===1){
+  if(f.action==='simultaneous_fight'){
+   const awards=f.simultaneous.receipts.flatMap(r=>r.awards);
+   const body=name(a)+' '+awards.filter(x=>x.teamId===a).length+' bajas · '+name(b)+' '+awards.filter(x=>x.teamId===b).length+' bajas. '+awards.map(x=>who(x.killerId)+' elimina a '+who(x.victimId)).join('; ');
+   entries=[['¡Teamfight simultánea!',body]];
+  }else if(f.combatVersion===1){
    const target=who(f.targetId),k=(f.victimIds||[]).length;
    const arena=f.mode==='gank'?'la emboscada de '+laneLabel[f.lane]:
      f.mode==='lane'?'el carril '+laneLabel[f.lane]:'la pelea grupal';
