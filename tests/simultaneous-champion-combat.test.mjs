@@ -24,7 +24,7 @@ test('champion windows use actual stats, legal damaging casts and no external da
  const r=x.combat.step(x);
  assert.equal(r.receipt.actions.length,10);
  assert.ok(r.receipt.casts.length>0);
- assert.ok(r.receipt.casts.every(c=>c.kind==='damage'&&c.at===1500));
+ assert.ok(r.receipt.casts.every(c=>['damage','control'].includes(c.kind)&&c.at===1500));
  assert.equal(new Set(r.receipt.casts.map(c=>c.casterId)).size,r.receipt.casts.length);
  assert.ok(r.receipt.decisions.every(d=>d.damage>=1&&d.damage<=120&&d.basic>=0));
  assert.equal(JSON.stringify(x.state),before);
@@ -56,4 +56,27 @@ test('auditor rejects damage, target and cast tampering rather than trusting pac
  }
  const reversed={...x,state:{...x.state,players:Object.fromEntries(Object.entries(x.state.players).reverse())}};
  assert.equal(JSON.stringify(x.combat.step(reversed).receipt),JSON.stringify(r.receipt));
+});
+
+test('support spends an actual cast on a nearby injured ally and cannot cast twice',()=>{
+ const x=setup();x.state.players.blue3.hp=40;
+ const r=x.combat.step(x);
+ const cast=r.receipt.casts.find(c=>c.casterId==='blue4');
+ assert.ok(cast);assert.equal(cast.kind,'heal');assert.equal(cast.targetId,'blue3');
+ const effect=r.receipt.effects.find(e=>e.actorId==='blue4');
+ assert.equal(effect.amount,cast.amount);assert.equal(effect.targetId,'blue3');
+ assert.ok(r.receipt.impacts.find(i=>i.targetId==='blue3').healed>0);
+ assert.equal(r.receipt.casts.filter(c=>c.casterId==='blue4').length,1);
+ assert.equal(x.combat.audit({...x,receipt:r.receipt}).length,0);
+ const far={...x,state:JSON.parse(JSON.stringify(x.state))};
+ far.state.players.blue3.node='blue_fountain';
+ const distant=x.combat.step(far);
+ assert.ok(!distant.receipt.effects.some(e=>e.actorId==='blue4'&&e.targetId==='blue3'));
+});
+test('control limits the next interval and prevents a cast until expiry',()=>{
+ const x=setup();x.state.players.blue3.controlUntil=x.state.at+1;
+ const r=x.combat.step(x),d=r.receipt.decisions.find(d=>d.actorId==='blue3');
+ assert.ok(d);assert.equal(d.controlledSeconds,1);
+ assert.ok(!r.receipt.casts.some(c=>c.casterId==='blue3'));
+ assert.equal(d.attacks,Math.floor(x.core.ChampionScaling.effective(x.powerState.entries.blue3).attackSpeed*4));
 });
