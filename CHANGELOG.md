@@ -4,6 +4,10 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental — Event Director (current engine)
+- Port the original #61 presentation-only classifier onto the validated simultaneous engine. Show match start, group initiation, real kills, objectives and decisive actions; suppress repeated nonlethal exchanges of the same group and rate-limit routine tactical commentary. All raw events and replay indices remain addressable. Atomic simultaneous events are a single highlight, including multi-team eliminations and shutdowns.
+- Default Destacados filter, Registro completo and Siguiente destacado / Siguiente evento controls. Selection is prefix-stable; never reveals unobserved outcomes. Five tests, including original replay invariants and group filtering. No sports or RNG changes.
+
 ### Experimental — Extended simultaneous fights and earned pressure
 - First authoritative benchmark: 1,000 standard maps audited without errors; 240 teamfights in 215 maps, only one 5v5. 89.5% of sampled minutes lacked opposing formations. Mirrored seed 1135397554 (pair 263) failed to produce a causal winner; added explicit regression coverage.
 - Allow a fourth five-second window only if both sides remain alive and physically in contact; stop when contact is lost. Winning side may earn a reversible lane-pressure order from real kills, a surviving killer, and healthy survivors using the existing counterplay policy. No free tower, gold or forced outcome. Verify the order against the combat receipt and map snapshot.
