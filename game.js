@@ -423,7 +423,7 @@ function simulateMatch(f,options=null){
   return true;
  };
  let teamfightDiagnostic=null;
- const nextSnapshot=t=>m.frames.push({minute:t,recall:recallFrame,teamfightDiagnostic,kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
+ const nextSnapshot=t=>m.frames.push({minute:t,recall:recallFrame,teamfightDiagnostic,fightFormations:navigation.fightFormations||{},kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
   nexusIntegrity:{...m.nexusIntegrity},
   laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
   powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
