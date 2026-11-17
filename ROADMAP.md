@@ -4,7 +4,28 @@
 
 Este roadmap expresa **prioridades y condiciones de terminado**, no fechas prometidas. Las etapas pueden reordenarse después de probar la diversión y estabilidad del prototipo.
 
-## Estado de release y próximas versiones (2026-11-09)
+## Roadmap vigente — núcleo MOBA antes de universo competitivo
+
+La secuencia siguiente reemplaza las asignaciones de versiones anteriores. Los hitos históricos conservados debajo son contexto, no compromisos contradictorios. El juego sigue siendo un manager: toda microejecución es autónoma.
+
+| Versión | Alcance | Condición de aceptación |
+|---|---|---|
+| 0.7.19 | Combat & Teamfight Engine: resets coordinados, formaciones, combate simultáneo, focus, peel, dive, kiteo, CC, defensa de aliados, conversión de bajas y Event Director. | Acciones físicas y ledgers auditables, replays compatibles, cero bloqueantes. Metas iniciales a medir: ≥85% mapas con teamfight, 3–6 peleas/mapa y 5v5 frecuentes; no forzar resultados para alcanzarlas. |
+| 0.7.20 | Lane & Jungle Engine: oleadas por unidades, last hit/CS, XP compartida, freeze/slow/fast push, campamentos y respawn, pathing, invasiones y visión. | Oro y XP conservados; control de oleadas y campamentos derivado de acciones reales, sin recursos gratuitos. |
+| 0.7.21 | Objectives & Structures: vida y daño de monstruos, Smite verificable, buffs, dragones/almas, objetivos especiales, inhibidores y superminions, defensa y asedio. | Capturas, buffs y victoria derivados de presencia, combate, HP y condiciones reales. |
+| 0.7.22 | Items & Champion Depth: catálogo original ampliado, pasivas/activas, botas, builds situacionales, runas, rangos, hechizos de invocador y efectos únicos. | Identidad de campeón y contrajuego verificables; ningún efecto ni objeto duplicado. |
+| 0.7.23 | Draft & Meta: picks/bans, champion pool, maestría, counters, sinergias, composiciones y parches de balance. | Decisiones previas al mapa afectan resultados sin garantizar victorias; selección legal y reproducible. |
+| 0.7.24 | Complete MOBA Balance: integración, calibración, perfiles, estadísticas, Match Center y RiftCast. | Benchmark completo, auditorías y comparación de distribución de kills/TF/duración, economía, remontadas y sesgo; evaluación de diversión. |
+| 0.8.0 | Competitive Universe: regiones, ligas, equipos establecidos/procedurales, torneos internacionales e historia. | Ecosistema competitivo coherente sobre el motor deportivo validado. |
+
+### Estado comprobado
+
+- Main contiene #63 (recall, fuente, retorno) y #67 (tácticas individuales y formaciones). #67: 277/277 pruebas, 2,200 mapas, cero bloqueantes; 21.5% mapas con TF, 0.25 TF/mapa, 5.47 kills, 32.07 minutos, 48.9% azul espejado, 7.9% remontadas, una 5v5 por 1,000 mapas.
+- #61 Event Director y #64 coordinación de resets: validados de forma independiente, todavía no integrados.
+- #68 combate simultáneo: prototipo aislado de ventanas de 5 s, daño derivado de campeón, escudos/curación de aliados y control acotado. Falta integración causal de KDA, oro, muerte/respawn, movimiento, habilidades defensivas y narración con el motor principal.
+- La frecuencia de teamfights sigue siendo insuficiente. No cerrar 0.7.19 por aprobar CI solamente ni confundir prototipo con funcionalidad activa.
+
+## Historial de releases y planificación anterior (2026-11-09)
 
 **Predecesora publicada: Alpha 0.7.16** mediante PR #44, con 198/198 pruebas y 2,000 mapas (1,000 auditados + 500 pares espejados). Integración de Nexo y torres físicos, objetos/recetas, contraasedios y recompensas por bajas reales del rezagado. Versus 0.7.14: remontadas 4.2%→4.1%, kills 6.39→6.44, duración 49.28→49.78 y azul espejado 49.5%→49.0%. Cero regresiones bloqueantes.
 
