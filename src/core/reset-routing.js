@@ -88,13 +88,13 @@ function audit(match){
   const before=f.navigation?.before||{};
   for(const [id,p] of Object.entries(before)){
    const r=p.resetRoute;
-   if(p.decisionVersion!==9)continue;
+   if(!p.alive||p.decisionVersion!==9)continue;
    const old=prior?.navigation?.after?.[id],side=p.teamId===match.fixture.a?'blue':'red';
    if(!r||r.version!==1||r.goal!==p.goal||r.reason!==p.reason||
       r.intent!==p.intent||!Number.isInteger(r.created)||r.created>f.minute||
       f.minute>r.until||!Number.isFinite(r.evidence?.travelHops)||
       r.evidence.travelHops<0||r.evidence.hp<90)
-    {errors.push('Invalid reset route '+id+' minute '+f.minute);continue;}
+    {errors.push('Invalid reset route '+id+' minute '+f.minute+' '+JSON.stringify({p,r}));continue;}
    if(r.created===f.minute){
     if(old?.node!==side+'_fountain'||old.intent!=='recall_recover'||
        r.evidence.travelHops!==core.Navigation.hops(old.node,r.goal))
