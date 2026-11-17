@@ -43,14 +43,14 @@ function plan({nav,world,minute,health={},dead={}}){
   // strong side wave, and never pull all five players by default.
   if(!members.some(p=>['ADC','MID'].includes(p.role)))continue;
   out[team]={version:1,minute,teamId:team,target:call.target,spawn,until:call.until,
-   action:call.action,members,vision:world.map?.riverVision?.[team]??50};
+   action:call.action,reason:call.reason,members,vision:world.map?.riverVision?.[team]??50};
  }
  return out;
 }
 function movement(nav,agent,minute){
  const p=nav.fightFormations?.[agent.teamId];
  if(!p||p.minute!==minute||!p.members.some(m=>m.id===agent.id))return null;
- return {goal:p.target,intent:'objective_setup',reason:p.target==='baron_pit'?'baron_formation':'dragon_formation',decisionVersion:10};
+ return {goal:p.target,intent:'objective_setup',reason:p.reason,decisionVersion:4};
 }
 core.FightFormation=Object.freeze({plan,movement});
 })(globalThis);
