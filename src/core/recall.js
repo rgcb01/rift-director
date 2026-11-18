@@ -69,7 +69,7 @@ function safeNode(nav,agent){
  if(!agent.node.startsWith(side+'_')||[side+'_fountain',side+'_nexus'].includes(agent.node))return false;
  return !Object.values(nav.agents).some(p=>p.teamId!==agent.teamId&&p.alive&&N.combatRange(agent.node,p.node,2));
 }
-function beginMinute(state,nav,health,abilityState,minute){
+function beginMinute(state,nav,health,abilityState,minute,coordination=null){
  const starts=[];
  for(const team of [nav.a,nav.b]){
   const choices=Object.values(nav.agents).filter(a=>a.teamId===team&&a.alive&&
@@ -80,7 +80,15 @@ function beginMinute(state,nav,health,abilityState,minute){
     return {a,hp:health[a.id],resource,resourceType:type,
      why:reason({hp:health[a.id],resource,resourceType:type})};
    }).filter(x=>x.why).sort((a,b)=>a.hp-b.hp||a.resource-b.resource||a.a.id.localeCompare(b.a.id));
+  let admitted=null;
+  if(coordination){
+   for(const x of choices){const prior=state.entries[x.a.id];x.canStart=!prior||prior.status!=='channeling'&&minute*60>=prior.endedAt+COOLDOWN_SECONDS;}
+   const input=core.ResetCoordination.build({nav,world:coordination.world,minute,team,health,choices});
+   const decision=core.ResetCoordination.admit(input);
+   coordination.plans.push({input,decision});admitted=new Set(decision.ids);
+  }
   for(const x of choices){
+   if(admitted&&!admitted.has(x.a.id))continue;
    const a=x.a,side=team===nav.a?'blue':'red';
    const receipt=start(state,{id:a.id,side,node:a.node,at:minute*60,alive:true,safe:true,
     hp:x.hp,resource:x.resource,resourceType:x.resourceType});
@@ -88,7 +96,7 @@ function beginMinute(state,nav,health,abilityState,minute){
    starts.push({...receipt,hp:x.hp,resource:x.resource,resourceType:x.resourceType||null});
    a.intent='recall_channel';a.goal=a.node;a.route=[a.node];a.resetRoute=null;
    a.tacticReason='recall_'+receipt.reason;a.decisionVersion=8;
-   break;
+   if(!admitted)break;
   }
  }
  return starts;
@@ -118,12 +126,25 @@ function audit(match){
   const events=match.events.slice(previousCount,frame.eventsCount);previousCount=frame.eventsCount;
   const before=frame.navigation?.before||{},after=frame.navigation?.after||{};
   const completed=new Set(),seen=new Set(),teams=new Set();
+  const coordinated=frame.recall?.coordination;
+  const admitted=new Set();
+  if(coordinated){
+   if(coordinated.length!==2||new Set(coordinated.map(p=>p.input.teamId)).size!==2)errors.push('Invalid reset team plans '+t);
+   for(const {input,decision} of coordinated){
+    try{
+     if(input.minute!==t||JSON.stringify(core.ResetCoordination.admit(input))!==JSON.stringify(decision))throw Error('Reset decision mismatch');
+     for(const id of decision.ids){if(admitted.has(id))throw Error('Duplicate coordinated recall');admitted.add(id);}
+     for(const p of input.players)if(before[p.id]?.teamId!==p.teamId||before[p.id]?.role!==p.role||before[p.id]?.alive!==p.alive)throw Error('Invalid reset participant');
+    }catch(e){errors.push(e.message+' '+t);}
+   }
+   if(admitted.size!==starts.length||starts.some(s=>!admitted.has(s.id)))errors.push('Coordinated starts differ from admission '+t);
+  }
   if(starts.length!==receipts.length)errors.push('Recall receipt count '+t);
   for(let i=0;i<starts.length;i++){
    const s=starts[i],r=receipts[i],p=before[s.id],q=after[s.id];
    const side=p?.teamId===match.fixture.a?'blue':'red';
    if(!p?.alive||p.intent!=='recall_channel'||p.node!==s.from||s.side!==side||
-    !q||seen.has(s.id)||teams.has(p.teamId)||s.startedAt!==t*60||
+    !q||seen.has(s.id)||(!coordinated&&teams.has(p.teamId))||s.startedAt!==t*60||
     s.completesAt!==t*60+CHANNEL_SECONDS||
     !safeNode({a:match.fixture.a,b:match.fixture.b,agents:before}, {...p,id:s.id})){
     errors.push('Invalid recall start '+t+' '+s.id);continue;

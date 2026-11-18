@@ -7,7 +7,8 @@ const version=process.argv[2]||'development';
 const output=process.argv[3]||'.balance-output';
 const simultaneousCombat=process.argv.includes('--simultaneous');
 const structureTeamfights=process.argv.includes('--structure-teamfights');
-const options=simultaneousCombat?{simultaneousCombat:true,structureTeamfights}:{};
+const coordinatedResets=process.argv.includes('--coordinated-resets');
+const options=simultaneousCombat?{simultaneousCombat:true,structureTeamfights,coordinatedResets,objectiveDiagnostics:true}:{objectiveDiagnostics:true};
 console.log('[combat-mode] '+(simultaneousCombat?'simultaneous':'default'));
 mkdirSync(output,{recursive:true});
 const started=Date.now();
@@ -22,6 +23,7 @@ console.log('[group-fights] '+JSON.stringify({
   fiveOnFive:standard.gameplay.fullFiveOnFive
 }));
 console.log('[teamfight-diagnostics] '+JSON.stringify(standard.teamfightDiagnostics));
+console.log('[objective-readiness] '+JSON.stringify(standard.objectiveReadiness));
 if(standard.issueSamples?.length)
  console.error('[standard-failures] '+JSON.stringify(standard.issueSamples));
 const mirror=runMirror(options);
@@ -32,7 +34,7 @@ console.log('[champion-matchups] '+JSON.stringify({validPairs:championMatchups.v
  requestedPairs:championMatchups.requestedPairs,failures:championMatchups.failures,
  rows:championMatchups.rows}));
 const result={schema:1,version,createdAt:new Date().toISOString(),
-  benchmarkRevision:'fixed-seed-1000-v1',combatMode:simultaneousCombat?'simultaneous':'default',structureTeamfights,durationMs:Date.now()-started,standard,mirror,
+  benchmarkRevision:'fixed-seed-1000-v1',combatMode:simultaneousCombat?'simultaneous':'default',structureTeamfights,coordinatedResets,durationMs:Date.now()-started,standard,mirror,
   championMatchups:{...championMatchups,cases:undefined}};
 writeFileSync(output+'/summary.json',JSON.stringify(result,null,2)+'\n');
 console.log('[balance] output '+output+'/summary.json');

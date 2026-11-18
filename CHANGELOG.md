@@ -4,6 +4,10 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental — Coordinated recalls and readiness
+- #72 validated 310/310 and both 2,200-map gates after rejecting unreachable restricted jungle paths; 23.9% group-fight maps versus #70 24.0%. Optional coordinated recalls remain disabled by default. Emergency safe recalls, field budget and independent recall receipts; full independent planning-input reconstruction still pending.
+- Read-only readiness diagnostics expose actual calls, assigned players, resources, presence and diverted assignments by objective lead time. No calls 4–6 minutes before spawn in the measured benchmark. Reconciled with merged Event Director #71; rerun gates before merging.
+
 ### Experimental — Event Director (current engine)
 - Presentation-only classification: show group initiation, real kills, objectives and decisive events; suppress repeated nonlethal exchanges. Default Destacados, Registro completo, next highlight and next raw event. Preserve raw indices, receipts and RNG. Includes simultaneous and structure teamfights; demo controls remain read-only.
 

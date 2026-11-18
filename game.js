@@ -458,8 +458,8 @@ function simulateMatch(f,options=null){
   }
   return true;
  };
- let teamfightDiagnostic=null;
- const nextSnapshot=t=>m.frames.push({minute:t,recall:recallFrame,teamfightDiagnostic,...(options?.structureTeamfights===true?{structureDefense:navigation.structureDefense}:{}),fightFormations:navigation.fightFormations||{},kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
+ let teamfightDiagnostic=null,objectiveReadiness=[];
+ const nextSnapshot=t=>m.frames.push({minute:t,recall:recallFrame,teamfightDiagnostic,...(options?.objectiveDiagnostics===true?{objectiveReadiness}:{}),...(options?.structureTeamfights===true?{structureDefense:navigation.structureDefense}:{}),fightFormations:navigation.fightFormations||{},kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
   nexusIntegrity:{...m.nexusIntegrity},
   laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
   powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
@@ -488,9 +488,10 @@ function simulateMatch(f,options=null){
   nav.advance(navigation,t,m.dead,m,{health,map:m.map,structureTeamfights:options?.structureTeamfights===true});
   RiftCore.Encounters.recover(health,navigation,m.dead,t);
   const recoveries=RiftCore.ChampionKits.fountainRestore(abilityState,navigation,t);
-  const starts=RiftCore.Recall.beginMinute(recallState,navigation,health,abilityState,t);
+  const coordination=options?.coordinatedResets===true?{world:m,plans:[]}:null;
+  const starts=RiftCore.Recall.beginMinute(recallState,navigation,health,abilityState,t,coordination);
   const recallEventStart=m.events.length;
-  recallFrame={starts,receipts:[],recoveries};
+  recallFrame={starts,receipts:[],recoveries,...(coordination?{coordination:coordination.plans}:{})};
   const farmIncome=RiftCore.LaneEconomy.advance(laneEconomy,
     {minute:t,nav:navigation,map:m.map,health,gold:m.gold,structures:m.lanes});
   RiftCore.PowerEconomy.advance(powerEconomy,
@@ -498,6 +499,7 @@ function simulateMatch(f,options=null){
   for(const earning of farmIncome)
    RiftCore.PowerEconomy.awardFarm(powerEconomy,earning,navigation,health);
   movementBefore=nav.snapshot(navigation,m.dead,t);
+  if(options?.objectiveDiagnostics===true)objectiveReadiness=RiftCore.ObjectiveReadiness.observe({nav:navigation,world:m,minute:t,health,abilityState});
   m.map=updateMap(t);
   // Wards are placed by physical, living JUN/SUP agents at contested nodes.
   // Their sight can inform later decisions but cannot reveal hidden global HP.
