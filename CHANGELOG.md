@@ -5,17 +5,14 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 ## [Unreleased]
 
 ### Experimental — Early objective preparation
-- #72 validated 310/310 tests, both 2,200-map gates, no blockers. 23.9% group-fight maps versus #70 24.0%; 129 recalls, 72 holds, 16 emergencies and no bot pairs in 120-map sample. Readiness metrics identify no calls 4–6 minutes before spawn; 83% of live-objective team-minutes have three ready players, but only 2.7% Dragon / 5.6% Baron have three ready physically present.
-- Opt-in `earlyPreparation:true` considers an actual upcoming neutral spawn up to six minutes ahead (midgame only), after existing near/live objective priorities. Requires healthy JUN/SUP and at least one affordable reachable lane reinforcement; preserves strong siege and exposed-base commitments, no early trade or changed spawn. Commitment lasts to spawn +2; original capture and movement requirements remain. Three tests include 120 paired maps and readiness/teamfight comparison. Independent 2,200-map gate runs all experimental options. Results pending.
+- Opt-in six-minute objective horizon for actual upcoming spawns when no near/live target already takes priority. Healthy JUN/SUP and reachable reinforcement; preserve strong siege, exposed base and normal role windows. Commitment through spawn+2; no free capture or altered spawn. Three tests and 120 paired maps; independent 2,200-map experimental gate. Reconciled with #72 and Event Director.
 
-### Experimental — Recall route regression and objective readiness diagnostics
-- Prior #72 failed 36/1,000 standard simulations on illegal restricted jungle return paths. Reject unreachable destinations without changing movement permissions; test exact seed 1446723853 and illegal corridor admission.
-- Read-only preparation evidence from six minutes before each real objective through live availability: active call, assigned members, physical presence, health/resources, resets, diverted assignments. Benchmark aggregates by target and time window. Compare against the existing default without changing play. No new objective scheduling policy yet; measure the actual formation bottleneck first.
+### Experimental — Coordinated recalls and readiness
+- #72 validated 310/310 and both 2,200-map gates after rejecting unreachable restricted jungle paths; 23.9% group-fight maps versus #70 24.0%. Optional coordinated recalls remain disabled by default. Emergency safe recalls, field budget and independent recall receipts; full independent planning-input reconstruction still pending.
+- Read-only readiness diagnostics expose actual calls, assigned players, resources, presence and diverted assignments by objective lead time. No calls 4–6 minutes before spawn in the measured benchmark. Reconciled with merged Event Director #71; rerun gates before merging.
 
-### Experimental — Coordinated live resets
-- Port #64 to current engine. Opt-in `coordinatedResets:true` admits safe individual recalls using shared team availability, active neutral commitments, legal return path, lane pressure and siege/defense obligations. Allow ADC/SUP synchronized recalls only when both independently qualify and three field players remain. Critical safe recalls retain an emergency exception. Existing default one-recall policy unchanged.
-- Record admission inputs and decisions in recall frames; audit deterministic decisions, participant identities and correspondence to actual channels, alongside existing HP/resource/cooldown/physical receipts. Full independent reconstruction of all planning inputs remains future work.
-- Seven tests, including 120 live maps with simultaneous and structure combat. Independent benchmark enables both plus coordinated resets. Latest validations pending.
+### Experimental — Event Director (current engine)
+- Presentation-only classification: show group initiation, real kills, objectives and decisive events; suppress repeated nonlethal exchanges. Default Destacados, Registro completo, next highlight and next raw event. Preserve raw indices, receipts and RNG. Includes simultaneous and structure teamfights; demo controls remain read-only.
 
 ### Experimental — Structure defense teamfights
 - #68 (93bf9aa) passed 298/298 tests and both 2,200-map gates, including mirror regression 263. Group kills increased from 0.11 to 0.28/map; frequency remained 21.5%. #69 five-member objective expansion passed 300/300 and its gates but reached only 21.4% maps with group fights; no meaningful benefit.

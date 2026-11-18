@@ -82,7 +82,7 @@ function plan(nav,world,minute,health,{earlyPreparation=false}={}){
   if(existing&&minute<existing.cooldownUntil){
    out[id]={action:'hold',reason:'objective_cooldown',until:minute};continue;
   }
-  if(!activeCall(nav,world,minute,health)&&!(early&&targetNow)){
+  if(!activeCall(nav,world,minute,health)&&!(early&&!normalTarget&&targetNow)){
    out[id]={action:'hold',reason:'no_dragon_opportunity',until:minute};continue;
   }
   const objective=targetNow;
