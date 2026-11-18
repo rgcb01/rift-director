@@ -76,3 +76,26 @@ test('squad commitments compare actual arrival and audited fights on 120 paired 
  assert.ok(plans>0,'Expected actual squad commitments');
  assert.equal(issues.length,0,JSON.stringify(issues.slice(0,5)));
 });
+
+test('a credible base tower assault keeps approaching escorts instead of starting a new objective squad',()=>{
+ const {core,nav,state,health,a,b}=setup(),N=core.Navigation;
+ state.lanes[b].MID=2;
+ const target=N.towerNode('red','MID',3);
+ const carries=Object.values(nav.agents).filter(p=>p.teamId===a&&['MID','ADC'].includes(p.role));
+ for(const p of carries)p.node=N.path(target,'upper_river')[1];
+ nav.siegeDecision={teamId:a,stage:2,lane:'MID',wave:1,escorts:carries.map(p=>p.id)};
+ assert.equal(core.SquadCommitment.plan({nav,world:state,minute:24,health})[a],undefined);
+});
+test('mirrored regression pair 46 must finish through the actual Nexus',()=>{
+ const {sim,core}=boot({now:1731111111000});
+ const world=sim.newGame('balanced','QA Mirror 0'),fixtures=Object.values(world.fixtures).flat();
+ const f=fixtures[(46*13)%fixtures.length],seed=809608224;
+ assert.equal(f.b,'c21');assert.equal(f.a,'c45');
+ world.rng=seed;
+ const m=sim.simulateMatch({...f,a:f.b,b:f.a},{simultaneousCombat:true,structureTeamfights:true,coordinatedResets:true,squadCommitment:true,objectiveDiagnostics:true});
+ if(!m.winner)console.log('SQUAD_46_DIAG='+JSON.stringify({tail:m.frames.slice(-12).map(fr=>({minute:fr.minute,siege:fr.siegeDecision,health:fr.health,lanes:fr.laneEconomy.lanes,nexus:fr.siege.hp,orders:fr.navigation.after})),events:m.events.slice(-15).map(e=>({minute:e.minute,action:e.facts?.action,team:e.teamId}))}));
+ assert.ok(m.winner,'No timeout winner permitted');
+ assert.equal(m.events.at(-1)?.facts?.action,'nexus');
+ assert.equal(core.auditMatch(m,world).length,0);
+ assert.equal(core.Navigation.auditNavigation(m,world).length,0);
+});
