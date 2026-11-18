@@ -659,7 +659,7 @@ function advance(nav,t,dead,worldState,context=null){
  nav.minute=t;
  // Decide pressure from the SAME unmodified positions for both sides.
  determineSiege(nav,{...worldState,dead},t,context);
- nav.neutralPlans=core.NeutralObjectives?.plan(nav,worldState,t,context?.health)||null;
+ nav.neutralPlans=core.NeutralObjectives?.plan(nav,worldState,t,context?.health,{earlyPreparation:context?.earlyPreparation===true})||null;
  nav.macroPlans=core.MacroPolicy?.plan(nav,worldState,t,context?.health,dead)||{};
  nav.structureDefense=context?.structureTeamfights===true?core.StructureFormation.plan({nav,world:worldState,minute:t,health:context?.health,dead}):null;
  nav.fightFormations=core.FightFormation?.plan({nav,world:worldState,minute:t,health:context?.health,dead})||{};
