@@ -946,6 +946,12 @@ function nextReplay(){
  if(atEnd){finishMatch();return}
  save();render();
 }
+function nextHighlight(){
+ const l=s?.live;if(!l)return;
+ if(l.finished){const r=RiftCore.MatchReplay.ensure(l);const next=r.list.findIndex((x,i)=>i>r.cursor&&i<=r.progress&&x.event.narrativeVisible!==false);if(next>=0)seekReplay(next);return;}
+ const atEnd=RiftCore.MatchReplay.nextHighlight(l);
+ updateReplayCursor();if(atEnd){finishMatch();return}save();render();
+}
 function tick(){nextReplay()}
 function stopTimer(){if(timer){clearInterval(timer);timer=null}}
 function playTimer(){stopTimer()} // Old saves remain readable, but no interval advances the match.
@@ -1286,7 +1292,7 @@ function renderMatch(){const c=currentClub(),l=s.live;
  scene=selectedEvent?.source==='match'
   ?RiftCore.MatchReplay.eventView(l,selectedEvent.eventIndex):null,
  sceneFrame=scene?.frame||frame,
- visibleEvents=events.filter(step=>replayFilter==='all'||replayEventCategory(step.event)===replayFilter),
+ visibleEvents=events.filter(step=>replayFilter==='full'||(replayFilter==='all'?step.event.narrativeVisible!==false:replayEventCategory(step.event)===replayFilter)),
  goldA=Number(frame.gold?.[a.id]),goldB=Number(frame.gold?.[b.id]),
  goldKnown=Number.isFinite(goldA)&&Number.isFinite(goldB),
  goldDiff=goldKnown?goldA-goldB:0;
@@ -1300,13 +1306,14 @@ function renderMatch(){const c=currentClub(),l=s.live;
  <div class="replay-navigation-track" role="progressbar" aria-label="Jugadas disponibles" aria-valuemin="0" aria-valuemax="${timeline.length}" aria-valuenow="${replay.progress+1}"><span style="width:${(100*(replay.progress+1)/Math.max(1,timeline.length)).toFixed(1)}%"></span></div>
  <div class="buttons replay-navigation-buttons">
  <button class="btn secondary" data-action="replay-prev" ${replay.cursor<=0?'disabled':''}>← Anterior</button>
- <button class="btn" data-action="replay-next" ${replay.cursor>=timeline.length-1?'disabled':''}>${icon('play',14)} Siguiente evento</button>
+ <button class="btn" data-action="replay-next-highlight" ${replay.cursor>=timeline.length-1?'disabled':''}>${icon('play',14)} Siguiente destacado</button>
+ <button class="btn secondary" data-action="replay-next" ${replay.cursor>=timeline.length-1?'disabled':''}>${icon('play',14)} Siguiente evento</button>
  <button class="btn secondary" data-action="replay-latest" ${replay.cursor>=replay.progress?'disabled':''}>Último visto</button>
  <button class="btn ghost" data-action="instant" ${ended?'disabled':''} title="Completar el partido y registrar el resultado">Terminar partida</button>
  ${ended?demoBackup?`<button class="btn secondary small" data-action="demo-replay">Otra partida</button><button class="btn ghost small" data-action="demo-exit">Salir</button>`:
  `<button class="btn ghost small" data-action="leave-match">Volver al club</button>`:''}
  </div>
- <p class="helper replay-navigation-help">Anterior y Último visto solo revisan jugadas observadas. Siguiente evento avanza la simulación cuando estás al día. Terminar partida completa el encuentro y registra el resultado.</p>
+ <p class="helper replay-navigation-help">Anterior y Último visto solo revisan jugadas observadas. Siguiente destacado omite acciones rutinarias; Siguiente evento permite revisarlas una por una. Terminar partida completa el encuentro y registra el resultado.</p>
  ${viewingFinal?`<div class="banner ${l.winner===s.userClub?'':'warn'}" style="margin-top:13px"><strong>${l.winner===s.userClub?'¡VICTORIA!':'Derrota'}</strong> · ${esc(win.name)} destruyó el nexo. Duración: ${frame.minute} minutos. ${demoBackup?'Exhibición terminada: sin cambios en tu partida.':'Los resultados quedaron registrados en las estadísticas y finanzas.'}</div>`:''}</section>
  <section class="panel"><div class="panel-head"><h2>Minimapa táctico</h2><span class="chip">10 profesionales</span></div>
  ${RiftMinimap.render(l,sceneFrame,s,previous?.frame,selectedEvent,scene)}
@@ -1324,7 +1331,7 @@ function renderMatch(){const c=currentClub(),l=s.live;
  <span class="chip">${replay.progress+1}/${timeline.length} momentos</span></div>
  <p class="helper" style="margin:0 0 9px">Toca una jugada para ver exactamente el mapa y el marcador en ese instante. ${l.moments?'Instantáneas por evento.':'Partido antiguo: reconstrucción por minuto.'}</p>
  <div class="replay-filters" role="group" aria-label="Filtrar historial">
- ${[['all','Todos'],['combat','Combates'],['objective','Objetivos'],['analysis','Análisis']].map(([kind,label])=>`<button type="button" class="pill-btn ${replayFilter===kind?'active':''}" data-action="replay-filter" data-kind="${kind}" aria-pressed="${replayFilter===kind}">${label}</button>`).join('')}
+ ${[['all','Destacados'],['full','Registro completo'],['combat','Combates'],['objective','Objetivos'],['analysis','Análisis']].map(([kind,label])=>`<button type="button" class="pill-btn ${replayFilter===kind?'active':''}" data-action="replay-filter" data-kind="${kind}" aria-pressed="${replayFilter===kind}">${label}</button>`).join('')}
  </div>
  <p class="helper replay-filter-count" aria-live="polite">${visibleEvents.length} de ${events.length} jugadas visibles. El filtro no cambia la simulación.</p>
  <div class="eventlog replay-history" id="eventlog">
@@ -1430,7 +1437,7 @@ function handleClick(ev){let target=ev.target.closest('[data-action],[data-nav]'
  if(a==='demo-start'){startDemoMatch();return}
  if(a==='demo-replay'){replayDemoMatch();return}
  if(a==='demo-exit'||(demoBackup&&a==='leave-match')){exitDemoMatch();return}
- if(demoBackup&&!['replay-next','replay-prev','replay-latest','replay-seek','replay-filter','match-toggle-roster','instant'].includes(a))return;
+ if(demoBackup&&!['replay-next-highlight','replay-next','replay-prev','replay-latest','replay-seek','replay-filter','match-toggle-roster','instant'].includes(a))return;
  if(a==='close-backdrop'){if(ev.target===target&&modal?.type!=='crisis'){modal=null;render()}return}
  if(a==='choose-start'){readBrandDraft();draftName=document.getElementById('new-club-name')?.value||draftName;theme=id;render();return}
  if(a==='create'){let name=document.getElementById('new-club-name')?.value.trim().slice(0,32)||'Aurora Esports';readBrandDraft();newGame(theme,name);if(globalThis.RiftBranding){const c=currentClub();c.branding=RiftBranding.identity(c,draftBrand);c.color=c.branding.primaryColor}modal=null;view='home';save();render();return}
@@ -1440,12 +1447,13 @@ function handleClick(ev){let target=ev.target.closest('[data-action],[data-nav]'
  if(!s)return;
  switch(a){case 'plan-minus':updatePlan(target.dataset.kind,-1);break;case 'plan-plus':updatePlan(target.dataset.kind,1);break;
  case 'close-month':closeMonth();break;case 'start':startMatch();break;case 'instant':liveControl(a);break;
+ case 'replay-next-highlight':nextHighlight();break;
  case 'replay-next':liveControl('next');break;
  case 'replay-prev':if(s.live){const r=RiftCore.MatchReplay.ensure(s.live);if(r.cursor>0)seekReplay(r.cursor-1)}break;
  case 'replay-latest':if(s.live){const r=RiftCore.MatchReplay.ensure(s.live);if(r.cursor<r.progress)seekReplay(r.progress)}break;
  case 'replay-seek':seekReplay(Number(target.dataset.index));break;
  case 'replay-filter':
-  if(['all','combat','objective','analysis'].includes(target.dataset.kind)){replayFilter=target.dataset.kind;render()}
+  if(['all','full','combat','objective','analysis'].includes(target.dataset.kind)){replayFilter=target.dataset.kind;render()}
   break;
  case 'match-toggle-roster':matchChampionsOpen=!matchChampionsOpen;render();break;
  case 'reopen-replay':

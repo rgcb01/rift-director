@@ -32,6 +32,7 @@ export function boot(options = {}) {
     vm.runInNewContext(read(path), env, { timeout: 10000, filename: path });
   }
   vm.runInNewContext(read('src/ui/minimap.js'), env, { timeout:10000, filename:'src/ui/minimap.js' });
+  vm.runInNewContext(read('src/core/event-director.js'), env, { timeout:10000, filename:'src/core/event-director.js' });
   vm.runInNewContext(read('src/core/broadcast.js'), env, { timeout:10000, filename:'src/core/broadcast.js' });
   vm.runInNewContext(read('src/core/replay.js'), env, { timeout:10000, filename:'src/core/replay.js' });
   vm.runInNewContext(read('src/ui/item-art.js'), env, { timeout:10000, filename:'src/ui/item-art.js' });

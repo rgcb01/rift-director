@@ -4,6 +4,9 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental — Event Director (current engine)
+- Presentation-only classification: show group initiation, real kills, objectives and decisive events; suppress repeated nonlethal exchanges. Default Destacados, Registro completo, next highlight and next raw event. Preserve raw indices, receipts and RNG. Includes simultaneous and structure teamfights; demo controls remain read-only.
+
 ### Experimental — Structure defense teamfights
 - #68 (93bf9aa) passed 298/298 tests and both 2,200-map gates, including mirror regression 263. Group kills increased from 0.11 to 0.28/map; frequency remained 21.5%. #69 five-member objective expansion passed 300/300 and its gates but reached only 21.4% maps with group fights; no meaningful benefit.
 - Separate opt-in `structureTeamfights:true` adds a visible siege defense reinforcement plan from the pre-movement state. Requires two observed real escorts, a live tower, a favorable attacking wave, three or four healthy reachable non-junglers and affordable lane exits. Preserves base/Nexus priorities.
