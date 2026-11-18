@@ -459,7 +459,7 @@ function simulateMatch(f,options=null){
   return true;
  };
  let teamfightDiagnostic=null,objectiveReadiness=[];
- const nextSnapshot=t=>m.frames.push({minute:t,recall:recallFrame,teamfightDiagnostic,...(options?.objectiveDiagnostics===true?{objectiveReadiness}:{}),...(options?.structureTeamfights===true?{structureDefense:navigation.structureDefense}:{}),fightFormations:navigation.fightFormations||{},kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
+ const nextSnapshot=t=>m.frames.push({minute:t,recall:recallFrame,teamfightDiagnostic,...(options?.objectiveDiagnostics===true?{objectiveReadiness}:{}),...(options?.earlyPreparation===true?{objectivePlans:JSON.parse(JSON.stringify(navigation.neutralPlans||{}))}:{}),...(options?.structureTeamfights===true?{structureDefense:navigation.structureDefense}:{}),fightFormations:navigation.fightFormations||{},kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
   nexusIntegrity:{...m.nexusIntegrity},
   laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
   powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
@@ -485,7 +485,7 @@ function simulateMatch(f,options=null){
    m.gold[c.id]+=earned;
    if(m.baronBuff[c.id]>0)m.baronBuff[c.id]--;
   }
-  nav.advance(navigation,t,m.dead,m,{health,map:m.map,structureTeamfights:options?.structureTeamfights===true});
+  nav.advance(navigation,t,m.dead,m,{health,map:m.map,structureTeamfights:options?.structureTeamfights===true,earlyPreparation:options?.earlyPreparation===true});
   RiftCore.Encounters.recover(health,navigation,m.dead,t);
   const recoveries=RiftCore.ChampionKits.fountainRestore(abilityState,navigation,t);
   const coordination=options?.coordinatedResets===true?{world:m,plans:[]}:null;
