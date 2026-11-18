@@ -29,10 +29,19 @@ function plan({nav,world,minute,health={},dead={}}){
   // A distant siege proposal is not an automatic veto on a live objective.
   if(siege&&siege.wave>=.48&&siege.stage<3){
    const tower=N.towerNode(foe===nav.a?'blue':'red',siege.lane,siege.stage+1);
-   const local=squad.filter(p=>p.alive&&siege.escorts.includes(p.id)&&
-    !unavailable.has(p.intent)&&(health[p.id]??100)>=60&&N.combatRange(p.node,tower,1))
+   // A base tower opens the actual Nexus route. Preserve its credible
+   // approaching escorts, not just those already standing at the tower.
+   const local=squad.filter(p=>p.alive&&(dead[p.id]||0)<=minute&&siege.escorts.includes(p.id)&&
+    !unavailable.has(p.intent)&&(health[p.id]??100)>=60&&
+    (siege.stage===2?N.hops(p.node,tower)<=3:N.combatRange(p.node,tower,1)))
     .sort((a,b)=>N.hops(a.node,tower)-N.hops(b.node,tower)||a.id.localeCompare(b.id));
-   if(local.length>=2)for(const p of local.slice(0,2))protectedIds.add(p.id);
+   if(local.length>=2){
+    // Completing an already opened attack on the last tower has greater
+    // strategic value than a fresh neutral call. Keep the entire existing
+    // reachable assault together; never assign damage or a winner here.
+    if(siege.stage===2)continue;
+    for(const p of local.slice(0,2))protectedIds.add(p.id);
+   }
   }
   for(const p of squad){
    if(nav.structureDefense?.members?.some(m=>m.id===p.id))protectedIds.add(p.id);
