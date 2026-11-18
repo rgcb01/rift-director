@@ -28,10 +28,10 @@ function strategicScore(nav,world,id,health,objective='dragon'){
   clamp(lead/950,-8,8)+clamp(wave,-2,2)*2.4+
   drakeDebt*2+clamp((hp-72)*.13,-7,4);
 }
-function objectiveTarget(nav,world,id,minute){
+function objectiveTarget(nav,world,id,minute,horizon=3){
  const foe=other(nav,id);
- const dragon=minute>=(world.nextDragon??Infinity)-3;
- const baron=minute>=20&&minute>=(world.nextBaron??Infinity)-3;
+ const dragon=minute>=(world.nextDragon??Infinity)-horizon;
+ const baron=minute>=20&&minute>=(world.nextBaron??Infinity)-horizon;
  if(!dragon&&!baron)return null;
  if(!baron)return 'dragon';
  if(!dragon)return 'baron';
@@ -56,7 +56,7 @@ function activeCall(nav,world,minute,health){
  if(!roleWindow&&!baronReady)return false;
  return [nav.a,nav.b].some(id=>objectiveTarget(nav,world,id,minute));
 }
-function plan(nav,world,minute,health){
+function plan(nav,world,minute,health,{earlyPreparation=false}={}){
  if(!nav.neutralCalls)nav.neutralCalls={};
  const out={};
  for(const id of [nav.a,nav.b]){
@@ -68,7 +68,10 @@ function plan(nav,world,minute,health){
   // A stale Dragon commitment/cooldown cannot suppress a newly available
   // Baron. Do not interrupt a live call for minor score fluctuations.
   let existing=nav.neutralCalls[id];
-  const targetNow=objectiveTarget(nav,world,id,minute);
+  const early=earlyPreparation&&minute>=22&&minute<=55&&nav.siegeDecision?.stage!==3&&
+   !Object.values(world.lanes?.[id]||{}).some(s=>s===3);
+  const normalTarget=objectiveTarget(nav,world,id,minute);
+  const targetNow=normalTarget||(early?objectiveTarget(nav,world,id,minute,6):null);
   if(existing&&minute>=22&&targetNow==='baron'&&
      existing.target==='dragon_pit'&&minute>existing.until){
    nav.neutralCalls[id]=null;existing=null;
@@ -79,10 +82,10 @@ function plan(nav,world,minute,health){
   if(existing&&minute<existing.cooldownUntil){
    out[id]={action:'hold',reason:'objective_cooldown',until:minute};continue;
   }
-  if(!activeCall(nav,world,minute,health)){
+  if(!activeCall(nav,world,minute,health)&&!(early&&targetNow)){
    out[id]={action:'hold',reason:'no_dragon_opportunity',until:minute};continue;
   }
-  const objective=objectiveTarget(nav,world,id,minute);
+  const objective=targetNow;
   if(!objective){out[id]={action:'hold',reason:'objective_not_ready',until:minute};continue}
   const foe=other(nav,id),score=strategicScore(nav,world,id,health,objective);
   const hpJ=healthy(nav,health,id,'JUN'),hpS=healthy(nav,health,id,'SUP');
@@ -102,7 +105,9 @@ function plan(nav,world,minute,health){
     p.alive&&['JUN','SUP'].includes(p.role));
   const travel=escorts.length===2?Math.max(...escorts.map(p=>
    core.Navigation.hops(p.node,target))):3;
-  const commitment=objective==='baron'?clamp(travel+2,3,6):3;
+  const spawn=objective==='dragon'?world.nextDragon:world.nextBaron;
+  const lead=spawn-minute,preparing=early&&lead>=4&&lead<=6;
+  const commitment=preparing?lead+2:objective==='baron'?clamp(travel+2,3,6):3;
   const call={action,reason:objective+'_'+action,target,
    targetSpawn:objective==='dragon'?world.nextDragon:world.nextBaron,
    score:+score.toFixed(2),
@@ -134,6 +139,24 @@ function plan(nav,world,minute,health){
     call.until=minute+duration;
     call.cooldownUntil=minute+(objective==='baron'?duration+3:12);
    }
+  }
+  if(preparing){
+   // Preparation is an actual squad commitment, not a timer-only call.
+   // Do not replace an active siege, send an injured escort or abandon a
+   // valuable side wave merely because a future objective will spawn.
+   const N=core.Navigation,side=id===nav.a?'blue':'red';
+   const readyEscorts=escorts.length===2&&escorts.every(p=>
+    (health?.[p.id]??100)>=65&&!['retreat','recall_channel','recall_recover','shop_recall','siege_return'].includes(p.intent)&&
+    (p.role!=='JUN'||N.jungleAllowed(side,p.node))&&N.hops(p.node,target)<=lead);
+   const siege=nav.siegeDecision?.teamId===id&&nav.siegeDecision.wave>=.48&&nav.siegeDecision.travel<=4&&nav.siegeDecision.escorts.length>=2;
+   const members=(call.reinforcementIds||[]).filter(pid=>{
+    const p=nav.agents[pid];return p&&!['recall_channel','recall_recover','shop_recall','siege_return'].includes(p.intent)&&N.hops(p.node,target)<=lead;
+   });
+   if(!['take','contest'].includes(action)||siege||!readyEscorts||!members.length){
+    out[id]={action:'hold',reason:'preparation_unavailable',until:minute};continue;
+   }
+   call.reinforcementIds=members;call.until=spawn+2;call.cooldownUntil=spawn+3;
+   call.preparation={version:1,lead,escortIds:escorts.map(p=>p.id),reinforcementIds:[...members]};
   }
   nav.neutralCalls[id]=call;
   out[id]=call;
