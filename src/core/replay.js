@@ -65,6 +65,15 @@ function next(match){
  match.replayProgress=Math.max(progress,target);
  return target===list.length-1;
 }
+function nextHighlight(match){
+ const {list,cursor,progress}=ensure(match);
+ if(!list.length)return false;
+ const nextIndex=list.findIndex((step,i)=>i>cursor&&step.event.narrativeVisible!==false);
+ const target=nextIndex<0?list.length-1:nextIndex;
+ match.replayCursor=target;
+ match.replayProgress=Math.max(progress,target);
+ return target===list.length-1;
+}
 function complete(match){
  const list=timeline(match);
  if(!list.length)return false;
@@ -143,5 +152,5 @@ function auditMoments(match,world){
  }catch(error){faults.push('Error al auditar la jugada: '+error.message);}
  return faults;
 }
-core.MatchReplay=Object.freeze({attachReplay,timeline,ensure,seek,next,complete,eventView,auditMoments});
+core.MatchReplay=Object.freeze({attachReplay,timeline,ensure,seek,next,nextHighlight,complete,eventView,auditMoments});
 })(globalThis);
