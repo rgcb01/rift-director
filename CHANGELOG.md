@@ -4,6 +4,11 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental — Observable teamfight initiation
+- #74 initial candidate improved standard group-fight games 23.9%→34.7%, fights/map 0.27→0.44 and group kills/map 0.32→0.56, but failed mirrored pair 46 (seed 809608224, reversed orientation). Parent revision protects a viable base-tower assault and tests the exact regression; not yet verified.
+- Optional `engagePolicy:true` evaluates each reachable group using existing sight model, own HP, visible rival HP/numbers, own control and ultimate availability, role composition, risk/communication, incoming allied reinforcements and active objective calls. One side must choose engage or contest to initiate an ordinary group fight; otherwise no group engagement is selected. Other existing combat paths remain unchanged. Poke/wait/disengage are intentions only, not movement or separate attack mechanics. Enemy cooldown memory and full independent decision-input audit remain pending.
+- Shadow `engageDiagnostics:true` keeps original selection and raw sporting events; records decisions and score evidence. Benchmark counts withheld opportunities and action categories. Three tests including 30 shadow comparisons and 120 paired authoritative maps; independent 2,200-map experimental gate. Results pending.
+
 ### Experimental — Coherent objective squad allocation
 - #72 validated 315/315 and both 2,200-map gates; merged with default policy unchanged. #73 early preparation validated 318/318 but only 24.1% maps with group fights vs 23.9%, unchanged 146 ready-arrival samples in 120 paired maps; closed without merging.
 - Opt-in `squadCommitment:true` selects a reachable JUN/SUP and one or two lane reinforcements for an actual take/contest call from the common pre-movement snapshot. Prioritizes the chosen squad over discretionary shopping and old reset routes; protects critical recovery, open Nexus paths, strong split waves, assigned structure defenders and two physically present escorts of an actionable siege. Real travel, no objective timer or combat changes. Records commitments and audits identities, initial health, positions and actual orders; complete independent policy reconstruction remains pending.
