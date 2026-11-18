@@ -182,7 +182,7 @@ function summarizeGroupScan(scan){
  return {best,nearBoth:rows.some(x=>x.near.every(n=>n>=3)),
   reachableBoth:rows.some(x=>x.reachable.every(n=>n>=3))};
 }
-function groupOpportunity({nav,dead,minute,players,health,seed,world,powerState=null,previous=-10,scan=null}){
+function groupOpportunity({nav,dead,minute,players,health,seed,world,powerState=null,previous=-10,scan=null,abilityState=null,engagePolicy=false,engageDecisions=null}){
  if(minute-previous<3)return null;
  const choices=[];
  for(const entry of scan||groupScan({nav,dead,minute,health,world})){
@@ -193,9 +193,14 @@ function groupOpportunity({nav,dead,minute,players,health,seed,world,powerState=
    ps.reduce((n,p)=>n+power(players[p.id],powerState,'attack')*.65+(health[p.id]??100)*.35,0);
   const edge=strength(a)-strength(b);
   const initiative=edge+(hash(seed,minute,zone,'group-initiative')%31-15);
-  const firstTeam=initiative>=0?nav.a:nav.b;
-  choices.push({zone,firstTeam,groups:{[nav.a]:a.map(p=>p.id),
-   [nav.b]:b.map(p=>p.id)},score:a.length+b.length+((zone==='dragon_pit'&&minute>=world.nextDragon||zone==='baron_pit'&&minute>=world.nextBaron)?2:0)});
+  let firstTeam=initiative>=0?nav.a:nav.b;
+  const group={zone,groups:{[nav.a]:a.map(p=>p.id),[nav.b]:b.map(p=>p.id)}};
+  if(engageDecisions){
+   const decision=core.EngagePolicy.evaluate({nav,group,minute,players,health,powerState,abilityState,world});
+   engageDecisions.push(decision);
+   if(engagePolicy){if(!decision.firstTeam)continue;firstTeam=decision.firstTeam;}
+  }
+  choices.push({zone,firstTeam,groups:group.groups,score:a.length+b.length+((zone==='dragon_pit'&&minute>=world.nextDragon||zone==='baron_pit'&&minute>=world.nextBaron)?2:0)});
  }
  return choices.sort((x,y)=>y.score-x.score||x.zone.localeCompare(y.zone))[0]||null;
 }
