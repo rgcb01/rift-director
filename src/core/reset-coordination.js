@@ -62,7 +62,7 @@ function admit(input){
 function build({nav,world,minute,team,health,choices}){
  const N=core.Navigation,side=team===nav.a?'blue':'red',fountain=side+'_fountain';
  const call=nav.neutralPlans?.[team];
- const required=new Set([...(call?.reinforcementIds||[]),...(nav.fightFormations?.[team]?.members||[]).map(p=>p.id)]);
+ const required=new Set([...(call?.reinforcementIds||[]),...(nav.fightFormations?.[team]?.members||[]).map(p=>p.id),...(nav.squadCommitments?.[team]?.members||[]).map(p=>p.id)]);
  const players=Object.values(nav.agents).filter(p=>p.teamId===team).map(p=>{
   const x=choices.find(x=>x.a.id===p.id),lane=p.role==='ADC'||p.role==='SUP'?'BOT':p.role;
   const inField=p.node!==fountain&&p.node!==side+'_nexus'&&p.intent!=='shop_recall';
