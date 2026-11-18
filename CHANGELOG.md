@@ -4,6 +4,10 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental — Early objective preparation
+- #72 validated 310/310 tests, both 2,200-map gates, no blockers. 23.9% group-fight maps versus #70 24.0%; 129 recalls, 72 holds, 16 emergencies and no bot pairs in 120-map sample. Readiness metrics identify no calls 4–6 minutes before spawn; 83% of live-objective team-minutes have three ready players, but only 2.7% Dragon / 5.6% Baron have three ready physically present.
+- Opt-in `earlyPreparation:true` considers an actual upcoming neutral spawn up to six minutes ahead (midgame only), after existing near/live objective priorities. Requires healthy JUN/SUP and at least one affordable reachable lane reinforcement; preserves strong siege and exposed-base commitments, no early trade or changed spawn. Commitment lasts to spawn +2; original capture and movement requirements remain. Three tests include 120 paired maps and readiness/teamfight comparison. Independent 2,200-map gate runs all experimental options. Results pending.
+
 ### Experimental — Recall route regression and objective readiness diagnostics
 - Prior #72 failed 36/1,000 standard simulations on illegal restricted jungle return paths. Reject unreachable destinations without changing movement permissions; test exact seed 1446723853 and illegal corridor admission.
 - Read-only preparation evidence from six minutes before each real objective through live availability: active call, assigned members, physical presence, health/resources, resets, diverted assignments. Benchmark aggregates by target and time window. Compare against the existing default without changing play. No new objective scheduling policy yet; measure the actual formation bottleneck first.
