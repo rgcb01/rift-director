@@ -3,7 +3,7 @@
 // other nine champion picks and match seed fixed.
 import {boot} from '../tests/harness.mjs';
 const ROLES=['TOP','JUN','MID','ADC','SUP'];
-export function runChampionMatchups({pairsPerRole=20,simultaneousCombat=false,structureTeamfights=false,coordinatedResets=false,squadCommitment=false,engagePolicy=false,skirmishReinforcements=false,neutralHp=false}={}){
+export function runChampionMatchups({pairsPerRole=20,simultaneousCombat=false,structureTeamfights=false,coordinatedResets=false,squadCommitment=false,engagePolicy=false,skirmishReinforcements=false,neutralHp=false,shotcaller=false}={}){
  if(!Number.isInteger(pairsPerRole)||pairsPerRole<1)throw Error('Invalid pair count');
  const cases=[],failures=[];
  const rows=[];
@@ -26,7 +26,7 @@ export function runChampionMatchups({pairsPerRole=20,simultaneousCombat=false,st
     const row=totals[championId]??={games:0,wins:0,kills:0,deaths:0,assists:0,casts:0,level:0};
     try{
      world.rng=seed;
-     const m=sim.simulateMatch(f,{draft:{[professional]:championId},simultaneousCombat,structureTeamfights,coordinatedResets,squadCommitment,engagePolicy,skirmishReinforcements,neutralHp});
+     const m=sim.simulateMatch(f,{draft:{[professional]:championId},simultaneousCombat,structureTeamfights,coordinatedResets,squadCommitment,engagePolicy,skirmishReinforcements,neutralHp,shotcaller});
      const end=m.frames.at(-1),p=end.powerEconomy.entries[professional],stats=end.playerStats[professional];
      const errors=[...core.auditMatch(m,world),...core.Navigation.auditNavigation(m,world),
       ...core.PowerEconomy.audit(m),...core.NexusSiege.audit(m),

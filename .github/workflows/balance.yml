@@ -107,7 +107,7 @@ jobs:
 
   simultaneous:
     name: Combate simultáneo — 2200 mapas experimentales
-    if: github.event_name == 'pull_request' && (github.head_ref == 'experiment/alpha-0719g-simultaneous-combat' || github.head_ref == 'experiment/alpha-0719g-structure-teamfights' || github.head_ref == 'experiment/alpha-0719d-coordinated-live' || github.head_ref == 'experiment/alpha-0719h-squad-commitment' || github.head_ref == 'experiment/alpha-0719h-engage-policy' || github.head_ref == 'experiment/alpha-0719h-skirmish-reinforcements' || github.head_ref == 'experiment/alpha-0721a-neutral-hp')
+    if: github.event_name == 'pull_request' && (github.head_ref == 'experiment/alpha-0719g-simultaneous-combat' || github.head_ref == 'experiment/alpha-0719g-structure-teamfights' || github.head_ref == 'experiment/alpha-0719d-coordinated-live' || github.head_ref == 'experiment/alpha-0719h-squad-commitment' || github.head_ref == 'experiment/alpha-0719h-engage-policy' || github.head_ref == 'experiment/alpha-0719h-skirmish-reinforcements' || github.head_ref == 'experiment/alpha-0721a-neutral-hp' || github.head_ref == 'experiment/alpha-0719j-shotcaller')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -124,6 +124,7 @@ jobs:
           if [[ "$GITHUB_HEAD_REF" == 'experiment/alpha-0719h-engage-policy' ]]; then extra='--structure-teamfights --coordinated-resets --squad-commitment --engage-policy'; fi
           if [[ "$GITHUB_HEAD_REF" == 'experiment/alpha-0719h-skirmish-reinforcements' ]]; then extra='--structure-teamfights --coordinated-resets --squad-commitment --engage-policy --skirmish-reinforcements'; fi
           if [[ "$GITHUB_HEAD_REF" == 'experiment/alpha-0721a-neutral-hp' ]]; then extra='--structure-teamfights --coordinated-resets --squad-commitment --engage-policy --skirmish-reinforcements --neutral-hp'; fi
+          if [[ "$GITHUB_HEAD_REF" == 'experiment/alpha-0719j-shotcaller' ]]; then extra='--structure-teamfights --coordinated-resets --squad-commitment --engage-policy --skirmish-reinforcements --neutral-hp --shotcaller'; fi
           node benchmarks/run.mjs 0.7.19-simultaneous .simultaneous-output --simultaneous $extra
       - name: Adjuntar resultados independientes
         if: always()
