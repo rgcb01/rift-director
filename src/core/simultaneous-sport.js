@@ -62,7 +62,7 @@ function preview({group,nav,health,abilityState,sport,minute,maxWindows=4}){
  }));
  const at=Math.max(minute*60+36,...ids.map(id=>(abilityState.entries[id]?.lastAt||0)+1));
  if(at+5>(minute+1)*60)return null;
- let state=core.SimultaneousFight.create({id:minute+':'+group.zone,at,players});
+ let state=core.SimultaneousFight.create({id:group.encounter?.id||minute+':'+group.zone,at,players,minPerTeam:group.encounter?2:3});
  const initial={state,abilityState:core.ChampionKits.snapshot(abilityState),sport:copySport(sport)};
  let kits=initial.abilityState,ledger=initial.sport,focusByTeam={};const receipts=[];
  for(let i=0;i<Math.min(4,maxWindows)&&state.at+5<=(minute+1)*60;i++){
@@ -80,7 +80,7 @@ function preview({group,nav,health,abilityState,sport,minute,maxWindows=4}){
    (focusByTeam[team]??=[]).push(a.targetId);
   }
  }
- return {version:1,minute,zone:group.zone,initial,receipts,final:{state,abilityState:kits,sport:ledger}};
+ return {version:1,minute,zone:group.zone,...(group.encounter?{encounter:group.encounter}:{}),initial,receipts,final:{state,abilityState:kits,sport:ledger}};
 }
 function auditPreview(p){
  let {state,abilityState,sport}=p.initial,focusByTeam={};const errors=[];
@@ -117,16 +117,16 @@ function eventFacts(p,group,order=null){
  const ids=Object.keys(p.initial.state.players);
  return {action:'simultaneous_fight',simultaneousVersion:1,actorId:group.groups[group.firstTeam][0],
   participantIds:ids,victimIds:awards.map(a=>a.victimId),node:p.zone,
-  groupFight:{version:4,id:p.initial.state.id,zone:p.zone,round:1,firstTeam:group.firstTeam,groups:group.groups},
+  ...(!p.encounter||core.PersistentEncounter.large(group)?{groupFight:{version:4,id:p.initial.state.id,zone:p.zone,round:p.encounter?.groupRound||1,firstTeam:group.firstTeam,groups:group.groups}}:{}),
   simultaneous:p,conversionVersion:1,conversion:order?{...order,sourceVictims:[...order.sourceVictims],allowed:[...order.allowed]}:null};
 }
 function auditEvent(match,index){
  const e=match.events[index],f=e.facts,p=f.simultaneous,m=match.moments[index];
  try{
   if(f.simultaneousVersion!==1||p.minute!==e.minute||p.zone!==f.node||
-     f.groupFight.firstTeam!==e.teamId||!p.receipts.length||p.receipts.length>4)
+     (p.encounter||f.groupFight)?.firstTeam!==e.teamId||!p.receipts.length||p.receipts.length>4)
    throw Error('Invalid simultaneous event header');
-  const expected=eventFacts(p,f.groupFight,f.conversion||null);
+  const expected=eventFacts(p,p.encounter||f.groupFight,f.conversion||null);
   if(JSON.stringify(expected)!==JSON.stringify(f))throw Error('Invalid simultaneous event facts');
   const errs=auditPreview(p);if(errs.length)return errs;
   const prior=match.moments[index-1],pre=prior?.minute===e.minute?prior.navigation.after:m.navigation.before;

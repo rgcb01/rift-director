@@ -36,7 +36,7 @@ function createBroadcast(match,world,seed) {
   if(f.action==='simultaneous_fight'){
    const awards=f.simultaneous.receipts.flatMap(r=>r.awards);
    const body=name(a)+' '+awards.filter(x=>x.teamId===a).length+' bajas · '+name(b)+' '+awards.filter(x=>x.teamId===b).length+' bajas. '+awards.map(x=>who(x.killerId)+' elimina a '+who(x.victimId)).join('; ');
-   entries=[['¡Teamfight simultánea!',body]];
+   entries=[[f.simultaneous.encounter?(f.groupFight?'¡La pelea escala a teamfight!':'Escaramuza en curso'):'¡Teamfight simultánea!',body]];
   }else if(f.combatVersion===1){
    const target=who(f.targetId),k=(f.victimIds||[]).length;
    const arena=f.mode==='gank'?'la emboscada de '+laneLabel[f.lane]:

@@ -44,12 +44,12 @@ function select(feed){
   const key=[event.source==='insight'?event.topic:f.action,event.teamId,f.lane,
    f.action==='item_purchase'?f.actorId:null].join('|');
   const prior=last.get(key)??-Infinity;
-  const groupId=f.groupFight?.id;
+  const groupId=f.simultaneous?.encounter?.id||f.groupFight?.id;
   const repeatedGroup=groupId&&seenGroups.has(groupId);
   if(groupId)seenGroups.add(groupId);
   // Keep the first engagement and every real kill; suppress subsequent
   // nonlethal exchanges of the same fight without looking ahead.
-  const visible=(!repeatedGroup||count(f.victimIds)>0||importance===LEVEL.decisive)&&(importance>=LEVEL.major||
+  const visible=(!repeatedGroup||count(f.victimIds)>0||importance===LEVEL.decisive||f.simultaneous?.encounter&&f.groupFight?.round===1)&&(importance>=LEVEL.major||
    importance===LEVEL.tactical&&event.minute-prior>=3);
   if(visible)last.set(key,event.minute);
   return {...event,importance,narrativeVisible:visible};
