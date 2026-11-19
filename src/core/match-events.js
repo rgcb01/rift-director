@@ -439,6 +439,7 @@
     if(core.ResetRouting?.audit)for(const err of core.ResetRouting.audit(match))fail(err);
     if(core.StructureFormation?.audit)for(const err of core.StructureFormation.audit(match))fail(err);
     if(core.SquadCommitment?.audit)for(const err of core.SquadCommitment.audit(match))fail(err);
+    if(core.EngagePolicy?.audit)for(const err of core.EngagePolicy.audit(match))fail(err);
     validateRows(match.playerStats,'final');
     const teamTotal = { [a]:0,[b]:0 }, deaths = { [a]:0,[b]:0 };
     for (const [id,row] of Object.entries(stats)) {

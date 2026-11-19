@@ -3,11 +3,13 @@
  * Historical matches without diagnostics are not counted as zero.
  */
 export function diagnoseTeamfights(match){
- const result={sampledMinutes:0,noFormation:0,noContact:0,lostBeforeGroup:0,cooldown:0,selected:0,unexplained:0,formations:{},rounds:{},zones:{}};
+ const result={sampledMinutes:0,noFormation:0,noContact:0,lostBeforeGroup:0,cooldown:0,selected:0,withheld:0,unexplained:0,engageActions:{},formations:{},rounds:{},zones:{}};
  for(const f of match.frames||[]){
   const d=f.teamfightDiagnostic;if(!d||f.minute<14)continue;
   result.sampledMinutes++;
+  for(const r of f.engageDecisions||[])for(const d of r.decisions)result.engageActions[d.action]=(result.engageActions[d.action]||0)+1;
   if(d.selected)result.selected++;
+  else if(d.withheld)result.withheld++;
   else if(d.after.reachableBoth&&d.cooldown)result.cooldown++;
   else if(d.before.reachableBoth&&!d.after.reachableBoth)result.lostBeforeGroup++;
   else if(!d.after.nearBoth)result.noFormation++;
@@ -29,7 +31,7 @@ export function diagnoseTeamfights(match){
  return result;
 }
 export function aggregateTeamfights(rows){
- const out={sampledMinutes:0,noFormation:0,noContact:0,lostBeforeGroup:0,cooldown:0,selected:0,unexplained:0,formations:{},rounds:{},zones:{}};
+ const out={sampledMinutes:0,noFormation:0,noContact:0,lostBeforeGroup:0,cooldown:0,selected:0,withheld:0,unexplained:0,engageActions:{},formations:{},rounds:{},zones:{}};
  for(const r of rows){
   if(!r)continue;
   for(const k of Object.keys(out)){

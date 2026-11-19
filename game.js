@@ -458,8 +458,8 @@ function simulateMatch(f,options=null){
   }
   return true;
  };
- let teamfightDiagnostic=null,objectiveReadiness=[];
- const nextSnapshot=t=>m.frames.push({minute:t,recall:recallFrame,teamfightDiagnostic,...(options?.objectiveDiagnostics===true?{objectiveReadiness}:{}),...(options?.squadCommitment===true?{squadCommitments:navigation.squadCommitments||{}}:{}),...(options?.structureTeamfights===true?{structureDefense:navigation.structureDefense}:{}),fightFormations:navigation.fightFormations||{},kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
+ let teamfightDiagnostic=null,objectiveReadiness=[],engageDecisions=[];
+ const nextSnapshot=t=>m.frames.push({minute:t,recall:recallFrame,teamfightDiagnostic,...((options?.engagePolicy===true||options?.engageDiagnostics===true)?{engageDecisions}:{}),...(options?.objectiveDiagnostics===true?{objectiveReadiness}:{}),...(options?.squadCommitment===true?{squadCommitments:navigation.squadCommitments||{}}:{}),...(options?.structureTeamfights===true?{structureDefense:navigation.structureDefense}:{}),fightFormations:navigation.fightFormations||{},kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
   nexusIntegrity:{...m.nexusIntegrity},
   laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
   powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
@@ -614,13 +614,16 @@ function simulateMatch(f,options=null){
   // after death or while fleeing, and no victory roll grants free kills.
   const rosterForFight=Object.fromEntries([...aP,...bP].map(p=>[p.id,p]));
   const afterGroupScan=RiftCore.Encounters.groupScan(groupInput);
+  engageDecisions=[];
   const group=RiftCore.Encounters.groupOpportunity({
    nav:navigation,dead:m.dead,minute:t,players:rosterForFight,
    health,seed:commentarySeed,world:m,powerState:powerEconomy,
-   previous:lastGroupFight,scan:afterGroupScan
+   previous:lastGroupFight,scan:afterGroupScan,abilityState,
+   engagePolicy:options?.engagePolicy===true,
+   engageDecisions:options?.engagePolicy===true||options?.engageDiagnostics===true?engageDecisions:null
   });
   teamfightDiagnostic={before:beforeGroupScan,after:RiftCore.Encounters.summarizeGroupScan(afterGroupScan),
-   cooldown:t-lastGroupFight<3,selected:group?.zone||null};
+   cooldown:t-lastGroupFight<3,selected:group?.zone||null,...(options?.engagePolicy===true?{withheld:!group&&engageDecisions.length>0}: {})};
   if(group){
    if(simultaneousPilot){
     const sample=RiftCore.SimultaneousSport.preview({group,nav:navigation,health,abilityState,minute:t,
