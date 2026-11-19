@@ -38,11 +38,11 @@ function pick({nav,world,minute,scan,players,health,powerState,abilityState,cont
 }
 function audit(match){
  const errors=[],seen=new Map();
- for(const e of match.events||[]){
+ for(const [index,e] of (match.events||[]).entries()){
   const p=e.facts?.simultaneous,x=p?.encounter;if(!x)continue;
-  const prev=seen.get(x.id),ids=Object.values(x.groups).flat(),isLarge=large(x);
+  const previous=seen.get(x.id),prev=previous?.p,ids=Object.values(x.groups).flat(),isLarge=large(x);
   const teams=[match.fixture.a,match.fixture.b];
-  if(x.version!==1||x.id!==x.started+':'+x.zone||x.minute!==e.minute||x.zone!==p.zone||
+  if(x.version!==1||x.id!==x.started+':'+x.zone||x.minute!==e.minute||x.zone!==p.zone||p.initial.state.id!==x.id||p.receipts.length>2||
      x.spawn>x.minute||x.minute-x.started>=MAX_MINUTES||x.slice<1||x.slice>MAX_MINUTES||
      !teams.includes(x.firstTeam)||x.firstTeam!==e.teamId||teams.some(t=>!x.groups[t]||x.groups[t].length<2||x.groups[t].length>5)||
      new Set(ids).size!==ids.length||JSON.stringify(ids)!==JSON.stringify(Object.keys(p.initial.state.players))||
@@ -52,9 +52,10 @@ function audit(match){
   if(JSON.stringify(joined)!==JSON.stringify(x.joinedIds)||x.groupRound!==(prev?.encounter.groupRound||0)+Number(isLarge)||
      (!prev&&(x.slice!==1||x.started!==e.minute||isLarge))||
      (prev&&(x.slice!==prev.encounter.slice+1||e.minute!==prev.minute+1||x.spawn!==prev.encounter.spawn||
+      match.events.slice(previous.index+1,index).some(ev=>ev.facts?.action===(x.zone==='dragon_pit'?'dragon':'baron'))||
       teams.some(t=>!x.groups[t].some(id=>prev.encounter.groups[t].includes(id)&&prev.final.state.players[id]?.alive)))))
    errors.push('Invalid persistent encounter continuity '+e.minute);
-  seen.set(x.id,p);
+  seen.set(x.id,{p,index});
  }
  return errors;
 }
