@@ -3,10 +3,17 @@
  * Historical matches without diagnostics are not counted as zero.
  */
 export function diagnoseTeamfights(match){
- const result={sampledMinutes:0,noFormation:0,noContact:0,lostBeforeGroup:0,cooldown:0,selected:0,withheld:0,unexplained:0,engageActions:{},formations:{},rounds:{},zones:{}};
+ const result={sampledMinutes:0,noFormation:0,noContact:0,lostBeforeGroup:0,cooldown:0,selected:0,withheld:0,unexplained:0,engageActions:{},reinforcementPlans:0,reinforcementOrders:0,reinforcementArrivals:0,reinforcementGroupFights:0,formations:{},rounds:{},zones:{}};
  for(const f of match.frames||[]){
   const d=f.teamfightDiagnostic;if(!d||f.minute<14)continue;
   result.sampledMinutes++;
+  for(const p of Object.values(f.skirmishReinforcements||{})){
+   result.reinforcementPlans++;
+   result.reinforcementOrders+=p.recruits.length;
+   const present=[...p.stayingIds,...p.recruits.map(r=>r.id)].filter(id=>{const a=f.navigation.before[id];return a?.alive&&a.node===p.target;});
+   if(present.length>=3)result.reinforcementArrivals++;
+   if(match.events.some(e=>e.minute===f.minute&&e.facts?.groupFight?.zone===p.target&&e.facts.groupFight.groups[p.teamId]?.some(id=>p.recruits.some(r=>r.id===id))))result.reinforcementGroupFights++;
+  }
   for(const r of f.engageDecisions||[])for(const d of r.decisions)result.engageActions[d.action]=(result.engageActions[d.action]||0)+1;
   if(d.selected)result.selected++;
   else if(d.withheld)result.withheld++;
@@ -31,7 +38,7 @@ export function diagnoseTeamfights(match){
  return result;
 }
 export function aggregateTeamfights(rows){
- const out={sampledMinutes:0,noFormation:0,noContact:0,lostBeforeGroup:0,cooldown:0,selected:0,withheld:0,unexplained:0,engageActions:{},formations:{},rounds:{},zones:{}};
+ const out={sampledMinutes:0,noFormation:0,noContact:0,lostBeforeGroup:0,cooldown:0,selected:0,withheld:0,unexplained:0,engageActions:{},reinforcementPlans:0,reinforcementOrders:0,reinforcementArrivals:0,reinforcementGroupFights:0,formations:{},rounds:{},zones:{}};
  for(const r of rows){
   if(!r)continue;
   for(const k of Object.keys(out)){
