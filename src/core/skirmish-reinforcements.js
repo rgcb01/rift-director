@@ -29,7 +29,9 @@ function plan({nav,world,minute,health={},dead={}}){
   if(Object.values(world.lanes?.[teamId]||{}).some(s=>s===3))continue;
   const side=teamId===nav.a?'blue':'red';
   const own=Object.values(nav.agents).filter(p=>p.teamId===teamId);
-  const live=p=>p.alive&&(dead[p.id]||0)<=minute&&!unavailable.has(p.intent)&&(health[p.id]??0)>=60&&
+  const live=p=>p.alive&&(dead[p.id]||0)<=minute&&!unavailable.has(p.intent)&&
+   !(p.retreatGoal&&p.node!==p.retreatGoal&&(p.retreatUntil||0)>=minute)&&
+   (p.role!=='JUN'||N.jungleAllowed(side,p.node))&&(health[p.id]??0)>=60&&
    ![side+'_fountain',side+'_nexus'].includes(p.node);
   const siege=nav.siegeDecision?.teamId===teamId?nav.siegeDecision:null;
   if(siege&&siege.wave>=.48&&siege.escorts.length>=2&&siege.travel<=4)continue;
@@ -40,14 +42,15 @@ function plan({nav,world,minute,health={},dead={}}){
    const call=nav.neutralPlans?.[teamId];
    if(['take','contest'].includes(call?.action)&&call.target!==target&&call.until>=minute)continue;
    const witnessed=event.teamId===teamId?f.participantIds:[f.targetId,...(f.opponentIds||[])];
-   const anchors=own.filter(p=>witnessed.includes(p.id)&&live(p)&&N.combatRange(p.node,target,2));
-   if(!anchors.length)continue;
+   const witnesses=own.filter(p=>witnessed.includes(p.id)&&live(p)&&N.combatRange(p.node,target,2));
+   if(!witnesses.length)continue;
    // Each anchor must still observe at least one enemy in direct local
    // combat range. No information about distant enemy health/cooldowns.
    const rivals=Object.values(nav.agents).filter(p=>p.teamId!==teamId&&p.alive&&
     (dead[p.id]||0)<=minute&&!unavailable.has(p.intent)&&N.combatRange(p.node,target,2)&&
-    anchors.some(q=>N.combatRange(q.node,p.node,1)));
-   if(!rivals.length)continue;
+    witnesses.some(q=>N.combatRange(q.node,p.node,1)));
+   const anchors=witnesses.filter(q=>rivals.some(p=>N.combatRange(q.node,p.node,1)));
+   if(!anchors.length)continue;
    const local=own.filter(p=>live(p)&&N.combatRange(p.node,target,2));
    if(local.length>=3)continue;
    const protectedIds=new Set([...(siege?.escorts||[]),...(nav.structureDefense?.members||[]).map(m=>m.id)]);
@@ -60,7 +63,7 @@ function plan({nav,world,minute,health={},dead={}}){
     if(p.role==='JUN'&&!N.jungleAllowed(side,p.node))continue;
     let hops;try{hops=N.path(p.node,target,p.role==='JUN'?n=>N.jungleAllowed(side,n):undefined).length-1;}
     catch(e){if(String(e.message).startsWith('Disconnected navigation graph'))continue;throw e;}
-    if(hops>2)continue;
+    if(hops>3)continue;
     candidates.push({id:p.id,role:p.role,node:p.node,hp:health[p.id],wave,hops});
    }
    candidates.sort((a,b)=>a.hops-b.hops||b.hp-a.hp||a.id.localeCompare(b.id));
@@ -99,7 +102,7 @@ function audit(match){
    for(const r of p.recruits){
     const before=prev.navigation.after[r.id],after=fr.navigation.before[r.id];
     if(!before?.alive||before.teamId!==p.teamId||before.node!==r.node||
-     prev.health[r.id]!==r.hp||r.hp<60||r.hops>2||
+     prev.health[r.id]!==r.hp||r.hp<60||r.hops>3||
      !after?.alive||after.goal!==p.target&&after.intent!=='recall_channel')
       errors.push('Invalid skirmish reinforcement route '+fr.minute+' '+r.id);
    }
