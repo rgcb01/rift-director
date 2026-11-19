@@ -13,7 +13,8 @@ const engagePolicy=process.argv.includes('--engage-policy');
 const skirmishReinforcements=process.argv.includes('--skirmish-reinforcements');
 const neutralHp=process.argv.includes('--neutral-hp');
 const shotcaller=process.argv.includes('--shotcaller');
-const options=simultaneousCombat?{simultaneousCombat:true,structureTeamfights,coordinatedResets,squadCommitment,engagePolicy,skirmishReinforcements,neutralHp,shotcaller,engageDiagnostics:true,objectiveDiagnostics:true}:{objectiveDiagnostics:true};
+const dynamicFormations=process.argv.includes('--dynamic-formations');
+const options=simultaneousCombat?{simultaneousCombat:true,structureTeamfights,coordinatedResets,squadCommitment,engagePolicy,skirmishReinforcements,neutralHp,shotcaller,dynamicFormations,engageDiagnostics:true,objectiveDiagnostics:true}:{objectiveDiagnostics:true};
 console.log('[combat-mode] '+(simultaneousCombat?'simultaneous':'default'));
 mkdirSync(output,{recursive:true});
 const started=Date.now();
@@ -40,7 +41,7 @@ console.log('[champion-matchups] '+JSON.stringify({validPairs:championMatchups.v
  requestedPairs:championMatchups.requestedPairs,failures:championMatchups.failures,
  rows:championMatchups.rows}));
 const result={schema:1,version,createdAt:new Date().toISOString(),
-  benchmarkRevision:'fixed-seed-1000-v1',combatMode:simultaneousCombat?'simultaneous':'default',structureTeamfights,coordinatedResets,squadCommitment,engagePolicy,skirmishReinforcements,neutralHp,shotcaller,durationMs:Date.now()-started,standard,mirror,
+  benchmarkRevision:'fixed-seed-1000-v1',combatMode:simultaneousCombat?'simultaneous':'default',structureTeamfights,coordinatedResets,squadCommitment,engagePolicy,skirmishReinforcements,neutralHp,shotcaller,dynamicFormations,durationMs:Date.now()-started,standard,mirror,
   championMatchups:{...championMatchups,cases:undefined}};
 writeFileSync(output+'/summary.json',JSON.stringify(result,null,2)+'\n');
 console.log('[balance] output '+output+'/summary.json');

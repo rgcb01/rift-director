@@ -4,6 +4,9 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental — Dynamic formations (0.7.19K)
+- Optional dynamicFormations with shotcaller selects 5-0, 4-1 or 1-3-1 with all five actual members allocated, legal paths, observed threats, positive side waves, lane vision, health and mana. JUN uses river nodes, side laners use physical TOP/BOT positions. Priorities and fallback unchanged. Independent full gate and 120 paired maps plus synthetic coverage; no forced fights or free progress. Stacked on #80 pending validation; 3-2, group defense extension, proactive resets and full decision reconstruction pending.
+
 ### Experimental — Shotcaller mid control (0.7.19J)
 - #78 neutral HP validated and merged. Independent pilot shotcaller:true chooses a 3–4 member central control or contest squad after actual tower progress, when a credible mid wave or visible enemy formation exists. Shared pre-movement snapshot, legal jungle river goals, wave/HP/mana constraints, 3-minute commitment plus cooldown. Preserve live objectives, credible siege, open Nexus, structure defense, retreat and existing counterpressure. No force-fight or free resources. Route and assignment audit, two tests including 120 paired maps; independent 2,200-map gate with neutral HP. Default gameplay unchanged. Full 4–1/1–3–1, exact independent decision reconstruction and proactive resets pending.
 
