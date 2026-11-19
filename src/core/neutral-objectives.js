@@ -280,9 +280,9 @@ function auditPreparation(match){
      errors.push('Invalid preparation member '+f.minute+' '+m.id);
    }
   }
-  for(const a of Object.values(f.navigation.before||{}))if(a.reason==='objective_prepare'&&
-   !f.objectivePreparation?.[a.teamId]?.members.some(m=>m.id===a.id&&m.depart))
-    errors.push('Unassigned objective preparation '+f.minute+' '+a.id);
+  for(const [id,a] of Object.entries(f.navigation.before||{}))if(a.alive&&a.reason==='objective_prepare'&&
+   !f.objectivePreparation?.[a.teamId]?.members.some(m=>m.id===id&&m.depart))
+    errors.push('Unassigned objective preparation '+f.minute+' '+id);
  }
  return errors;
 }
