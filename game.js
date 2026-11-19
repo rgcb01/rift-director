@@ -165,6 +165,8 @@ function simulateMatch(f,options=null){
  m.abilityState=abilityState;
  const navigation=RiftCore.Navigation.createNavigation(all,teams,commentarySeed);
  const nexusSiege=RiftCore.NexusSiege.create(a.id,b.id);
+ const neutralHp=options?.neutralHp===true?RiftCore.NeutralHealth.create():null;
+ let neutralReceipts=[];
  const health=RiftCore.Encounters.create([...aP,...bP]);
  const lastSkirmish={};
  const simultaneousPilot=options?.simultaneousPilot===true?[]:null;
@@ -459,7 +461,7 @@ function simulateMatch(f,options=null){
   return true;
  };
  let teamfightDiagnostic=null,objectiveReadiness=[],engageDecisions=[];
- const nextSnapshot=t=>m.frames.push({minute:t,recall:recallFrame,teamfightDiagnostic,...((options?.engagePolicy===true||options?.engageDiagnostics===true)?{engageDecisions}:{}),...(options?.objectiveDiagnostics===true?{objectiveReadiness}:{}),...(options?.squadCommitment===true?{squadCommitments:navigation.squadCommitments||{}}:{}),...(options?.skirmishReinforcements===true?{skirmishReinforcements:navigation.skirmishReinforcements||{}}:{}),...(options?.structureTeamfights===true?{structureDefense:navigation.structureDefense}:{}),fightFormations:navigation.fightFormations||{},kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
+ const nextSnapshot=t=>m.frames.push({minute:t,...(neutralHp?{neutralHp:{state:RiftCore.NeutralHealth.snapshot(neutralHp),receipts:neutralReceipts}}:{}),recall:recallFrame,teamfightDiagnostic,...((options?.engagePolicy===true||options?.engageDiagnostics===true)?{engageDecisions}:{}),...(options?.objectiveDiagnostics===true?{objectiveReadiness}:{}),...(options?.squadCommitment===true?{squadCommitments:navigation.squadCommitments||{}}:{}),...(options?.skirmishReinforcements===true?{skirmishReinforcements:navigation.skirmishReinforcements||{}}:{}),...(options?.structureTeamfights===true?{structureDefense:navigation.structureDefense}:{}),fightFormations:navigation.fightFormations||{},kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
   nexusIntegrity:{...m.nexusIntegrity},
   laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
   powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
@@ -478,6 +480,7 @@ function simulateMatch(f,options=null){
  let lastCounterFight=-10,lastGroupFight=-10;
  for(let t=1;t<=76&&!m.winner;t++){
   m.minute=t;
+  neutralReceipts=[];
   const teamIncome={};
   for(const c of all){
    const earned=ri(790,1080)+Math.round((balance(c,t)-65)*2);
@@ -713,7 +716,21 @@ function simulateMatch(f,options=null){
   // The Dragon is earned at the actual pit, not by a scheduled owner roll.
   // Teams choose objective/contest/trade before moving; either can fail to
   // arrive, and a lone enemy JUN can attempt a physically valid Smite steal.
-  if(t>=m.nextDragon){
+  const tickNeutral=kind=>{
+   const eventIndex=m.events.length;
+   const players=RiftCore.NeutralHealth.observe({kind,nav:navigation,dead:m.dead,health,powerState:powerEconomy,minute:t});
+   const result=RiftCore.NeutralHealth.step({state:neutralHp,kind,minute:t,players});
+   Object.assign(neutralHp,result.state);neutralReceipts.push({eventIndex,receipt:result.receipt});
+   const c=result.receipt.capture;if(!c)return;
+   const owner=club(c.teamId),actor=player(c.actorId),dragon=kind==='dragon',label=dragon?'Dragón':'Barón';
+   if(dragon){m.dragons[owner.id]++;m.gold[owner.id]+=230;m.nextDragon=neutralHp.monsters.dragon.spawn;}
+   else{m.barons[owner.id]++;m.gold[owner.id]+=450;m.baronBuff[owner.id]=5;m.nextBaron=neutralHp.monsters.baron.spawn;}
+   makeEv(t,c.stolen?'¡ROBO DE '+label.toUpperCase()+'!':label+' asegurado',actor.name+' asegura '+label+' con el golpe final.','goal',owner,
+    {action:kind,objectiveVersion:3,actorId:c.actorId,participantIds:c.participantIds,node:kind+'_pit',
+     ...(dragon?{ordinal:m.dragons[owner.id]}:{}),stolen:c.stolen,smite:c.smite,smiteBy:c.smite?c.actorId:null,initiatorTeamId:c.initiatorTeamId});
+  };
+  if(neutralHp&&t>=m.nextDragon)tickNeutral('dragon');
+  if(!neutralHp&&t>=m.nextDragon){
    const candidates=RiftCore.NeutralObjectives.captureCandidates(
      navigation,m.dead,t,health,(id,node)=>positioned(club(id),node),m);
    const eligible=candidates.filter(x=>x.eligible);
@@ -805,7 +822,8 @@ function simulateMatch(f,options=null){
     }
    }
   }
-  if(t>=m.nextBaron&&chance(.64)){
+  if(neutralHp&&t>=m.nextBaron)tickNeutral('baron');
+  if(!neutralHp&&t>=m.nextBaron&&chance(.64)){
    const proposed=decide(a,b,t),eligible=all.filter(c=>positioned(c,'baron_pit').length>=2);
    const initiator=eligible.includes(proposed)?proposed:eligible.find(c=>c.id!==proposed.id);
    if(initiator){
@@ -883,6 +901,7 @@ function simulateMatch(f,options=null){
   nextSnapshot(t)
  }
  const report={recallVersion:1,abilityState:RiftCore.ChampionKits.snapshot(abilityState),champions,fixture:{a:f.a,b:f.b,round:f.round,playoff:!!f.playoff},frames:m.frames,events:m.events,moments:m.moments,health:{...health},powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),shutdowns:RiftCore.Shutdowns.snapshot(shutdowns),playerStats:RiftCore.clonePlayerStats(playerStats),elapsed:0,speed:1,running:true,committed:false,winner:m.winner,finished:false};
+ if(neutralHp)report.neutralHpVersion=1;
  if(simultaneousPilot)report.simultaneousPilot=simultaneousPilot;
  if(options?.simultaneousCombat===true)report.simultaneousCombatVersion=1;
  RiftCore.attachMinimap(report,s);RiftCore.attachBroadcast(report,s,commentarySeed);

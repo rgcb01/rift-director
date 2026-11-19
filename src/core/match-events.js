@@ -441,6 +441,7 @@
     if(core.SquadCommitment?.audit)for(const err of core.SquadCommitment.audit(match))fail(err);
     if(core.EngagePolicy?.audit)for(const err of core.EngagePolicy.audit(match))fail(err);
     if(core.SkirmishReinforcements?.audit)for(const err of core.SkirmishReinforcements.audit(match))fail(err);
+    if(core.NeutralHealth?.audit)for(const err of core.NeutralHealth.audit(match))fail(err);
     validateRows(match.playerStats,'final');
     const teamTotal = { [a]:0,[b]:0 }, deaths = { [a]:0,[b]:0 };
     for (const [id,row] of Object.entries(stats)) {

@@ -21,6 +21,7 @@ export function runStandard(options={}) {
   const tacticReasons={};const issues=[], worldStats=[];
   let audited=0, auditFailures=0;
   const objectiveReadiness={};
+  const neutralHealth={dragon:{ticks:0,attackTicks:0,packets:0,resetHp:0,captures:0,smite:0,steals:0,contestedTicks:0},baron:{ticks:0,attackTicks:0,packets:0,resetHp:0,captures:0,smite:0,steals:0,contestedTicks:0}};
   for(let batch=0;batch<10;batch++){
     const {sim,core}=boot({now:1731111111000+batch*41241211});
     const world=sim.newGame('balanced','QA Balance '+batch);
@@ -43,6 +44,10 @@ export function runStandard(options={}) {
           bucket.assignedReadyPresent3+=Number(r.members.filter(p=>p.assigned&&p.ready&&p.present).length>=3);
           bucket.resetting+=r.members.filter(p=>p.resetting).length;
           bucket.divertedAssigned+=r.members.filter(p=>p.assigned&&p.goal!==r.target&&!p.present).length;
+        }
+        for(const fr of m.frames)for(const {receipt:r} of fr.neutralHp?.receipts||[]){
+          const b=neutralHealth[r.kind];b.ticks++;b.attackTicks+=Number(r.packets.length>0);b.packets+=r.packets.length;b.resetHp+=r.reset;
+          b.captures+=Number(Boolean(r.capture));b.smite+=Number(Boolean(r.capture?.smite));b.steals+=Number(Boolean(r.capture?.stolen));b.contestedTicks+=Number(new Set(r.players.map(p=>p.teamId)).size===2);
         }
         const f=m.frames.at(-1);
         if(!f){issues.push({i,seed,error:'No final frame'});continue}
@@ -261,7 +266,7 @@ export function runStandard(options={}) {
       towersAvg:+avg(rows.map(r=>r.towers)).toFixed(2),baronSteals:sum(rows,'baronSteals'),
       gamesWithoutDragon:rows.filter(r=>r.dragons===0).length,
       gamesWithoutBaron:rows.filter(r=>r.barons===0).length},
-    teamfightDiagnostics:aggregateTeamfights(rows.map(r=>r.teamfightDiagnostics)),objectiveReadiness,
+    teamfightDiagnostics:aggregateTeamfights(rows.map(r=>r.teamfightDiagnostics)),objectiveReadiness,neutralHealth,
     gameplay:{meanEvents:+avg(rows.map(r=>r.events)).toFixed(2),
       zeroKills:rows.filter(r=>r.totalKills===0).length,
       earlyTowerMatches:rows.filter(r=>r.firstTowerMinute!==null&&r.firstTowerMinute<36).length,

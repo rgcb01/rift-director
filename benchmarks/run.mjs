@@ -11,7 +11,8 @@ const coordinatedResets=process.argv.includes('--coordinated-resets');
 const squadCommitment=process.argv.includes('--squad-commitment');
 const engagePolicy=process.argv.includes('--engage-policy');
 const skirmishReinforcements=process.argv.includes('--skirmish-reinforcements');
-const options=simultaneousCombat?{simultaneousCombat:true,structureTeamfights,coordinatedResets,squadCommitment,engagePolicy,skirmishReinforcements,engageDiagnostics:true,objectiveDiagnostics:true}:{objectiveDiagnostics:true};
+const neutralHp=process.argv.includes('--neutral-hp');
+const options=simultaneousCombat?{simultaneousCombat:true,structureTeamfights,coordinatedResets,squadCommitment,engagePolicy,skirmishReinforcements,neutralHp,engageDiagnostics:true,objectiveDiagnostics:true}:{objectiveDiagnostics:true};
 console.log('[combat-mode] '+(simultaneousCombat?'simultaneous':'default'));
 mkdirSync(output,{recursive:true});
 const started=Date.now();
@@ -27,6 +28,7 @@ console.log('[group-fights] '+JSON.stringify({
 }));
 console.log('[teamfight-diagnostics] '+JSON.stringify(standard.teamfightDiagnostics));
 console.log('[objective-readiness] '+JSON.stringify(standard.objectiveReadiness));
+console.log('[neutral-health] '+JSON.stringify(standard.neutralHealth));
 if(standard.issueSamples?.length)
  console.error('[standard-failures] '+JSON.stringify(standard.issueSamples));
 const mirror=runMirror(options);
@@ -37,7 +39,7 @@ console.log('[champion-matchups] '+JSON.stringify({validPairs:championMatchups.v
  requestedPairs:championMatchups.requestedPairs,failures:championMatchups.failures,
  rows:championMatchups.rows}));
 const result={schema:1,version,createdAt:new Date().toISOString(),
-  benchmarkRevision:'fixed-seed-1000-v1',combatMode:simultaneousCombat?'simultaneous':'default',structureTeamfights,coordinatedResets,squadCommitment,engagePolicy,skirmishReinforcements,durationMs:Date.now()-started,standard,mirror,
+  benchmarkRevision:'fixed-seed-1000-v1',combatMode:simultaneousCombat?'simultaneous':'default',structureTeamfights,coordinatedResets,squadCommitment,engagePolicy,skirmishReinforcements,neutralHp,durationMs:Date.now()-started,standard,mirror,
   championMatchups:{...championMatchups,cases:undefined}};
 writeFileSync(output+'/summary.json',JSON.stringify(result,null,2)+'\n');
 console.log('[balance] output '+output+'/summary.json');
