@@ -3,10 +3,26 @@
  * Historical matches without diagnostics are not counted as zero.
  */
 export function diagnoseTeamfights(match){
- const result={sampledMinutes:0,noFormation:0,noContact:0,lostBeforeGroup:0,cooldown:0,selected:0,withheld:0,unexplained:0,engageActions:{},reinforcementPlans:0,reinforcementOrders:0,reinforcementArrivals:0,reinforcementGroupFights:0,formations:{},rounds:{},zones:{}};
+ const result={sampledMinutes:0,noFormation:0,noContact:0,lostBeforeGroup:0,cooldown:0,selected:0,withheld:0,unexplained:0,engageActions:{},reinforcementPlans:0,reinforcementOrders:0,reinforcementArrivals:0,reinforcementGroupFights:0,preparationPlans:0,preparationOrders:0,preparationStaged3:0,preparedSpawns:0,preparedSpawnsReady3:0,formations:{},rounds:{},zones:{}};
+ const prepared=new Map();
  for(const f of match.frames||[]){
   const d=f.teamfightDiagnostic;if(!d||f.minute<14)continue;
   result.sampledMinutes++;
+  for(const p of Object.values(f.objectivePreparation||{})){
+   result.preparationPlans++;
+   const actual=p.members.map(m=>f.navigation.before[m.id]);
+   result.preparationOrders+=actual.filter(a=>a?.reason==='objective_prepare').length;
+   if(actual.every(a=>a?.alive&&a.node===p.staging))result.preparationStaged3++;
+   prepared.set(p.teamId+':'+p.target+':'+p.spawn,p);
+  }
+  for(const row of f.objectiveReadiness||[]){
+   if(row.lead!==0)continue;
+   const key=row.teamId+':'+row.target+':'+row.spawn,p=prepared.get(key);
+   if(!p)continue;
+   result.preparedSpawns++;
+   if(p.members.every(m=>row.members.some(a=>a.id===m.id&&a.ready&&a.present)))result.preparedSpawnsReady3++;
+   prepared.delete(key);
+  }
   for(const p of Object.values(f.skirmishReinforcements||{})){
    result.reinforcementPlans++;
    result.reinforcementOrders+=p.recruits.length;
@@ -38,7 +54,7 @@ export function diagnoseTeamfights(match){
  return result;
 }
 export function aggregateTeamfights(rows){
- const out={sampledMinutes:0,noFormation:0,noContact:0,lostBeforeGroup:0,cooldown:0,selected:0,withheld:0,unexplained:0,engageActions:{},reinforcementPlans:0,reinforcementOrders:0,reinforcementArrivals:0,reinforcementGroupFights:0,formations:{},rounds:{},zones:{}};
+ const out={sampledMinutes:0,noFormation:0,noContact:0,lostBeforeGroup:0,cooldown:0,selected:0,withheld:0,unexplained:0,engageActions:{},reinforcementPlans:0,reinforcementOrders:0,reinforcementArrivals:0,reinforcementGroupFights:0,preparationPlans:0,preparationOrders:0,preparationStaged3:0,preparedSpawns:0,preparedSpawnsReady3:0,formations:{},rounds:{},zones:{}};
  for(const r of rows){
   if(!r)continue;
   for(const k of Object.keys(out)){
