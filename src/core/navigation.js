@@ -422,6 +422,9 @@ function chooseGoal(nav,agent,t,worldState,context=null){
   return {goal:rally.goal,intent:'siege',lane:rally.lane,
    reason:'regroup_after_repulse',decisionVersion:2};
 
+ const squadOrder=core.SquadCommitment?.movement(nav,agent,t);
+ if(squadOrder)return squadOrder;
+
  // An affordable power spike can justify physically returning to base.
  // A single professional per squad may recall; there is no teleport/instant buy.
  if(worldState.powerEconomy&&
@@ -663,6 +666,7 @@ function advance(nav,t,dead,worldState,context=null){
  nav.macroPlans=core.MacroPolicy?.plan(nav,worldState,t,context?.health,dead)||{};
  nav.structureDefense=context?.structureTeamfights===true?core.StructureFormation.plan({nav,world:worldState,minute:t,health:context?.health,dead}):null;
  nav.fightFormations=core.FightFormation?.plan({nav,world:worldState,minute:t,health:context?.health,dead})||{};
+ nav.squadCommitments=context?.squadCommitment===true?core.SquadCommitment.plan({nav,world:worldState,minute:t,health:context?.health,dead}):{};
  // All tactics inspect the same initial positions (no turn-order advantage).
  const positions=Object.fromEntries(Object.entries(nav.agents).map(([id,a])=>
   [id,{id:a.id,node:a.node,teamId:a.teamId,role:a.role,
@@ -689,7 +693,7 @@ function advance(nav,t,dead,worldState,context=null){
   const baseline=escaping?null:chooseGoal(nav,agent,t,worldState,context);
   const departure=agent.intent==='recall_recover'&&agent.node===fountain;
   const resetArgs={nav,agent,minute:t,world:worldState,health:context?.health,baseline};
-  const route=escaping?null:departure?core.ResetRouting?.choose(resetArgs):
+  const route=escaping||core.SquadCommitment?.movement(nav,agent,t)?null:departure?core.ResetRouting?.choose(resetArgs):
     core.ResetRouting?.continuation({...resetArgs,route:agent.resetRoute});
   agent.resetRoute=route||null;
   const plan=escaping?{goal:agent.retreatGoal,intent:'retreat',reason:'damage_retreat'}:

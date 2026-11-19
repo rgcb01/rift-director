@@ -4,6 +4,11 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental — Coherent objective squad allocation
+- #72 validated 315/315 and both 2,200-map gates; merged with default policy unchanged. #73 early preparation validated 318/318 but only 24.1% maps with group fights vs 23.9%, unchanged 146 ready-arrival samples in 120 paired maps; closed without merging.
+- Opt-in `squadCommitment:true` selects a reachable JUN/SUP and one or two lane reinforcements for an actual take/contest call from the common pre-movement snapshot. Prioritizes the chosen squad over discretionary shopping and old reset routes; protects critical recovery, open Nexus paths, strong split waves, assigned structure defenders and two physically present escorts of an actionable siege. Real travel, no objective timer or combat changes. Records commitments and audits identities, initial health, positions and actual orders; complete independent policy reconstruction remains pending.
+- Three tests, 120 paired maps, independent 2,200-map gate. Measure actual arrivals, orders, teamfights and all blockers before acceptance.
+
 ### Experimental — Coordinated recalls and readiness
 - #72 validated 310/310 and both 2,200-map gates after rejecting unreachable restricted jungle paths; 23.9% group-fight maps versus #70 24.0%. Optional coordinated recalls remain disabled by default. Emergency safe recalls, field budget and independent recall receipts; full independent planning-input reconstruction still pending.
 - Read-only readiness diagnostics expose actual calls, assigned players, resources, presence and diverted assignments by objective lead time. No calls 4–6 minutes before spawn in the measured benchmark. Reconciled with merged Event Director #71; rerun gates before merging.
