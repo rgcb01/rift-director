@@ -567,6 +567,9 @@ function chooseGoal(nav,agent,t,worldState,context=null){
  // Earned farm, wave pressure and optional MID rotation compete for the
  // same professional's travel time. No outcome is assigned by this order.
  const resourceChoice=core.MacroPolicy?.movement(nav,agent,t);
+ if(resourceChoice?.intent==='defend'||resourceChoice?.reason==='macro_defend')return resourceChoice;
+ const staging=core.NeutralObjectives?.preparationMovement(nav,agent,t);
+ if(staging)return staging;
  if(resourceChoice)return resourceChoice;
 
  // The strategic plan was evaluated once from a common pre-movement
@@ -670,6 +673,7 @@ function advance(nav,t,dead,worldState,context=null){
  nav.fightFormations=core.FightFormation?.plan({nav,world:worldState,minute:t,health:context?.health,dead})||{};
  nav.squadCommitments=context?.squadCommitment===true?core.SquadCommitment.plan({nav,world:worldState,minute:t,health:context?.health,dead}):{};
  nav.skirmishReinforcements=context?.skirmishReinforcements===true?core.SkirmishReinforcements.plan({nav,world:worldState,minute:t,health:context?.health,dead}):{};
+ nav.objectivePreparation=context?.objectivePreparation===true?core.NeutralObjectives.preparation({nav,world:worldState,minute:t,health:context.health,dead,abilityState:context.abilityState}):{};
  // All tactics inspect the same initial positions (no turn-order advantage).
  const positions=Object.fromEntries(Object.entries(nav.agents).map(([id,a])=>
   [id,{id:a.id,node:a.node,teamId:a.teamId,role:a.role,
