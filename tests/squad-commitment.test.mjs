@@ -105,7 +105,7 @@ test('shotcaller forms an affordable central group only with real map incentives
  state.lanes[b].TOP=1;state.gold={[a]:20000,[b]:20000};
  state.map.lanes={MID:{vision:{[a]:80,[b]:80}}};
  nav.neutralPlans={};
- for(const p of Object.values(nav.agents))p.node=p.role==='JUN'?'upper_river':'mid_center';
+ for(const p of Object.values(nav.agents))p.node=p.teamId===b&&p.role==='TOP'?'red_top_base':p.role==='JUN'?'upper_river':'mid_center';
  const run=()=>S.shotcaller({nav,world:state,minute:24,health});
  const before=JSON.stringify(nav),p=run()[a];
  assert.ok(p);assert.equal(p.action,'contest_mid');assert.equal(p.members.length,4);assert.equal(JSON.stringify(nav),before);
