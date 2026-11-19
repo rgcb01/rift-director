@@ -461,7 +461,7 @@ function simulateMatch(f,options=null){
   return true;
  };
  let teamfightDiagnostic=null,objectiveReadiness=[],engageDecisions=[];
- const nextSnapshot=t=>m.frames.push({minute:t,...(neutralHp?{neutralHp:{state:RiftCore.NeutralHealth.snapshot(neutralHp),receipts:neutralReceipts}}:{}),recall:recallFrame,teamfightDiagnostic,...((options?.engagePolicy===true||options?.engageDiagnostics===true)?{engageDecisions}:{}),...(options?.objectiveDiagnostics===true?{objectiveReadiness}:{}),...(options?.squadCommitment===true?{squadCommitments:navigation.squadCommitments||{}}:{}),...(options?.skirmishReinforcements===true?{skirmishReinforcements:navigation.skirmishReinforcements||{}}:{}),...(options?.structureTeamfights===true?{structureDefense:navigation.structureDefense}:{}),fightFormations:navigation.fightFormations||{},kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
+ const nextSnapshot=t=>m.frames.push({minute:t,...(neutralHp?{neutralHp:{state:RiftCore.NeutralHealth.snapshot(neutralHp),receipts:neutralReceipts}}:{}),recall:recallFrame,teamfightDiagnostic,...(options?.shotcaller===true?{shotcallerPlans:navigation.shotcallerPlans||{}}:{}),...((options?.engagePolicy===true||options?.engageDiagnostics===true)?{engageDecisions}:{}),...(options?.objectiveDiagnostics===true?{objectiveReadiness}:{}),...(options?.squadCommitment===true?{squadCommitments:navigation.squadCommitments||{}}:{}),...(options?.skirmishReinforcements===true?{skirmishReinforcements:navigation.skirmishReinforcements||{}}:{}),...(options?.structureTeamfights===true?{structureDefense:navigation.structureDefense}:{}),fightFormations:navigation.fightFormations||{},kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
   nexusIntegrity:{...m.nexusIntegrity},
   laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
   powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
@@ -488,7 +488,7 @@ function simulateMatch(f,options=null){
    m.gold[c.id]+=earned;
    if(m.baronBuff[c.id]>0)m.baronBuff[c.id]--;
   }
-  nav.advance(navigation,t,m.dead,m,{health,map:m.map,structureTeamfights:options?.structureTeamfights===true,squadCommitment:options?.squadCommitment===true,skirmishReinforcements:options?.skirmishReinforcements===true});
+  nav.advance(navigation,t,m.dead,m,{health,map:m.map,structureTeamfights:options?.structureTeamfights===true,squadCommitment:options?.squadCommitment===true,skirmishReinforcements:options?.skirmishReinforcements===true,shotcaller:options?.shotcaller===true,abilityState});
   RiftCore.Encounters.recover(health,navigation,m.dead,t);
   const recoveries=RiftCore.ChampionKits.fountainRestore(abilityState,navigation,t);
   const coordination=options?.coordinatedResets===true?{world:m,plans:[]}:null;

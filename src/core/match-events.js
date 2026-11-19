@@ -439,6 +439,7 @@
     if(core.ResetRouting?.audit)for(const err of core.ResetRouting.audit(match))fail(err);
     if(core.StructureFormation?.audit)for(const err of core.StructureFormation.audit(match))fail(err);
     if(core.SquadCommitment?.audit)for(const err of core.SquadCommitment.audit(match))fail(err);
+    if(core.SquadCommitment?.auditShotcaller)for(const err of core.SquadCommitment.auditShotcaller(match))fail(err);
     if(core.EngagePolicy?.audit)for(const err of core.EngagePolicy.audit(match))fail(err);
     if(core.SkirmishReinforcements?.audit)for(const err of core.SkirmishReinforcements.audit(match))fail(err);
     if(core.NeutralHealth?.audit)for(const err of core.NeutralHealth.audit(match))fail(err);

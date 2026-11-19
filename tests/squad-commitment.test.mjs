@@ -99,3 +99,48 @@ test('mirrored regression pair 46 must finish through the actual Nexus',()=>{
  assert.equal(core.auditMatch(m,world).length,0);
  assert.equal(core.Navigation.auditNavigation(m,world).length,0);
 });
+
+test('shotcaller forms an affordable central group only with real map incentives',()=>{
+ const {core,nav,state,health,a,b}=setup(),S=core.SquadCommitment;
+ state.lanes[b].TOP=1;state.gold={[a]:20000,[b]:20000};
+ state.map.lanes={MID:{vision:{[a]:80,[b]:80}}};
+ nav.neutralPlans={};
+ for(const p of Object.values(nav.agents))p.node=p.role==='JUN'?'upper_river':'mid_center';
+ const run=()=>S.shotcaller({nav,world:state,minute:24,health});
+ const before=JSON.stringify(nav),p=run()[a];
+ assert.ok(p);assert.equal(p.action,'contest_mid');assert.equal(p.members.length,4);assert.equal(JSON.stringify(nav),before);
+ nav.shotcallerPlans=run();
+ for(const m of p.members)assert.equal(S.shotMovement(nav,nav.agents[m.id],24).goal,m.goal);
+ nav.neutralPlans={[a]:{action:'contest',target:'baron_pit',until:27}};assert.equal(run()[a],undefined);nav.neutralPlans={};
+ state.lanes[b].TOP=3;assert.equal(run()[a],undefined);state.lanes[b].TOP=1;
+ nav.siegeDecision={stage:2,teamId:b};assert.equal(run()[a],undefined);nav.siegeDecision=null;
+ const sup=Object.values(nav.agents).find(p=>p.teamId===a&&p.role==='SUP');health[sup.id]=40;assert.equal(run()[a],undefined);health[sup.id]=100;
+ nav.shotcallerMemory={[a]:{created:21,until:23,cooldownUntil:26,memberIds:p.members.map(m=>m.id)}};assert.equal(run()[a],undefined);
+});
+test('shotcaller compares real arrivals and fight frequency on 120 paired maps',()=>{
+ let plans=0,orders=0,arrivals=0,baseFights=0,fights=0,issues=[];
+ for(let batch=0;batch<3;batch++){
+  const {core,sim}=boot({now:1731111111000+batch*41241211});
+  const world=sim.newGame('balanced','QA Balance '+batch),fixtures=Object.values(world.fixtures).flat();
+  const opts={simultaneousCombat:true,structureTeamfights:true,coordinatedResets:true,squadCommitment:true,engagePolicy:true,skirmishReinforcements:true,neutralHp:true};
+  for(let i=0;i<40;i++){
+   const f=fixtures[(i*13+batch*7)%fixtures.length],seed=(Math.imul(i+1,2654435761)^Math.imul(batch+1,1013904223))>>>0;
+   try{
+    world.rng=seed;const base=sim.simulateMatch(f,opts);
+    world.rng=seed;const m=sim.simulateMatch(f,{...opts,shotcaller:true});
+    baseFights+=base.events.filter(e=>e.facts?.groupFight?.round===1).length;
+    fights+=m.events.filter(e=>e.facts?.groupFight?.round===1).length;
+    for(const fr of m.frames)for(const p of Object.values(fr.shotcallerPlans||{})){
+     plans++;orders+=p.members.filter(m=>fr.navigation.before[m.id]?.reason?.startsWith('shotcaller_')).length;
+     if(p.members.filter(m=>fr.navigation.before[m.id]?.alive&&fr.navigation.before[m.id].node===m.goal).length>=3)arrivals++;
+    }
+    const errors=[...core.auditMatch(m,world),...core.Navigation.auditNavigation(m,world),...core.NeutralHealth.audit(m),
+     ...core.ChampionKits.audit(m),...core.PowerEconomy.audit(m),...core.MatchReplay.auditMoments(m,world),...core.auditMinimap(m,world),...core.auditBroadcast(m,world)];
+    if(!m.winner||errors.length)issues.push({batch,i,seed,errors:errors.slice(0,5)});
+   }catch(e){issues.push({batch,i,seed,error:String(e.stack||e).slice(0,650)});}
+  }
+ }
+ console.log('SHOTCALLER='+JSON.stringify({maps:120,plans,orders,arrivals,baseFights,fights,issues:issues.slice(0,5)}));
+ assert.ok(plans>0,'Expected real team plans');assert.ok(orders>0,'Expected physical orders');
+ assert.equal(issues.length,0,JSON.stringify(issues.slice(0,5)));
+});

@@ -567,6 +567,9 @@ function chooseGoal(nav,agent,t,worldState,context=null){
  // Earned farm, wave pressure and optional MID rotation compete for the
  // same professional's travel time. No outcome is assigned by this order.
  const resourceChoice=core.MacroPolicy?.movement(nav,agent,t);
+ if(resourceChoice?.reason==='macro_defend')return resourceChoice;
+ const shot=core.SquadCommitment?.shotMovement(nav,agent,t);
+ if(shot)return shot;
  if(resourceChoice)return resourceChoice;
 
  // The strategic plan was evaluated once from a common pre-movement
@@ -670,6 +673,8 @@ function advance(nav,t,dead,worldState,context=null){
  nav.fightFormations=core.FightFormation?.plan({nav,world:worldState,minute:t,health:context?.health,dead})||{};
  nav.squadCommitments=context?.squadCommitment===true?core.SquadCommitment.plan({nav,world:worldState,minute:t,health:context?.health,dead}):{};
  nav.skirmishReinforcements=context?.skirmishReinforcements===true?core.SkirmishReinforcements.plan({nav,world:worldState,minute:t,health:context?.health,dead}):{};
+ nav.shotcallerPlans=context?.shotcaller===true?core.SquadCommitment.shotcaller({nav,world:worldState,minute:t,health:context.health,dead,abilityState:context.abilityState}):{};
+ if(context?.shotcaller===true){nav.shotcallerMemory??={};for(const p of Object.values(nav.shotcallerPlans))nav.shotcallerMemory[p.teamId]={created:p.created,until:p.until,cooldownUntil:p.cooldownUntil,memberIds:p.members.map(m=>m.id)};}
  // All tactics inspect the same initial positions (no turn-order advantage).
  const positions=Object.fromEntries(Object.entries(nav.agents).map(([id,a])=>
   [id,{id:a.id,node:a.node,teamId:a.teamId,role:a.role,
