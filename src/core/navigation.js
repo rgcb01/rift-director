@@ -673,7 +673,7 @@ function advance(nav,t,dead,worldState,context=null){
  nav.fightFormations=core.FightFormation?.plan({nav,world:worldState,minute:t,health:context?.health,dead})||{};
  nav.squadCommitments=context?.squadCommitment===true?core.SquadCommitment.plan({nav,world:worldState,minute:t,health:context?.health,dead}):{};
  nav.skirmishReinforcements=context?.skirmishReinforcements===true?core.SkirmishReinforcements.plan({nav,world:worldState,minute:t,health:context?.health,dead}):{};
- nav.shotcallerPlans=context?.shotcaller===true?core.SquadCommitment.shotcaller({nav,world:worldState,minute:t,health:context.health,dead,abilityState:context.abilityState}):{};
+ nav.shotcallerPlans=context?.shotcaller===true?core.SquadCommitment.shotcaller({nav,world:worldState,minute:t,health:context.health,dead,abilityState:context.abilityState,dynamicFormations:context.dynamicFormations===true}):{};
  if(context?.shotcaller===true){nav.shotcallerMemory??={};for(const p of Object.values(nav.shotcallerPlans))nav.shotcallerMemory[p.teamId]={created:p.created,until:p.until,cooldownUntil:p.cooldownUntil,memberIds:p.members.map(m=>m.id)};}
  // All tactics inspect the same initial positions (no turn-order advantage).
  const positions=Object.fromEntries(Object.entries(nav.agents).map(([id,a])=>

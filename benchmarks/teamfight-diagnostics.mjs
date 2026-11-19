@@ -3,7 +3,7 @@
  * Historical matches without diagnostics are not counted as zero.
  */
 export function diagnoseTeamfights(match){
- const result={sampledMinutes:0,noFormation:0,noContact:0,lostBeforeGroup:0,cooldown:0,selected:0,withheld:0,unexplained:0,engageActions:{},reinforcementPlans:0,reinforcementOrders:0,reinforcementArrivals:0,reinforcementGroupFights:0,shotcallerPlans:0,shotcallerOrders:0,shotcallerArrived3:0,shotcallerGroupFights:0,shotcallerActions:{},formations:{},rounds:{},zones:{}};
+ const result={sampledMinutes:0,noFormation:0,noContact:0,lostBeforeGroup:0,cooldown:0,selected:0,withheld:0,unexplained:0,engageActions:{},reinforcementPlans:0,reinforcementOrders:0,reinforcementArrivals:0,reinforcementGroupFights:0,shotcallerPlans:0,shotcallerOrders:0,shotcallerArrived3:0,shotcallerGroupFights:0,shotcallerActions:{},dynamicFormationPlans:{},dynamicSideOrders:0,dynamicCentralArrivals:0,dynamicAllArrivals:0,formations:{},rounds:{},zones:{}};
  for(const f of match.frames||[]){
   const d=f.teamfightDiagnostic;if(!d||f.minute<14)continue;
   result.sampledMinutes++;
@@ -11,9 +11,15 @@ export function diagnoseTeamfights(match){
    result.shotcallerPlans++;
    result.shotcallerActions[p.action]=(result.shotcallerActions[p.action]||0)+1;
    const actual=p.members.map(m=>f.navigation.before[m.id]);
+   if(p.formation){
+    result.dynamicFormationPlans[p.formation]=(result.dynamicFormationPlans[p.formation]||0)+1;
+    result.dynamicSideOrders+=p.members.filter((m,i)=>m.assignment==='side'&&actual[i]?.reason?.startsWith('shotcaller_')).length;
+    if(p.members.every((m,i)=>m.assignment==='side'||actual[i]?.alive&&actual[i].node===m.goal))result.dynamicCentralArrivals++;
+    if(p.members.every((m,i)=>actual[i]?.alive&&actual[i].node===m.goal))result.dynamicAllArrivals++;
+   }
    result.shotcallerOrders+=actual.filter(a=>a?.reason?.startsWith('shotcaller_')).length;
    if(p.members.filter((m,i)=>actual[i]?.alive&&actual[i].node===m.goal).length>=3)result.shotcallerArrived3++;
-   if(match.events.some(e=>e.minute===f.minute&&e.facts?.groupFight?.round===1&&e.facts.groupFight.groups[p.teamId]?.filter(id=>p.members.some(m=>m.id===id)).length>=3))result.shotcallerGroupFights++;
+   if(match.events.some(e=>e.minute===f.minute&&e.facts?.groupFight?.round===1&&e.facts.groupFight.groups[p.teamId]?.filter(id=>p.members.some(m=>m.id===id&&m.assignment!=='side')).length>=3))result.shotcallerGroupFights++;
   }
   for(const p of Object.values(f.skirmishReinforcements||{})){
    result.reinforcementPlans++;
@@ -46,7 +52,7 @@ export function diagnoseTeamfights(match){
  return result;
 }
 export function aggregateTeamfights(rows){
- const out={sampledMinutes:0,noFormation:0,noContact:0,lostBeforeGroup:0,cooldown:0,selected:0,withheld:0,unexplained:0,engageActions:{},reinforcementPlans:0,reinforcementOrders:0,reinforcementArrivals:0,reinforcementGroupFights:0,shotcallerPlans:0,shotcallerOrders:0,shotcallerArrived3:0,shotcallerGroupFights:0,shotcallerActions:{},formations:{},rounds:{},zones:{}};
+ const out={sampledMinutes:0,noFormation:0,noContact:0,lostBeforeGroup:0,cooldown:0,selected:0,withheld:0,unexplained:0,engageActions:{},reinforcementPlans:0,reinforcementOrders:0,reinforcementArrivals:0,reinforcementGroupFights:0,shotcallerPlans:0,shotcallerOrders:0,shotcallerArrived3:0,shotcallerGroupFights:0,shotcallerActions:{},dynamicFormationPlans:{},dynamicSideOrders:0,dynamicCentralArrivals:0,dynamicAllArrivals:0,formations:{},rounds:{},zones:{}};
  for(const r of rows){
   if(!r)continue;
   for(const k of Object.keys(out)){

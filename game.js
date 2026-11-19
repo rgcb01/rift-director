@@ -488,7 +488,7 @@ function simulateMatch(f,options=null){
    m.gold[c.id]+=earned;
    if(m.baronBuff[c.id]>0)m.baronBuff[c.id]--;
   }
-  nav.advance(navigation,t,m.dead,m,{health,map:m.map,structureTeamfights:options?.structureTeamfights===true,squadCommitment:options?.squadCommitment===true,skirmishReinforcements:options?.skirmishReinforcements===true,shotcaller:options?.shotcaller===true,abilityState});
+  nav.advance(navigation,t,m.dead,m,{health,map:m.map,structureTeamfights:options?.structureTeamfights===true,squadCommitment:options?.squadCommitment===true,skirmishReinforcements:options?.skirmishReinforcements===true,shotcaller:options?.shotcaller===true,dynamicFormations:options?.dynamicFormations===true,abilityState});
   RiftCore.Encounters.recover(health,navigation,m.dead,t);
   const recoveries=RiftCore.ChampionKits.fountainRestore(abilityState,navigation,t);
   const coordination=options?.coordinatedResets===true?{world:m,plans:[]}:null;

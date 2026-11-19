@@ -144,3 +144,56 @@ test('shotcaller compares real arrivals and fight frequency on 120 paired maps',
  assert.ok(plans>0,'Expected real team plans');assert.ok(orders>0,'Expected physical orders');
  assert.equal(issues.length,0,JSON.stringify(issues.slice(0,5)));
 });
+
+test('dynamic allocation selects five-group, four-one or one-three-one from safe members',()=>{
+ const {core}=setup(),select=core.SquadCommitment.selectFormation;
+ const central=['TOP','JUN','MID','ADC','SUP'].map(role=>({id:role,role,goal:'mid_center'}));
+ const side=[{id:'TOP',role:'TOP',goal:'top_center'},{id:'ADC',role:'ADC',goal:'bot_center'}];
+ for(const [visible,available,expected] of [[5,side,'5-0'],[3,side,'5-0'],[2,side,'1-3-1'],[2,side.slice(0,1),'4-1']]){
+  const p=select({central,side:available,visible,lead:0});
+  assert.equal(p.formation,expected);assert.equal(new Set(p.members.map(m=>m.id)).size,5);
+  assert.equal(p.members.filter(m=>m.assignment==='central').length,({'5-0':5,'4-1':4,'1-3-1':3})[expected]);
+ }
+ assert.equal(select({central:central.filter(p=>p.role!=='JUN'),side,visible:2,lead:0}),null);
+ assert.equal(select({central,side:[],visible:5,lead:-3000}),null);
+});
+test('dynamic formation uses real five-player routes and rejects unsafe or distant teammates',()=>{
+ const {core,nav,state,health,a,b}=setup(),S=core.SquadCommitment;
+ state.lanes[b].TOP=1;state.gold={[a]:20000,[b]:20000};
+ state.map.lanes=Object.fromEntries(['TOP','MID','BOT'].map(l=>[l,{vision:{[a]:80,[b]:80}}]));
+ nav.neutralPlans={};
+ for(const p of Object.values(nav.agents))p.node=p.role==='JUN'?'upper_river':'mid_center';
+ const run=()=>S.shotcaller({nav,world:state,minute:24,health,dynamicFormations:true});
+ const p=run()[a];assert.ok(p);assert.equal(p.formation,'5-0');assert.equal(p.members.length,5);
+ nav.shotcallerPlans=run();
+ for(const m of p.members)assert.equal(S.shotMovement(nav,nav.agents[m.id],24).goal,m.goal);
+ const top=Object.values(nav.agents).find(x=>x.teamId===a&&x.role==='TOP');
+ health[top.id]=35;assert.notEqual(run()[a]?.formation,'5-0');
+ health[top.id]=100;state.lanes[a].MID=3;assert.equal(run()[a],undefined);
+});
+test('dynamic formations preserve sporting audits on 120 paired maps',()=>{
+ let plans=0,orders=0,baseFights=0,fights=0,issues=[];const counts={};
+ for(let batch=0;batch<3;batch++){
+  const {core,sim}=boot({now:1731111111000+batch*41241211});
+  const world=sim.newGame('balanced','QA Balance '+batch),fixtures=Object.values(world.fixtures).flat();
+  const opts={simultaneousCombat:true,structureTeamfights:true,coordinatedResets:true,squadCommitment:true,engagePolicy:true,skirmishReinforcements:true,neutralHp:true,shotcaller:true};
+  for(let i=0;i<40;i++){
+   const f=fixtures[(i*13+batch*7)%fixtures.length],seed=(Math.imul(i+1,2654435761)^Math.imul(batch+1,1013904223))>>>0;
+   try{
+    world.rng=seed;const base=sim.simulateMatch(f,opts);
+    world.rng=seed;const m=sim.simulateMatch(f,{...opts,dynamicFormations:true});
+    baseFights+=base.events.filter(e=>e.facts?.groupFight?.round===1).length;
+    fights+=m.events.filter(e=>e.facts?.groupFight?.round===1).length;
+    for(const fr of m.frames)for(const p of Object.values(fr.shotcallerPlans||{}))if(p.formation){
+     plans++;counts[p.formation]=(counts[p.formation]||0)+1;
+     orders+=p.members.filter(x=>fr.navigation.before[x.id]?.reason?.startsWith('shotcaller_')).length;
+    }
+    const errors=[...core.auditMatch(m,world),...core.Navigation.auditNavigation(m,world),...core.NeutralHealth.audit(m),
+     ...core.ChampionKits.audit(m),...core.PowerEconomy.audit(m),...core.MatchReplay.auditMoments(m,world),...core.auditMinimap(m,world),...core.auditBroadcast(m,world)];
+    if(!m.winner||errors.length)issues.push({batch,i,seed,errors:errors.slice(0,5)});
+   }catch(e){issues.push({batch,i,seed,error:String(e.stack||e).slice(0,650)});}
+  }
+ }
+ console.log('DYNAMIC_FORMATIONS='+JSON.stringify({maps:120,plans,orders,counts,baseFights,fights,issues:issues.slice(0,5)}));
+ assert.equal(issues.length,0,JSON.stringify(issues.slice(0,5)));
+});
