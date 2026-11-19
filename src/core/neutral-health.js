@@ -27,7 +27,7 @@ function step({state,kind,minute,players}){
  const rule=RULES[kind],before=state.monsters[kind];
  if(!rule||!before||!Number.isSafeInteger(minute)||minute<before.spawn)throw Error('Objective not spawned');
  if(new Set(players.map(p=>p.id)).size!==players.length||players.some(p=>!Number.isFinite(p.attackDamage)||p.attackDamage<=0||
-   !Number.isFinite(p.attackSpeed)||p.attackSpeed<=0||p.hp<31||!core.Navigation.combatRange(p.node,kind+'_pit',1)))
+   !Number.isFinite(p.attackSpeed)||p.attackSpeed<=0||p.hp<31||!core.Navigation.at({agents:{[p.id]:{...p,alive:true}}},p.id,kind+'_pit',1)))
   throw Error('Invalid objective attackers');
  const next=snapshot(state),row=next.monsters[kind],packets=[];
  const groups={};for(const p of players)(groups[p.teamId]??=[]).push(p);
@@ -49,7 +49,7 @@ function step({state,kind,minute,players}){
    if(row.hp===0){
     const participants=players.filter(q=>q.teamId===p.teamId&&(q.id===p.id||packets.some(h=>h.actorId===q.id))).map(q=>q.id);
     capture={teamId:p.teamId,actorId:p.id,participantIds:[p.id,...participants.filter(id=>id!==p.id)],
-     initiatorTeamId:row.initiator,stolen:type==='smite'&&p.teamId!==row.initiator,smite:type==='smite'};
+     initiatorTeamId:row.initiator,stolen:type==='smite'&&p.teamId!==row.initiator&&count(row.initiator)>=2,smite:type==='smite'};
    }
   };
   for(let w=0;w<3&&!capture;w++){
@@ -86,6 +86,11 @@ function audit(match){
     const prior=match.moments[eventIndex-1],same=prior?.minute===fr.minute;
     const pre=same?prior.navigation.after:fr.navigation.before;
     if(eventIndex>fr.eventsCount||eventIndex<(match.frames.find(f=>f.minute===fr.minute-1)?.eventsCount||0))throw Error('Invalid objective event cursor');
+    if(same){
+     const nav={a:match.fixture.a,b:match.fixture.b,agents:Object.fromEntries(Object.entries(pre).map(([id,a])=>[id,{...a,id}]))};
+     const expectedPlayers=observe({kind:r.kind,nav,dead:{},health:prior.health,powerState:prior.powerEconomy,minute:fr.minute});
+     if(JSON.stringify(expectedPlayers)!==JSON.stringify(r.players))throw Error('Objective attacker set differs from physical snapshot');
+    }
     for(const p of r.players){
      const a=pre[p.id];
      if(!a?.alive||a.teamId!==p.teamId||a.role!==p.role||a.node!==p.node||!active(a)||
@@ -101,7 +106,7 @@ function audit(match){
      const ev=match.events[eventIndex],c=r.capture,f=ev?.facts;
      if(ev?.minute!==fr.minute||ev.teamId!==c.teamId||f?.action!==r.kind||f.objectiveVersion!==3||
       f.actorId!==c.actorId||JSON.stringify(f.participantIds)!==JSON.stringify(c.participantIds)||
-      f.stolen!==c.stolen||f.smite!==c.smite||f.initiatorTeamId!==c.initiatorTeamId)
+      f.stolen!==c.stolen||f.smite!==c.smite||f.smiteBy!==(c.smite?c.actorId:null)||f.initiatorTeamId!==c.initiatorTeamId)
        throw Error('Capture not backed by actual last hit');
     }
     state=result.state;
