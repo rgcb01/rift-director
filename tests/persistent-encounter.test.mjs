@@ -82,3 +82,22 @@ test('persistent slices retain sport and replay audits on 120 paired maps',()=>{
  assert.ok(starts>0,'Expected genuine small encounter starts');
  assert.equal(issues.length,0,JSON.stringify(issues.slice(0,5)));
 });
+
+test('persistent encounter benchmark regressions must produce a physical Nexus winner',()=>{
+ const opts={simultaneousCombat:true,structureTeamfights:true,coordinatedResets:true,squadCommitment:true,engagePolicy:true,skirmishReinforcements:true,persistentEncounters:true,engageDiagnostics:true,objectiveDiagnostics:true};
+ for(const {batch,index,seed,mirror} of [
+  {batch:9,index:982,seed:3679569681,mirror:false},
+  {batch:5,index:261,seed:2254389020,mirror:true}
+ ]){
+  const {core,sim}=boot({now:1731111111000+batch*41241211});
+  const world=sim.newGame('balanced','QA '+(mirror?'Mirror ':'Balance ')+batch);
+  const fixtures=Object.values(world.fixtures).flat(),f=fixtures[(index*13+batch*7)%fixtures.length];
+  for(const fixture of mirror?[f,{...f,a:f.b,b:f.a}]:[f]){
+   world.rng=seed;
+   const m=sim.simulateMatch(fixture,opts);
+   assert.ok([fixture.a,fixture.b].includes(m.winner),'No causal winner: '+seed+' '+fixture.a);
+   assert.ok(m.events.some(e=>e.facts?.action==='nexus'),'No Nexus destruction: '+seed);
+   assert.deepEqual(plain(core.auditMatch(m,world)),[]);
+  }
+ }
+});
