@@ -4,6 +4,11 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental — Skirmish reinforcement calls
+- #74 corrected and merged: 320/320 tests, both 2,200-map gates, 33.1% group-fight games, 0.42 fights/map and 0.54 group kills/map. #75 merged: 323/323, both 2,200-map gates, same fight frequency, 1 withheld opportunity. All gameplay options remain disabled by default.
+- Opt-in `skirmishReinforcements:true` reacts to an actual contested pit skirmish from the previous two minutes, requiring surviving eyewitnesses, current nearby opponents, healthy local fighters and affordable legal routes for one or two reinforcements. Existing siege, defense and conflicting objective commitments retain priority. Orders follow ordinary one-edge movement, can expire, and never create damage or guarantee a group fight.
+- Source and route receipts audited; tests and benchmark measure orders, arrivals and larger fights with recruits. Three tests including 120 paired maps; independent 2,200-map gate. This is escalation v1, not continuous multi-minute combat or mid-fight entry into the simultaneous kernel. Results pending.
+
 ### Experimental — Observable teamfight initiation
 - #74 initial candidate improved standard group-fight games 23.9%→34.7%, fights/map 0.27→0.44 and group kills/map 0.32→0.56, but failed mirrored pair 46 (seed 809608224, reversed orientation). Parent revision protects a viable base-tower assault and tests the exact regression; not yet verified.
 - Optional `engagePolicy:true` evaluates each reachable group using existing sight model, own HP, visible rival HP/numbers, own control and ultimate availability, role composition, risk/communication, incoming allied reinforcements and active objective calls. One side must choose engage or contest to initiate an ordinary group fight; otherwise no group engagement is selected. Other existing combat paths remain unchanged. Poke/wait/disengage are intentions only, not movement or separate attack mechanics. Enemy cooldown memory and full independent decision-input audit remain pending.
