@@ -4,6 +4,9 @@ Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0
 
 ## [Unreleased]
 
+### Experimental — Individual minion waves (0.7.20A)
+- Optional minionWaves shadow simulation or minionFarm live replacement for abstract lane gold and lane XP. Two six-unit waves per minute, cannon every third wave, individual HP/IDs, graph-lane travel, simultaneous minion volleys and one sampled attack per present champion per ten seconds. Actual lethal hit earns personal CS/gold; nearby living enemies share minion-death XP. Per-frame wave state, death/award receipts, conservation and replay audit; live gold replaces existing lane farm without duplication. Provisional values and minute-level fixed champion positions; existing tower/strategic wave momentum unchanged, no tower-minion damage, freeze/slow/fast-push orders or UI yet. Full experimental benchmark and 24 paired maps pending; defaults unchanged.
+
 ### Experimental — Early objective staging (0.7.19I)
 - #78 merged: both 2,200-map gates, functional and UX checks passed. Optional neutral HP raised group-fight maps 33.1%→38.0%, 0.42→0.50 fights/map; no default change.
 - Opt-in objectivePreparation reserves a reachable JUN/SUP/carry squad 4–6 strategic minutes before an actual spawn, with legal routes via river staging points, health, projected mana, affordable waves and departure deadlines. Existing calls, recall/recovery, credible siege, base defense and visible danger retain priority. Wards use existing physical placement rules; no new recall or minion mechanics, combat or capture guarantees. Records plan/route evidence and audits actual staging movement. Two tests including 120 paired maps and independent 2,200-map experimental gate. Results pending.

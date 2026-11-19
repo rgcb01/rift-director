@@ -443,6 +443,7 @@
     if(core.SkirmishReinforcements?.audit)for(const err of core.SkirmishReinforcements.audit(match))fail(err);
     if(core.NeutralObjectives?.auditPreparation)for(const err of core.NeutralObjectives.auditPreparation(match))fail(err);
     if(core.NeutralHealth?.audit)for(const err of core.NeutralHealth.audit(match))fail(err);
+    if(core.MinionWaves?.audit)for(const err of core.MinionWaves.audit(match))fail(err);
     validateRows(match.playerStats,'final');
     const teamTotal = { [a]:0,[b]:0 }, deaths = { [a]:0,[b]:0 };
     for (const [id,row] of Object.entries(stats)) {

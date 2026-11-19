@@ -73,6 +73,7 @@ export function runStandard(options={}) {
         const row={
           i,world:batch,seed,fixtureA:a,fixtureB:b,
           duration:f.minute,events:m.events.length,
+          minionSummary:f.minionWaves?{spawned:f.minionWaves.state.spawned,dead:f.minionWaves.state.dead,escaped:f.minionWaves.state.escaped,cs:Object.values(f.minionWaves.state.players).reduce((n,p)=>n+p.cs,0),gold:Object.values(f.minionWaves.state.players).reduce((n,p)=>n+p.gold,0),xp:Object.values(f.minionWaves.state.players).reduce((n,p)=>n+p.xp,0)}:null,
           winner:m.winner,side:m.winner===a?'blue':m.winner===b?'red':'invalid',
           killsA:f.kills[a],killsB:f.kills[b],
           totalKills:f.kills[a]+f.kills[b],
@@ -267,6 +268,7 @@ export function runStandard(options={}) {
       gamesWithoutDragon:rows.filter(r=>r.dragons===0).length,
       gamesWithoutBaron:rows.filter(r=>r.barons===0).length},
     teamfightDiagnostics:aggregateTeamfights(rows.map(r=>r.teamfightDiagnostics)),objectiveReadiness,neutralHealth,
+    minionWaves:Object.fromEntries(['spawned','dead','escaped','cs','gold','xp'].map(k=>[k,avg(rows.filter(r=>r.minionSummary).map(r=>r.minionSummary[k]))])),
     gameplay:{meanEvents:+avg(rows.map(r=>r.events)).toFixed(2),
       zeroKills:rows.filter(r=>r.totalKills===0).length,
       earlyTowerMatches:rows.filter(r=>r.firstTowerMinute!==null&&r.firstTowerMinute<36).length,

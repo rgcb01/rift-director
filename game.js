@@ -155,6 +155,9 @@ function simulateMatch(f,options=null){
  m.nexusIntegrity={[a.id]:1,[b.id]:1};
  const all=[a,b],teams={[a.id]:aP,[b.id]:bP};
  const laneEconomy=RiftCore.LaneEconomy.create(a.id,b.id);
+ const minionFarm=options?.minionFarm===true;
+ const minionWaves=minionFarm||options?.minionWaves===true?RiftCore.MinionWaves.create(a.id,b.id):null;
+ let minionReceipt=null;
  const powerEconomy=RiftCore.PowerEconomy.create([...aP,...bP],champions);
  const shutdowns=RiftCore.Shutdowns.create([...aP,...bP]);
  const abilityState=RiftCore.ChampionKits.create(powerEconomy);
@@ -461,7 +464,7 @@ function simulateMatch(f,options=null){
   return true;
  };
  let teamfightDiagnostic=null,objectiveReadiness=[],engageDecisions=[];
- const nextSnapshot=t=>m.frames.push({minute:t,...(neutralHp?{neutralHp:{state:RiftCore.NeutralHealth.snapshot(neutralHp),receipts:neutralReceipts}}:{}),recall:recallFrame,teamfightDiagnostic,...(options?.objectivePreparation===true?{objectivePreparation:navigation.objectivePreparation||{}}:{}),...((options?.engagePolicy===true||options?.engageDiagnostics===true)?{engageDecisions}:{}),...(options?.objectiveDiagnostics===true?{objectiveReadiness}:{}),...(options?.squadCommitment===true?{squadCommitments:navigation.squadCommitments||{}}:{}),...(options?.skirmishReinforcements===true?{skirmishReinforcements:navigation.skirmishReinforcements||{}}:{}),...(options?.structureTeamfights===true?{structureDefense:navigation.structureDefense}:{}),fightFormations:navigation.fightFormations||{},kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
+ const nextSnapshot=t=>m.frames.push({minute:t,...(neutralHp?{neutralHp:{state:RiftCore.NeutralHealth.snapshot(neutralHp),receipts:neutralReceipts}}:{}),recall:recallFrame,teamfightDiagnostic,...(minionWaves?{minionWaves:{state:RiftCore.MinionWaves.snapshot(minionWaves),receipt:minionReceipt,signals:RiftCore.MinionWaves.signals(minionWaves)}}:{}),...(options?.objectivePreparation===true?{objectivePreparation:navigation.objectivePreparation||{}}:{}),...((options?.engagePolicy===true||options?.engageDiagnostics===true)?{engageDecisions}:{}),...(options?.objectiveDiagnostics===true?{objectiveReadiness}:{}),...(options?.squadCommitment===true?{squadCommitments:navigation.squadCommitments||{}}:{}),...(options?.skirmishReinforcements===true?{skirmishReinforcements:navigation.skirmishReinforcements||{}}:{}),...(options?.structureTeamfights===true?{structureDefense:navigation.structureDefense}:{}),fightFormations:navigation.fightFormations||{},kills:{...m.kills},gold:{...m.gold},towers:{...m.towers},dragons:{...m.dragons},barons:{...m.barons},winner:m.winner,eventsCount:m.events.length,
   nexusIntegrity:{...m.nexusIntegrity},
   laneEconomy:RiftCore.LaneEconomy.snapshot(laneEconomy),
   powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),
@@ -496,11 +499,16 @@ function simulateMatch(f,options=null){
   const recallEventStart=m.events.length;
   recallFrame={starts,receipts:[],recoveries,...(coordination?{coordination:coordination.plans}:{})};
   const farmIncome=RiftCore.LaneEconomy.advance(laneEconomy,
-    {minute:t,nav:navigation,map:m.map,health,gold:m.gold,structures:m.lanes});
+    {minute:t,nav:navigation,map:m.map,health,gold:m.gold,structures:m.lanes,minionFarm});
   RiftCore.PowerEconomy.advance(powerEconomy,
-    {minute:t,nav:navigation,dead:m.dead,health,teamIncome});
+    {minute:t,nav:navigation,dead:m.dead,health,teamIncome,minionFarm});
   for(const earning of farmIncome)
    RiftCore.PowerEconomy.awardFarm(powerEconomy,earning,navigation,health);
+  if(minionWaves){
+   minionReceipt=RiftCore.MinionWaves.advance(minionWaves,{minute:t,actors:RiftCore.MinionWaves.observe(navigation,health)});
+   if(minionFarm){RiftCore.LaneEconomy.creditMinionFarm(laneEconomy,minionReceipt.farm,m.gold);
+    RiftCore.PowerEconomy.awardMinionFarm(powerEconomy,minionReceipt.awards);}
+  }
   movementBefore=nav.snapshot(navigation,m.dead,t);
   if(options?.objectiveDiagnostics===true)objectiveReadiness=RiftCore.ObjectiveReadiness.observe({nav:navigation,world:m,minute:t,health,abilityState});
   m.map=updateMap(t);
@@ -902,6 +910,7 @@ function simulateMatch(f,options=null){
  }
  const report={recallVersion:1,abilityState:RiftCore.ChampionKits.snapshot(abilityState),champions,fixture:{a:f.a,b:f.b,round:f.round,playoff:!!f.playoff},frames:m.frames,events:m.events,moments:m.moments,health:{...health},powerEconomy:RiftCore.PowerEconomy.snapshot(powerEconomy),shutdowns:RiftCore.Shutdowns.snapshot(shutdowns),playerStats:RiftCore.clonePlayerStats(playerStats),elapsed:0,speed:1,running:true,committed:false,winner:m.winner,finished:false};
  if(neutralHp)report.neutralHpVersion=1;
+ if(minionWaves)report.minionWavesVersion=minionFarm?2:1;
  if(simultaneousPilot)report.simultaneousPilot=simultaneousPilot;
  if(options?.simultaneousCombat===true)report.simultaneousCombatVersion=1;
  RiftCore.attachMinimap(report,s);RiftCore.attachBroadcast(report,s,commentarySeed);
