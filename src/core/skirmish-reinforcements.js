@@ -9,6 +9,13 @@ const core=root.RiftCore||(root.RiftCore={});
 const lanes=['TOP','MID','BOT'];
 const laneOf=p=>p.role==='ADC'||p.role==='SUP'?'BOT':p.role;
 const unavailable=new Set(['retreat','recall_channel','recall_recover','shop_recall','dead','siege_return','recover']);
+function source(e){
+ const f=e?.facts,x=f?.simultaneous?.encounter;
+ if(x&&Object.values(x.groups).every(ids=>ids.length>=2))return {zone:x.zone,encounter:x,witnesses:team=>x.groups[team]||[]};
+ if(f?.action==='skirmish'&&f.attackerCount>=2&&f.defenderCount>=2)
+  return {zone:f.zone,encounter:null,witnesses:team=>e.teamId===team?f.participantIds:[f.targetId,...(f.opponentIds||[])]};
+ return null;
+}
 function plan({nav,world,minute,health={},dead={}}){
  const N=core.Navigation,out={};
  if(minute<22||minute>55||nav.siegeDecision?.stage===3)return out;
@@ -16,10 +23,12 @@ function plan({nav,world,minute,health={},dead={}}){
  // Only an actual recent contested skirmish, not a pick of a lone player.
  const sources=[];
  for(let i=events.length-1;i>=0;i--){
-  const e=events[i],f=e.facts;
+  const e=events[i],f=source(e);
   if(e.minute<minute-2)break;
-  if(e.minute>=minute||f?.action!=='skirmish'||f.attackerCount<2||f.defenderCount<2||
+  if(e.minute>=minute||!f||
      !['dragon_pit','baron_pit'].includes(f.zone))continue;
+  if(f.encounter&&(e.minute!==minute-1||minute-f.encounter.started>=3||
+     f.encounter.spawn!==(f.zone==='dragon_pit'?world.nextDragon:world.nextBaron)))continue;
   // Once a larger fight has happened, this old call cannot restart it.
   if(events.slice(i+1).some(x=>x.facts?.groupFight?.zone===f.zone))continue;
   sources.push({index:i,event:e});
@@ -36,12 +45,12 @@ function plan({nav,world,minute,health={},dead={}}){
   const siege=nav.siegeDecision?.teamId===teamId?nav.siegeDecision:null;
   if(siege&&siege.wave>=.48&&siege.escorts.length>=2&&siege.travel<=4)continue;
   for(const {index,event} of sources){
-   const f=event.facts,target=f.zone;
+   const f=source(event),target=f.zone;
    const squad=nav.squadCommitments?.[teamId];
    if(squad&&squad.target!==target)continue;
    const call=nav.neutralPlans?.[teamId];
    if(['take','contest'].includes(call?.action)&&call.target!==target&&call.until>=minute)continue;
-   const witnessed=event.teamId===teamId?f.participantIds:[f.targetId,...(f.opponentIds||[])];
+   const witnessed=f.witnesses(teamId);
    const witnesses=own.filter(p=>witnessed.includes(p.id)&&live(p)&&N.combatRange(p.node,target,2));
    if(!witnesses.length)continue;
    // Each anchor must still observe at least one enemy in direct local
@@ -91,11 +100,11 @@ function audit(match){
  for(let i=1;i<match.frames.length;i++){
   const fr=match.frames[i],prev=match.frames[i-1];
   for(const p of Object.values(fr.skirmishReinforcements||{})){
-   const e=match.events[p.sourceIndex],f=e?.facts;
-   const witnesses=e?.teamId===p.teamId?f?.participantIds:[f?.targetId,...(f?.opponentIds||[])];
+   const e=match.events[p.sourceIndex],f=source(e);
+   const witnesses=f?.witnesses(p.teamId)||[];
    if(p.version!==1||p.minute!==fr.minute||!e||e.minute!==p.sourceMinute||
-    e.minute>=fr.minute||e.minute<fr.minute-2||f?.action!=='skirmish'||f.zone!==p.target||
-    f.attackerCount<2||f.defenderCount<2||p.sourceIndex>=prev.eventsCount||
+    e.minute>=fr.minute||e.minute<fr.minute-2||!f||f.zone!==p.target||
+    p.sourceIndex>=prev.eventsCount||
     !p.witnessIds.length||p.witnessIds.some(id=>!witnesses.includes(id))||
     p.recruits.length<1||p.recruits.length>2||p.stayingIds.length+p.recruits.length<3)
      errors.push('Invalid skirmish reinforcement source '+fr.minute);
