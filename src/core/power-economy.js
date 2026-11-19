@@ -83,7 +83,7 @@ function goldAward(model,id,amount,kind){
  row.wallet+=amount;row.earned+=amount;
  if(['passive','farm','killGold','objectiveGold'].includes(kind))row[kind]+=amount;
 }
-function advance(model,{nav,dead,minute,teamIncome,health}){
+function advance(model,{nav,dead,minute,teamIncome,health,minionFarm=false}){
  const purchasedCount=Object.keys(model.entries).length;
  if(purchasedCount!==10)throw Error('Power economy expects 10 participants');
  for(const team of [nav.a,nav.b]){
@@ -121,7 +121,7 @@ function advance(model,{nav,dead,minute,teamIncome,health}){
   const sharing=lane?Object.values(nav.agents).filter(p=>p.teamId===a.teamId&&
    p.alive&&(dead[p.id]||0)<=minute&&core.Navigation.isLaneNode(p.node,lane)&&
    core.Navigation.hops(a.node,p.node)<=2).length:0;
-  const xp=isBase?10:lane?(sharing===1?72:sharing===2?56:43):
+  const xp=isBase?10:lane?(minionFarm?0:sharing===1?72:sharing===2?56:43):
    farmingJungle?58:35;
   xpAward(model,a.id,xp);
  }
@@ -143,6 +143,13 @@ function awardFarm(model,{teamId,lane,gold},nav,health){
  let left=gold-shares.reduce((n,x)=>n+x.gold,0);
  shares.sort((a,b)=>b.remainder-a.remainder||a.p.id.localeCompare(b.p.id));
  for(const x of shares){if(left>0){x.gold++;left--;}goldAward(model,x.p.id,x.gold,'farm');}
+}
+function awardMinionFarm(model,awards){
+ for(const [id,r] of Object.entries(awards)){
+  if(!model.entries[id]||![r.cs,r.gold,r.xp].every(n=>Number.isSafeInteger(n)&&n>=0))throw Error('Invalid individual minion award');
+  if(r.gold)goldAward(model,id,r.gold,'farm');
+  if(r.xp)xpAward(model,id,r.xp);
+ }
 }
 function teamGoldAward(model,teamId,amount){
  if(!Number.isSafeInteger(amount)||amount<0)throw Error('Invalid objective payout');
@@ -469,6 +476,6 @@ function audit(match){
  }
  return errors;
 }
-core.PowerEconomy=Object.freeze({create,advance,awardFarm,rewardEvent,nextPurchase,roleAffinity,
+core.PowerEconomy=Object.freeze({create,advance,awardFarm,awardMinionFarm,rewardEvent,nextPurchase,roleAffinity,
  shouldRecall,purchase,boost,teamEquipment,snapshot,audit,ITEM_CATALOG,COMPONENT_CATALOG,nextLevel});
 })(globalThis);

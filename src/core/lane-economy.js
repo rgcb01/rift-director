@@ -34,7 +34,7 @@ function presence(nav,team,lane,health){
   core.Navigation.isLaneNode(p.node,lane)&&
   (health[p.id]??100)>=26).length;
 }
-function advance(model,{minute,nav,map,health,gold,structures=null}){
+function advance(model,{minute,nav,map,health,gold,structures=null,minionFarm=false}){
  const [a,b]=model.teamIds;
  const earnings=[];
  for(const lane of LANES){
@@ -77,6 +77,7 @@ function advance(model,{minute,nav,map,health,gold,structures=null}){
   // Dissipating momentum: a wave cannot remain permanently won when its
   // pushing team abandons the lane or a defender returns.
   record.front=Math.round(clamp(record.front*.82+momentum,-3.8,3.8)*100)/100;
+  if(minionFarm)continue;
   for(const [id,units] of [[a,va],[b,vb]]){
    if(!units)continue;
    const advantage=pressureFor(model,id,lane);
@@ -90,6 +91,12 @@ function advance(model,{minute,nav,map,health,gold,structures=null}){
   }
  }
  return earnings;
+}
+function creditMinionFarm(model,farm,gold){
+ for(const r of farm){
+  if(!LANES.includes(r.lane)||!model.teamIds.includes(r.teamId)||!Number.isSafeInteger(r.gold)||r.gold<=0)throw Error('Invalid minion farm credit');
+  gold[r.teamId]+=r.gold;model.lanes[r.lane].farm[r.teamId]+=r.gold;model.income[r.teamId].farm+=r.gold;
+ }
 }
 function canPressureTower(model,id,lane,stage,minute){
  if(!LANES.includes(lane)||stage<1||stage>3)return false;
@@ -194,6 +201,6 @@ function audit(match){
  }
  return errors;
 }
-core.LaneEconomy=Object.freeze({TOWER_HP,create,advance,presence,pressureFor,
+core.LaneEconomy=Object.freeze({TOWER_HP,create,advance,creditMinionFarm,presence,pressureFor,
  canPressureTower,damageValue,damageTower,claimPlate,hasBrokenPlates,firstTowerBonus,snapshot,audit});
 })(globalThis);
