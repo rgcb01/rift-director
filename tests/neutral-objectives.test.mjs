@@ -159,3 +159,51 @@ test('healthy reinforcements form an objective squad without abandoning strong s
  state.waves.BOT.front=-2.4;
  assert.equal(core.NeutralObjectives.movement(nav,actor('ADC'),23,state),null);
 });
+
+test('early objective staging uses a shared reachable squad and protects immediate priorities',()=>{
+ const {core}=prepare(),{nav,state,health,a,b}=synthetic(prepare());
+ state.nextDragon=30;state.nextBaron=40;
+ state.map.riverVision[b]=80;
+ for(const p of Object.values(nav.agents)){p.node='lower_river';p.intent='group';}
+ const run=(minute=26)=>core.NeutralObjectives.preparation({nav,world:state,minute,health});
+ const before=JSON.stringify(nav),p=run()[a];
+ assert.ok(p);assert.equal(p.target,'dragon_pit');assert.equal(p.staging,'lower_river');assert.equal(p.lead,4);
+ assert.equal(p.members.length,3);assert.equal(JSON.stringify(nav),before);
+ assert.equal(run(27)[a],undefined);
+ nav.objectivePreparation=run();
+ for(const m of p.members)assert.equal(core.NeutralObjectives.preparationMovement(nav,nav.agents[m.id],26)?.goal,'lower_river');
+ const j=p.members.find(m=>m.role==='JUN');health[j.id]=64;assert.equal(run()[a],undefined);health[j.id]=100;
+ nav.neutralPlans={[a]:{action:'contest',target:'baron_pit',until:28}};assert.equal(run()[a],undefined);nav.neutralPlans={};
+ state.lanes[a].MID=3;assert.equal(run()[a],undefined);state.lanes[a].MID=0;
+ nav.siegeDecision={teamId:a,stage:2,wave:1,travel:2,escorts:p.members.map(m=>m.id)};assert.equal(run()[a],undefined);
+});
+test('early staging compares 120 paired maps without fabricating captures or outcomes',()=>{
+ let plans=0,orders=0,baseReady=0,ready=0,baseFights=0,fights=0,issues=[];
+ const count=m=>m.frames.flatMap(fr=>fr.objectiveReadiness||[]).filter(r=>r.lead<=0&&r.members.filter(p=>p.ready&&p.present).length>=3).length;
+ for(let batch=0;batch<3;batch++){
+  const {core,sim}=boot({now:1731111111000+batch*41241211});
+  const world=sim.newGame('balanced','QA Balance '+batch),fixtures=Object.values(world.fixtures).flat();
+  const opts={simultaneousCombat:true,structureTeamfights:true,coordinatedResets:true,squadCommitment:true,engagePolicy:true,skirmishReinforcements:true,neutralHp:true,objectiveDiagnostics:true};
+  for(let i=0;i<40;i++){
+   const f=fixtures[(i*13+batch*7)%fixtures.length],seed=(Math.imul(i+1,2654435761)^Math.imul(batch+1,1013904223))>>>0;
+   try{
+    world.rng=seed;const base=sim.simulateMatch(f,opts);
+    world.rng=seed;const m=sim.simulateMatch(f,{...opts,objectivePreparation:true});
+    baseReady+=count(base);ready+=count(m);
+    baseFights+=base.events.filter(e=>e.facts?.groupFight?.round===1).length;
+    fights+=m.events.filter(e=>e.facts?.groupFight?.round===1).length;
+    for(const fr of m.frames){
+     plans+=Object.keys(fr.objectivePreparation||{}).length;
+     orders+=Object.values(fr.navigation.before||{}).filter(a=>a.reason==='objective_prepare').length;
+    }
+    const errors=[...core.auditMatch(m,world),...core.Navigation.auditNavigation(m,world),...core.NeutralHealth.audit(m),
+     ...core.ChampionKits.audit(m),...core.PowerEconomy.audit(m),...core.MatchReplay.auditMoments(m,world),...core.auditMinimap(m,world),...core.auditBroadcast(m,world)];
+    if(!m.winner||errors.length)issues.push({batch,i,seed,errors:errors.slice(0,5)});
+   }catch(e){issues.push({batch,i,seed,error:String(e.stack||e).slice(0,650)});}
+  }
+ }
+ console.log('OBJECTIVE_STAGING='+JSON.stringify({maps:120,plans,orders,baseReady,ready,baseFights,fights,issues:issues.slice(0,5)}));
+ assert.ok(plans>0,'Expected actual early plans');
+ assert.ok(orders>0,'Expected real staging movement');
+ assert.equal(issues.length,0,JSON.stringify(issues.slice(0,5)));
+});

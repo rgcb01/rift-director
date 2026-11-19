@@ -192,6 +192,100 @@ function captureCandidates(nav,dead,minute,health,positioned,world){
    lanePressure:world.map?.lanes?.BOT?.pressure?.[id]??50};
  });
 }
+// Opt-in early staging, independent of live capture calls. The common
+// snapshot chooses a reachable three-player squad; ordinary safety and
+// siege decisions still have authority over the individual movement.
+const prepUnavailable=new Set(['retreat','recover','recall_channel','recall_recover','shop_recall','dead','siege_return','siege','defend']);
+function prepRoute(N,side,p,target){
+ if(p.role==='JUN'&&(!N.jungleAllowed(side,p.node)||!N.jungleAllowed(side,target)))return null;
+ try{return N.path(p.node,target,p.role==='JUN'?node=>N.jungleAllowed(side,node):undefined);}
+ catch(e){if(String(e.message).startsWith('Disconnected navigation graph'))return null;throw e;}
+}
+function preparation({nav,world,minute,health={},dead={},abilityState}){
+ const N=core.Navigation,out={};
+ if(minute<22||minute>55||nav.siegeDecision?.stage===3||
+    [nav.a,nav.b].some(id=>Object.values(world.lanes?.[id]||{}).some(s=>s===3)))return out;
+ for(const teamId of [nav.a,nav.b]){
+  const side=teamId===nav.a?'blue':'red',call=nav.neutralPlans?.[teamId];
+  // An existing live call/trade, a credible siege, or a structure defense
+  // must not be displaced by an objective that has not spawned.
+  if(call&&call.until>=minute&&['take','contest','trade'].includes(call.action))continue;
+  const siege=nav.siegeDecision?.teamId===teamId?nav.siegeDecision:null;
+  if(siege&&siege.wave>=.48&&siege.escorts.length>=2&&siege.travel<=4)continue;
+  const vision=world.map?.riverVision?.[teamId]??50;
+  if(vision<43)continue;
+  const upcoming=['dragon','baron'].map(kind=>({kind,spawn:kind==='dragon'?world.nextDragon:world.nextBaron,
+   score:strategicScore(nav,world,teamId,health,kind)}))
+   .filter(x=>Number.isInteger(x.spawn)&&x.spawn-minute>=4&&x.spawn-minute<=6&&x.score>=-5.2)
+   .sort((a,b)=>a.spawn-b.spawn||b.score-a.score||a.kind.localeCompare(b.kind));
+  for(const objective of upcoming){
+   const {kind,spawn}=objective,target=kind+'_pit',staging=kind==='baron'?'upper_river':'lower_river',lead=spawn-minute;
+   const candidates=[];
+   for(const p of Object.values(nav.agents)){
+    if(p.teamId!==teamId||!['JUN','SUP','MID','ADC'].includes(p.role)||!p.alive||(dead[p.id]||0)>minute||
+       prepUnavailable.has(p.intent)||p.recovering===true||(health[p.id]??0)<65||
+       [side+'_fountain',side+'_nexus'].includes(p.node)||
+       siege?.escorts.includes(p.id)||siege?.sidePlan?.actorId===p.id||
+       nav.structureDefense?.members?.some(m=>m.id===p.id))continue;
+    const entry=abilityState?.entries?.[p.id],type=core.ChampionKits.DEFINITIONS[entry?.championId]?.resourceType;
+    const resource=entry?core.ChampionKits.projected(entry,minute*60):100;
+    if(type==='mana'&&resource<25)continue;
+    const lane=p.role==='ADC'||p.role==='SUP'?'BOT':p.role;
+    const wave=world.waves?.[lane]?core.LaneEconomy.pressureFor({teamIds:[nav.a,nav.b],lanes:world.waves},teamId,lane):null;
+    if(p.role!=='JUN'&&(wave===null||wave<-.65))continue;
+    const route=prepRoute(N,side,p,staging),tail=prepRoute(N,side,{...p,node:staging},target);
+    if(!route||!tail||route.length+tail.length-2>lead)continue;
+    const previous=nav.objectivePreparation?.[teamId];
+    const continuing=previous?.spawn===spawn&&previous?.target===target&&previous.members.some(m=>m.id===p.id&&m.depart);
+    const depart=Boolean(continuing||lead===4||route.length-1>=lead-3);
+    candidates.push({id:p.id,role:p.role,node:p.node,hp:health[p.id],resource,wave,route,tail,depart});
+   }
+   const j=candidates.find(p=>p.role==='JUN'),s=candidates.find(p=>p.role==='SUP');
+   const carry=candidates.filter(p=>['MID','ADC'].includes(p.role)).sort((a,b)=>a.route.length-b.route.length||b.wave-a.wave||a.id.localeCompare(b.id))[0];
+   if(!j||!s||!carry)continue;
+   const members=[j,s,carry];
+   if(!members.some(m=>m.depart))continue;
+   out[teamId]={version:1,teamId,minute,target,staging,spawn,lead,score:+objective.score.toFixed(2),vision,members};
+   break;
+  }
+ }
+ return out;
+}
+function preparationMovement(nav,agent,minute){
+ const p=nav.objectivePreparation?.[agent.teamId];
+ if(!p||p.minute!==minute||!p.members.some(m=>m.id===agent.id&&m.depart))return null;
+ return {goal:p.staging,intent:'objective_setup',reason:'objective_prepare',decisionVersion:5};
+}
+function auditPreparation(match){
+ const errors=[],N=core.Navigation;
+ for(let i=1;i<match.frames.length;i++){
+  const f=match.frames[i],prev=match.frames[i-1];
+  for(const p of Object.values(f.objectivePreparation||{})){
+   const side=p.teamId===match.fixture.a?'blue':'red',kind=p.target==='baron_pit'?'baron':'dragon';
+   const ids=p.members.map(m=>m.id);
+   if(p.version!==1||p.minute!==f.minute||p.lead!==p.spawn-p.minute||p.lead<4||p.lead>6||
+      ![match.fixture.a,match.fixture.b].includes(p.teamId)||!['baron_pit','dragon_pit'].includes(p.target)||
+      p.staging!==(kind==='baron'?'upper_river':'lower_river')||ids.length!==3||new Set(ids).size!==3||
+      !p.members.some(m=>m.role==='JUN')||!p.members.some(m=>m.role==='SUP')||
+      !p.members.some(m=>['MID','ADC'].includes(m.role))||!p.members.some(m=>m.depart)||
+      f.siegeDecision?.stage===3||(prev.neutralHp&&prev.neutralHp.state.monsters[kind].spawn!==p.spawn))
+    errors.push('Invalid objective preparation '+f.minute);
+   for(const m of p.members){
+    const before=prev.navigation.after[m.id],actual=f.navigation.before[m.id];
+    if(!before?.alive||before.teamId!==p.teamId||before.role!==m.role||before.node!==m.node||
+       prev.health[m.id]!==m.hp||m.hp<65||JSON.stringify(prepRoute(N,side,m,p.staging))!==JSON.stringify(m.route)||
+       JSON.stringify(prepRoute(N,side,{...m,node:p.staging},p.target))!==JSON.stringify(m.tail)||
+       m.route.length+m.tail.length-2>p.lead||
+       actual?.reason==='objective_prepare'&&(!m.depart||actual.goal!==p.staging||actual.node!==(m.route[1]||m.node)))
+     errors.push('Invalid preparation member '+f.minute+' '+m.id);
+   }
+  }
+  for(const [id,a] of Object.entries(f.navigation.before||{}))if(a.alive&&a.reason==='objective_prepare'&&
+   !f.objectivePreparation?.[a.teamId]?.members.some(m=>m.id===id&&m.depart))
+    errors.push('Unassigned objective preparation '+f.minute+' '+id);
+ }
+ return errors;
+}
 function audit(match){
  const errors=[];
  for(const e of match.events||[]){
@@ -212,6 +306,6 @@ function audit(match){
  return errors;
 }
 core.NeutralObjectives=Object.freeze({
- strategicScore,objectiveTarget,activeCall,plan,movement,captureCandidates,audit
+ strategicScore,objectiveTarget,activeCall,plan,movement,captureCandidates,audit,preparation,preparationMovement,auditPreparation
 });
 })(globalThis);
