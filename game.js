@@ -304,7 +304,7 @@ function simulateMatch(f,options=null){
   if(order){navigation.counterPressure??={};navigation.counterPressure[order.teamId]=order;}
   const facts=RiftCore.SimultaneousSport.eventFacts(actual,group,order);
   const awards=actual.receipts.flatMap(r=>r.awards);
-  makeEv(t,'¡Teamfight simultánea!',a.name+' '+awards.filter(x=>x.teamId===a.id).length+' bajas · '+b.name+' '+awards.filter(x=>x.teamId===b.id).length+' bajas.','fight',club(group.firstTeam),facts);
+  makeEv(t,actual.encounter?(RiftCore.PersistentEncounter.large(group)?'¡La pelea escala a teamfight!':'Escaramuza en curso'):'¡Teamfight simultánea!',a.name+' '+awards.filter(x=>x.teamId===a.id).length+' bajas · '+b.name+' '+awards.filter(x=>x.teamId===b.id).length+' bajas.','fight',club(group.firstTeam),facts);
  };
  const contestStructure=(attacker,defender,node,lane,t,minAttackers=1,attackingIds=null)=>{
   const livingHere=c=>positioned(c,node).filter(p=>
@@ -615,30 +615,36 @@ function simulateMatch(f,options=null){
   const rosterForFight=Object.fromEntries([...aP,...bP].map(p=>[p.id,p]));
   const afterGroupScan=RiftCore.Encounters.groupScan(groupInput);
   engageDecisions=[];
-  const group=RiftCore.Encounters.groupOpportunity({
+  const persistentArgs={nav:navigation,world:m,minute:t,scan:afterGroupScan,players:rosterForFight,health,powerState:powerEconomy,abilityState,previous:lastGroupFight};
+  const persistent=options?.persistentEncounters===true&&options?.simultaneousCombat===true;
+  const continuation=persistent?RiftCore.PersistentEncounter.pick({...persistentArgs,continuationOnly:true}):null;
+  const ordinary=continuation&&RiftCore.PersistentEncounter.large(continuation)?null:RiftCore.Encounters.groupOpportunity({
    nav:navigation,dead:m.dead,minute:t,players:rosterForFight,
    health,seed:commentarySeed,world:m,powerState:powerEconomy,
    previous:lastGroupFight,scan:afterGroupScan,abilityState,
    engagePolicy:options?.engagePolicy===true,
    engageDecisions:options?.engagePolicy===true||options?.engageDiagnostics===true?engageDecisions:null
   });
+  // A small continuing skirmish must not suppress a genuine group engagement elsewhere.
+  const group=ordinary||continuation||(persistent?RiftCore.PersistentEncounter.pick(persistentArgs):null);
   teamfightDiagnostic={before:beforeGroupScan,after:RiftCore.Encounters.summarizeGroupScan(afterGroupScan),
-   cooldown:t-lastGroupFight<3,selected:group?.zone||null,...(options?.engagePolicy===true?{withheld:!group&&engageDecisions.length>0}: {})};
+   cooldown:t-lastGroupFight<3,selected:group&&(!group.encounter||RiftCore.PersistentEncounter.large(group))?group.zone:null,...(group?.encounter?{persistentSlice:true}:{}),...(options?.engagePolicy===true?{withheld:!group&&engageDecisions.length>0}: {})};
   if(group){
    if(simultaneousPilot){
     const sample=RiftCore.SimultaneousSport.preview({group,nav:navigation,health,abilityState,minute:t,
      sport:{gold:m.gold,kills:m.kills,dead:m.dead,playerStats,powerEconomy,shutdowns}});
     if(sample)simultaneousPilot.push(sample);
    }
-   lastGroupFight=t;
+   const isGroupFight=!group.encounter||RiftCore.PersistentEncounter.large(group);
+   if(isGroupFight)lastGroupFight=t;
    const first=club(group.firstTeam),second=enemy(first);
    const fightId=t+':'+group.zone;
    const usedActorIds=[],focusByTeam={};
    const actual=options?.simultaneousCombat===true?RiftCore.SimultaneousSport.preview({group,nav:navigation,health,abilityState,minute:t,
-    sport:{gold:m.gold,kills:m.kills,dead:m.dead,playerStats,powerEconomy,shutdowns}}):null;
+    sport:{gold:m.gold,kills:m.kills,dead:m.dead,playerStats,powerEconomy,shutdowns},maxWindows:group.encounter?2:4}):null;
    if(actual?.receipts.length){
     commitSimultaneous(actual,group,t);
-   }else for(let round=1;round<=RiftCore.TeamfightTactics.MAX_ROUNDS;round++){
+   }else if(!group.encounter)for(let round=1;round<=RiftCore.TeamfightTactics.MAX_ROUNDS;round++){
     const attacker=round%2===1?first:second,defender=enemy(attacker);
     const facts=RiftCore.Encounters.resolveCombat({
      nav:navigation,dead:m.dead,minute:t,players:rosterForFight,
@@ -665,7 +671,7 @@ function simulateMatch(f,options=null){
      ' una pelea grupal en '+where+'. '+combatDetails(facts),
      'fight',attacker,facts);
    }
-   lastCounterFight=t;
+   if(isGroupFight)lastCounterFight=t;
   }
   if(t>=5){
    const roster=Object.fromEntries([...aP,...bP].map(p=>[p.id,p]));

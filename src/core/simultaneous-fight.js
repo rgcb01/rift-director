@@ -10,9 +10,9 @@ const WINDOW_SECONDS=5;
 const active=p=>p.alive&&p.hp>0&&!['retreat','recall_channel','recall_recover','dead'].includes(p.intent);
 const reachable=(a,b)=>core.FightPositioning&& (a.offset||b.offset)?core.FightPositioning.reach(a,b):core.Navigation.combatRange(a.node,b.node,2);
 const clone=players=>Object.fromEntries(Object.entries(players).map(([id,p])=>[id,{...p}]));
-function create({id,at,players}){
+function create({id,at,players,minPerTeam=3}){
  if(typeof id!=='string'||!id||!Number.isSafeInteger(at)||at<0||!players||
-    ![6,7,8,9,10].includes(Object.keys(players).length))throw Error('Invalid fight start');
+    ![2,3].includes(minPerTeam)||Object.keys(players).length<2*minPerTeam||Object.keys(players).length>10)throw Error('Invalid fight start');
  const teams=new Map();
  for(const [key,p] of Object.entries(players)){
   if(p.id!==key||typeof p.teamId!=='string'||!p.teamId||
@@ -20,7 +20,7 @@ function create({id,at,players}){
      !core.Navigation.adjacency[p.node])throw Error('Invalid fighter '+key);
   teams.set(p.teamId,(teams.get(p.teamId)||0)+1);
  }
- if(teams.size!==2||[...teams.values()].some(n=>n<3||n>5))throw Error('Invalid opposing formations');
+ if(teams.size!==2||[...teams.values()].some(n=>n<minPerTeam||n>5))throw Error('Invalid opposing formations');
  for(const p of Object.values(players)){
   if(!Object.values(players).some(q=>q.teamId!==p.teamId&&core.Navigation.combatRange(p.node,q.node,2)))
    throw Error('Isolated fighter '+p.id);

@@ -111,7 +111,7 @@ export function runStandard(options={}) {
           firstNexusHitMinute:m.events.find(e=>
            ['nexus_damage','nexus'].includes(e.facts?.action))?.minute??null,
           groupFights:m.events.filter(e=>e.facts?.groupFight?.round===1).length,
-          groupFightResponses:m.events.reduce((n,e)=>n+(e.facts?.action==='simultaneous_fight'?Math.max(0,e.facts.simultaneous.receipts.length-1):e.facts?.groupFight?.round===2?1:0),0),
+          groupFightResponses:m.events.reduce((n,e)=>n+(e.facts?.action==='simultaneous_fight'&&e.facts.groupFight?Math.max(0,e.facts.simultaneous.receipts.length-1)+Number(e.facts.groupFight.round>1):e.facts?.groupFight?.round===2?1:0),0),
           groupFightKills:m.events.reduce((n,e)=>n+
             (e.facts?.groupFight?(e.facts.victimIds?.length||0):0),0),
           fullFiveOnFive:m.events.filter(e=>e.facts?.groupFight?.round===1&&
