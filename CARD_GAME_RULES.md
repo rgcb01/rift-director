@@ -1,4 +1,4 @@
-# Rift Director — Card Game Rules v0.3 (prototipo)
+# Rift Director — Card Game Rules v0.4 (prototipo)
 
 Estado: **borrador jugable, valores sujetos a playtesting**. Estas reglas documentan el rework CCG ya integrado como ruta separada (`card-game.html`). El viejo manager permanece intacto mientras se valida este núcleo.
 
@@ -41,8 +41,8 @@ Cada lado tiene **torre de 6 PV** por carril y **Nexo de 12 PV**. Si cae una tor
 ## Daño, torres y presión (primera fórmula)
 - En cada carril, personajes enemigos **delante** intercambian ATQ simultáneamente; el objetivo inicial se elige determinísticamente por menor PV y después por ID.
 - Presión propia = suma de ATQ de aliados supervivientes delante + bonificaciones tácticas + **1 por la propia torre en pie**. En la jungla no existe presión de asedio.
-- La diferencia positiva contra la presión del rival se convierte en daño potencial: 1–2 => 1 PV, 3–4 => 2 PV, 5+ => 3 PV (máximo base 3 por carril).
-- Si un defensor conserva algún personaje delante, mitiga **2 de daño estructural**; Guardia de hechizos mitiga daño adicional. **Dive** ignora la mitigación de personajes, pero provoca 2 de daño de respuesta de torre a un atacante si la torre seguía en pie.
+- La diferencia positiva contra la presión del rival se convierte en daño potencial: 1–2 => 1 PV, 3–4 => 2 PV, 5–6 => 3 PV. Máximo 3 por carril hasta R11, 4 desde R12 y 5 desde R17.
+- Si un defensor conserva algún personaje delante, mitiga **2 de daño estructural** hasta R9, **1** de R10 a R15 y **0** desde R16; la pasiva Baluarte sigue sumando +1 de mitigación. Guardia de hechizos mitiga daño adicional. **Dive** ignora la mitigación de personajes, pero provoca 2 de daño de respuesta de torre a un atacante si la torre seguía en pie.
 - Si el defensor está **vivo atrás** y atacas su torre, ésta responde con **1 daño al atacante**; si la línea está totalmente desocupada, la torre no contraataca. Ataques al Nexo no provocan respuesta de una torre ya destruida.
 - Para asediar una torre o Nexo debe **sobrevivir al menos un personaje propio delante** en el carril: las cartas de presión solas no pueden dañar estructuras.
 - Un personaje trasero no otorga protección frontal, pero la torre sigue otorgando su +1 de presión mientras viva.
@@ -83,3 +83,15 @@ Cada lado tiene **torre de 6 PV** por carril y **Nexo de 12 PV**. Si cae una tor
 - Los mazos se guardan en almacenamiento local separado del simulador antiguo (clave `rift-director-ccg-decks-v1`). Máximo 12 guardados; sin perfil, cuenta, comercio ni sincronización en esta fase.
 - La página `card-game.html` permite elegir mazo de ambos lados antes de comenzar la partida. El bot puede usar mazos del catálogo.
 - **Aún pendiente:** sobres, inventario desbloqueable, economía, editor cosmético, efectos de personajes individuales más complejos y balance de metajuego. El catálogo es una muestra jugable, no el set comercial definitivo.
+
+## IA y balance medido — v0.8.4
+
+- Tres dificultades: **Aprendiz** (heurística de referencia), **Táctico** y **Director** (más prioridad a ejecuciones y brechas). Estrategias configurables: **Equilibrado**, **Asedio**, **Control** y **Jungla**.
+- La IA usa su **propia mano** y posiciones, vida, torres, acciones, energía y presión visibles. No inspecciona la mano ni el mazo ocultos del oponente para elegir cartas.
+- Al seleccionar cartas calcula si generan asedio real o solo gasto de energía, si deben evitar daño en una brecha abierta, si el jungla puede participar en un neutral y cuándo regresar a base.
+- Se añade una tercera plantilla jugable **Control del Vínculo**, además de Asedio del Bastión y Rutas del Umbral.
+- Escalado de la **Convergencia tardía** para evitar partidas de desgaste infinito: hasta R11 el asedio tiene límite 3; en R12–R16, 4; desde R17, 5. La defensa frontal básica mitiga 2 hasta R9, 1 en R10–R15 y 0 desde R16. Una torre aún bloquea el Nexo hasta ser destruida, sin daño excedente al Nexo.
+- `src/card-game/balance.mjs` y `scripts/card-game-balance.mjs` ejecutan torneos sin interfaz y con semillas reproducibles.
+- Cada cruce prueba el mismo conjunto de semillas en **ambos asientos** y con **ambas iniciativas**. El runner informa victorias, empates, partidas incompletas, duración, daños estructurales, muertes y objetivos.
+- Los reportes de GitHub Actions guardan JSON; los **empates reales** y las **partidas sin terminar** se cuentan por separado. Cualquier cifra de win rate es exploratoria de esta IA, **no prueba el balance PvP**.
+- Las reglas actuales se validan con la IA y torneo de regresión; futuras versiones necesitarán medición humana, más arquetipos y pruebas de red.
