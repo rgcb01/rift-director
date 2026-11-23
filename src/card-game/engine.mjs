@@ -12,6 +12,7 @@ const baseEnergy = round => Math.min(7, round + 2);
 export const combatAttack = (unit, round) => unit.attack + (round >= 10 ? 2 : round >= 7 ? 1 : 0);
 export const maxStructuralDamage = round => round >= 17 ? 5 : round >= 12 ? 4 : 3;
 export const frontalMitigation = round => round >= 16 ? 0 : round >= 10 ? 1 : 2;
+export const lateLaneMomentum = round => round >= 18 ? 2 : round >= 14 ? 1 : 0;
 export const OBJECTIVES = Object.freeze({
   minor: { name: 'Latido del Vínculo', unlock: 4, threshold: 4, margin: 2 },
   major: { name: 'Coloso del Umbral', unlock: 8, threshold: 4, margin: 2 }
@@ -88,10 +89,15 @@ export function createMatch(decks, options = {}) {
   if (!Array.isArray(decks) || decks.length !== 2) fail('Se requieren dos mazos');
   decks.forEach(validateDeck);
   const firstPlayer = options.firstPlayer ?? 0;
+  const secondPlayerBonus = options.secondPlayerBonus ?? 1;
   if (![0, 1].includes(firstPlayer)) fail('Primer jugador inválido');
+  // Experimental balance lever. Default preserves the agreed opening rule.
+  if (!integer(secondPlayerBonus, 0, 2)) fail('Bono de salida inválido');
+  if (options.siegeMomentum !== undefined && typeof options.siegeMomentum !== 'boolean') fail('Regla de asedio inválida');
   const match = {
     version: 1, rng: (options.seed ?? 123456) | 0 || 1,
     round: 1, firstPlayer, turn: firstPlayer, winner: null, phase: 'tactics',
+    rules: { siegeMomentum: options.siegeMomentum ?? true },
     players: decks.map((deck, side) => makePlayer(side, deck)),
     objectives: {
       minor: { active: false, claimedBy: null },
@@ -103,8 +109,8 @@ export function createMatch(decks, options = {}) {
     refill(match, p);
     p.energy = 3;
   }
-  match.players[1 - firstPlayer].energy++;
-  addEvent(match, 'START', { firstPlayer });
+  match.players[1 - firstPlayer].energy += secondPlayerBonus;
+  addEvent(match, 'START', { firstPlayer, secondPlayerBonus });
   return match;
 }
 
@@ -292,6 +298,7 @@ function resolveRound(match) {
     const pressure = match.players.map((p, i) =>
       presence[i].reduce((s, u) => s + u.attack + (u.trait === 'SIEGE' ? 1 : 0), 0) + p.buffs[lane] +
       p.permanentPressure[lane] + (p.majorUntil >= match.round ? 1 : 0) +
+      (match.rules.siegeMomentum && presence[i].length > 0 ? lateLaneMomentum(match.round) : 0) +
       (p.towers[lane] > 0 ? 1 : 0));
     for (let side = 0; side < 2; side++) {
       const delta = pressure[side] - pressure[1 - side];
@@ -379,6 +386,8 @@ function resolveRound(match) {
   if ([7, 10].includes(match.round)) addEvent(match, 'LATE_POWER', { bonus: match.round === 7 ? 1 : 2 });
   if ([12, 16, 17].includes(match.round))
     addEvent(match, 'LATE_SIEGE', { cap: maxStructuralDamage(match.round), mitigation: frontalMitigation(match.round) });
+  if (match.rules.siegeMomentum && [14, 18].includes(match.round))
+    addEvent(match, 'LATE_MOMENTUM', { bonus: lateLaneMomentum(match.round) });
   spawnObjectives(match);
   return match;
 }

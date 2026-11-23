@@ -1,7 +1,7 @@
 // Rift Director v0.8.4 — tactical AI with PUBLIC-state decisions.
 // Only reads the acting player's hand; never inspects rival hand, deck or future RNG.
 // No hidden reaction cards: it acts exclusively during its own legal turn.
-import {LANES, playCard, activate, chooseKeep, passTurn, combatAttack, maxStructuralDamage, frontalMitigation} from './engine.mjs';
+import {LANES, playCard, activate, chooseKeep, passTurn, combatAttack, maxStructuralDamage, frontalMitigation, lateLaneMomentum} from './engine.mjs';
 import {botStep as rookieStep} from './simple-bot.mjs';
 
 export const AI_LEVELS=Object.freeze({
@@ -30,8 +30,10 @@ function weights(style){
 function perLane(m,s,lane){
  const p=m.players[s],r=m.players[1-s];
  const a=laneAttack(m,s,lane),b=laneAttack(m,1-s,lane);
- const own=a+p.buffs[lane]+p.permanentPressure[lane]+(p.towers[lane]>0?1:0)+(p.majorUntil>=m.round?1:0);
- const enemy=b+r.buffs[lane]+r.permanentPressure[lane]+(r.towers[lane]>0?1:0)+(r.majorUntil>=m.round?1:0);
+ const own=a+p.buffs[lane]+p.permanentPressure[lane]+(p.towers[lane]>0?1:0)+(p.majorUntil>=m.round?1:0)+
+  (m.rules?.siegeMomentum&&ownFront(m,s,lane).length>0?lateLaneMomentum(m.round):0);
+ const enemy=b+r.buffs[lane]+r.permanentPressure[lane]+(r.towers[lane]>0?1:0)+(r.majorUntil>=m.round?1:0)+
+  (m.rules?.siegeMomentum&&ownFront(m,1-s,lane).length>0?lateLaneMomentum(m.round):0);
  const ours=ownFront(m,s,lane),theirs=ownFront(m,1-s,lane);
  const unguarded=theirs.length===0;
  const threat=enemy-own;
@@ -57,7 +59,7 @@ function scorePressure(m,s,lane,amount,style){
  const after=estimatedSiege(l,amount);
  const towerDamage=hitValue(after-before,l);
  const pressureEdge=clamp(l.own+amount-l.enemy,-3,6);
- // Avoid burning a card when the attack is already at the 3-damage cap.
+ // Avoid burning a card when an attack is already at the current damage cap.
  if(before>=l.cap&&after===before)return 0.8;
  // Pressure may be worth stacking for a second tactical card, but not endlessly.
  const setup=after===0?(pressureEdge>0?3.5:1.1):3;
@@ -175,11 +177,18 @@ function swapChoices(m,s,style){
        (u.hp<=2?10:0)-(u.trait==='HARVEST'&&p.pendingFarm===0?2:0);
      out.push({kind:'activate',unitId:u.id,order:'SWAP_RANK',score});
    }else{
-     const danger=l.theirs.reduce((sum,e)=>sum+combatAttack(e,m.round),0);
-     if(u.hp<=danger||u.hp<=2){
-       const score=W.defense*(u.hp<=danger?11:6)-(l.target===0?2:0);
+     // An exposed 1-HP attacker does NOT need to flee an empty lane:
+     // damage on the printed card is permanent, but an uncontested lane is safe.
+     const danger=l.theirs.reduce((sum,e)=>sum+combatAttack(e,m.round)+(e.trait==='DUELIST'?1:0),0);
+     if(danger>0&&u.hp<=danger){
+       const soleFront=l.ours.length===1;
+       const late=m.round>=12;
+       const protectingBreach=p.towers[u.lane]===0;
+       const score=W.defense*(11+(protectingBreach?1:0))-
+         (soleFront?3:0)-(late?2:0);
        out.push({kind:'activate',unitId:u.id,order:'SWAP_RANK',score});
-       if(u.hp<=Math.ceil(u.maxHp/3))out.push({kind:'activate',unitId:u.id,order:'BACK',score:W.defense*7});
+       if(u.hp<=Math.ceil(u.maxHp/3)&&!protectingBreach)
+         out.push({kind:'activate',unitId:u.id,order:'BACK',score:W.defense*6});
      }
    }
  }

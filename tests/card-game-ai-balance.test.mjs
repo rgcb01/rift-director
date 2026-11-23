@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {createMatch,validateDeck,maxStructuralDamage,frontalMitigation} from '../src/card-game/engine.mjs';
+import {createMatch,validateDeck,maxStructuralDamage,frontalMitigation,lateLaneMomentum,passTurn} from '../src/card-game/engine.mjs';
 import {templateDeck} from '../src/card-game/catalog.mjs';
 import {aiStep,AI_LEVELS,AI_STYLES} from '../src/card-game/tactical-ai.mjs';
 import {simulateGame,runTournament,DEFAULT_FIXTURES} from '../src/card-game/balance.mjs';
@@ -76,4 +76,57 @@ test('el runner rechaza entradas arbitrarias y no realiza simulaciones ilimitada
 test('la fase tardía sube el daño de asedio sin dejar torres ni Nexo sin protección antes de abrir brecha',()=>{
  assert.deepEqual([1,9,10,11,12,16,17,24].map(maxStructuralDamage),[3,3,3,3,4,4,5,5]);
  assert.deepEqual([1,9,10,11,12,15,16,17].map(frontalMitigation),[2,2,1,1,1,1,0,0]);
+});
+
+test('el bono inicial es parametrizable para experimentos sin alterar el +1 predeterminado',()=>{
+ const decks=[templateDeck('siege'),templateDeck('jungle')];
+ const defaultMatch=createMatch(decks,{seed:17,firstPlayer:0});
+ assert.deepEqual(defaultMatch.players.map(x=>x.energy),[3,4]);
+ const noBonus=createMatch(decks,{seed:17,firstPlayer:0,secondPlayerBonus:0});
+ assert.deepEqual(noBonus.players.map(x=>x.energy),[3,3]);
+ const doubleBonus=createMatch(decks,{seed:17,firstPlayer:1,secondPlayerBonus:2});
+ assert.deepEqual(doubleBonus.players.map(x=>x.energy),[5,3]);
+ assert.throws(()=>createMatch(decks,{secondPlayerBonus:-1}),/Bono/);
+ assert.throws(()=>createMatch(decks,{secondPlayerBonus:3}),/Bono/);
+});
+
+test('estudio de iniciativa cambia una sola variable y conserva semilla, asientos y límite',()=>{
+ const common={seeds:2,maxRounds:8,fixtures:DEFAULT_FIXTURES.slice(0,2)};
+ const withZero=runTournament({...common,secondPlayerBonus:0});
+ const withOne=runTournament({...common,secondPlayerBonus:1});
+ assert.equal(withZero.totals.games,16);
+ assert.equal(withOne.totals.games,16);
+ assert.equal(withZero.config.secondPlayerBonus,0);
+ assert.equal(withOne.config.secondPlayerBonus,1);
+ for(const result of [withZero,withOne]){
+  assert.equal(result.totals.firstWins+result.totals.secondWins+result.totals.draws+result.totals.timeouts,result.totals.games);
+ }
+});
+
+test('la IA no abandona un carril abierto solo porque su atacante esté herido',()=>{
+ const decks=[templateDeck('siege'),templateDeck('jungle')];
+ const match=createMatch(decks,{seed:192,firstPlayer:0});
+ const top=match.players[0].characters.find(c=>c.role==='TOP');
+ top.hp=1;
+ for(const enemy of match.players[1].characters.filter(c=>c.role==='TOP'))enemy.rank='rear';
+ const startPosition=top.rank;
+ aiStep(match,0,{difficulty:'tactical',style:'siege'});
+ const now=match.players[0].characters.find(c=>c.id===top.id);
+ assert.equal(startPosition,'front');
+ assert.equal(now.rank,'front','no debe retirar sin amenaza un atacante del carril');
+});
+
+test('resonancia de asedio es optativa y solo mejora presión con supervivientes desde R14',()=>{
+ assert.deepEqual([1,13,14,17,18,24].map(lateLaneMomentum),[0,0,1,1,2,2]);
+ const once=enabled=>{
+  const m=createMatch([templateDeck('siege'),templateDeck('jungle')],{seed:73,secondPlayerBonus:1,siegeMomentum:enabled});
+  m.round=14;
+  for(const p of m.players)for(const unit of p.characters)unit.rank='rear';
+  m.players[0].characters.find(u=>u.role==='TOP').rank='front';
+  passTurn(m,m.turn);passTurn(m,m.turn);
+  return m.log.find(e=>e.type==='PRESSURE'&&e.lane==='TOP'&&e.round===14).blue;
+ };
+ assert.equal(once(true)-once(false),1);
+ const defaultMatch=createMatch([templateDeck('siege'),templateDeck('jungle')]);
+ assert.equal(defaultMatch.rules.siegeMomentum,true);
 });

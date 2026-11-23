@@ -1,4 +1,4 @@
-// Rift Director 0.8.4 — deterministic, side-balanced tournament runner.
+// Rift Director 0.8.5 — deterministic, side-balanced tournament runner.
 // A timeout is a separately reported incomplete game, never an invented draw.
 // The same seed is exercised in both seat assignments and both first-player choices.
 import {createMatch} from './engine.mjs';
@@ -42,11 +42,13 @@ function asMetric(match,halfTurns,timedOut){
 }
 export function simulateGame(deckA,deckB,options={}){
  const seed=options.seed??42,firstPlayer=options.firstPlayer??0, maxRounds=options.maxRounds??24;
+ const secondPlayerBonus=options.secondPlayerBonus??1;
+ const siegeMomentum=options.siegeMomentum??true;
  const level=options.difficulty||'director',styles=options.styles||['siege','jungle'];
  if(!Number.isInteger(maxRounds)||maxRounds<1||maxRounds>200)throw Error('Límite de rondas inválido');
  if(!AI_LEVELS[level]||!styles.every(x=>AI_STYLES[x]))throw Error('IA desconocida');
  const decks=[typeof deckA==='string'?templateDeck(deckA):deckA,typeof deckB==='string'?templateDeck(deckB):deckB];
- const m=createMatch(decks,{seed,firstPlayer});
+ const m=createMatch(decks,{seed,firstPlayer,secondPlayerBonus,siegeMomentum});
  let moves=0;
  const maxMoves=maxRounds*18;
  while(m.phase==='tactics'&&m.round<=maxRounds&&moves<maxMoves){
@@ -60,8 +62,12 @@ export function simulateGame(deckA,deckB,options={}){
 }
 export function runTournament(options={}){
  const seeds=options.seeds??20,maxRounds=options.maxRounds??24,difficulty=options.difficulty??'director';
+ const secondPlayerBonus=options.secondPlayerBonus??1;
+ const siegeMomentum=options.siegeMomentum??true;
  const fixtures=options.fixtures??DEFAULT_FIXTURES;
  if(!Number.isInteger(seeds)||seeds<1||seeds>3000)throw Error('Semillas inválidas');
+ if(![0,1,2].includes(secondPlayerBonus))throw Error('Bono de segundo inválido');
+ if(typeof siegeMomentum!=='boolean')throw Error('Regla de resonancia inválida');
  if(!Array.isArray(fixtures)||!fixtures.length)throw Error('Faltan enfrentamientos');
  const all=[],stats=[];
  for(const fixture of fixtures){
@@ -74,7 +80,7 @@ export function runTournament(options={}){
        for(const firstPlayer of [0,1]){
          const sides=swapped?[fixture.b,fixture.a]:[fixture.a,fixture.b];
          const styles=swapped?[fixture.styleB,fixture.styleA]:[fixture.styleA,fixture.styleB];
-         const result=simulateGame(sides[0],sides[1],{seed,firstPlayer,maxRounds,difficulty,styles});
+         const result=simulateGame(sides[0],sides[1],{seed,firstPlayer,maxRounds,difficulty,styles,secondPlayerBonus,siegeMomentum});
          const originalWinner=result.winner==='draw'?'draw':(result.winner===null?null:swapped?1-result.winner:result.winner);
          if(result.timedOut)timeouts++;
          else if(result.winner==='draw')draws++;
@@ -108,7 +114,7 @@ export function runTournament(options={}){
  }
  const sum=(key)=>stats.reduce((a,s)=>a+s[key],0);
  return {
-   version:'0.8.4',config:{seeds,maxRounds,difficulty,fixtures:fixtures.length,
+   version:'0.8.5',config:{seeds,maxRounds,difficulty,secondPlayerBonus,siegeMomentum,fixtures:fixtures.length,
      paired:true,seatSwaps:true,initiativeSwaps:true},
    totals:{games:sum('games'),finished:sum('finished'),timeouts:sum('timeouts'),draws:sum('draws'),
      firstWins:sum('firstWins'),secondWins:sum('secondWins')},
