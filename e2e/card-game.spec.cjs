@@ -4,7 +4,7 @@ mkdirSync('ux-screenshots',{recursive:true});
 const url='http://127.0.0.1:8080/card-game.html';
 
 for(const width of [360,768,1440]){
-  test('Card Game v0.8.1: bot, tablero y jugadas a '+width+'px',async({browser})=>{
+  test('Card Game v0.8.2: bot, tablero y jugadas a '+width+'px',async({browser})=>{
     const context=await browser.newContext({viewport:{width,height:900},reducedMotion:'reduce'});
     const page=await context.newPage(),errors=[];
     page.on('pageerror',e=>errors.push(e.message));
@@ -30,7 +30,7 @@ for(const width of [360,768,1440]){
     await context.close();
   });
 }
-test('Card Game v0.8.1: hotseat oculta la mano rival al pasar',async({page})=>{
+test('Card Game v0.8.2: hotseat oculta la mano rival al pasar',async({page})=>{
   const errors=[];
   page.on('pageerror',e=>errors.push(e.message));
   await page.goto(url);
@@ -44,4 +44,26 @@ test('Card Game v0.8.1: hotseat oculta la mano rival al pasar',async({page})=>{
   await expect(page.locator('.pass-screen')).toHaveCount(0);
   await expect(page.locator('.tactic')).toHaveCount(6);
   expect(errors).toEqual([]);
+});
+
+test('Card Game v0.8.2: el Latido aparece en la zona neutral desde R4',async({browser})=>{
+ const context=await browser.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});
+ const page=await context.newPage();
+ const errors=[];
+ page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(url);
+ await page.locator('[data-setup="bot"]').click();
+ await page.locator('[data-first]').first().click();
+ await expect(page.locator('.objective-tile')).toHaveCount(2);
+ await expect(page.locator('[data-objective="minor"]')).toBeDisabled();
+ for(let i=0;i<3;i++) await page.locator('[data-act="pass"]').click();
+ await expect(page.getByText('Ronda 4',{exact:true})).toBeVisible();
+ await expect(page.locator('[data-objective="minor"]')).toBeEnabled();
+ await page.locator('[data-objective="minor"]').click();
+ await expect(page.getByText('Para disputar este objetivo',{exact:false})).toBeVisible();
+ await page.screenshot({path:'ux-screenshots/card-game-neutral-390.png',fullPage:true});
+ const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
+ expect(overflow).toBeLessThanOrEqual(3);
+ expect(errors).toEqual([]);
+ await context.close();
 });
