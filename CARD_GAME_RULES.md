@@ -1,4 +1,4 @@
-# Rift Director — Card Game Rules v0.4 (prototipo)
+# Rift Director — Card Game Rules v0.5 (prototipo)
 
 Estado: **borrador jugable, valores sujetos a playtesting**. Estas reglas documentan el rework CCG ya integrado como ruta separada (`card-game.html`). El viejo manager permanece intacto mientras se valida este núcleo.
 
@@ -95,3 +95,14 @@ Cada lado tiene **torre de 6 PV** por carril y **Nexo de 12 PV**. Si cae una tor
 - Cada cruce prueba el mismo conjunto de semillas en **ambos asientos** y con **ambas iniciativas**. El runner informa victorias, empates, partidas incompletas, duración, daños estructurales, muertes y objetivos.
 - Los reportes de GitHub Actions guardan JSON; los **empates reales** y las **partidas sin terminar** se cuentan por separado. Cualquier cifra de win rate es exploratoria de esta IA, **no prueba el balance PvP**.
 - Las reglas actuales se validan con la IA y torneo de regresión; futuras versiones necesitarán medición humana, más arquetipos y pruebas de red.
+
+## Ritmo, resonancia y prueba de apertura — v0.8.5
+
+- La compensación acordada al iniciar no cambia: **el jugador que comienza segundo recibe +1 energía temporal en R1**, sin acumular esa energía entre rondas.
+- El motor acepta un parámetro experimental `secondPlayerBonus` de 0, 1 o 2 **solo para comparar escenarios con las mismas semillas, asientos e iniciativa**. La partida pública utiliza +1.
+- **Resonancia de Convergencia:** a partir de R14, un carril con al menos un Riftborn **propio vivo delante tras el combate** obtiene +1 presión de asedio de ronda; desde R18 recibe +2. Se aplica como bonificación por carril, no por personaje: no escala con el número de atacantes.
+- Esta presión extra no hace daño directamente; sigue exigiendo presencia frontal superviviente, diferencia positiva de presión y que haya caído la torre antes de dañar el Nexo. No cambia las cuatro jugadas ni el coste de cartas.
+- El motor conserva `siegeMomentum: false` como opción para reproducir la versión anterior y comparar el mismo conjunto de partidas. La versión jugable y la simulación habitual lo activan por defecto.
+- La IA deja de usar una acción para retirar a un atacante de poca vida **si no hay enemigo delante que pueda dañarlo**; evita ceder un carril sin necesidad.
+- La muestra pareada inicial (12 semillas, seis enfrentamientos y cuatro orientaciones por semilla; 288 partidas por escenario, máximo R24) mostró **213/288 terminadas sin resonancia frente a 257/288 con resonancia**. Se trata de resultados de IA; no equivale a un balance PvP.
+- Los informes de GitHub Actions separan empates de partidas que exceden el límite y publican resultados por arquetipo y por iniciativa. Las reglas de economía, sobres y rarezas permanecen fuera de este milestone.
