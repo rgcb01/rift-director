@@ -1,4 +1,4 @@
-# Rift Director — Card Game Rules v0.2 (prototipo)
+# Rift Director — Card Game Rules v0.3 (prototipo)
 
 Estado: **borrador jugable, valores sujetos a playtesting**. Estas reglas documentan el rework CCG ya integrado como ruta separada (`card-game.html`). El viejo manager permanece intacto mientras se valida este núcleo.
 
@@ -72,3 +72,14 @@ Cada lado tiene **torre de 6 PV** por carril y **Nexo de 12 PV**. Si cae una tor
 4. Una torre bloquea Nexo; una torre destruida habilita daño al Nexo en siguientes rondas.
 5. Diferencia observable entre Back y Muerte, y entre frente y atrás.
 6. Pruebas automatizadas de victoria, KO, robo, energía, presión, resolución simultánea y alternancia.
+
+## Construcción de mazos y colección inicial — v0.8.3
+- Colección de prueba desbloqueada: 18 Riftborn de roles TOP, MID, BOT y JUN, y 34 cartas tácticas. Las cartas no poseen mejoras ni niveles.
+- La identidad estratégica reside en escoger exactamente cinco personajes (TOP 1, MID 1, BOT 2, JUN 1, todos distintos) y 20 cartas tácticas del catálogo.
+- Rarezas y límites de copias **por mazo**, no de poder: común hasta 3; poco común hasta 2; rara hasta 2; épica y legendaria hasta 1. Un mazo incompleto puede guardarse como borrador, pero no jugarse.
+- Pasivas iniciales del campeón: **Asedio** (+1 presión frontal), **Baluarte** (+1 mitigación frontal), **Cosecha** (equivale a dos personajes farmeando, límite +2), **Duelista** (+1 daño a otro campeón), **Cazador** (+1 aporte neutral al usar al jungla), **Explorador** (+1 en el gank del jungla).
+- Nuevos efectos tácticos: **HEAL** para restaurar PV de un aliado activo y **SABOTAGE** para reducir temporalmente la presión enemiga en un carril. También utilizan una de las cuatro jugadas; no hay cartas instantáneas.
+- Editor independiente en `deck-builder.html`: filtros, búsqueda, asignación por rol, suma/resta de copias, borradores, plantillas, guardar, duplicar, eliminar y entrar en combate con un mazo válido.
+- Los mazos se guardan en almacenamiento local separado del simulador antiguo (clave `rift-director-ccg-decks-v1`). Máximo 12 guardados; sin perfil, cuenta, comercio ni sincronización en esta fase.
+- La página `card-game.html` permite elegir mazo de ambos lados antes de comenzar la partida. El bot puede usar mazos del catálogo.
+- **Aún pendiente:** sobres, inventario desbloqueable, economía, editor cosmético, efectos de personajes individuales más complejos y balance de metajuego. El catálogo es una muestra jugable, no el set comercial definitivo.
