@@ -89,7 +89,7 @@ const TEMPLATE_BLUEPRINTS={
    tactics:{'wave-push':3,'siege-march':2,'battle-standard':2,'line-guard':2,'precise-strike':2,'energy-pulse':2,'map-reading':1,'rotation':2,'gank':1,'dive':2,'hunt':1}
  },
  jungle:{
-   name:'Rutas del Umbral',heroes:['hero-baluarte','hero-tejedora','hero-duelista','hero-arbalesta','hero-acechador'],
+   name:'Rutas del Umbral',heroes:['hero-baluarte','hero-tejedora','hero-duelista','hero-oraculo','hero-acechador'],
    tactics:{'gank':3,'hunt':2,'wave-push':2,'line-guard':2,'map-reading':2,'energy-pulse':2,'precise-strike':2,'rotation':1,'fatal-blow':1,'recall':1,'sabotage':2}
  }
 };
