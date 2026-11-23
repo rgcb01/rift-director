@@ -1,15 +1,15 @@
-import {createMatch, playCard, activate, passTurn, chooseKeep, LANES} from './engine.mjs';
+import {createMatch, playCard, activate, passTurn, chooseKeep, LANES, OBJECTIVES, combatAttack} from './engine.mjs';
 import {STARTER_DECKS, KIND_NAMES, EFFECT_NAMES} from './starter-decks.mjs';
 import {botStep} from './simple-bot.mjs';
 
 const app=document.getElementById('card-game-app');
 const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const iconFor={PRESSURE:'⚔',GUARD:'◈',IMPACT:'✹',ENERGY:'⚡',DRAW:'✦',ROTATE:'↔',GANK:'✣',DIVE:'⌁',BACK:'⌂'};
+const iconFor={PRESSURE:'⚔',GUARD:'◈',IMPACT:'✹',ENERGY:'⚡',DRAW:'✦',ROTATE:'↔',GANK:'✣',DIVE:'⌁',BACK:'⌂',HUNT:'☄'};
 const labelSide=s=>s===0?'Azul':'Rojo';
-let mode=null,match=null,coin=null,selectedCard=null,selectedUnit=null,rotateSource=null,curtain=false,notice='';
-function title(){return '<div class="topbar"><div><div class="kicker">CARD GAME · PROTOTIPO 0.8.1</div><div class="wordmark">RIFT <span>DIRECTOR</span></div></div><div class="nav-actions"><span class="pill live">♧ Rework táctico</span><button class="btn smallbtn minor" data-act="reset">Nueva partida</button></div></div>';}
+let mode=null,match=null,coin=null,selectedCard=null,selectedUnit=null,rotateSource=null,selectedObjective=null,curtain=false,notice='';
+function title(){return '<div class="topbar"><div><div class="kicker">CARD GAME · PROTOTIPO 0.8.2</div><div class="wordmark">RIFT <span>DIRECTOR</span></div></div><div class="nav-actions"><span class="pill live">♧ Rework táctico</span><button class="btn smallbtn minor" data-act="reset">Nueva partida</button></div></div>';}
 function intro(){
- return `${title()}<div class="intro"><section class="intro-hero"><div class="kicker">Domina la Convergencia</div><h1>Tres carriles.<br>Cuatro jugadas.<br>Una decisión decisiva.</h1><p>Dirige cinco Riftborn, defiende tus torres y abre camino hacia el Nexo rival. Todo el combate se resuelve con cartas, posiciones y presión.</p><div class="pill">5 personajes · 20 tácticas · 6 cartas en mano</div></section><div class="intro-menu"><button class="mode" data-setup="bot"><strong>⚔ Contra un bot</strong><small>Prueba el mazo de Asedio contra un rival de Jungla. El bot toma decisiones sencillas y no conoce tu mano.</small></button><button class="mode" data-setup="hotseat"><strong>♟ Dos jugadores locales</strong><small>Alternad jugadas en el mismo dispositivo. La mano se oculta al pasar de jugador.</small></button></div><p class="small">Versión de pruebas. Los objetivos neutrales y la tienda de sobres todavía no están activos; la partida principal, torres y Nexo sí.</p></div>`;
+ return `${title()}<div class="intro"><section class="intro-hero"><div class="kicker">Domina la Convergencia</div><h1>Tres carriles.<br>Cuatro jugadas.<br>Una decisión decisiva.</h1><p>Dirige cinco Riftborn, defiende tus torres y abre camino hacia el Nexo rival. Todo el combate se resuelve con cartas, posiciones y presión.</p><div class="pill">5 personajes · 20 tácticas · 6 cartas en mano</div></section><div class="intro-menu"><button class="mode" data-setup="bot"><strong>⚔ Contra un bot</strong><small>Prueba el mazo de Asedio contra un rival de Jungla. El bot toma decisiones sencillas y no conoce tu mano.</small></button><button class="mode" data-setup="hotseat"><strong>♟ Dos jugadores locales</strong><small>Alternad jugadas en el mismo dispositivo. La mano se oculta al pasar de jugador.</small></button></div><p class="small">Versión de pruebas: ya puedes disputar el Latido (R4) y el Coloso (R8) con cartas de Caza. Sobres y colección llegarán después.</p></div>`;
 }
 function coinScreen(){
  const winner=coin.winner, botWon=coin.mode==='bot'&&winner===1;
@@ -23,7 +23,7 @@ function sideBanner(side,isEnemy){
  return `<div class="side-banner ${isEnemy?'enemy':''}"><strong>${isEnemy?'RIVAL':'TÚ'} · ${labelSide(side)}</strong><span class="nexus ${side===0?'blue':'red'}">◈ NEXO ${p.nexus}/12</span><span>⚡ ${p.energy}</span></div>`;
 }
 function zoneUnit(u,owner,isEnemy){
- return `<button class="unit ${isEnemy?'enemy':''} ${u.tapped?'tapped':''} ${selectedUnit===u.id?'active-target':''}" title="${escape(u.code)} · ${u.hp}/${u.maxHp} PV · ${u.tapped?'Agotado':'Disponible'}" data-unit="${escape(u.id)}" data-owner="${owner}"><span class="name-role">${escape(u.role)}</span><b>${escape(characterName(u))}</b><span class="stats">⚔ ${u.attack} &nbsp;♥ ${u.hp}/${u.maxHp}</span></button>`;
+ return `<button class="unit ${isEnemy?'enemy':''} ${u.tapped?'tapped':''} ${selectedUnit===u.id?'active-target':''}" title="${escape(u.code)} · ${u.hp}/${u.maxHp} PV · ${u.tapped?'Agotado':'Disponible'}" data-unit="${escape(u.id)}" data-owner="${owner}"><span class="name-role">${escape(u.role)}</span><b>${escape(characterName(u))}</b><span class="stats">⚔ ${combatAttack(u,match.round)} &nbsp;♥ ${u.hp}/${u.maxHp}</span></button>`;
 }
 function characterName(u){
  const deck=STARTER_DECKS[u.id.startsWith('p0:')?'siege':'jungle'];
@@ -54,9 +54,21 @@ function enemyBacks(side){
  const cards=match.players[side].hand.length;
  return `<div class="hand-backs" aria-label="El rival tiene ${cards} cartas ocultas">${Array.from({length:cards},()=>'<span class="back-card">✧</span>').join('')}${cards===0?'<span class="small">Sin cartas</span>':''}</div>`;
 }
+function neutralZone(){
+ const pieces=Object.entries(OBJECTIVES).map(([id,definition])=>{
+   const objective=match.objectives[id];
+   const status=objective.claimedBy!==null?'Conquistado por '+labelSide(objective.claimedBy):
+     objective.active?'DISPONIBLE':'Desbloquea R'+definition.unlock;
+   const pressure=match.players.map(p=>p.objectivePressure[id]);
+   const reward=id==='minor'?'+1 presión permanente al carril elegido':
+     '+1 presión en todos los carriles y +1 asedio inicial, durante 3 rondas';
+   return `<button class="objective-tile ${objective.active?'available':''} ${selectedCard&&selectedObjective===id?'selected':''}" data-objective="${id}" ${objective.active?'':'disabled'}><span class="objective-symbol">${id==='minor'?'✧':'♛'}</span><span class="objective-title">${escape(definition.name)}</span><span class="objective-state">${escape(status)}</span><span class="objective-score">Azul ${pressure[0]} · ${pressure[1]} Rojo</span><span class="objective-reward">${escape(reward)}</span></button>`;
+ }).join('');
+ return `<div class="neutral"><strong>✧ CONVERGENCIA · OBJETIVOS NEUTRALES</strong><div class="objective-grid">${pieces}</div><span>Para conquistarlos: 4+ presión neutral y ventaja de 2. Caza consume jugada y energía.</span></div>`;
+}
 function board(viewSide){
  const rival=1-viewSide;
- return `<div class="field"><div class="board-side">${sideBanner(rival,true)}${enemyBacks(rival)}${reserve(rival)}${jungle(rival,true)}<div class="lanes">${LANES.map(l=>laneColumn(rival,l,true)).join('')}</div></div><div class="neutral"><strong>✧ ZONA NEUTRAL · CONVERGENCIA</strong><span>Latido y Coloso llegarán en la siguiente etapa</span></div><div class="board-side"><div class="lanes">${LANES.map(l=>laneColumn(viewSide,l,false)).join('')}</div>${jungle(viewSide,false)}${sideBanner(viewSide,false)}${reserve(viewSide)}</div></div>`;
+ return `<div class="field"><div class="board-side">${sideBanner(rival,true)}${enemyBacks(rival)}${reserve(rival)}${jungle(rival,true)}<div class="lanes">${LANES.map(l=>laneColumn(rival,l,true)).join('')}</div></div>${neutralZone()}<div class="board-side"><div class="lanes">${LANES.map(l=>laneColumn(viewSide,l,false)).join('')}</div>${jungle(viewSide,false)}${sideBanner(viewSide,false)}${reserve(viewSide)}</div></div>`;
 }
 function prompt(viewSide){
  const current=match.turn===viewSide;
@@ -67,8 +79,11 @@ function prompt(viewSide){
    const t=card.effect.type;
    const label=t==='ROTATE'?(rotateSource?'Ahora selecciona la columna de destino':'Elige un personaje aliado para rotarlo'):
     t==='BACK'?'Elige el personaje que regresará a base':
-    t==='IMPACT'?'Elige un personaje enemigo como objetivo':'Toca TOP, MID o BOT como destino';
-   return `<section class="panel prompt"><h3>Seleccionando: ${escape(card.name)}</h3><p><strong>${escape(label)}</strong></p><div class="prompt-btns"><button class="btn smallbtn minor" data-act="cancel">Cancelar</button></div></section>`;
+    t==='IMPACT'?'Elige un personaje enemigo como objetivo':
+    t==='HUNT'?(selectedObjective==='minor'?'¿Qué carril recibirá +1 de presión permanente?':'Toca un objetivo disponible en el centro del tablero'):
+    'Toca TOP, MID o BOT como destino';
+   const lanes=t==='HUNT'&&selectedObjective==='minor'?LANES.map(l=>`<button class="btn smallbtn" data-lane="${l}">${l}</button>`).join(''):'';
+   return `<section class="panel prompt"><h3>Seleccionando: ${escape(card.name)}</h3><p><strong>${escape(label)}</strong></p><div class="prompt-btns">${lanes}<button class="btn smallbtn minor" data-act="cancel">Cancelar</button></div></section>`;
  }
  if(selectedUnit){
    const u=match.players[viewSide].characters.find(u=>u.id===selectedUnit);
