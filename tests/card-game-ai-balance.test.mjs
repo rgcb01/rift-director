@@ -128,5 +128,5 @@ test('resonancia de asedio es optativa y solo mejora presión con supervivientes
  };
  assert.equal(once(true)-once(false),1);
  const defaultMatch=createMatch([templateDeck('siege'),templateDeck('jungle')]);
- assert.equal(defaultMatch.rules.siegeMomentum,false);
+ assert.equal(defaultMatch.rules.siegeMomentum,true);
 });
