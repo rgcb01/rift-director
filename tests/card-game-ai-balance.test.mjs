@@ -77,3 +77,41 @@ test('la fase tardía sube el daño de asedio sin dejar torres ni Nexo sin prote
  assert.deepEqual([1,9,10,11,12,16,17,24].map(maxStructuralDamage),[3,3,3,3,4,4,5,5]);
  assert.deepEqual([1,9,10,11,12,15,16,17].map(frontalMitigation),[2,2,1,1,1,1,0,0]);
 });
+
+test('el bono inicial es parametrizable para experimentos sin alterar el +1 predeterminado',()=>{
+ const decks=[templateDeck('siege'),templateDeck('jungle')];
+ const defaultMatch=createMatch(decks,{seed:17,firstPlayer:0});
+ assert.deepEqual(defaultMatch.players.map(x=>x.energy),[3,4]);
+ const noBonus=createMatch(decks,{seed:17,firstPlayer:0,secondPlayerBonus:0});
+ assert.deepEqual(noBonus.players.map(x=>x.energy),[3,3]);
+ const doubleBonus=createMatch(decks,{seed:17,firstPlayer:1,secondPlayerBonus:2});
+ assert.deepEqual(doubleBonus.players.map(x=>x.energy),[5,3]);
+ assert.throws(()=>createMatch(decks,{secondPlayerBonus:-1}),/Bono/);
+ assert.throws(()=>createMatch(decks,{secondPlayerBonus:3}),/Bono/);
+});
+
+test('estudio de iniciativa cambia una sola variable y conserva semilla, asientos y límite',()=>{
+ const common={seeds:2,maxRounds:8,fixtures:DEFAULT_FIXTURES.slice(0,2)};
+ const withZero=runTournament({...common,secondPlayerBonus:0});
+ const withOne=runTournament({...common,secondPlayerBonus:1});
+ assert.equal(withZero.totals.games,16);
+ assert.equal(withOne.totals.games,16);
+ assert.equal(withZero.config.secondPlayerBonus,0);
+ assert.equal(withOne.config.secondPlayerBonus,1);
+ for(const result of [withZero,withOne]){
+  assert.equal(result.totals.firstWins+result.totals.secondWins+result.totals.draws+result.totals.timeouts,result.totals.games);
+ }
+});
+
+test('la IA no abandona un carril abierto solo porque su atacante esté herido',()=>{
+ const decks=[templateDeck('siege'),templateDeck('jungle')];
+ const match=createMatch(decks,{seed:192,firstPlayer:0});
+ const top=match.players[0].characters.find(c=>c.role==='TOP');
+ top.hp=1;
+ for(const enemy of match.players[1].characters.filter(c=>c.role==='TOP'))enemy.rank='rear';
+ const startPosition=top.rank;
+ aiStep(match,0,{difficulty:'tactical',style:'siege'});
+ const now=match.players[0].characters.find(c=>c.id===top.id);
+ assert.equal(startPosition,'front');
+ assert.equal(now.rank,'front','no debe retirar sin amenaza un atacante del carril');
+});
