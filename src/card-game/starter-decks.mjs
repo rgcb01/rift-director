@@ -2,7 +2,8 @@
 import {templateDeck} from './catalog.mjs';
 export const STARTER_DECKS=Object.freeze({
   siege:templateDeck('siege'),
-  jungle:templateDeck('jungle')
+  jungle:templateDeck('jungle'),
+  control:templateDeck('control')
 });
 export const KIND_NAMES=Object.freeze({ACTION:'Acción',SPELL:'Hechizo',RESOURCE:'Recurso'});
 export const EFFECT_NAMES=Object.freeze({
