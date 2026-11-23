@@ -26,6 +26,17 @@ function cardMove(m,s,card) {
     const target=minHp(victims.filter(u=>u.rank==='front').length?victims.filter(u=>u.rank==='front'):victims);
     return {score:8+(target.hp<=card.effect.value?4:0),target:{unitId:target.id}};
   }
+  if(t==='HUNT'){
+    const targets=['major','minor'].filter(id=>m.objectives[id]?.active);
+    if(!targets.length) return null;
+    const objective=targets[0],j=m.players[s].characters.find(u=>u.role==='JUN');
+    const assisted=Boolean(j&&active(j)&&!j.tapped&&j.rank==='front');
+    const pressure=m.players[s].objectivePressure[objective];
+    const enemy=m.players[1-s].objectivePressure[objective];
+    const favorite=[...LANES].sort((a,b)=>lanePriority(m,s,b)-lanePriority(m,s,a))[0];
+    return {score:13+(objective==='major'?3:0)+(assisted?2:0)+(enemy>pressure?2:0),
+      target:{objective,...(objective==='minor'?{lane:favorite}:{})}};
+  }
   if(t==='GANK'){
     const j=m.players[s].characters.find(u=>u.role==='JUN');
     if(!j || !active(j) || j.tapped || j.rank!=='front') return null;
