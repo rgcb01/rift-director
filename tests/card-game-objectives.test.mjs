@@ -5,7 +5,7 @@ import {STARTER_DECKS} from '../src/card-game/starter-decks.mjs';
 import {botStep} from '../src/card-game/simple-bot.mjs';
 
 function neutralMatch(seed=9423) {
-  const m=createMatch([STARTER_DECKS.siege,STARTER_DECKS.jungle],{seed,firstPlayer:0});
+  const m=createMatch([STARTER_DECKS.siege,STARTER_DECKS.jungle],{seed,firstPlayer:1});
   for (const p of m.players) for (const u of p.characters)
     if (u.role!=='JUN')u.rank='rear';
   return m;
@@ -41,9 +41,10 @@ test('los objetivos están bloqueados antes de su ronda y no gastan carta en una
  const m=neutralMatch();
  assert.equal(m.objectives.minor.active,false);
  assert.equal(m.objectives.major.active,false);
- const card=ensureHand(m,0,'HUNT');
+ const side=m.turn;
+ const card=ensureHand(m,side,'HUNT');
  const old=structuredClone(m);
- assert.throws(()=>playCard(m,0,card.uid,{objective:'minor',lane:'MID'}),/no disponible/);
+ assert.throws(()=>playCard(m,side,card.uid,{objective:'minor',lane:'MID'}),/no disponible/);
  assert.deepEqual(m,old);
  until(m,4);
  assert.equal(m.objectives.minor.active,true);
