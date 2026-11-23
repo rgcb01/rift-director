@@ -97,7 +97,7 @@ export function createMatch(decks, options = {}) {
   const match = {
     version: 1, rng: (options.seed ?? 123456) | 0 || 1,
     round: 1, firstPlayer, turn: firstPlayer, winner: null, phase: 'tactics',
-    rules: { siegeMomentum: options.siegeMomentum ?? false },
+    rules: { siegeMomentum: options.siegeMomentum ?? true },
     players: decks.map((deck, side) => makePlayer(side, deck)),
     objectives: {
       minor: { active: false, claimedBy: null },
@@ -386,6 +386,8 @@ function resolveRound(match) {
   if ([7, 10].includes(match.round)) addEvent(match, 'LATE_POWER', { bonus: match.round === 7 ? 1 : 2 });
   if ([12, 16, 17].includes(match.round))
     addEvent(match, 'LATE_SIEGE', { cap: maxStructuralDamage(match.round), mitigation: frontalMitigation(match.round) });
+  if (match.rules.siegeMomentum && [14, 18].includes(match.round))
+    addEvent(match, 'LATE_MOMENTUM', { bonus: lateLaneMomentum(match.round) });
   spawnObjectives(match);
   return match;
 }
