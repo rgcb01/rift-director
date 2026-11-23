@@ -11,10 +11,11 @@ const seeds=Number(option('seeds','20'));
 const maxRounds=Number(option('rounds','24'));
 const outfile=option('json','');
 const difficulty=option('difficulty','director');
+const siegeMomentum=option('momentum','true')==='true';
 const compare=[0,1,2];
-const results=compare.map(secondPlayerBonus=>runTournament({seeds,maxRounds,difficulty,secondPlayerBonus}));
+const results=compare.map(secondPlayerBonus=>runTournament({seeds,maxRounds,difficulty,secondPlayerBonus,siegeMomentum}));
 console.log('Rift Director · estudio de iniciativa · v0.8.5');
-console.log('Mismas semillas y enfrentamientos en ambos asientos y ambos órdenes de salida.');
+console.log('Mismas semillas y enfrentamientos en ambos asientos y ambos órdenes de salida. Resonancia: '+(siegeMomentum?'activa':'desactivada'));
 for(const report of results){
  const {firstWins,secondWins,games,timeouts,draws}=report.totals, decided=firstWins+secondWins;
  console.log('Segundo +'+report.config.secondPlayerBonus+' energía | '+games+' partidas'+
