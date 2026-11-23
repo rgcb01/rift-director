@@ -106,12 +106,27 @@ function logText(ev){
  if(ev.type==='PRESSURE')return ev.lane+': presión '+ev.blue+' vs '+ev.red+'.';
  if(ev.type==='TOWER_HIT')return who+'daña torre '+ev.lane+' por '+ev.amount+'.';
  if(ev.type==='NEXUS_HIT')return who+'daña Nexo por '+ev.amount+' desde '+ev.lane+'.';
+ if(ev.type==='HUNT')return who+'Caza: '+ev.amount+' de presión neutral ('+(ev.objective==='minor'?'Latido':'Coloso')+')'+(ev.assisted?' con ayuda del jungla.':'.');
+ if(ev.type==='OBJECTIVE_SPAWN')return 'Aparece '+OBJECTIVES[ev.objective].name+'.';
+ if(ev.type==='OBJECTIVE_CONTEST')return 'Disputa '+OBJECTIVES[ev.objective].name+': '+ev.blue+'–'+ev.red+'. Nadie conquista.';
+ if(ev.type==='OBJECTIVE_CAPTURE')return who+'conquista '+OBJECTIVES[ev.objective].name+(ev.lane?' (+1 permanente en '+ev.lane+').': ' (hasta ronda '+ev.majorUntil+').');
+ if(ev.type==='LATE_POWER')return 'Escalado global: +'+ev.bonus+' ATQ en combates.';
+ if(ev.type==='TOWER_RETALIATION')return 'La torre responde con '+ev.amount+' de daño al atacante '+labelSide(ev.side)+'.';
  if(ev.type==='FINISH')return 'Fin de partida: '+(ev.winner==='draw'?'empate':'gana '+labelSide(ev.winner))+'.';
  return ev.type;
 }
+function bonusSummary(viewSide){
+ const sides=[viewSide,1-viewSide];
+ return sides.map(side=>{
+   const p=match.players[side];
+   const active=LANES.filter(l=>p.permanentPressure[l]>0).map(l=>l+' +'+p.permanentPressure[l]);
+   const major=p.majorUntil>=match.round?' · Coloso hasta R'+p.majorUntil:'';
+   return '<p>'+labelSide(side)+': Latido '+(active.join(', ')||'sin bonificación')+major+'</p>';
+ }).join('');
+}
 function sidePanel(viewSide){
  const log=[...match.log].slice(-15).reverse();
- return `<aside class="sidebar">${prompt(viewSide)}<div class="panel"><h3>Reglas rápidas</h3><p>Delante combate, atrás farmea. Las cartas giradas ya actuaron. Back: una ronda fuera; muerte: dos. Rompe una torre para abrir una ruta al Nexo.</p><details><summary>Ver más</summary><p>4 jugadas por jugador y ronda. Presión ganadora → daño a estructura. Las cartas de 0 energía también consumen jugada. A partir de R5 hay 7 de energía base.</p></details></div><div class="panel"><h3>Registro de combate</h3><div class="log">${log.map(e=>`<div class="logline"><span>R${e.round}</span> · ${escape(logText(e))}</div>`).join('')}</div></div></aside>`;
+ return `<aside class="sidebar">${prompt(viewSide)}<div class="panel"><h3>Reglas rápidas</h3><p>Delante combate, atrás farmea. Las cartas giradas ya actuaron. Back: una ronda fuera; muerte: dos. Rompe una torre para abrir una ruta al Nexo.</p><div class="bonus-list">${bonusSummary(viewSide)}</div><details><summary>Ver más</summary><p>4 jugadas por jugador y ronda. Presión ganadora → daño a estructura. Las cartas de 0 energía también consumen jugada. A partir de R5 hay 7 de energía base; R7 y R10 sube el ATQ en combate. Caza disputa Latido o Coloso. Un jungla listo añade +2 presión neutral pero se agota.</p></details></div><div class="panel"><h3>Registro de combate</h3><div class="log">${log.map(e=>`<div class="logline"><span>R${e.round}</span> · ${escape(logText(e))}</div>`).join('')}</div></div></aside>`;
 }
 function handPanel(side){
  const p=match.players[side];
@@ -144,7 +159,7 @@ function begin(firstPlayer){
  if(mode==='bot')driveBot();
  render();
 }
-function clearSelection(){selectedCard=null;selectedUnit=null;rotateSource=null;}
+function clearSelection(){selectedCard=null;selectedUnit=null;rotateSource=null;selectedObjective=null;}
 function driveBot(){
  let limit=12;
  while(match&&match.phase==='tactics'&&match.turn===1&&limit-->0)botStep(match,1);
@@ -170,7 +185,7 @@ function useCard(uid){
  if(['ENERGY','DRAW'].includes(card.effect.type)){
    perform(()=>playCard(match,side,uid,{}));return;
  }
- selectedCard=selectedCard===uid?null:uid;rotateSource=null;
+ selectedCard=selectedCard===uid?null:uid;rotateSource=null;selectedObjective=null;
  notice='';render();
 }
 function chooseLane(lane){
@@ -181,6 +196,17 @@ function chooseLane(lane){
  const t=card.effect.type;
  if(['PRESSURE','GUARD','GANK','DIVE'].includes(t))perform(()=>playCard(match,side,selectedCard,{lane}));
  else if(t==='ROTATE'&&rotateSource)perform(()=>playCard(match,side,selectedCard,{unitId:rotateSource,lane}));
+ else if(t==='HUNT'&&selectedObjective==='minor')perform(()=>playCard(match,side,selectedCard,{objective:'minor',lane}));
+}
+function chooseObjective(id){
+ if(!selectedCard){notice='Para disputar este objetivo, selecciona una carta de Caza.';render();return;}
+ const card=match.players[match.turn].hand.find(c=>c.uid===selectedCard);
+ if(card?.effect.type!=='HUNT'){notice='Este objetivo requiere una carta de Caza.';render();return;}
+ if(!match.objectives[id]?.active){notice='Este objetivo aún no está disponible.';render();return;}
+ if(id==='minor'){
+   selectedObjective='minor';notice='Elige el carril que recibirá la recompensa si ganas la disputa.';render();return;
+ }
+ perform(()=>playCard(match,match.turn,selectedCard,{objective:'major'}));
 }
 function pickUnit(owner,uid){
  const side=match.turn;
@@ -222,6 +248,7 @@ app.addEventListener('click',event=>{
    render();return;
  }
  if(el.dataset.card){useCard(el.dataset.card);return;}
+ if(el.dataset.objective){chooseObjective(el.dataset.objective);return;}
  if(el.dataset.order&&selectedUnit){
    perform(()=>activate(match,view,selectedUnit,el.dataset.order));return;
  }
