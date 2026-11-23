@@ -1,7 +1,7 @@
 /* Rift Director CCG prototype. Isolated from legacy RiftCore and save v2. */
 export const LANES = Object.freeze(['TOP', 'MID', 'BOT']);
 export const ROLE_SLOTS = Object.freeze(['TOP', 'MID', 'BOT', 'BOT', 'JUN']);
-export const EFFECTS = Object.freeze(['PRESSURE', 'GUARD', 'IMPACT', 'ENERGY', 'DRAW', 'ROTATE', 'GANK', 'DIVE', 'BACK']);
+export const EFFECTS = Object.freeze(['PRESSURE', 'GUARD', 'IMPACT', 'ENERGY', 'DRAW', 'ROTATE', 'GANK', 'DIVE', 'BACK', 'HUNT']);
 const MAX_ACTIONS = 4;
 const fail = message => { throw new Error(message); };
 const integer = (value, min, max) => Number.isInteger(value) && value >= min && value <= max;
@@ -9,6 +9,11 @@ const isLane = value => LANES.includes(value);
 const clone = value => JSON.parse(JSON.stringify(value));
 const isActive = unit => unit.status === 'active';
 const baseEnergy = round => Math.min(7, round + 2);
+export const combatAttack = (unit, round) => unit.attack + (round >= 10 ? 2 : round >= 7 ? 1 : 0);
+export const OBJECTIVES = Object.freeze({
+  minor: { name: 'Latido del Vínculo', unlock: 4, threshold: 4, margin: 2 },
+  major: { name: 'Coloso del Umbral', unlock: 8, threshold: 4, margin: 2 }
+});
 
 export function validateDeck(deck) {
   if (!deck || !Array.isArray(deck.characters) || !Array.isArray(deck.tactics)) fail('Mazo inválido');
@@ -68,6 +73,8 @@ function makePlayer(side, deck) {
     characters, deck: deck.tactics.map((c, i) => ({ ...clone(c), uid: `p${side}:t${i}` })),
     hand: [], discard: [], energy: 0, pendingFarm: 0, actions: 0, passed: false,
     keep: [], buffs: { TOP: 0, MID: 0, BOT: 0 },
+    permanentPressure: { TOP: 0, MID: 0, BOT: 0 }, majorUntil: 0,
+    objectivePressure: { minor: 0, major: 0 }, objectiveLane: 'MID',
     guards: { TOP: 0, MID: 0, BOT: 0 },
     dive: { TOP: false, MID: false, BOT: false },
     towers: { TOP: 6, MID: 6, BOT: 6 }, nexus: 12
@@ -82,7 +89,11 @@ export function createMatch(decks, options = {}) {
   const match = {
     version: 1, rng: (options.seed ?? 123456) | 0 || 1,
     round: 1, firstPlayer, turn: firstPlayer, winner: null, phase: 'tactics',
-    players: decks.map((deck, side) => makePlayer(side, deck)), log: []
+    players: decks.map((deck, side) => makePlayer(side, deck)),
+    objectives: {
+      minor: { active: false, claimedBy: null },
+      major: { active: false, claimedBy: null }
+    }, log: []
   };
   for (const p of match.players) {
     shuffle(match, p.deck);
@@ -118,6 +129,7 @@ function resetTacticalBonuses(player) {
   player.buffs = { TOP: 0, MID: 0, BOT: 0 };
   player.guards = { TOP: 0, MID: 0, BOT: 0 };
   player.dive = { TOP: false, MID: false, BOT: false };
+  player.objectivePressure = { minor: 0, major: 0 };
 }
 function applyEffect(match, side, card, target) {
   const p = match.players[side], other = match.players[1 - side];
@@ -146,6 +158,16 @@ function applyEffect(match, side, card, target) {
   } else if (type === 'DIVE') {
     if (!p.characters.some(u => isActive(u) && u.lane === target.lane && u.rank === 'front')) fail('Dive sin atacante');
     p.dive[target.lane] = true;
+  } else if (type === 'HUNT') {
+    const objective = target?.objective;
+    if (!Object.hasOwn(OBJECTIVES, objective) || !match.objectives[objective].active) fail('Objetivo neutral no disponible');
+    if (objective === 'minor' && !isLane(target?.lane)) fail('Selecciona un carril para el Latido');
+    const jungler = p.characters.find(u => u.role === 'JUN');
+    const assist = Boolean(jungler && isActive(jungler) && jungler.rank === 'front' && !jungler.tapped);
+    if (assist) jungler.tapped = true;
+    p.objectivePressure[objective] += value + (assist ? 2 : 0);
+    if (objective === 'minor') p.objectiveLane = target.lane;
+    addEvent(match, 'HUNT', { side, objective, amount: value + (assist ? 2 : 0), assisted: assist });
   } else fail('Efecto no implementado');
 }
 function advance(match, side) {
@@ -204,6 +226,38 @@ export function passTurn(match, side) {
   return match;
 }
 
+function spawnObjectives(match) {
+  for (const [id, definition] of Object.entries(OBJECTIVES)) {
+    const objective = match.objectives[id];
+    if (match.round === definition.unlock && objective.claimedBy === null) {
+      objective.active = true;
+      addEvent(match, 'OBJECTIVE_SPAWN', { objective: id });
+    }
+  }
+}
+function resolveNeutralObjectives(match) {
+  for (const [id, definition] of Object.entries(OBJECTIVES)) {
+    if (!match.objectives[id].active) continue;
+    const values = match.players.map(p => p.objectivePressure[id]);
+    let winner = null;
+    if (values[0] >= definition.threshold && values[0] - values[1] >= definition.margin) winner = 0;
+    if (values[1] >= definition.threshold && values[1] - values[0] >= definition.margin) winner = 1;
+    if (winner === null) {
+      if (values[0] || values[1]) addEvent(match, 'OBJECTIVE_CONTEST', { objective: id, blue: values[0], red: values[1] });
+      continue;
+    }
+    const player = match.players[winner];
+    if (id === 'minor') player.permanentPressure[player.objectiveLane] += 1;
+    else player.majorUntil = match.round + 3; // Captured in R8 => active R9–R11.
+    match.objectives[id].active = false;
+    match.objectives[id].claimedBy = winner;
+    addEvent(match, 'OBJECTIVE_CAPTURE', {
+      objective: id, side: winner, lane: id === 'minor' ? player.objectiveLane : null,
+      blue: values[0], red: values[1], majorUntil: id === 'major' ? player.majorUntil : null
+    });
+  }
+}
+
 function resolveRound(match) {
   match.phase = 'resolution';
   const incoming = [new Map(), new Map()];
@@ -212,7 +266,7 @@ function resolveRound(match) {
     for (let side = 0; side < 2; side++) {
       for (const attacker of front[side]) {
         const target = [...front[1 - side]].sort((a, b) => a.hp - b.hp || a.id.localeCompare(b.id))[0];
-        if (target) incoming[1 - side].set(target.id, (incoming[1 - side].get(target.id) || 0) + attacker.attack);
+        if (target) incoming[1 - side].set(target.id, (incoming[1 - side].get(target.id) || 0) + combatAttack(attacker, match.round));
       }
     }
   }
@@ -224,9 +278,13 @@ function resolveRound(match) {
     }
   }
   const hits = [];
+  const majorSiegeUsed = [false, false];
   for (const lane of LANES) {
     const presence = match.players.map(p => p.characters.filter(u => isActive(u) && u.lane === lane && u.rank === 'front'));
-    const pressure = match.players.map((p, i) => presence[i].reduce((s, u) => s + u.attack, 0) + p.buffs[lane] + (p.towers[lane] > 0 ? 1 : 0));
+    const pressure = match.players.map((p, i) =>
+      presence[i].reduce((s, u) => s + u.attack, 0) + p.buffs[lane] +
+      p.permanentPressure[lane] + (p.majorUntil >= match.round ? 1 : 0) +
+      (p.towers[lane] > 0 ? 1 : 0));
     for (let side = 0; side < 2; side++) {
       const delta = pressure[side] - pressure[1 - side];
       // A spell cannot siege a structure alone: at least one frontline Riftborn must survive.
@@ -235,7 +293,15 @@ function resolveRound(match) {
       let amount = Math.min(3, Math.ceil(delta / 2));
       const frontlineGuard = attacker.dive[lane] ? 0 : (presence[1 - side].length ? 2 : 0);
       amount = Math.max(0, amount - frontlineGuard - defender.guards[lane]);
-      if (amount) hits.push({ side, lane, amount, dive: attacker.dive[lane], towerBefore: defender.towers[lane] });
+      // Colossus improves only the first successful siege of this round, capped at 3.
+      if (amount && attacker.majorUntil >= match.round && !majorSiegeUsed[side]) {
+        amount = Math.min(3, amount + 1);
+        majorSiegeUsed[side] = true;
+      }
+      if (amount) {
+        const defenderAlive = defender.characters.some(u => isActive(u) && u.lane === lane);
+        hits.push({ side, lane, amount, defenderAlive, dive: attacker.dive[lane], towerBefore: defender.towers[lane] });
+      }
     }
     addEvent(match, 'PRESSURE', { lane, blue: pressure[0], red: pressure[1] });
   }
@@ -249,12 +315,20 @@ function resolveRound(match) {
       defender.nexus = Math.max(0, defender.nexus - hit.amount);
       addEvent(match, 'NEXUS_HIT', { side: hit.side, lane: hit.lane, amount: hit.amount });
     }
-    if (hit.dive && hit.towerBefore > 0) {
+    // Attacking a defended living tower has a consequence even if the defender farms.
+    // Dive increases tower retaliation from 1 to 2. An empty lane has no retaliation.
+    const retaliation = hit.towerBefore > 0 ? (hit.dive ? 2 : hit.defenderAlive ? 1 : 0) : 0;
+    if (retaliation) {
       const front = match.players[hit.side].characters.filter(u => isActive(u) && u.lane === hit.lane && u.rank === 'front');
       const recoil = front.sort((a, b) => a.hp - b.hp || a.id.localeCompare(b.id))[0];
-      if (recoil) damageUnit(match, hit.side, recoil, 2);
+      if (recoil) {
+        damageUnit(match, hit.side, recoil, retaliation);
+        addEvent(match, 'TOWER_RETALIATION', { side: hit.side, lane: hit.lane, amount: retaliation, unit: recoil.id });
+      }
     }
   }
+  // Neutral rewards apply only after siege: they cannot change this round retroactively.
+  if (match.players.every(p => p.nexus > 0)) resolveNeutralObjectives(match);
   for (const p of match.players) {
     p.pendingFarm = Math.min(2, p.characters.filter(u => isActive(u) && u.role !== 'JUN' && u.rank === 'rear').length);
     const retained = p.hand.filter(c => p.keep.includes(c.uid));
@@ -293,5 +367,7 @@ function resolveRound(match) {
     refill(match, p);
   }
   addEvent(match, 'ROUND', { round: match.round, firstPlayer: match.firstPlayer });
+  if ([7, 10].includes(match.round)) addEvent(match, 'LATE_POWER', { bonus: match.round === 7 ? 1 : 2 });
+  spawnObjectives(match);
   return match;
 }
