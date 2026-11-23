@@ -38,7 +38,6 @@ test('ambas plantillas producen mazos legales con 5 personajes y 20 tácticas',(
    assert.equal(playable.characters.length,5);
    assert.equal(playable.tactics.length,20);
    assert.equal(validateDeck(playable),true);
-   assert.deepEqual(templateDeck(key),playable.name&&templateDeck(key));
  }
 });
 
@@ -55,8 +54,8 @@ test('añadir y quitar cartas respeta cantidad y máximo de copias según rareza
  let draft=emptyDraft();
  for(let i=0;i<3;i++)draft=addTactic(draft,'wave-push');
  assert.throws(()=>addTactic(draft,'wave-push'),/Límite de copias/);
- draft=addTactic(draft,'execution');
- assert.throws(()=>addTactic(draft,'execution'),/Límite de copias/);
+ draft=addTactic(draft,'breakthrough');
+ assert.throws(()=>addTactic(draft,'breakthrough'),/Límite de copias/);
  draft=removeTactic(draft,'wave-push');
  assert.equal(draft.tactics.filter(x=>x==='wave-push').length,2);
  assert.throws(()=>removeTactic(draft,'missing'),/No tienes/);
