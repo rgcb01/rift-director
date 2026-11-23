@@ -43,7 +43,8 @@ El salto observado es de **+15.3 puntos porcentuales** en partidas terminadas; e
 ## Reproducción
 
 ```sh
-node scripts/card-game-opening-study.mjs --seeds=20 --rounds=24 --json=artifacts/opening-v085.json
+node scripts/card-game-opening-study.mjs --seeds=20 --rounds=24 --momentum=false --json=artifacts/opening-previo-v085.json
+node scripts/card-game-opening-study.mjs --seeds=20 --rounds=24 --momentum=true --json=artifacts/opening-v085.json
 node scripts/card-game-momentum-study.mjs --seeds=12 --rounds=24 --json=artifacts/momentum-v085.json
 node scripts/card-game-balance.mjs --seeds=20 --rounds=24 --difficulty=director --json=artifacts/balance-v085.json
 ```
