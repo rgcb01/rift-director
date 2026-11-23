@@ -1,7 +1,7 @@
 // Rift Director v0.8.4 — tactical AI with PUBLIC-state decisions.
 // Only reads the acting player's hand; never inspects rival hand, deck or future RNG.
 // No hidden reaction cards: it acts exclusively during its own legal turn.
-import {LANES, playCard, activate, chooseKeep, passTurn, combatAttack} from './engine.mjs';
+import {LANES, playCard, activate, chooseKeep, passTurn, combatAttack, maxStructuralDamage, frontalMitigation} from './engine.mjs';
 import {botStep as rookieStep} from './simple-bot.mjs';
 
 export const AI_LEVELS=Object.freeze({
@@ -36,11 +36,11 @@ function perLane(m,s,lane){
  const unguarded=theirs.length===0;
  const threat=enemy-own;
  const target=r.towers[lane];
- const shield=theirs.length?2+(theirs.some(u=>u.trait==='BULWARK')?1:0):0;
- const defShield=ours.length?2+(ours.some(u=>u.trait==='BULWARK')?1:0):0;
+ const shield=theirs.length?frontalMitigation(m.round)+(theirs.some(u=>u.trait==='BULWARK')?1:0):0;
+ const defShield=ours.length?frontalMitigation(m.round)+(ours.some(u=>u.trait==='BULWARK')?1:0):0;
  const breachValue=target===0?2.4:target<=3?1.5:1;
  const lossValue=p.towers[lane]===0?2.5:p.towers[lane]<=3?1.7:1;
- return {a,b,own,enemy,ours,theirs,threat,target,shield,defShield,breachValue,lossValue,unguarded};
+ return {a,b,own,enemy,ours,theirs,threat,target,shield,defShield,breachValue,lossValue,unguarded,cap:maxStructuralDamage(m.round)};
 }
 function hitValue(amount,l){
  return l.target===0?amount*5.8:amount*(l.target<=3?4.3:2.6);
@@ -48,7 +48,7 @@ function hitValue(amount,l){
 function estimatedSiege(l,bonus=0,shield=l.shield){
  if(!l.ours.length)return 0;
  const d=l.own+bonus-l.enemy;
- return d>0?Math.max(0,Math.min(3,Math.ceil(d/2))-shield):0;
+ return d>0?Math.max(0,Math.min(l.cap,Math.ceil(d/2))-shield):0;
 }
 function scorePressure(m,s,lane,amount,style){
  const l=perLane(m,s,lane);
@@ -58,7 +58,7 @@ function scorePressure(m,s,lane,amount,style){
  const towerDamage=hitValue(after-before,l);
  const pressureEdge=clamp(l.own+amount-l.enemy,-3,6);
  // Avoid burning a card when the attack is already at the 3-damage cap.
- if(before>=3&&after===before)return 0.8;
+ if(before>=l.cap&&after===before)return 0.8;
  // Pressure may be worth stacking for a second tactical card, but not endlessly.
  const setup=after===0?(pressureEdge>0?3.5:1.1):3;
  return weights(style).offense*(towerDamage*1.5 + setup+pressureEdge*.45+
@@ -66,7 +66,7 @@ function scorePressure(m,s,lane,amount,style){
 }
 function scoreGuard(m,s,lane,amount,style){
  const l=perLane(m,s,lane);
- const before=l.enemy-l.own, after=Math.max(0,Math.min(3,Math.ceil(Math.max(0,before)/2)))-l.defShield;
+ const before=l.enemy-l.own, after=Math.max(0,Math.min(l.cap,Math.ceil(Math.max(0,before)/2)))-l.defShield;
  const useful=Math.max(0,Math.min(amount,Math.max(0,after-m.players[s].guards[lane])));
  return weights(style).defense*(useful*4*l.lossValue+(l.threat>0?1:0))-1;
 }
@@ -86,7 +86,7 @@ function targets(m,s,c,style){
    if(t==='GANK'){
      const j=p.characters.find(u=>u.role==='JUN');
      if(j&&open(j)&&!j.tapped) {
-       const amount=j.attack+1+(j.trait==='SCOUT'?1:0);
+       const amount=j.attack+1+(['SCOUT','HUNTER'].includes(j.trait)?1:0);
        push({lane},scorePressure(m,s,lane,amount,style)+1.3*W.offense-
         ((m.objectives.minor.active||m.objectives.major.active)&&style==='jungle'?6:0)-c.cost*.5);
      }
