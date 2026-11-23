@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {createMatch,validateDeck} from '../src/card-game/engine.mjs';
+import {createMatch,validateDeck,maxStructuralDamage,frontalMitigation} from '../src/card-game/engine.mjs';
 import {templateDeck} from '../src/card-game/catalog.mjs';
 import {aiStep,AI_LEVELS,AI_STYLES} from '../src/card-game/tactical-ai.mjs';
 import {simulateGame,runTournament,DEFAULT_FIXTURES} from '../src/card-game/balance.mjs';
@@ -71,4 +71,9 @@ test('el runner rechaza entradas arbitrarias y no realiza simulaciones ilimitada
  assert.throws(()=>runTournament({seeds:0}),/Semillas/);
  assert.throws(()=>simulateGame('siege','jungle',{maxRounds:0}),/Límite/);
  assert.throws(()=>simulateGame('siege','jungle',{difficulty:'omniscient'}),/IA desconocida/);
+});
+
+test('la fase tardía sube el daño de asedio sin dejar torres ni Nexo sin protección antes de abrir brecha',()=>{
+ assert.deepEqual([1,9,10,11,12,16,17,24].map(maxStructuralDamage),[3,3,3,3,4,4,5,5]);
+ assert.deepEqual([1,9,10,11,12,15,16,17].map(frontalMitigation),[2,2,1,1,1,1,0,0]);
 });
