@@ -43,7 +43,7 @@ function asMetric(match,halfTurns,timedOut){
 export function simulateGame(deckA,deckB,options={}){
  const seed=options.seed??42,firstPlayer=options.firstPlayer??0, maxRounds=options.maxRounds??24;
  const secondPlayerBonus=options.secondPlayerBonus??1;
- const siegeMomentum=options.siegeMomentum??false;
+ const siegeMomentum=options.siegeMomentum??true;
  const level=options.difficulty||'director',styles=options.styles||['siege','jungle'];
  if(!Number.isInteger(maxRounds)||maxRounds<1||maxRounds>200)throw Error('Límite de rondas inválido');
  if(!AI_LEVELS[level]||!styles.every(x=>AI_STYLES[x]))throw Error('IA desconocida');
@@ -63,7 +63,7 @@ export function simulateGame(deckA,deckB,options={}){
 export function runTournament(options={}){
  const seeds=options.seeds??20,maxRounds=options.maxRounds??24,difficulty=options.difficulty??'director';
  const secondPlayerBonus=options.secondPlayerBonus??1;
- const siegeMomentum=options.siegeMomentum??false;
+ const siegeMomentum=options.siegeMomentum??true;
  const fixtures=options.fixtures??DEFAULT_FIXTURES;
  if(!Number.isInteger(seeds)||seeds<1||seeds>3000)throw Error('Semillas inválidas');
  if(![0,1,2].includes(secondPlayerBonus))throw Error('Bono de segundo inválido');
