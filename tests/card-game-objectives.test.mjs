@@ -83,7 +83,7 @@ test('sin jungla disponible una Caza aporta solo 3 y no alcanza el umbral 4',()=
  assert.equal(m.players[0].objectivePressure.minor,0,'La presión neutral se limpia entre rondas');
 });
 
-test('si ambos equipos generan 5 de presión neutral, nadie conquista el objetivo',()=>{
+test('una disputa 5 contra 6 no concede el objetivo sin margen de 2',()=>{
  const m=neutralMatch();
  until(m,4);
  hunt(m,0,'minor','TOP');
@@ -93,7 +93,7 @@ test('si ambos equipos generan 5 de presión neutral, nadie conquista el objetiv
  assert.equal(m.objectives.minor.claimedBy,null);
  assert.equal(m.players[0].permanentPressure.TOP,0);
  assert.equal(m.players[1].permanentPressure.MID,0);
- assert.ok(m.log.some(e=>e.type==='OBJECTIVE_CONTEST'&&e.blue===5&&e.red===5));
+ assert.ok(m.log.some(e=>e.type==='OBJECTIVE_CONTEST'&&e.blue===5&&e.red===6));
 });
 
 test('el Coloso aparece en R8, dura R9-R11, sin mejorar la captura retroactivamente',()=>{

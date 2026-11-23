@@ -1,15 +1,28 @@
 import {createMatch, playCard, activate, passTurn, chooseKeep, LANES, OBJECTIVES, combatAttack} from './engine.mjs';
 import {STARTER_DECKS, KIND_NAMES, EFFECT_NAMES} from './starter-decks.mjs';
 import {botStep} from './simple-bot.mjs';
+import {TRAITS} from './catalog.mjs';
+import {listPlayableChoices,loadPlayable,readSelection,writeSelection} from './deck-library.mjs';
 
 const app=document.getElementById('card-game-app');
 const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const iconFor={PRESSURE:'⚔',GUARD:'◈',IMPACT:'✹',ENERGY:'⚡',DRAW:'✦',ROTATE:'↔',GANK:'✣',DIVE:'⌁',BACK:'⌂',HUNT:'☄'};
+const iconFor={PRESSURE:'⚔',GUARD:'◈',IMPACT:'✹',ENERGY:'⚡',DRAW:'✦',ROTATE:'↔',GANK:'✣',DIVE:'⌁',BACK:'⌂',HUNT:'☄',HEAL:'♥',SABOTAGE:'⚑'};
 const labelSide=s=>s===0?'Azul':'Rojo';
 let mode=null,match=null,coin=null,selectedCard=null,selectedUnit=null,rotateSource=null,selectedObjective=null,curtain=false,notice='';
-function title(){return '<div class="topbar"><div><div class="kicker">CARD GAME · PROTOTIPO 0.8.2</div><div class="wordmark">RIFT <span>DIRECTOR</span></div></div><div class="nav-actions"><span class="pill live">♧ Rework táctico</span><button class="btn smallbtn minor" data-act="reset">Nueva partida</button></div></div>';}
+let deckChoices=readSelection();
+function title(){return '<div class="topbar"><div><div class="kicker">CARD GAME · PROTOTIPO 0.8.3</div><div class="wordmark">RIFT <span>DIRECTOR</span></div></div><div class="nav-actions"><span class="pill live">♧ Rework táctico</span><a class="btn smallbtn minor" href="./deck-builder.html">✦ Mis mazos</a><button class="btn smallbtn minor" data-act="reset">Nueva partida</button></div></div>';}
+function deckSelectors(){
+ const choices=listPlayableChoices();
+ return '<div class="deck-selectors">'+[0,1].map(side=>{
+  const chosen=deckChoices[side];
+  return '<div class="deck-pick"><label for="side-deck-'+side+'">'+(side===0?'TU MAZO (AZUL)':'MAZO RIVAL (ROJO)')+'</label>'+
+   '<select class="deck-select" id="side-deck-'+side+'" data-deck-side="'+side+'" aria-label="Seleccionar mazo '+(side+1)+'">'+
+   choices.map(d=>'<option value="'+escape(d.id)+'" '+(chosen===d.id?'selected':'')+'>'+escape(d.name)+'</option>').join('')+
+   '</select></div>';
+ }).join('')+'</div>';
+}
 function intro(){
- return `${title()}<div class="intro"><section class="intro-hero"><div class="kicker">Domina la Convergencia</div><h1>Tres carriles.<br>Cuatro jugadas.<br>Una decisión decisiva.</h1><p>Dirige cinco Riftborn, defiende tus torres y abre camino hacia el Nexo rival. Todo el combate se resuelve con cartas, posiciones y presión.</p><div class="pill">5 personajes · 20 tácticas · 6 cartas en mano</div></section><div class="intro-menu"><button class="mode" data-setup="bot"><strong>⚔ Contra un bot</strong><small>Prueba el mazo de Asedio contra un rival de Jungla. El bot toma decisiones sencillas y no conoce tu mano.</small></button><button class="mode" data-setup="hotseat"><strong>♟ Dos jugadores locales</strong><small>Alternad jugadas en el mismo dispositivo. La mano se oculta al pasar de jugador.</small></button></div><p class="small">Versión de pruebas: ya puedes disputar el Latido (R4) y el Coloso (R8) con cartas de Caza. Sobres y colección llegarán después.</p></div>`;
+ return `${title()}<div class="intro"><section class="intro-hero"><div class="kicker">Domina la Convergencia</div><h1>Tres carriles.<br>Cuatro jugadas.<br>Una decisión decisiva.</h1><p>Dirige cinco Riftborn, defiende tus torres y abre camino hacia el Nexo rival. Todo el combate se resuelve con cartas, posiciones y presión.</p><div class="pill">5 personajes · 20 tácticas · 6 cartas en mano</div></section>${deckSelectors()}<div class="intro-menu"><button class="mode" data-setup="bot"><strong>⚔ Contra un bot</strong><small>Juega con tu mazo elegido contra una escuadra del catálogo. El bot no conoce tu mano.</small></button><button class="mode" data-setup="hotseat"><strong>♟ Dos jugadores locales</strong><small>Alternad jugadas en el mismo dispositivo. La mano se oculta al pasar de jugador.</small></button></div><p class="small">Versión de pruebas: ya puedes disputar el Latido (R4) y el Coloso (R8) con cartas de Caza. Ya puedes construir y guardar mazos. Sobres y economía llegarán después.</p></div>`;
 }
 function coinScreen(){
  const winner=coin.winner, botWon=coin.mode==='bot'&&winner===1;
@@ -20,16 +33,12 @@ function coinScreen(){
 }
 function sideBanner(side,isEnemy){
  const p=match.players[side];
- return `<div class="side-banner ${isEnemy?'enemy':''}"><strong>${isEnemy?'RIVAL':'TÚ'} · ${labelSide(side)}</strong><span class="nexus ${side===0?'blue':'red'}">◈ NEXO ${p.nexus}/12</span><span>⚡ ${p.energy}</span></div>`;
+ return `<div class="side-banner ${isEnemy?'enemy':''}"><strong>${isEnemy?'RIVAL':'TÚ'} · ${escape(p.name)}</strong><span class="nexus ${side===0?'blue':'red'}">◈ NEXO ${p.nexus}/12</span><span>⚡ ${p.energy}</span></div>`;
 }
 function zoneUnit(u,owner,isEnemy){
- return `<button class="unit ${isEnemy?'enemy':''} ${u.tapped?'tapped':''} ${selectedUnit===u.id?'active-target':''}" title="${escape(u.code)} · ${u.hp}/${u.maxHp} PV · ${u.tapped?'Agotado':'Disponible'}" data-unit="${escape(u.id)}" data-owner="${owner}"><span class="name-role">${escape(u.role)}</span><b>${escape(characterName(u))}</b><span class="stats">⚔ ${combatAttack(u,match.round)} &nbsp;♥ ${u.hp}/${u.maxHp}</span></button>`;
+ return `<button class="unit ${isEnemy?'enemy':''} ${u.tapped?'tapped':''} ${selectedUnit===u.id?'active-target':''}" title="${escape(characterName(u))} · ${escape(TRAITS[u.trait]?.description||'')} · ${u.hp}/${u.maxHp} PV · ${u.tapped?'Agotado':'Disponible'}" data-unit="${escape(u.id)}" data-owner="${owner}"><span class="name-role">${escape(u.role)}${u.trait?' · ✦':''}</span><b>${escape(characterName(u))}</b><span class="stats">⚔ ${combatAttack(u,match.round)} &nbsp;♥ ${u.hp}/${u.maxHp}</span></button>`;
 }
-function characterName(u){
- const deck=STARTER_DECKS[u.id.startsWith('p0:')?'siege':'jungle'];
- const def=deck.characters.find(c=>c.id===u.code);
- return def?.name||u.code;
-}
+function characterName(u){return u.name || u.code;}
 function laneSlot(side,lane,rank,isEnemy){
  const units=match.players[side].characters.filter(u=>u.status==='active'&&u.lane===lane&&u.rank===rank);
  return `<div class="row-slot ${rank}" data-slot="${lane}"><span class="slot-label">${rank==='front'?'ATAQUE':'FARM'}</span>${units.length?units.map(u=>zoneUnit(u,side,isEnemy)).join(''):`<span class="empty">${rank==='front'?'·':'—'}</span>`}</div>`;
@@ -80,6 +89,7 @@ function prompt(viewSide){
    const label=t==='ROTATE'?(rotateSource?'Ahora selecciona la columna de destino':'Elige un personaje aliado para rotarlo'):
     t==='BACK'?'Elige el personaje que regresará a base':
     t==='IMPACT'?'Elige un personaje enemigo como objetivo':
+    t==='HEAL'?'Elige un personaje aliado al que curar':
     t==='HUNT'?(selectedObjective==='minor'?'¿Qué carril recibirá +1 de presión permanente?':'Toca un objetivo disponible en el centro del tablero'):
     'Toca TOP, MID o BOT como destino';
    const lanes=t==='HUNT'&&selectedObjective==='minor'?LANES.map(l=>`<button class="btn smallbtn" data-lane="${l}">${l}</button>`).join(''):'';
@@ -97,7 +107,7 @@ function logText(ev){
  const who=ev.side===undefined?'':labelSide(ev.side)+' · ';
  if(ev.type==='START')return 'Volado: '+labelSide(ev.firstPlayer)+' empieza.';
  if(ev.type==='ROUND')return 'Nueva ronda '+ev.round+'. Empieza '+labelSide(ev.firstPlayer)+'.';
- if(ev.type==='PLAY')return who+'juega '+ev.card.split('-').slice(1,-1).join(' ')+'.';
+ if(ev.type==='PLAY')return who+'juega '+(ev.name||ev.card)+'.';
  if(ev.type==='PASS')return who+'pasa.';
  if(ev.type==='ACTIVATE')return who+(ev.order==='SWAP_RANK'?'cambia de fila':'backea')+'.';
  if(ev.type==='BACK')return who+'personaje en base hasta R'+ev.readyRound+'.';
@@ -106,6 +116,7 @@ function logText(ev){
  if(ev.type==='PRESSURE')return ev.lane+': presión '+ev.blue+' vs '+ev.red+'.';
  if(ev.type==='TOWER_HIT')return who+'daña torre '+ev.lane+' por '+ev.amount+'.';
  if(ev.type==='NEXUS_HIT')return who+'daña Nexo por '+ev.amount+' desde '+ev.lane+'.';
+ if(ev.type==='HEAL')return who+'recupera PV de un aliado ('+ev.hp+' PV restantes).';
  if(ev.type==='HUNT')return who+'Caza: '+ev.amount+' de presión neutral ('+(ev.objective==='minor'?'Latido':'Coloso')+')'+(ev.assisted?' con ayuda del jungla.':'.');
  if(ev.type==='OBJECTIVE_SPAWN')return 'Aparece '+OBJECTIVES[ev.objective].name+'.';
  if(ev.type==='OBJECTIVE_CONTEST')return 'Disputa '+OBJECTIVES[ev.objective].name+': '+ev.blue+'–'+ev.red+'. Nadie conquista.';
@@ -152,7 +163,11 @@ function setup(nextMode){
  match=null;curtain=false;notice='';render();
 }
 function begin(firstPlayer){
- match=createMatch([STARTER_DECKS.siege,STARTER_DECKS.jungle],{seed:(Math.random()*2147483647)|0||1,firstPlayer});
+ let decks;
+ try{
+   decks=deckChoices.map(id=>loadPlayable(id));
+ }catch(err){mode=null;coin=null;notice=err.message;render();return;}
+ match=createMatch(decks,{seed:(Math.random()*2147483647)|0||1,firstPlayer});
  coin=null;clearSelection();
  notice=`Volado listo: empieza ${labelSide(firstPlayer)}; ${labelSide(1-firstPlayer)} recibe +1 energía.`;
  curtain=mode==='hotseat'&&firstPlayer!==0;
@@ -194,7 +209,7 @@ function chooseLane(lane){
  const card=match.players[side].hand.find(c=>c.uid===selectedCard);
  if(!card)return;
  const t=card.effect.type;
- if(['PRESSURE','GUARD','GANK','DIVE'].includes(t))perform(()=>playCard(match,side,selectedCard,{lane}));
+ if(['PRESSURE','GUARD','GANK','DIVE','SABOTAGE'].includes(t))perform(()=>playCard(match,side,selectedCard,{lane}));
  else if(t==='ROTATE'&&rotateSource)perform(()=>playCard(match,side,selectedCard,{unitId:rotateSource,lane}));
  else if(t==='HUNT'&&selectedObjective==='minor')perform(()=>playCard(match,side,selectedCard,{objective:'minor',lane}));
 }
@@ -217,10 +232,11 @@ function pickUnit(owner,uid){
    if(!card)return;
    const type=card.effect.type;
    if(type==='IMPACT'&&owner!==side)perform(()=>playCard(match,side,selectedCard,{unitId:uid}));
+   else if(type==='HEAL'&&owner===side)perform(()=>playCard(match,side,selectedCard,{unitId:uid}));
    else if(type==='BACK'&&owner===side)perform(()=>playCard(match,side,selectedCard,{unitId:uid}));
    else if(type==='ROTATE'&&owner===side&&unit.role!=='JUN'){
      rotateSource=uid;notice='Ahora selecciona el carril de destino.';render();
-   }else if(['PRESSURE','GUARD','GANK','DIVE'].includes(type)&&LANES.includes(unit.lane)){
+   }else if(['PRESSURE','GUARD','GANK','DIVE','SABOTAGE'].includes(type)&&LANES.includes(unit.lane)){
      chooseLane(unit.lane);
    }else{notice='Ese personaje no es un objetivo válido para esta carta.';render();}
    return;
@@ -228,6 +244,16 @@ function pickUnit(owner,uid){
  if(owner!==side){notice=`${characterName(unit)} · ${unit.attack} ataque · ${unit.hp}/${unit.maxHp} PV.`;render();return;}
  selectedUnit=selectedUnit===uid?null:uid;notice='';render();
 }
+app.addEventListener('change',event=>{
+ const select=event.target.closest('[data-deck-side]');
+ if(!select||match||coin)return;
+ const side=Number(select.dataset.deckSide);
+ if(![0,1].includes(side))return;
+ const next=[...deckChoices];next[side]=select.value;
+ try{writeSelection(next);deckChoices=next;notice='';}
+ catch(err){notice=err.message;}
+ render();
+});
 app.addEventListener('click',event=>{
  const el=event.target.closest('button');
  if(!el)return;

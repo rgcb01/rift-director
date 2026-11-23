@@ -133,3 +133,11 @@ details p{padding-top:8px}
 .bonus-list{display:grid;gap:5px;border:1px solid #698c9990;background:#182c3f;padding:8px;border-radius:8px;margin:9px 0}
 .bonus-list p{font-size:11px}
 @media(max-width:520px){.objective-grid{gap:5px}.objective-tile{grid-template-columns:1fr;text-align:center;justify-items:center;padding:8px 5px;gap:3px}.objective-symbol{grid-row:auto;font-size:22px;padding:0}.objective-title{font-size:11px}.objective-reward{font-size:9px}.neutral{padding:9px 5px}}
+
+/* v0.8.3 — deck choice on the match setup screen */
+.deck-selectors{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.deck-pick{min-width:0;display:grid;gap:6px;border:1px solid #7998bb66;padding:12px;border-radius:12px;background:#1b2842}
+.deck-pick label{font-size:10px;font-weight:800;letter-spacing:.1em;color:#b8ccea}
+.deck-select{min-height:44px;width:100%;border:1px solid #829cc17c;border-radius:10px;background:#111e36;color:#f4f7ff;font-size:13px;padding:9px;outline-offset:2px}
+.deck-select:focus-visible{outline:2px solid var(--gold)}
+@media(max-width:520px){.deck-selectors{grid-template-columns:1fr}.deck-pick{padding:10px}.nav-actions .btn.smallbtn{min-height:38px}.side-banner strong{font-size:11px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}

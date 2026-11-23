@@ -67,3 +67,42 @@ test('Card Game v0.8.2: el Latido aparece en la zona neutral desde R4',async({br
  expect(errors).toEqual([]);
  await context.close();
 });
+
+for(const width of [390,1280]){
+ test('Card Game v0.8.3: editor, mazo guardado y partida personalizada a '+width+'px',async({browser})=>{
+  const context=await browser.newContext({viewport:{width,height:900},reducedMotion:'reduce'});
+  const page=await context.newPage(),errors=[];
+  page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('http://127.0.0.1:8080/deck-builder.html');
+  await expect(page.locator('.db-card')).toHaveCount(34);
+  await expect(page.locator('.db-slot')).toHaveCount(5);
+  await expect(page.locator('[data-action="play"]')).toBeEnabled();
+  await page.screenshot({path:'ux-screenshots/card-game-builder-'+width+'.png',fullPage:true});
+  await page.locator('[data-slot="0"]').click();
+  await page.locator('[data-hero="hero-vanguardia"]').click();
+  await expect(page.locator('[data-slot="0"]')).toContainText('Vanguardia');
+  await page.locator('#deck-name').fill('Mi mazo Vanguardia');
+  await page.locator('[data-action="save"]').click();
+  await expect(page.getByRole('status')).toContainText('guardado');
+  await page.locator('[data-action="play"]').click();
+  await expect(page).toHaveURL(/card-game\.html$/);
+  await expect(page.locator('[data-deck-side="0"]')).toContainText('Mi mazo Vanguardia');
+  await page.locator('[data-setup="bot"]').click();
+  await page.locator('[data-first]').first().click();
+  await expect(page.locator('.field')).toBeVisible();
+  await expect(page.locator('.side-banner:not(.enemy)').first()).toContainText('Mi mazo Vanguardia');
+  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
+  expect(overflow).toBeLessThanOrEqual(3);
+  expect(errors).toEqual([]);
+  await context.close();
+ });
+}
+test('Card Game v0.8.3: no permite jugar un mazo incompleto',async({page})=>{
+ await page.goto('http://127.0.0.1:8080/deck-builder.html');
+ await page.locator('[data-action="empty"]').click();
+ await expect(page.locator('[data-action="play"]')).toBeDisabled();
+ await expect(page.getByText('exactamente 20 cartas tácticas',{exact:false})).toBeVisible();
+ await page.locator('[data-action="save"]').click();
+ await expect(page.getByRole('status')).toContainText('guardado');
+ await expect(page.locator('#db-saved-select option')).toHaveCount(2);
+});
