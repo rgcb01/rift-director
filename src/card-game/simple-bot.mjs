@@ -57,6 +57,14 @@ function cardMove(m,s,card) {
 export function botStep(m,side=1) {
   if(m.phase!=='tactics'||m.turn!==side||m.players[side].passed) return false;
   const p=m.players[side];
+  // Prevent stalled games after respawns: a bot must actually put Riftborn on the frontline.
+  const noFront=LANES.every(l=>front(m,side,l).length===0);
+  const readyRear=p.characters.find(u=>active(u)&&u.role!=='JUN'&&u.rank==='rear'&&!u.tapped&&
+    (noFront || p.towers[u.lane]<=3));
+  if(readyRear && p.actions<4){
+    activate(m,side,readyRear.id,'SWAP_RANK');
+    return true;
+  }
   const candidates=[];
   for(const card of p.hand){
     if(card.cost>p.energy) continue;
