@@ -10,6 +10,8 @@ const clone = value => JSON.parse(JSON.stringify(value));
 const isActive = unit => unit.status === 'active';
 const baseEnergy = round => Math.min(7, round + 2);
 export const combatAttack = (unit, round) => unit.attack + (round >= 10 ? 2 : round >= 7 ? 1 : 0);
+export const maxStructuralDamage = round => round >= 17 ? 5 : round >= 12 ? 4 : 3;
+export const frontalMitigation = round => round >= 16 ? 0 : round >= 10 ? 1 : 2;
 export const OBJECTIVES = Object.freeze({
   minor: { name: 'Latido del Vínculo', unlock: 4, threshold: 4, margin: 2 },
   major: { name: 'Coloso del Umbral', unlock: 8, threshold: 4, margin: 2 }
@@ -160,7 +162,7 @@ function applyEffect(match, side, card, target) {
     const jungler = p.characters.find(u => u.role === 'JUN');
     if (!jungler || !isActive(jungler) || jungler.rank !== 'front' || jungler.tapped) fail('Jungla no disponible');
     jungler.tapped = true;
-    p.buffs[target.lane] += jungler.attack + 1 + (jungler.trait === 'SCOUT' ? 1 : 0);
+    p.buffs[target.lane] += jungler.attack + 1 + (['SCOUT','HUNTER'].includes(jungler.trait) ? 1 : 0);
   } else if (type === 'DIVE') {
     if (!p.characters.some(u => isActive(u) && u.lane === target.lane && u.rank === 'front')) fail('Dive sin atacante');
     p.dive[target.lane] = true;
@@ -296,12 +298,12 @@ function resolveRound(match) {
       // A spell cannot siege a structure alone: at least one frontline Riftborn must survive.
       if (delta <= 0 || presence[side].length === 0) continue;
       const attacker = match.players[side], defender = match.players[1 - side];
-      let amount = Math.min(3, Math.ceil(delta / 2));
-      const frontlineGuard = attacker.dive[lane] ? 0 : (presence[1 - side].length ? 2 + (presence[1 - side].some(u=>u.trait === 'BULWARK') ? 1 : 0) : 0);
+      let amount = Math.min(maxStructuralDamage(match.round), Math.ceil(delta / 2));
+      const frontlineGuard = attacker.dive[lane] ? 0 : (presence[1 - side].length ? frontalMitigation(match.round) + (presence[1 - side].some(u=>u.trait === 'BULWARK') ? 1 : 0) : 0);
       amount = Math.max(0, amount - frontlineGuard - defender.guards[lane]);
       // Colossus improves only the first successful siege of this round, capped at 3.
       if (amount && attacker.majorUntil >= match.round && !majorSiegeUsed[side]) {
-        amount = Math.min(3, amount + 1);
+        amount = Math.min(maxStructuralDamage(match.round), amount + 1);
         majorSiegeUsed[side] = true;
       }
       if (amount) {
@@ -375,6 +377,8 @@ function resolveRound(match) {
   }
   addEvent(match, 'ROUND', { round: match.round, firstPlayer: match.firstPlayer });
   if ([7, 10].includes(match.round)) addEvent(match, 'LATE_POWER', { bonus: match.round === 7 ? 1 : 2 });
+  if ([12, 16, 17].includes(match.round))
+    addEvent(match, 'LATE_SIEGE', { cap: maxStructuralDamage(match.round), mitigation: frontalMitigation(match.round) });
   spawnObjectives(match);
   return match;
 }
