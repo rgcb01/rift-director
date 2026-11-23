@@ -1,7 +1,7 @@
 /* Rift Director CCG prototype. Isolated from legacy RiftCore and save v2. */
 export const LANES = Object.freeze(['TOP', 'MID', 'BOT']);
 export const ROLE_SLOTS = Object.freeze(['TOP', 'MID', 'BOT', 'BOT', 'JUN']);
-export const EFFECTS = Object.freeze(['PRESSURE', 'GUARD', 'IMPACT', 'ENERGY', 'DRAW', 'ROTATE', 'GANK', 'DIVE', 'BACK', 'HUNT']);
+export const EFFECTS = Object.freeze(['PRESSURE', 'GUARD', 'IMPACT', 'ENERGY', 'DRAW', 'ROTATE', 'GANK', 'DIVE', 'BACK', 'HUNT', 'HEAL', 'SABOTAGE']);
 const MAX_ACTIONS = 4;
 const fail = message => { throw new Error(message); };
 const integer = (value, min, max) => Number.isInteger(value) && value >= min && value <= max;
@@ -21,7 +21,8 @@ export function validateDeck(deck) {
   const slots = [...deck.characters.map(c => c.role)].sort();
   if (JSON.stringify(slots) !== JSON.stringify([...ROLE_SLOTS].sort())) fail('Roles inválidos');
   for (const c of deck.characters) {
-    if (typeof c.id !== 'string' || !c.id || !integer(c.attack, 0, 9) || !integer(c.hp, 1, 20)) fail('Personaje inválido');
+    if (typeof c.id !== 'string' || !c.id || !integer(c.attack, 0, 9) || !integer(c.hp, 1, 20) ||
+        (c.trait !== undefined && !['SIEGE','BULWARK','HARVEST','DUELIST','HUNTER','SCOUT'].includes(c.trait))) fail('Personaje inválido');
   }
   for (const card of deck.tactics) {
     if (!card || typeof card.id !== 'string' || !card.id || !integer(card.cost, 0, 7) ||
@@ -63,7 +64,7 @@ function makePlayer(side, deck) {
     const lane = def.role === 'JUN' ? 'JUN' : def.role;
     const order = slotsSeen[lane]++;
     return {
-      id: `p${side}:c${index}`, code: def.id, role: def.role, origin: lane, lane,
+      id: `p${side}:c${index}`, code: def.id, name: def.name || def.id, trait: def.trait || null, role: def.role, origin: lane, lane,
       rank: lane === 'BOT' && order === 1 ? 'rear' : 'front',
       attack: def.attack, hp: def.hp, maxHp: def.hp,
       status: 'active', readyRound: null, outReason: null, tapped: false
@@ -134,14 +135,19 @@ function resetTacticalBonuses(player) {
 function applyEffect(match, side, card, target) {
   const p = match.players[side], other = match.players[1 - side];
   const { type, value = 0 } = card.effect;
-  if (['PRESSURE', 'GUARD', 'GANK', 'DIVE'].includes(type) && !isLane(target?.lane)) fail('Carril objetivo inválido');
+  if (['PRESSURE', 'GUARD', 'GANK', 'DIVE', 'SABOTAGE'].includes(type) && !isLane(target?.lane)) fail('Carril objetivo inválido');
   if (type === 'PRESSURE') p.buffs[target.lane] += value;
   else if (type === 'GUARD') p.guards[target.lane] += value;
+  else if (type === 'SABOTAGE') other.buffs[target.lane] -= value;
   else if (type === 'ENERGY') p.energy += value;
   else if (type === 'DRAW') draw(match, p, value);
   else if (type === 'IMPACT') {
     const targetUnit = character(match, 1 - side, target?.unitId);
     damageUnit(match, 1 - side, targetUnit, value);
+  } else if (type === 'HEAL') {
+    const unit = character(match, side, target?.unitId);
+    unit.hp = Math.min(unit.maxHp, unit.hp + value);
+    addEvent(match, 'HEAL', { side, unit: unit.id, amount: value, hp: unit.hp });
   } else if (type === 'BACK') {
     const unit = character(match, side, target?.unitId);
     sendOut(match, side, unit, 'back');
@@ -154,7 +160,7 @@ function applyEffect(match, side, card, target) {
     const jungler = p.characters.find(u => u.role === 'JUN');
     if (!jungler || !isActive(jungler) || jungler.rank !== 'front' || jungler.tapped) fail('Jungla no disponible');
     jungler.tapped = true;
-    p.buffs[target.lane] += jungler.attack + 1;
+    p.buffs[target.lane] += jungler.attack + 1 + (jungler.trait === 'SCOUT' ? 1 : 0);
   } else if (type === 'DIVE') {
     if (!p.characters.some(u => isActive(u) && u.lane === target.lane && u.rank === 'front')) fail('Dive sin atacante');
     p.dive[target.lane] = true;
@@ -165,9 +171,9 @@ function applyEffect(match, side, card, target) {
     const jungler = p.characters.find(u => u.role === 'JUN');
     const assist = Boolean(jungler && isActive(jungler) && jungler.rank === 'front' && !jungler.tapped);
     if (assist) jungler.tapped = true;
-    p.objectivePressure[objective] += value + (assist ? 2 : 0);
+    p.objectivePressure[objective] += value + (assist ? 2 + (jungler.trait === 'HUNTER' ? 1 : 0) : 0);
     if (objective === 'minor') p.objectiveLane = target.lane;
-    addEvent(match, 'HUNT', { side, objective, amount: value + (assist ? 2 : 0), assisted: assist });
+    addEvent(match, 'HUNT', { side, objective, amount: value + (assist ? 2 + (jungler.trait === 'HUNTER' ? 1 : 0) : 0), assisted: assist });
   } else fail('Efecto no implementado');
 }
 function advance(match, side) {
@@ -266,7 +272,7 @@ function resolveRound(match) {
     for (let side = 0; side < 2; side++) {
       for (const attacker of front[side]) {
         const target = [...front[1 - side]].sort((a, b) => a.hp - b.hp || a.id.localeCompare(b.id))[0];
-        if (target) incoming[1 - side].set(target.id, (incoming[1 - side].get(target.id) || 0) + combatAttack(attacker, match.round));
+        if (target) incoming[1 - side].set(target.id, (incoming[1 - side].get(target.id) || 0) + combatAttack(attacker, match.round) + (attacker.trait === 'DUELIST' ? 1 : 0));
       }
     }
   }
@@ -282,7 +288,7 @@ function resolveRound(match) {
   for (const lane of LANES) {
     const presence = match.players.map(p => p.characters.filter(u => isActive(u) && u.lane === lane && u.rank === 'front'));
     const pressure = match.players.map((p, i) =>
-      presence[i].reduce((s, u) => s + u.attack, 0) + p.buffs[lane] +
+      presence[i].reduce((s, u) => s + u.attack + (u.trait === 'SIEGE' ? 1 : 0), 0) + p.buffs[lane] +
       p.permanentPressure[lane] + (p.majorUntil >= match.round ? 1 : 0) +
       (p.towers[lane] > 0 ? 1 : 0));
     for (let side = 0; side < 2; side++) {
@@ -291,7 +297,7 @@ function resolveRound(match) {
       if (delta <= 0 || presence[side].length === 0) continue;
       const attacker = match.players[side], defender = match.players[1 - side];
       let amount = Math.min(3, Math.ceil(delta / 2));
-      const frontlineGuard = attacker.dive[lane] ? 0 : (presence[1 - side].length ? 2 : 0);
+      const frontlineGuard = attacker.dive[lane] ? 0 : (presence[1 - side].length ? 2 + (presence[1 - side].some(u=>u.trait === 'BULWARK') ? 1 : 0) : 0);
       amount = Math.max(0, amount - frontlineGuard - defender.guards[lane]);
       // Colossus improves only the first successful siege of this round, capped at 3.
       if (amount && attacker.majorUntil >= match.round && !majorSiegeUsed[side]) {
@@ -330,7 +336,8 @@ function resolveRound(match) {
   // Neutral rewards apply only after siege: they cannot change this round retroactively.
   if (match.players.every(p => p.nexus > 0)) resolveNeutralObjectives(match);
   for (const p of match.players) {
-    p.pendingFarm = Math.min(2, p.characters.filter(u => isActive(u) && u.role !== 'JUN' && u.rank === 'rear').length);
+    p.pendingFarm = Math.min(2, p.characters.filter(u => isActive(u) && u.role !== 'JUN' && u.rank === 'rear')
+      .reduce((total,u) => total + (u.trait === 'HARVEST' ? 2 : 1),0));
     const retained = p.hand.filter(c => p.keep.includes(c.uid));
     p.discard.push(...p.hand.filter(c => !p.keep.includes(c.uid)));
     p.hand = retained;
