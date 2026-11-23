@@ -12,6 +12,7 @@ const baseEnergy = round => Math.min(7, round + 2);
 export const combatAttack = (unit, round) => unit.attack + (round >= 10 ? 2 : round >= 7 ? 1 : 0);
 export const maxStructuralDamage = round => round >= 17 ? 5 : round >= 12 ? 4 : 3;
 export const frontalMitigation = round => round >= 16 ? 0 : round >= 10 ? 1 : 2;
+export const lateLaneMomentum = round => round >= 18 ? 2 : round >= 14 ? 1 : 0;
 export const OBJECTIVES = Object.freeze({
   minor: { name: 'Latido del Vínculo', unlock: 4, threshold: 4, margin: 2 },
   major: { name: 'Coloso del Umbral', unlock: 8, threshold: 4, margin: 2 }
@@ -92,9 +93,11 @@ export function createMatch(decks, options = {}) {
   if (![0, 1].includes(firstPlayer)) fail('Primer jugador inválido');
   // Experimental balance lever. Default preserves the agreed opening rule.
   if (!integer(secondPlayerBonus, 0, 2)) fail('Bono de salida inválido');
+  if (options.siegeMomentum !== undefined && typeof options.siegeMomentum !== 'boolean') fail('Regla de asedio inválida');
   const match = {
     version: 1, rng: (options.seed ?? 123456) | 0 || 1,
     round: 1, firstPlayer, turn: firstPlayer, winner: null, phase: 'tactics',
+    rules: { siegeMomentum: options.siegeMomentum ?? false },
     players: decks.map((deck, side) => makePlayer(side, deck)),
     objectives: {
       minor: { active: false, claimedBy: null },
@@ -295,6 +298,7 @@ function resolveRound(match) {
     const pressure = match.players.map((p, i) =>
       presence[i].reduce((s, u) => s + u.attack + (u.trait === 'SIEGE' ? 1 : 0), 0) + p.buffs[lane] +
       p.permanentPressure[lane] + (p.majorUntil >= match.round ? 1 : 0) +
+      (match.rules.siegeMomentum && presence[i].length > 0 ? lateLaneMomentum(match.round) : 0) +
       (p.towers[lane] > 0 ? 1 : 0));
     for (let side = 0; side < 2; side++) {
       const delta = pressure[side] - pressure[1 - side];
