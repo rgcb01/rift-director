@@ -80,16 +80,16 @@ export const CHARACTER_BY_ID=Object.freeze(Object.fromEntries(CHARACTER_CATALOG.
 export const TACTIC_BY_ID=Object.freeze(Object.fromEntries(TACTIC_CATALOG.map(c=>[c.id,c])));
 const TEMPLATE_BLUEPRINTS={
  control:{
-   name:'Control del Vínculo',heroes:['hero-centinela','hero-astral','hero-custodia','hero-arbalesta','hero-cazavinculos'],
-   tactics:{'line-guard':2,'fortress-ward':1,'precise-strike':3,'fatal-blow':2,'mend':2,
-     'sabotage':2,'hunt':2,'wave-push':3,'siege-march':2,'battle-standard':1}
+   name:'Control del Vínculo',heroes:['hero-centinela','hero-astral','hero-oraculo','hero-arbalesta','hero-cazavinculos'],
+   tactics:{'line-guard':2,'fortress-ward':1,'precise-strike':2,'fatal-blow':1,'mend':2,
+     'sabotage':2,'hunt':2,'wave-push':3,'siege-march':2,'battle-standard':1,'map-reading':1,'energy-pulse':1}
  },
  siege:{
    name:'Asedio del Bastión',heroes:['hero-centinela','hero-arcanista','hero-arbalesta','hero-custodia','hero-rastreadora'],
    tactics:{'wave-push':3,'siege-march':2,'battle-standard':2,'line-guard':2,'precise-strike':2,'energy-pulse':2,'map-reading':1,'rotation':2,'gank':1,'dive':2,'hunt':1}
  },
  jungle:{
-   name:'Rutas del Umbral',heroes:['hero-baluarte','hero-tejedora','hero-duelista','hero-oraculo','hero-acechador'],
+   name:'Rutas del Umbral',heroes:['hero-baluarte','hero-tejedora','hero-duelista','hero-arbalesta','hero-acechador'],
    tactics:{'gank':3,'hunt':2,'wave-push':2,'line-guard':2,'map-reading':2,'energy-pulse':2,'precise-strike':2,'rotation':1,'fatal-blow':1,'recall':1,'sabotage':2}
  }
 };
