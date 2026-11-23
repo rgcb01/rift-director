@@ -106,3 +106,26 @@ test('Card Game v0.8.3: no permite jugar un mazo incompleto',async({page})=>{
  await expect(page.getByRole('status')).toContainText('guardado');
  await expect(page.locator('#db-saved-select option')).toHaveCount(2);
 });
+
+test('Card Game v0.8.4: seleccionar dificultad y estrategia del bot',async({browser})=>{
+ const context=await browser.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});
+ const page=await context.newPage(),errors=[];
+ page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(url);
+ await expect(page.locator('[data-ai="difficulty"]')).toBeVisible();
+ await page.locator('[data-ai="difficulty"]').selectOption('director');
+ await page.locator('[data-ai="style"]').selectOption('control');
+ await expect(page.locator('[data-ai="difficulty"]')).toHaveValue('director');
+ await expect(page.locator('[data-ai="style"]')).toHaveValue('control');
+ await page.locator('[data-setup="bot"]').click();
+ await page.locator('[data-first]').first().click();
+ await expect(page.locator('.field')).toBeVisible();
+ await expect(page.getByText('IA Director · Control',{exact:false})).toBeVisible();
+ await page.screenshot({path:'ux-screenshots/card-game-ai-390.png',fullPage:true});
+ await page.locator('[data-act="pass"]').click();
+ await expect(page.getByText('Ronda 2',{exact:true})).toBeVisible();
+ const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
+ expect(overflow).toBeLessThanOrEqual(3);
+ expect(errors).toEqual([]);
+ await context.close();
+});
