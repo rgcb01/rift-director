@@ -31,9 +31,9 @@ function perLane(m,s,lane){
  const p=m.players[s],r=m.players[1-s];
  const a=laneAttack(m,s,lane),b=laneAttack(m,1-s,lane);
  const own=a+p.buffs[lane]+p.permanentPressure[lane]+(p.towers[lane]>0?1:0)+(p.majorUntil>=m.round?1:0)+
-  (m.rules?.siegeMomentum&&a>0?lateLaneMomentum(m.round):0);
+  (m.rules?.siegeMomentum&&ownFront(m,s,lane).length>0?lateLaneMomentum(m.round):0);
  const enemy=b+r.buffs[lane]+r.permanentPressure[lane]+(r.towers[lane]>0?1:0)+(r.majorUntil>=m.round?1:0)+
-  (m.rules?.siegeMomentum&&b>0?lateLaneMomentum(m.round):0);
+  (m.rules?.siegeMomentum&&ownFront(m,1-s,lane).length>0?lateLaneMomentum(m.round):0);
  const ours=ownFront(m,s,lane),theirs=ownFront(m,1-s,lane);
  const unguarded=theirs.length===0;
  const threat=enemy-own;
