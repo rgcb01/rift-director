@@ -71,7 +71,7 @@ function makePlayer(side, deck) {
     };
   });
   return {
-    characters, deck: deck.tactics.map((c, i) => ({ ...clone(c), uid: `p${side}:t${i}` })),
+    name: deck.name || 'Escuadra '+(side+1), characters, deck: deck.tactics.map((c, i) => ({ ...clone(c), uid: `p${side}:t${i}` })),
     hand: [], discard: [], energy: 0, pendingFarm: 0, actions: 0, passed: false,
     keep: [], buffs: { TOP: 0, MID: 0, BOT: 0 },
     permanentPressure: { TOP: 0, MID: 0, BOT: 0 }, majorUntil: 0,
@@ -197,7 +197,7 @@ export function playCard(match, side, uid, target = {}) {
   dp.hand.splice(dp.hand.findIndex(c => c.uid === uid), 1);
   dp.discard.push(dcard);
   dp.actions++;
-  addEvent(draft, 'PLAY', { side, card: dcard.id, uid, target });
+  addEvent(draft, 'PLAY', { side, card: dcard.id, name: dcard.name || dcard.id, uid, target });
   advance(draft, side);
   Object.assign(match, draft);
   return match;
