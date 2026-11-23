@@ -57,8 +57,12 @@ function scorePressure(m,s,lane,amount,style){
  const after=estimatedSiege(l,amount);
  const towerDamage=hitValue(after-before,l);
  const pressureEdge=clamp(l.own+amount-l.enemy,-3,6);
- return weights(style).offense*(towerDamage*1.5 + (after>0?3:0)+pressureEdge*.55+
-   (l.target===0?3:0)+(l.unguarded?1:0))-(l.target>0&&l.theirs.length?1:0);
+ // Avoid burning a card when the attack is already at the 3-damage cap.
+ if(before>=3&&after===before)return 0.8;
+ // Pressure may be worth stacking for a second tactical card, but not endlessly.
+ const setup=after===0?(pressureEdge>0?3.5:1.1):3;
+ return weights(style).offense*(towerDamage*1.5 + setup+pressureEdge*.45+
+   (after>0&&l.target===0?3:0)+(l.unguarded?1:0))-(l.target>0&&l.theirs.length?1:0);
 }
 function scoreGuard(m,s,lane,amount,style){
  const l=perLane(m,s,lane);
@@ -139,6 +143,8 @@ function targets(m,s,c,style){
    for(const objective of ['major','minor']){
      if(!m.objectives[objective].active)continue;
      const before=p.objectivePressure[objective],enemy=o.objectivePressure[objective];
+     const alreadySecured=before>=4&&before-enemy>=2;
+     if(alreadySecured)continue;
      const after=before+gain,ownWin=after>=4&&after-enemy>=2;
      const stillBehind=after<enemy+2;
      const urgent=m.round>=8&&objective==='major';
