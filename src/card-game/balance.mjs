@@ -95,7 +95,7 @@ export function runTournament(options={}){
    const games=seeds*4,finished=games-timeouts,decided=finished-draws;
    stats.push({
      fixture:fixture.name,archetypes:[fixture.a,fixture.b],games,finished,timeouts,draws,
-     winsA:aWins,winsB:bWins,
+     winsA:aWins,winsB:bWins,firstWins,secondWins,
      winRateAOverDecided:decided?round2(aWins/decided*100):null,
      firstWinRateOverDecided:decided?round2(firstWins/decided*100):null,
      avgRoundsCompleted:finishedRounds.length?round2(finishedRounds.reduce((a,b)=>a+b,0)/finishedRounds.length):null,
@@ -111,7 +111,7 @@ export function runTournament(options={}){
    version:'0.8.4',config:{seeds,maxRounds,difficulty,fixtures:fixtures.length,
      paired:true,seatSwaps:true,initiativeSwaps:true},
    totals:{games:sum('games'),finished:sum('finished'),timeouts:sum('timeouts'),draws:sum('draws'),
-     firstWins:stats.reduce((n,s)=>n+Math.round(s.firstWinRateOverDecided*(s.winsA+s.winsB)/100||0),0)},
+     firstWins:sum('firstWins'),secondWins:sum('secondWins')},
    fixtures:stats,
    ...(options.keepSamples?{samples:all}:{})
  };
