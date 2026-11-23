@@ -131,6 +131,7 @@ function logText(ev){
  if(ev.type==='OBJECTIVE_CONTEST')return 'Disputa '+OBJECTIVES[ev.objective].name+': '+ev.blue+'–'+ev.red+'. Nadie conquista.';
  if(ev.type==='OBJECTIVE_CAPTURE')return who+'conquista '+OBJECTIVES[ev.objective].name+(ev.lane?' (+1 permanente en '+ev.lane+').': ' (hasta ronda '+ev.majorUntil+').');
  if(ev.type==='LATE_POWER')return 'Escalado global: +'+ev.bonus+' ATQ en combates.';
+ if(ev.type==='LATE_SIEGE')return 'Convergencia intensificada: asedio máximo '+ev.cap+' y mitigación frontal base '+ev.mitigation+'.';
  if(ev.type==='TOWER_RETALIATION')return 'La torre responde con '+ev.amount+' de daño al atacante '+labelSide(ev.side)+'.';
  if(ev.type==='FINISH')return 'Fin de partida: '+(ev.winner==='draw'?'empate':'gana '+labelSide(ev.winner))+'.';
  return ev.type;
@@ -146,7 +147,7 @@ function bonusSummary(viewSide){
 }
 function sidePanel(viewSide){
  const log=[...match.log].slice(-15).reverse();
- return `<aside class="sidebar">${prompt(viewSide)}<div class="panel"><h3>Reglas rápidas</h3><p>Delante combate, atrás farmea. Las cartas giradas ya actuaron. Back: una ronda fuera; muerte: dos. Rompe una torre para abrir una ruta al Nexo.</p><div class="bonus-list">${bonusSummary(viewSide)}</div><details><summary>Ver más</summary><p>4 jugadas por jugador y ronda. Presión ganadora → daño a estructura. Las cartas de 0 energía también consumen jugada. A partir de R5 hay 7 de energía base; R7 y R10 sube el ATQ en combate. Caza disputa Latido o Coloso. Un jungla listo añade +2 presión neutral pero se agota.</p></details></div><div class="panel"><h3>Registro de combate</h3><div class="log">${log.map(e=>`<div class="logline"><span>R${e.round}</span> · ${escape(logText(e))}</div>`).join('')}</div></div></aside>`;
+ return `<aside class="sidebar">${prompt(viewSide)}<div class="panel"><h3>Reglas rápidas</h3><p>Delante combate, atrás farmea. Las cartas giradas ya actuaron. Back: una ronda fuera; muerte: dos. Rompe una torre para abrir una ruta al Nexo.</p><div class="bonus-list">${bonusSummary(viewSide)}</div><details><summary>Ver más</summary><p>4 jugadas por jugador y ronda. Presión ganadora → daño a estructura. Las cartas de 0 energía también consumen jugada. Desde R5 hay 7 de energía base. ATQ +1 en R7 y +2 en R10; el asedio máximo sube en R12 (4) y R17 (5), y la mitigación frontal baja en R10 y R16. Caza disputa Latido o Coloso. Un jungla listo añade +2 presión neutral pero se agota.</p></details></div><div class="panel"><h3>Registro de combate</h3><div class="log">${log.map(e=>`<div class="logline"><span>R${e.round}</span> · ${escape(logText(e))}</div>`).join('')}</div></div></aside>`;
 }
 function handPanel(side){
  const p=match.players[side];
