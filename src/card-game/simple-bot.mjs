@@ -26,6 +26,16 @@ function cardMove(m,s,card) {
     const target=minHp(victims.filter(u=>u.rank==='front').length?victims.filter(u=>u.rank==='front'):victims);
     return {score:8+(target.hp<=card.effect.value?4:0),target:{unitId:target.id}};
   }
+  if(t==='HEAL'){
+    const wounded=m.players[s].characters.filter(u=>active(u)&&u.hp<u.maxHp);
+    if(!wounded.length)return null;
+    const target=[...wounded].sort((a,b)=>(a.hp/a.maxHp)-(b.hp/b.maxHp))[0];
+    return {score:target.hp<=Math.ceil(target.maxHp/2)?9:4,target:{unitId:target.id}};
+  }
+  if(t==='SABOTAGE'){
+    const dest=[...LANES].sort((a,b)=>front(m,1-s,b).reduce((v,u)=>v+u.attack,0)-front(m,1-s,a).reduce((v,u)=>v+u.attack,0))[0];
+    return {score:6+front(m,1-s,dest).length*2,target:{lane:dest}};
+  }
   if(t==='HUNT'){
     const targets=['major','minor'].filter(id=>m.objectives[id]?.active);
     if(!targets.length) return null;
