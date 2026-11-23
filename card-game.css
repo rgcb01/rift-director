@@ -141,3 +141,9 @@ details p{padding-top:8px}
 .deck-select{min-height:44px;width:100%;border:1px solid #829cc17c;border-radius:10px;background:#111e36;color:#f4f7ff;font-size:13px;padding:9px;outline-offset:2px}
 .deck-select:focus-visible{outline:2px solid var(--gold)}
 @media(max-width:520px){.deck-selectors{grid-template-columns:1fr}.deck-pick{padding:10px}.nav-actions .btn.smallbtn{min-height:38px}.side-banner strong{font-size:11px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+
+/* v0.8.4 — bot strategy and difficulty selection */
+.bot-settings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.bot-option{display:grid;gap:6px;padding:12px;border:1px solid #8d79b766;border-radius:12px;background:linear-gradient(140deg,#242345,#202d48)}
+.bot-option label{font-size:10px;letter-spacing:.1em;font-weight:800;color:#c9b6ec}
+@media(max-width:520px){.bot-settings{grid-template-columns:1fr}.bot-option{padding:10px}}
