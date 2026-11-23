@@ -4,7 +4,7 @@ on:
   push:
     paths:
       - 'src/card-game/**'
-      - 'scripts/card-game-balance.mjs'
+      - 'scripts/card-game-*.mjs'
       - 'tests/card-game-ai-balance.test.mjs'
       - '.github/workflows/card-game-balance.yml'
   pull_request:
@@ -36,7 +36,7 @@ jobs:
           node --check scripts/card-game-opening-study.mjs
           node --check scripts/card-game-momentum-study.mjs
       - name: Ejecutar 480 partidas espejadas
-        run: node scripts/card-game-balance.mjs --seeds=20 --rounds=24 --difficulty=director --json=artifacts/balance-v084.json
+        run: node scripts/card-game-balance.mjs --seeds=20 --rounds=24 --difficulty=director --json=artifacts/balance-v085.json
       - name: Estudiar aperturas (0, 1 y 2 de energía extra al segundo)
         run: node scripts/card-game-opening-study.mjs --seeds=20 --rounds=24 --json=artifacts/opening-v085.json
       - name: Comparar resonancia tardía
@@ -45,7 +45,7 @@ jobs:
         run: |
           node --input-type=module -e '
             import { readFileSync, appendFileSync } from "node:fs";
-            const j=JSON.parse(readFileSync("artifacts/balance-v084.json","utf8"));
+            const j=JSON.parse(readFileSync("artifacts/balance-v085.json","utf8"));
             const lines=[
               "## Rift Director — balance CCG",
               "Muestra exploratoria de "+j.totals.games+" partidas. Las incompletas NO cuentan como empates.",
@@ -61,7 +61,7 @@ jobs:
         with:
           name: card-game-balance-v085
           path: |
-            artifacts/balance-v084.json
+            artifacts/balance-v085.json
             artifacts/opening-v085.json
             artifacts/momentum-v085.json
           if-no-files-found: error
