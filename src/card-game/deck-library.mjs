@@ -129,19 +129,19 @@ export function readSelection(storage=globalThis.localStorage){
  try{
   const data=JSON.parse(storage.getItem(SELECTION_KEY)||'null');
   if(!Array.isArray(data)||data.length!==2)return ['siege','jungle'];
-  const known=new Set(['siege','jungle',...readLibrary(storage).filter(d=>validateDraft(d).length===0).map(d=>d.id)]);
+  const known=new Set(['siege','jungle','control',...readLibrary(storage).filter(d=>validateDraft(d).length===0).map(d=>d.id)]);
   return data.map((id,i)=>known.has(id)?id:i===0?'siege':'jungle');
  }catch{return ['siege','jungle'];}
 }
 export function writeSelection(selection,storage=globalThis.localStorage){
- const known=new Set(['siege','jungle',...readLibrary(storage).filter(d=>validateDraft(d).length===0).map(d=>d.id)]);
+ const known=new Set(['siege','jungle','control',...readLibrary(storage).filter(d=>validateDraft(d).length===0).map(d=>d.id)]);
  if(!Array.isArray(selection)||selection.length!==2||selection.some(x=>!known.has(x)))throw new Error('Selecciona un mazo completo');
  try{storage.setItem(SELECTION_KEY,JSON.stringify(selection));}
  catch{throw new Error('No fue posible guardar la selección de mazos.');}
  return selection;
 }
 export function loadPlayable(id,storage=globalThis.localStorage){
- if(id==='siege'||id==='jungle')return templateDeck(id);
+ if(id==='siege'||id==='jungle'||id==='control')return templateDeck(id);
  const deck=readLibrary(storage).find(d=>d.id===id);
  if(!deck)throw new Error('Mazo no encontrado');
  return toPlayableDeck(deck);
@@ -150,6 +150,7 @@ export function listPlayableChoices(storage=globalThis.localStorage){
  return [
    {id:'siege',name:templateDeck('siege').name},
    {id:'jungle',name:templateDeck('jungle').name},
+   {id:'control',name:templateDeck('control').name},
    ...readLibrary(storage).filter(d=>validateDraft(d).length===0).map(d=>({id:d.id,name:d.name}))
  ];
 }
