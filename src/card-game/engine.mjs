@@ -229,7 +229,8 @@ function resolveRound(match) {
     const pressure = match.players.map((p, i) => presence[i].reduce((s, u) => s + u.attack, 0) + p.buffs[lane] + (p.towers[lane] > 0 ? 1 : 0));
     for (let side = 0; side < 2; side++) {
       const delta = pressure[side] - pressure[1 - side];
-      if (delta <= 0) continue;
+      // A spell cannot siege a structure alone: at least one frontline Riftborn must survive.
+      if (delta <= 0 || presence[side].length === 0) continue;
       const attacker = match.players[side], defender = match.players[1 - side];
       let amount = Math.min(3, Math.ceil(delta / 2));
       const frontlineGuard = attacker.dive[lane] ? 0 : (presence[1 - side].length ? 2 : 0);
