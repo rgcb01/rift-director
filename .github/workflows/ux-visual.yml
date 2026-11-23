@@ -11,6 +11,8 @@ on:
       - 'src/card-game/**'
       - 'card-game.html'
       - 'card-game.css'
+      - 'deck-builder.html'
+      - 'deck-builder.css'
       - '.github/workflows/ux-visual.yml'
   workflow_dispatch:
 
