@@ -1,6 +1,7 @@
 import {createMatch, playCard, activate, passTurn, chooseKeep, LANES, OBJECTIVES, combatAttack} from './engine.mjs';
 import {STARTER_DECKS, KIND_NAMES, EFFECT_NAMES} from './starter-decks.mjs';
 import {botStep} from './simple-bot.mjs';
+import {aiStep,AI_LEVELS,AI_STYLES} from './tactical-ai.mjs';
 import {TRAITS} from './catalog.mjs';
 import {listPlayableChoices,loadPlayable,readSelection,writeSelection} from './deck-library.mjs';
 
@@ -10,7 +11,8 @@ const iconFor={PRESSURE:'⚔',GUARD:'◈',IMPACT:'✹',ENERGY:'⚡',DRAW:'✦',R
 const labelSide=s=>s===0?'Azul':'Rojo';
 let mode=null,match=null,coin=null,selectedCard=null,selectedUnit=null,rotateSource=null,selectedObjective=null,curtain=false,notice='';
 let deckChoices=readSelection();
-function title(){return '<div class="topbar"><div><div class="kicker">CARD GAME · PROTOTIPO 0.8.3</div><div class="wordmark">RIFT <span>DIRECTOR</span></div></div><div class="nav-actions"><span class="pill live">♧ Rework táctico</span><a class="btn smallbtn minor" href="./deck-builder.html">✦ Mis mazos</a><button class="btn smallbtn minor" data-act="reset">Nueva partida</button></div></div>';}
+let botDifficulty='tactical',botStyle='balanced';
+function title(){return '<div class="topbar"><div><div class="kicker">CARD GAME · PROTOTIPO 0.8.4</div><div class="wordmark">RIFT <span>DIRECTOR</span></div></div><div class="nav-actions"><span class="pill live">♧ Rework táctico</span><a class="btn smallbtn minor" href="./deck-builder.html">✦ Mis mazos</a><button class="btn smallbtn minor" data-act="reset">Nueva partida</button></div></div>';}
 function deckSelectors(){
  const choices=listPlayableChoices();
  return '<div class="deck-selectors">'+[0,1].map(side=>{
@@ -21,8 +23,15 @@ function deckSelectors(){
    '</select></div>';
  }).join('')+'</div>';
 }
+function botSettings(){
+ const select=(field,options,selected)=>'<select class="deck-select" data-ai="'+field+'" aria-label="'+(field==='difficulty'?'Dificultad':'Estrategia')+' del bot">'+
+   Object.entries(options).map(([id,def])=>'<option value="'+id+'" '+(id===selected?'selected':'')+'>'+escape(def.name)+'</option>').join('')+'</select>';
+ return '<div class="bot-settings"><div class="bot-option"><label>IA DEL RIVAL</label>'+
+   select('difficulty',AI_LEVELS,botDifficulty)+'</div><div class="bot-option"><label>ESTRATEGIA DEL RIVAL</label>'+
+   select('style',AI_STYLES,botStyle)+'</div></div>';
+}
 function intro(){
- return `${title()}<div class="intro"><section class="intro-hero"><div class="kicker">Domina la Convergencia</div><h1>Tres carriles.<br>Cuatro jugadas.<br>Una decisión decisiva.</h1><p>Dirige cinco Riftborn, defiende tus torres y abre camino hacia el Nexo rival. Todo el combate se resuelve con cartas, posiciones y presión.</p><div class="pill">5 personajes · 20 tácticas · 6 cartas en mano</div></section>${deckSelectors()}<div class="intro-menu"><button class="mode" data-setup="bot"><strong>⚔ Contra un bot</strong><small>Juega con tu mazo elegido contra una escuadra del catálogo. El bot no conoce tu mano.</small></button><button class="mode" data-setup="hotseat"><strong>♟ Dos jugadores locales</strong><small>Alternad jugadas en el mismo dispositivo. La mano se oculta al pasar de jugador.</small></button></div><p class="small">Versión de pruebas: ya puedes disputar el Latido (R4) y el Coloso (R8) con cartas de Caza. Ya puedes construir y guardar mazos. Sobres y economía llegarán después.</p></div>`;
+ return `${title()}<div class="intro"><section class="intro-hero"><div class="kicker">Domina la Convergencia</div><h1>Tres carriles.<br>Cuatro jugadas.<br>Una decisión decisiva.</h1><p>Dirige cinco Riftborn, defiende tus torres y abre camino hacia el Nexo rival. Todo el combate se resuelve con cartas, posiciones y presión.</p><div class="pill">5 personajes · 20 tácticas · 6 cartas en mano</div></section>${deckSelectors()}${botSettings()}<div class="intro-menu"><button class="mode" data-setup="bot"><strong>⚔ Contra un bot</strong><small>Enfrenta tu mazo contra un bot de dificultad y estrategia configurables. No conoce tu mano.</small></button><button class="mode" data-setup="hotseat"><strong>♟ Dos jugadores locales</strong><small>Alternad jugadas en el mismo dispositivo. La mano se oculta al pasar de jugador.</small></button></div><p class="small">Versión de pruebas: ya puedes disputar el Latido (R4) y el Coloso (R8) con cartas de Caza. Ya puedes construir y guardar mazos. Sobres y economía llegarán después.</p></div>`;
 }
 function coinScreen(){
  const winner=coin.winner, botWon=coin.mode==='bot'&&winner===1;
@@ -152,7 +161,7 @@ function game(){
  const view=mode==='hotseat'?match.turn:0;
  const p=match.players[view];
  const play=match.phase==='tactics'&&match.turn===view;
- return `${title()}${notice?`<div class="notice" role="status">${escape(notice)}</div>`:''}<div class="turn-strip"><div><div class="kicker">Ronda ${match.round}</div><strong>${match.phase==='finished'?'Partida terminada':'Turno '+labelSide(match.turn)} ${play?'· tu jugada':''}</strong></div><div class="turn-meta"><span class="pill">⚡ ${p.energy}</span><span class="pill">${p.actions}/4 jugadas</span></div><div class="turn-meta"><span class="pill">↔ ${mode==='bot'?'Contra bot':'2 locales'}</span></div></div>${outcome()}<div class="arena-layout">${board(view)}${sidePanel(view)}</div>${handPanel(view)}<footer class="layout-footer">Rift Director · Card Game prototype · Las partidas no afectan los guardados del antiguo manager.</footer>${curtain&&mode==='hotseat'&&match.phase==='tactics'?`<div class="pass-screen"><div class="pass-card"><div class="coin">✦</div><h2>Pasa el dispositivo</h2><p class="small">Es turno del jugador ${labelSide(match.turn)}. La mano se mostrará cuando esté listo.</p><button class="btn primary" data-act="reveal">Mostrar mi mano</button></div></div>`:''}`;
+ return `${title()}${notice?`<div class="notice" role="status">${escape(notice)}</div>`:''}<div class="turn-strip"><div><div class="kicker">Ronda ${match.round}</div><strong>${match.phase==='finished'?'Partida terminada':'Turno '+labelSide(match.turn)} ${play?'· tu jugada':''}</strong></div><div class="turn-meta"><span class="pill">⚡ ${p.energy}</span><span class="pill">${p.actions}/4 jugadas</span></div><div class="turn-meta"><span class="pill">↔ ${mode==='bot'?'IA '+AI_LEVELS[botDifficulty].name+' · '+AI_STYLES[botStyle].name:'2 locales'}</span></div></div>${outcome()}<div class="arena-layout">${board(view)}${sidePanel(view)}</div>${handPanel(view)}<footer class="layout-footer">Rift Director · Card Game prototype · Las partidas no afectan los guardados del antiguo manager.</footer>${curtain&&mode==='hotseat'&&match.phase==='tactics'?`<div class="pass-screen"><div class="pass-card"><div class="coin">✦</div><h2>Pasa el dispositivo</h2><p class="small">Es turno del jugador ${labelSide(match.turn)}. La mano se mostrará cuando esté listo.</p><button class="btn primary" data-act="reveal">Mostrar mi mano</button></div></div>`:''}`;
 }
 function render(){
  app.innerHTML=match?game():coin?coinScreen():intro();
@@ -177,7 +186,10 @@ function begin(firstPlayer){
 function clearSelection(){selectedCard=null;selectedUnit=null;rotateSource=null;selectedObjective=null;}
 function driveBot(){
  let limit=12;
- while(match&&match.phase==='tactics'&&match.turn===1&&limit-->0)botStep(match,1);
+ while(match&&match.phase==='tactics'&&match.turn===1&&limit-->0){
+   if(botDifficulty==='rookie')botStep(match,1);
+   else aiStep(match,1,{difficulty:botDifficulty,style:botStyle});
+ }
  if(limit<=0)notice='Se detuvo el bot por límite de seguridad.';
 }
 function perform(fn){
@@ -245,6 +257,12 @@ function pickUnit(owner,uid){
  selectedUnit=selectedUnit===uid?null:uid;notice='';render();
 }
 app.addEventListener('change',event=>{
+ const ai=event.target.closest('[data-ai]');
+ if(ai&&!match&&!coin){
+   if(ai.dataset.ai==='difficulty'&&AI_LEVELS[ai.value])botDifficulty=ai.value;
+   if(ai.dataset.ai==='style'&&AI_STYLES[ai.value])botStyle=ai.value;
+   notice='';render();return;
+ }
  const select=event.target.closest('[data-deck-side]');
  if(!select||match||coin)return;
  const side=Number(select.dataset.deckSide);
