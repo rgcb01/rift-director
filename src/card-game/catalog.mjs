@@ -80,9 +80,9 @@ export const CHARACTER_BY_ID=Object.freeze(Object.fromEntries(CHARACTER_CATALOG.
 export const TACTIC_BY_ID=Object.freeze(Object.fromEntries(TACTIC_CATALOG.map(c=>[c.id,c])));
 const TEMPLATE_BLUEPRINTS={
  control:{
-   name:'Control del Vínculo',heroes:['hero-baluarte','hero-astral','hero-custodia','hero-escudero','hero-cazavinculos'],
-   tactics:{'line-guard':3,'fortress-ward':2,'final-stand':1,'pocket-shield':1,
-     'precise-strike':3,'fatal-blow':2,'mend':2,'sabotage':2,'hunt':2,'wave-push':2}
+   name:'Control del Vínculo',heroes:['hero-centinela','hero-astral','hero-custodia','hero-arbalesta','hero-cazavinculos'],
+   tactics:{'line-guard':2,'fortress-ward':1,'precise-strike':3,'fatal-blow':2,'mend':2,
+     'sabotage':2,'hunt':2,'wave-push':3,'siege-march':2,'battle-standard':1}
  },
  siege:{
    name:'Asedio del Bastión',heroes:['hero-centinela','hero-arcanista','hero-arbalesta','hero-custodia','hero-rastreadora'],
