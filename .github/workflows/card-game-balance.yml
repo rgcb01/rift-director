@@ -33,8 +33,11 @@ jobs:
           node --check src/card-game/tactical-ai.mjs
           node --check src/card-game/balance.mjs
           node --check scripts/card-game-balance.mjs
+          node --check scripts/card-game-opening-study.mjs
       - name: Ejecutar 480 partidas espejadas
         run: node scripts/card-game-balance.mjs --seeds=20 --rounds=24 --difficulty=director --json=artifacts/balance-v084.json
+      - name: Estudiar aperturas (0, 1 y 2 de energía extra al segundo)
+        run: node scripts/card-game-opening-study.mjs --seeds=20 --rounds=24 --json=artifacts/opening-v085.json
       - name: Resumen reproducible
         run: |
           node --input-type=module -e '
@@ -53,6 +56,8 @@ jobs:
       - name: Guardar informe JSON
         uses: actions/upload-artifact@v4
         with:
-          name: card-game-balance-v084
-          path: artifacts/balance-v084.json
+          name: card-game-balance-v085
+          path: |
+            artifacts/balance-v084.json
+            artifacts/opening-v085.json
           if-no-files-found: error
