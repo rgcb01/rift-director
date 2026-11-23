@@ -88,7 +88,10 @@ export function createMatch(decks, options = {}) {
   if (!Array.isArray(decks) || decks.length !== 2) fail('Se requieren dos mazos');
   decks.forEach(validateDeck);
   const firstPlayer = options.firstPlayer ?? 0;
+  const secondPlayerBonus = options.secondPlayerBonus ?? 1;
   if (![0, 1].includes(firstPlayer)) fail('Primer jugador inválido');
+  // Experimental balance lever. Default preserves the agreed opening rule.
+  if (!integer(secondPlayerBonus, 0, 2)) fail('Bono de salida inválido');
   const match = {
     version: 1, rng: (options.seed ?? 123456) | 0 || 1,
     round: 1, firstPlayer, turn: firstPlayer, winner: null, phase: 'tactics',
@@ -103,8 +106,8 @@ export function createMatch(decks, options = {}) {
     refill(match, p);
     p.energy = 3;
   }
-  match.players[1 - firstPlayer].energy++;
-  addEvent(match, 'START', { firstPlayer });
+  match.players[1 - firstPlayer].energy += secondPlayerBonus;
+  addEvent(match, 'START', { firstPlayer, secondPlayerBonus });
   return match;
 }
 
