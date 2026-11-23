@@ -1,0 +1,58 @@
+name: Card Game · balance por arquetipo
+
+on:
+  push:
+    paths:
+      - 'src/card-game/**'
+      - 'scripts/card-game-balance.mjs'
+      - 'tests/card-game-ai-balance.test.mjs'
+      - '.github/workflows/card-game-balance.yml'
+  pull_request:
+    paths:
+      - 'src/card-game/**'
+      - 'scripts/card-game-balance.mjs'
+      - 'tests/card-game-ai-balance.test.mjs'
+      - '.github/workflows/card-game-balance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  balanced-tournament:
+    name: Semillas espejadas y balance de mazos
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verificar sintaxis
+        run: |
+          node --check src/card-game/tactical-ai.mjs
+          node --check src/card-game/balance.mjs
+          node --check scripts/card-game-balance.mjs
+      - name: Ejecutar 480 partidas espejadas
+        run: node scripts/card-game-balance.mjs --seeds=20 --rounds=24 --difficulty=director --json=artifacts/balance-v084.json
+      - name: Resumen reproducible
+        run: |
+          node --input-type=module -e '
+            import { readFileSync, appendFileSync } from "node:fs";
+            const j=JSON.parse(readFileSync("artifacts/balance-v084.json","utf8"));
+            const lines=[
+              "## Rift Director — balance CCG",
+              "Muestra exploratoria de "+j.totals.games+" partidas. Las incompletas NO cuentan como empates.",
+              "",
+              "| Cruce | Victorias A / B | Incompletas | Victoria al empezar | Rondas promedio |",
+              "|---|---:|---:|---:|---:|",
+              ...j.fixtures.map(x=>"| "+x.fixture+" | "+x.winsA+" / "+x.winsB+" | "+x.timeouts+" | "+(x.firstWinRateOverDecided??"n/d")+"% | "+(x.avgRoundsCompleted??"n/d")+" |")
+            ];
+            appendFileSync(process.env.GITHUB_STEP_SUMMARY,lines.join("\n")+"\n");
+          '
+      - name: Guardar informe JSON
+        uses: actions/upload-artifact@v4
+        with:
+          name: card-game-balance-v084
+          path: artifacts/balance-v084.json
+          if-no-files-found: error

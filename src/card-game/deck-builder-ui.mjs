@@ -62,7 +62,7 @@ function libraryActions(){
  <select class="db-select" id="db-saved-select" aria-label="Mazos guardados"><option value="">Seleccionar guardado…</option>
  ${saved.map(d=>`<option value="${escape(d.id)}" ${draft.id===d.id?'selected':''}>${escape(d.name)} ${validateDraft(d).length?'(borrador)':'✓'}</option>`).join('')}
  </select>
- <div class="db-library-actions"><button class="btn minor" data-template="siege">Plantilla Asedio</button><button class="btn minor" data-template="jungle">Plantilla Jungla</button>
+ <div class="db-library-actions"><button class="btn minor" data-template="siege">Plantilla Asedio</button><button class="btn minor" data-template="jungle">Plantilla Jungla</button><button class="btn minor" data-template="control">Plantilla Control</button>
  <button class="btn minor" data-action="empty">Mazo vacío</button><button class="btn minor" data-action="duplicate">Duplicar actual</button></div>
  </div>`;
 }
