@@ -34,10 +34,13 @@ jobs:
           node --check src/card-game/balance.mjs
           node --check scripts/card-game-balance.mjs
           node --check scripts/card-game-opening-study.mjs
+          node --check scripts/card-game-momentum-study.mjs
       - name: Ejecutar 480 partidas espejadas
         run: node scripts/card-game-balance.mjs --seeds=20 --rounds=24 --difficulty=director --json=artifacts/balance-v084.json
       - name: Estudiar aperturas (0, 1 y 2 de energía extra al segundo)
         run: node scripts/card-game-opening-study.mjs --seeds=20 --rounds=24 --json=artifacts/opening-v085.json
+      - name: Comparar resonancia tardía
+        run: node scripts/card-game-momentum-study.mjs --seeds=12 --rounds=24 --json=artifacts/momentum-v085.json
       - name: Resumen reproducible
         run: |
           node --input-type=module -e '
@@ -60,4 +63,5 @@ jobs:
           path: |
             artifacts/balance-v084.json
             artifacts/opening-v085.json
+            artifacts/momentum-v085.json
           if-no-files-found: error
