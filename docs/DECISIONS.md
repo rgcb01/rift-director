@@ -1,24 +1,20 @@
-# Registro de decisiones (ADR ligero)
+# Decisiones de producto — Rift Director Card Game
 
-El propósito es conservar acuerdos importantes. No todas las decisiones están implementadas. Los cambios de filosofía deben actualizar este documento y [GAME_DESIGN.md](GAME_DESIGN.md).
+Este registro sustituye las decisiones del manager de esports como criterio **activo**. Las decisiones originales D-001 a D-013 quedan conservadas en la [rama histórica](https://github.com/rgcb01/rift-director/blob/archive/moba-manager-alpha-0718/docs/DECISIONS.md) y se consideran retiradas para el producto principal, excepto principios transferibles como reproducibilidad, accesibilidad y contenido original.
 
 | ID | Estado | Decisión | Razón |
 |---|---|---|---|
-| D-001 | Aprobada | Sandbox infinito, sin ganador ni objetivo de dinero; solo se pierde cuando la caja queda en cero | Enfatizar estabilidad empresarial, no trofeos |
-| D-002 | Aprobada | Avance global por meses y eventos | Integrar finanzas, actividad competitiva y evolución institucional |
-| D-003 | Aprobada | El usuario es CEO, General Manager y Head Coach | Unir gestión económica, roster y preparación |
-| D-004 | Aprobada | Los cinco profesionales juegan de forma autónoma; el jugador observa el partido narrado | Recompensar planificación, no reflejos |
-| D-005 | Aprobada | Traits + atributos + encaje + meta; ningún jugador es perfecto por definición | Crear decisiones de fichajes con trade-offs |
-| D-006 | Aprobada | Eventos de partido válidos antes de generar comentarios | Impedir narraciones imposibles y conservar causalidad |
-| D-007 | Aprobada | Noticias y filtraciones emergen del estado del mundo | Worldbuilding coherente con consecuencias económicas |
-| D-008 | Aprobada | Universo original inspirado en esports, con escudos y retratos SVG | Identidad propia, assets ligeros, compatibilidad web/móvil |
-| D-009 | Aprobada | Ingresos diversificados; agenda comercial compite con scrims y descanso | La organización es una empresa con empleados |
-| D-010 | Aprobada | No incorporar marcas, imágenes o personas reales al contenido oficial sin derechos apropiados | Publicación independiente y sostenible |
-| D-011 | Técnica provisional | JS estático sin framework y Pages desde main/root | Entrada sencilla al desarrollo |
-| D-012 | Pendiente | Licencia de software y contribuciones externas | Requiere una decisión expresa del propietario |
-| D-013 | Pendiente | Separar motor, UI y esquema de guardados con migración | Reducir riesgo al ampliar el universo |
-| D-014 | Pendiente | Definir profundidad de draft, campeones y torneos internacionales | No está incluido en Alpha 0.2 |
+| C-001 | Aprobada | Rift Director es un **juego de cartas táctico coleccionable**, no un manager MOBA | Focalizar diversión, lectura y decisiones en el tablero |
+| C-002 | Aprobada | Cinco Riftborn persistentes, tres carriles, jungla, torres y Nexo | Identidad estratégica de escuadra y control territorial |
+| C-003 | Aprobada | Cuatro jugadas alternadas por ronda, cartas con energía, sin hechizos reactivos fuera de turno | Decisiones claras y motor determinista |
+| C-004 | Aprobada | Jugador = Director del Vínculo en Aethra; cartas = representación de habilidades y órdenes | Lore coherente sin simulador de vida exterior |
+| C-005 | Aprobada | Colección local, sobres virtuales, fragmentos, crafting y mazos iniciales gratuitos | Bucle coleccionable accesible para probar sin pagos |
+| C-006 | Aprobada | Diseño móvil con foco de carril y mano adaptativa; escritorio conserva vista completa | Legibilidad e interacción táctil |
+| C-007 | Aprobada | IA de varios estilos, reglas de información oculta y torneos reproducibles | Balance observable sin ventaja artificial por saber la mano rival |
+| C-008 | Aprobada | El antiguo manager MOBA queda **archivado** con código, guardados y documentos conservados | No perder trabajo ni mezclar visiones |
+| C-009 | Aprobada | `/` e `index.html` inician Card Game; `legacy-moba.html` aloja la demo histórica | El producto público principal coincide con el roadmap |
+| C-010 | Aprobada | Persistencia offline-first sin cuentas ni pagos en esta etapa | Experiencia usable y de bajo mantenimiento |
+| C-011 | Pendiente | Licencia abierta, política de contribuciones y distribución | Requiere una decisión expresa del propietario |
+| C-012 | Pendiente | PvP online, cuentas y comercio | Se evaluarán después de 1.0 y balance con personas |
 
-## Política para nuevas decisiones
-
-Registrar **contexto, opción elegida, alternativas descartadas y consecuencias** cuando un cambio modifique una regla de diseño o genere incompatibilidad. Evitar convertir deseos futuros en funciones declaradas como terminadas.
+Las decisiones C-001 a C-010 describen el diseño objetivo y su estado funcional aproximado, no afirman que el arte, el tutorial o la sincronización estén terminados. Consultar [Roadmap](../ROADMAP.md) y [Reglas](../CARD_GAME_RULES.md).
