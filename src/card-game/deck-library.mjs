@@ -1,5 +1,6 @@
 // Local-only deck library for v0.8.3. No account, currency, or packs yet.
 import {CHARACTER_BY_ID,TACTIC_BY_ID,RARITIES,templateDeck} from './catalog.mjs';
+import {readCollection,ownsDeck} from './collection.mjs';
 export const LIBRARY_KEY='rift-director-ccg-decks-v1';
 export const SELECTION_KEY='rift-director-ccg-selected-v1';
 export const SLOTS=Object.freeze(['TOP','MID','BOT','BOT','JUN']);
@@ -125,16 +126,20 @@ export function deleteSavedDeck(id,storage=globalThis.localStorage){
  writeSelection(sel,storage);
  return decks;
 }
+function playableCustom(storage){
+ const collection=readCollection(storage);
+ return readLibrary(storage).filter(d=>validateDraft(d).length===0&&ownsDeck(d,collection));
+}
 export function readSelection(storage=globalThis.localStorage){
  try{
   const data=JSON.parse(storage.getItem(SELECTION_KEY)||'null');
   if(!Array.isArray(data)||data.length!==2)return ['siege','jungle'];
-  const known=new Set(['siege','jungle','control',...readLibrary(storage).filter(d=>validateDraft(d).length===0).map(d=>d.id)]);
+  const known=new Set(['siege','jungle','control',...playableCustom(storage).map(d=>d.id)]);
   return data.map((id,i)=>known.has(id)?id:i===0?'siege':'jungle');
  }catch{return ['siege','jungle'];}
 }
 export function writeSelection(selection,storage=globalThis.localStorage){
- const known=new Set(['siege','jungle','control',...readLibrary(storage).filter(d=>validateDraft(d).length===0).map(d=>d.id)]);
+ const known=new Set(['siege','jungle','control',...playableCustom(storage).map(d=>d.id)]);
  if(!Array.isArray(selection)||selection.length!==2||selection.some(x=>!known.has(x)))throw new Error('Selecciona un mazo completo');
  try{storage.setItem(SELECTION_KEY,JSON.stringify(selection));}
  catch{throw new Error('No fue posible guardar la selección de mazos.');}
@@ -144,6 +149,7 @@ export function loadPlayable(id,storage=globalThis.localStorage){
  if(id==='siege'||id==='jungle'||id==='control')return templateDeck(id);
  const deck=readLibrary(storage).find(d=>d.id===id);
  if(!deck)throw new Error('Mazo no encontrado');
+ if(!ownsDeck(deck,readCollection(storage)))throw new Error('No tienes todas las cartas de este mazo. Consíguelas en la colección.');
  return toPlayableDeck(deck);
 }
 export function listPlayableChoices(storage=globalThis.localStorage){
@@ -151,6 +157,6 @@ export function listPlayableChoices(storage=globalThis.localStorage){
    {id:'siege',name:templateDeck('siege').name},
    {id:'jungle',name:templateDeck('jungle').name},
    {id:'control',name:templateDeck('control').name},
-   ...readLibrary(storage).filter(d=>validateDraft(d).length===0).map(d=>({id:d.id,name:d.name}))
+   ...playableCustom(storage).map(d=>({id:d.id,name:d.name}))
  ];
 }
