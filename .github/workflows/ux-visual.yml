@@ -6,6 +6,8 @@ on:
       - 'game.js'
       - 'styles.css'
       - 'index.html'
+      - 'legacy-moba.html'
+      - 'scripts/check-static.mjs'
       - 'src/ui/**'
       - 'e2e/**'
       - 'src/card-game/**'
