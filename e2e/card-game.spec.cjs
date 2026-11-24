@@ -74,7 +74,7 @@ for(const width of [390,1280]){
   const page=await context.newPage(),errors=[];
   page.on('pageerror',e=>errors.push(e.message));
   await page.goto('http://127.0.0.1:8080/deck-builder.html');
-  await expect(page.locator('.db-card')).toHaveCount(34);
+  await expect(page.locator('.db-card')).toHaveCount(36);
   await expect(page.locator('.db-slot')).toHaveCount(5);
   await expect(page.locator('[data-action="play"]')).toBeEnabled();
   await page.screenshot({path:'ux-screenshots/card-game-builder-'+width+'.png',fullPage:true});
@@ -128,4 +128,44 @@ test('Card Game v0.8.4: seleccionar dificultad y estrategia del bot',async({brow
  expect(overflow).toBeLessThanOrEqual(3);
  expect(errors).toEqual([]);
  await context.close();
+});
+
+for(const width of [390,1280]){
+ test('Card Game v0.9.0: abrir sobre, revelar cartas y conservar colección a '+width+' px',async({browser})=>{
+   const context=await browser.newContext({viewport:{width,height:900},reducedMotion:'reduce'});
+   const page=await context.newPage(),errors=[];
+   page.on('pageerror',error=>errors.push(error.message));
+   await page.goto('http://127.0.0.1:8080/collection.html');
+   await expect(page.locator('.cc-card')).toHaveCount(56);
+   await expect(page.locator('[data-action="open"]')).toBeEnabled();
+   await expect(page.getByText('200',{exact:false}).first()).toBeVisible();
+   await page.screenshot({path:'ux-screenshots/card-game-collection-'+width+'.png',fullPage:true});
+   await page.locator('[data-action="open"]').click();
+   await expect(page.locator('.cc-reveal-card')).toBeVisible();
+   await expect(page.locator('.cc-reveal-counter')).toContainText('1 de 5');
+   await page.locator('[data-action="reveal"]').click();
+   await expect(page.locator('.cc-reveal-counter')).toContainText('2 de 5');
+   await page.locator('[data-action="skip"]').click();
+   await expect(page.getByText('Cinco cartas reveladas',{exact:false})).toBeVisible();
+   await page.locator('[data-action="finish"]').click();
+   await expect(page.locator('.cc-card')).toHaveCount(56);
+   await page.reload();
+   await expect(page.locator('.cc-stat').last()).toContainText('1');
+   await expect(page.locator('[data-action="open"]')).toBeEnabled();
+   await page.screenshot({path:'ux-screenshots/card-game-opened-'+width+'.png',fullPage:true});
+   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
+   expect(overflow).toBeLessThanOrEqual(3);
+   expect(errors).toEqual([]);
+   await context.close();
+ });
+}
+test('Card Game v0.9.0: el constructor bloquea cartas no obtenidas sin borrar los mazos iniciales',async({page})=>{
+ await page.goto('http://127.0.0.1:8080/deck-builder.html');
+ await expect(page.locator('[data-action="play"]')).toBeEnabled();
+ await expect(page.locator('[data-catalog-card="great-convergence"] [data-add]')).toBeDisabled();
+ await expect(page.locator('[data-hero="hero-ancla"]')).toBeDisabled();
+ await page.locator('[data-template="jungle"]').click();
+ await expect(page.locator('[data-action="play"]')).toBeEnabled();
+ await page.locator('[data-action="play"]').click();
+ await expect(page).toHaveURL(/card-game\.html$/);
 });
