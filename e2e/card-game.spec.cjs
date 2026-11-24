@@ -17,7 +17,7 @@ for(const width of [360,768,1440]){
     await expect(page.locator('.lanes')).toHaveCount(2);
     await expect(page.locator('.tactic')).toHaveCount(6);
     await page.screenshot({path:'ux-screenshots/card-game-board-'+width+'.png',fullPage:true});
-    await page.locator('.unit:not(.enemy)').first().click();
+    await page.locator('.unit:not(.enemy):visible').first().click();
     await expect(page.locator('[data-order="SWAP_RANK"]')).toBeVisible();
     await page.locator('[data-order="SWAP_RANK"]').click();
     await expect(page.locator('.logline')).not.toHaveCount(0);
@@ -168,4 +168,65 @@ test('Card Game v0.9.0: el constructor bloquea cartas no obtenidas sin borrar lo
  await expect(page.locator('[data-action="play"]')).toBeEnabled();
  await page.locator('[data-action="play"]').click();
  await expect(page).toHaveURL(/card-game\.html$/);
+});
+
+for(const width of [360,390,430]){
+ test('Card Game v0.9.1: carriles enfocados y mano inferior a '+width+'px',async({browser})=>{
+  const context=await browser.newContext({viewport:{width,height:844},reducedMotion:'reduce',isMobile:true,hasTouch:true});
+  const page=await context.newPage(),errors=[];
+  page.on('pageerror',e=>errors.push(e.message));
+  await page.goto(url);
+  await page.locator('[data-setup="bot"]').click();
+  await page.locator('[data-first]').first().click();
+  await expect(page.locator('.lane-navigator')).toBeVisible();
+  await expect(page.locator('[data-focus-lane]')).toHaveCount(3);
+  await expect(page.locator('[data-focus-lane="MID"]')).toHaveAttribute('aria-pressed','true');
+  await expect(page.locator('.lane:visible')).toHaveCount(2);
+  await expect(page.locator('.lane:visible').first()).toHaveAttribute('data-lane-column','MID');
+  await page.locator('[data-focus-lane="TOP"]').click();
+  await expect(page.locator('[data-focus-lane="TOP"]')).toHaveAttribute('aria-pressed','true');
+  await expect(page.locator('.lane:visible').first()).toHaveAttribute('data-lane-column','TOP');
+  await expect(page.locator('.hand-panel')).toBeVisible();
+  await expect(page.locator('[data-act="toggle-hand"]')).toBeVisible();
+  await page.locator('[data-act="toggle-hand"]').click();
+  await expect(page.locator('.hand-panel')).toHaveClass(/is-collapsed/);
+  await page.locator('[data-act="toggle-hand"]').click();
+  await expect(page.locator('.hand-panel')).not.toHaveClass(/is-collapsed/);
+  await page.screenshot({path:'ux-screenshots/card-game-mobile-focus-'+width+'.png',fullPage:true});
+  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
+  expect(overflow).toBeLessThanOrEqual(3);
+  const font=await page.locator('.lane.focus-active .unit b').first().evaluate(el=>Number.parseFloat(getComputedStyle(el).fontSize));
+  expect(font).toBeGreaterThanOrEqual(12);
+  expect(errors).toEqual([]);
+  await context.close();
+ });
+}
+test('Card Game v0.9.1: carta seleccionada muestra descripción y conserva la selección al cambiar de carril',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await page.goto(url);
+ await page.locator('[data-setup="bot"]').click();
+ await page.locator('[data-first]').first().click();
+ const uid=await page.locator('.tactic:not([disabled])').evaluateAll(nodes=>{
+  const card=nodes.find(el=>!['⚡','✦'].includes(el.querySelector('.art')?.textContent?.trim()));
+  return card?.getAttribute('data-card')||null;
+ });
+ expect(uid).toBeTruthy();
+ await page.locator('[data-card="'+uid+'"]').click();
+ await expect(page.locator('.selected-card-detail')).toBeVisible();
+ await expect(page.locator('.hand-panel')).toHaveClass(/is-collapsed/);
+ await page.locator('[data-focus-lane="BOT"]').click();
+ await expect(page.locator('.selected-card-detail')).toBeVisible();
+ await expect(page.locator('.lane:visible').first()).toHaveAttribute('data-lane-column','BOT');
+ await page.locator('[data-act="cancel"]').click();
+ await expect(page.locator('.selected-card-detail')).toHaveCount(0);
+ await expect(page.locator('.hand-panel')).not.toHaveClass(/is-collapsed/);
+});
+test('Card Game v0.9.1: escritorio conserva tres carriles completos',async({page})=>{
+ await page.setViewportSize({width:1440,height:900});
+ await page.goto(url);
+ await page.locator('[data-setup="bot"]').click();
+ await page.locator('[data-first]').first().click();
+ await expect(page.locator('.lane-navigator')).toBeHidden();
+ await expect(page.locator('.lane:visible')).toHaveCount(6);
+ await expect(page.locator('.hand-panel')).not.toHaveCSS('position','fixed');
 });

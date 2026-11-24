@@ -1,0 +1,132 @@
+/* Rift Director Card Game v0.9.1: interaction-first board and hand.
+   Visual density is deliberately adaptive. Desktop still shows all three lanes. */
+.lane-navigator,.hand-toggle{display:none}
+.decision-dock{margin:0 0 10px}
+.decision-dock>.panel{border-color:#a4b7d85e}
+.decision-dock .prompt{border-color:#f2c57cb5;box-shadow:0 4px 20px #090f257a}
+.selected-card-detail{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.selected-card-detail>div{min-width:0}
+.selected-card-detail h3{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:15px;margin-bottom:3px}
+.selected-card-detail .card-effect-text{font-size:13px;color:#e4e4ef}
+.card-preview-symbol{display:grid;place-items:center;flex:0 0 48px;height:57px;border:1px solid #e1bc7a8c;border-radius:9px;background:linear-gradient(135deg,#513d6d,#1d2a42);font-size:30px;box-shadow:0 5px 18px #0005}
+.card-preview-cost{border:1px solid #ebc58666;background:#19263b;color:#ffe2a1;border-radius:999px;font-size:12px;padding:4px 8px}
+.selection-hint{color:#dbd4e9;font-size:12px;align-self:center}
+.decision-dock .prompt-btns{align-items:center}
+.decision-dock .target-lane{min-height:44px;padding:10px 13px;border-color:#e2c18793;white-space:normal}
+.field .unit.can-target{outline:2px solid #f4d588;outline-offset:1px;box-shadow:0 0 0 5px #f7d79c20,0 0 19px #e6c07275}
+.field .unit.can-target:not(:disabled){animation:target-pulse 1.8s ease-in-out infinite alternate}
+@keyframes target-pulse{to{box-shadow:0 0 0 6px #f5d98930,0 0 23px #e6c072aa}}
+@media (min-width:621px){
+ .decision-dock>.panel{display:flex;gap:14px;justify-content:space-between;align-items:center}
+ .decision-dock>.panel.prompt{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:18px}
+ .decision-dock>.panel.prompt>.selected-card-detail{grid-row:span 2;margin:0}
+ .decision-dock>.panel.prompt>.prompt-btns{grid-column:2;grid-row:1/span 2;margin:0;max-width:480px}
+}
+@media (max-width:620px){
+ :root{scroll-padding-top:80px}
+ #card-game-app{max-width:none;padding:8px 8px 310px}
+ .topbar{gap:7px;margin-bottom:7px}
+ .topbar .wordmark{font-size:20px}
+ .topbar .kicker{font-size:10px;letter-spacing:.1em}
+ .topbar .nav-actions{gap:5px}
+ .topbar .nav-actions .btn{padding:6px 8px;font-size:11px;min-height:44px}
+ .topbar .pill.live{display:none}
+ .turn-strip{position:relative;margin:0 0 7px;padding:8px 9px;gap:5px;grid-template-columns:1fr auto}
+ .turn-strip .kicker{font-size:10px}
+ .turn-strip strong{font-size:13px}
+ .turn-meta{gap:5px}
+ .turn-meta .pill{font-size:11px;padding:5px 7px}
+ .turn-strip>.turn-meta:last-child{grid-column:1/-1}
+ .decision-dock{position:sticky;top:0;z-index:18;margin:0 0 7px}
+ .decision-dock>.panel{border-radius:12px;padding:8px 10px;background:#202c48f5;backdrop-filter:blur(14px)}
+ .decision-dock>.panel:not(.prompt) h3{margin:0;font-size:12px}
+ .decision-dock>.panel:not(.prompt) p{display:none}
+ .decision-dock .selected-card-detail{gap:8px;margin:0 0 7px}
+ .decision-dock .card-preview-symbol{flex-basis:42px;height:51px;font-size:27px}
+ .decision-dock .selected-card-detail h3{font-size:14px;margin:0 0 3px}
+ .decision-dock .card-effect-text{font-size:12px;line-height:1.35}
+ .decision-dock .prompt>p{font-size:12px;line-height:1.35}
+ .decision-dock .prompt-btns{margin-top:6px;gap:6px}
+ .decision-dock .prompt-btns .btn{min-height:44px;font-size:12px;flex:1 1 auto}
+ .selection-hint{display:block;width:100%;font-size:12px}
+ .arena-layout{grid-template-columns:minmax(0,1fr);gap:8px}
+ .field{padding:7px;gap:7px;border-radius:12px}
+ .lane-navigator{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;order:0}
+ .focus-tab{display:grid;grid-template-columns:1fr 1fr;gap:3px;align-content:center;min-width:0;min-height:72px;padding:7px 4px;border:1px solid #7798ba86;background:#192841;color:#c7d6e8;border-radius:10px}
+ .focus-tab strong{grid-column:1/-1;color:#f9fafc;font:800 14px 'Space Grotesk',sans-serif;letter-spacing:.09em}
+ .focus-tab span{font-size:11px;font-weight:700;white-space:nowrap}
+ .focus-tab small{grid-column:1/-1;color:#acc3da;font-size:10px;line-height:1.25}
+ .focus-tab.active{border-color:#f1d294;background:linear-gradient(155deg,#675074,#273b56);box-shadow:inset 0 0 0 1px #fff3,0 3px 11px #0005}
+ .focus-tab[aria-pressed="true"] strong{color:#ffdf9a}
+ .board-side{gap:5px}
+ .board-side .lanes{grid-template-columns:minmax(0,1fr);gap:0}
+ .board-side .lane:not(.focus-active){display:none}
+ .board-side .lane.focus-active{gap:7px;padding:8px;border-color:#839cc575;background:#1d304b}
+ .board-side .lane.enemy.focus-active{background:#402d43}
+ .board-side .lane-name{font-size:13px}
+ .board-side .row-slot{min-height:72px;padding:14px 8px 8px;gap:7px}
+ .board-side .slot-label{font-size:10px;top:4px}
+ .board-side .unit{min-height:68px;min-width:90px;width:min(46%,175px);padding:12px 8px 9px;border-radius:10px;transform-origin:center}
+ .board-side .unit b{font-size:13px;line-height:1.18}
+ .board-side .unit .stats{font-size:12px}
+ .board-side .unit .name-role{font-size:10px}
+ .board-side .unit.tapped{transform:rotate(4deg) scale(.94);filter:brightness(.74)}
+ .tower{min-height:42px;padding:8px 12px;font-size:13px;border-radius:10px}
+ .tower strong{font-size:13px}
+ .jungle{min-height:56px;padding:6px;gap:6px}
+ .jungle-label{font-size:11px}
+ .jungle .unit{min-height:44px;width:160px;max-width:80%}
+ .side-banner{gap:6px;padding:8px 9px;font-size:11px;min-height:43px}
+ .side-banner strong{font-size:11px;max-width:45%;white-space:normal}
+ .side-banner .nexus{font-size:11px}
+ .enemy .unit{background:linear-gradient(155deg,#674159,#32243a)}
+ .objective-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .objective-tile{min-height:90px;grid-template-columns:auto 1fr;text-align:left;justify-items:stretch;padding:9px 7px}
+ .objective-symbol{grid-row:span 4;font-size:23px}
+ .objective-title{font-size:11px}
+ .objective-score,.objective-state{font-size:10px}
+ .objective-reward{font-size:10px}
+ .neutral{padding:10px 8px}
+ .neutral>span{font-size:11px}
+ .sidebar{display:block}
+ .sidebar>.panel{margin:8px 0}
+ .sidebar .panel:last-child{display:block}
+ .sidebar .log{max-height:120px}
+ .hand-panel{position:fixed;left:0;right:0;bottom:0;z-index:25;margin:0;padding:9px 12px calc(9px + env(safe-area-inset-bottom,0px));border:1px solid #b19ed26b;border-radius:17px 17px 0 0;background:linear-gradient(175deg,#223253f8,#101a30fc);box-shadow:0 -11px 40px #030711cc;max-height:min(42vh,355px);overflow:hidden}
+ .hand-heading{display:grid;grid-template-columns:1fr auto;gap:6px;margin:0 0 7px}
+ .hand-heading h2{font-size:14px}
+ .hand-heading .small{font-size:11px}
+ .hand-heading .nav-actions{display:flex;justify-content:flex-end;gap:5px;flex-wrap:wrap}
+ .hand-heading .nav-actions .pill{display:none}
+ .hand-heading .btn{min-height:42px;padding:8px;font-size:12px}
+ .hand-heading .btn.primary{padding:8px 12px}
+ .hand-toggle{display:inline-flex}
+ .cards-scroll{gap:10px;padding:3px 5px 9px;scroll-snap-type:x mandatory;overscroll-behavior-inline:contain}
+ .hand-card{width:154px;min-width:154px;gap:4px}
+ .tactic{min-height:154px;padding:9px 10px;gap:6px}
+ .tactic .kind{font-size:10px}
+ .tactic .art{height:33px;font-size:27px}
+ .tactic strong{font-size:13px}
+ .tactic .description{font-size:11px;line-height:1.33}
+ .keep-btn{min-height:34px;font-size:11px}
+ .hand-panel.is-collapsed{max-height:100px}
+ .hand-panel.is-collapsed .cards-scroll{display:none}
+ .hand-panel.is-collapsed .hand-heading{margin:0}
+ .layout-footer{padding-bottom:8px}
+}
+@media (max-width:370px){
+ .focus-tab{padding:6px 2px}
+ .focus-tab span{font-size:10px}
+ .focus-tab small{font-size:10px}
+ .hand-card{width:145px;min-width:145px}
+ .hand-heading .btn{font-size:11px}
+ .hand-panel{padding-inline:8px}
+}
+@media (max-width:620px) and (orientation:landscape) and (max-height:500px){
+ .hand-panel{max-height:160px}
+ .tactic{min-height:100px}
+ .tactic .description{display:none}
+ .tactic .art{height:18px}
+ .hand-card{width:145px;min-width:145px}
+}
+@media (prefers-reduced-motion:reduce){.field .unit.can-target{animation:none}}

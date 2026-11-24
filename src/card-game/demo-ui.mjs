@@ -14,7 +14,8 @@ let mode=null,match=null,coin=null,selectedCard=null,selectedUnit=null,rotateSou
 let deckChoices=readSelection();
 let botDifficulty='tactical',botStyle='balanced';
 let currentMatchId=null,matchReward=null;
-function title(){return '<div class="topbar"><div><div class="kicker">CARD GAME · PROTOTIPO 0.9.0</div><div class="wordmark">RIFT <span>DIRECTOR</span></div></div><div class="nav-actions"><span class="pill live">♧ Rework táctico</span><a class="btn smallbtn minor" href="./deck-builder.html">✦ Mis mazos</a><a class="btn smallbtn minor" href="./collection.html">◈ Sobres</a><button class="btn smallbtn minor" data-act="reset">Nueva partida</button></div></div>';}
+let focusLane='MID',lastRenderedMatch=null,lastRenderedSide=null,handCollapsed=false;
+function title(){return '<div class="topbar"><div><div class="kicker">CARD GAME · PROTOTIPO 0.9.1</div><div class="wordmark">RIFT <span>DIRECTOR</span></div></div><div class="nav-actions"><span class="pill live">♧ Rework táctico</span><a class="btn smallbtn minor" href="./deck-builder.html">✦ Mis mazos</a><a class="btn smallbtn minor" href="./collection.html">◈ Sobres</a><button class="btn smallbtn minor" data-act="reset">Nueva partida</button></div></div>';}
 function deckSelectors(){
  const choices=listPlayableChoices();
  return '<div class="deck-selectors">'+[0,1].map(side=>{
@@ -46,8 +47,19 @@ function sideBanner(side,isEnemy){
  const p=match.players[side];
  return `<div class="side-banner ${isEnemy?'enemy':''}"><strong>${isEnemy?'RIVAL':'TÚ'} · ${escape(p.name)}</strong><span class="nexus ${side===0?'blue':'red'}">◈ NEXO ${p.nexus}/12</span><span>⚡ ${p.energy}</span></div>`;
 }
+function canTargetUnit(u,owner){
+ if(!selectedCard||!match||match.phase!=='tactics')return false;
+ const selected=match.players[match.turn].hand.find(c=>c.uid===selectedCard);
+ if(!selected||u.status!=='active')return false;
+ switch(selected.effect.type){
+  case 'IMPACT':return owner!==match.turn;
+  case 'HEAL':case 'BACK':return owner===match.turn;
+  case 'ROTATE':return owner===match.turn&&u.role!=='JUN';
+  default:return false;
+ }
+}
 function zoneUnit(u,owner,isEnemy){
- return `<button class="unit ${isEnemy?'enemy':''} ${u.tapped?'tapped':''} ${selectedUnit===u.id?'active-target':''}" title="${escape(characterName(u))} · ${escape(TRAITS[u.trait]?.description||'')} · ${u.hp}/${u.maxHp} PV · ${u.tapped?'Agotado':'Disponible'}" data-unit="${escape(u.id)}" data-owner="${owner}"><span class="name-role">${escape(u.role)}${u.trait?' · ✦':''}</span><b>${escape(characterName(u))}</b><span class="stats">⚔ ${combatAttack(u,match.round)} &nbsp;♥ ${u.hp}/${u.maxHp}</span></button>`;
+ return `<button class="unit ${isEnemy?'enemy':''} ${u.tapped?'tapped':''} ${selectedUnit===u.id?'active-target':''} ${canTargetUnit(u,owner)?'can-target':''}" title="${escape(characterName(u))} · ${escape(TRAITS[u.trait]?.description||'')} · ${u.hp}/${u.maxHp} PV · ${u.tapped?'Agotado':'Disponible'}" data-unit="${escape(u.id)}" data-owner="${owner}"><span class="name-role">${escape(u.role)}${u.trait?' · ✦':''}</span><b>${escape(characterName(u))}</b><span class="stats">⚔ ${combatAttack(u,match.round)} &nbsp;♥ ${u.hp}/${u.maxHp}</span></button>`;
 }
 function characterName(u){return u.name || u.code;}
 function laneSlot(side,lane,rank,isEnemy){
@@ -59,7 +71,7 @@ function tower(side,lane){
  return `<button class="tower ${hp===0?'open':''}" data-lane="${lane}" title="Elegir carril ${lane}"><span>${hp>0?'♜ Torre':'⚑ BRECHA'}</span><strong>${hp}/6</strong></button>`;
 }
 function laneColumn(side,lane,isEnemy){
- return `<div class="lane ${isEnemy?'enemy':''}"><div class="lane-name">${lane}</div>${isEnemy?`${tower(side,lane)}${laneSlot(side,lane,'rear',isEnemy)}${laneSlot(side,lane,'front',isEnemy)}`:`${laneSlot(side,lane,'front',isEnemy)}${laneSlot(side,lane,'rear',isEnemy)}${tower(side,lane)}`}</div>`;
+ return `<div class="lane ${isEnemy?'enemy':''} ${focusLane===lane?'focus-active':''}" data-lane-column="${lane}"><div class="lane-name">${lane}</div>${isEnemy?`${tower(side,lane)}${laneSlot(side,lane,'rear',isEnemy)}${laneSlot(side,lane,'front',isEnemy)}`:`${laneSlot(side,lane,'front',isEnemy)}${laneSlot(side,lane,'rear',isEnemy)}${tower(side,lane)}`}</div>`;
 }
 function jungle(side,isEnemy){
  const u=match.players[side].characters.find(u=>u.role==='JUN');
@@ -86,9 +98,20 @@ function neutralZone(){
  }).join('');
  return `<div class="neutral"><strong>✧ CONVERGENCIA · OBJETIVOS NEUTRALES</strong><div class="objective-grid">${pieces}</div><span>Para conquistarlos: 4+ presión neutral y ventaja de 2. Caza consume jugada y energía.</span></div>`;
 }
+function laneNavigator(viewSide){
+ const me=match.players[viewSide],enemy=match.players[1-viewSide];
+ return '<nav class="lane-navigator" aria-label="Seleccionar carril">'+LANES.map(lane=>{
+  const mine=me.characters.filter(u=>u.status==='active'&&u.lane===lane&&u.rank==='front').length;
+  const theirs=enemy.characters.filter(u=>u.status==='active'&&u.lane===lane&&u.rank==='front').length;
+  const attackLane=me.towers[lane],enemyLane=enemy.towers[lane],focus=focusLane===lane;
+  return `<button class="focus-tab ${focus?'active':''}" data-focus-lane="${lane}" aria-pressed="${focus}" aria-label="Ver carril ${lane}, mi torre ${attackLane} de 6, torre rival ${enemyLane} de 6">
+   <strong>${lane}</strong><span>♜ ${enemyLane}/6 ↑</span><span>♜ ${attackLane}/6 ↓</span>
+   <small>${mine} propio${mine===1?'':'s'} · ${theirs} rival${theirs===1?'':'es'}</small></button>`;
+ }).join('')+'</nav>';
+}
 function board(viewSide){
  const rival=1-viewSide;
- return `<div class="field"><div class="board-side">${sideBanner(rival,true)}${enemyBacks(rival)}${reserve(rival)}${jungle(rival,true)}<div class="lanes">${LANES.map(l=>laneColumn(rival,l,true)).join('')}</div></div>${neutralZone()}<div class="board-side"><div class="lanes">${LANES.map(l=>laneColumn(viewSide,l,false)).join('')}</div>${jungle(viewSide,false)}${sideBanner(viewSide,false)}${reserve(viewSide)}</div></div>`;
+ return `<div class="field">${laneNavigator(viewSide)}<div class="board-side">${sideBanner(rival,true)}${enemyBacks(rival)}${reserve(rival)}${jungle(rival,true)}<div class="lanes">${LANES.map(l=>laneColumn(rival,l,true)).join('')}</div></div>${neutralZone()}<div class="board-side"><div class="lanes">${LANES.map(l=>laneColumn(viewSide,l,false)).join('')}</div>${jungle(viewSide,false)}${sideBanner(viewSide,false)}${reserve(viewSide)}</div></div>`;
 }
 function prompt(viewSide){
  const current=match.turn===viewSide;
@@ -103,8 +126,15 @@ function prompt(viewSide){
     t==='HEAL'?'Elige un personaje aliado al que curar':
     t==='HUNT'?(selectedObjective==='minor'?'¿Qué carril recibirá +1 de presión permanente?':'Toca un objetivo disponible en el centro del tablero'):
     'Toca TOP, MID o BOT como destino';
-   const lanes=t==='HUNT'&&selectedObjective==='minor'?LANES.map(l=>`<button class="btn smallbtn" data-lane="${l}">${l}</button>`).join(''):'';
-   return `<section class="panel prompt"><h3>Seleccionando: ${escape(card.name)}</h3><p><strong>${escape(label)}</strong></p><div class="prompt-btns">${lanes}<button class="btn smallbtn minor" data-act="cancel">Cancelar</button></div></section>`;
+   const wantsLane=['PRESSURE','GUARD','GANK','DIVE','SABOTAGE'].includes(t) ||
+     (t==='ROTATE'&&rotateSource) || (t==='HUNT'&&selectedObjective==='minor');
+   const laneActions=wantsLane?LANES.map(l=>`<button class="btn target-lane" data-lane="${l}">Usar en ${l}</button>`).join(''):'';
+   const objectives=t==='HUNT'&&!selectedObjective?
+     Object.entries(OBJECTIVES).filter(([id])=>match.objectives[id].active)
+       .map(([id,def])=>`<button class="btn target-lane" data-objective="${id}">${escape(def.name)}</button>`).join(''):'';
+   const needsUnit=['IMPACT','HEAL','BACK'].includes(t)||(t==='ROTATE'&&!rotateSource);
+   const hint=needsUnit?'<span class="selection-hint">Toca un personaje resaltado. Cambia de carril con las pestañas.</span>':'';
+   return `<section class="panel prompt" aria-label="Preparar acción"><div class="selected-card-detail"><span class="card-preview-symbol" aria-hidden="true">${escape(iconFor[t]||'✦')}</span><div><h3>${escape(card.name)} <span class="card-preview-cost">⚡ ${card.cost}</span></h3><p class="card-effect-text">${escape(card.description)}</p></div></div><p><strong>${escape(label)}</strong></p><div class="prompt-btns">${laneActions}${objectives}${hint}<button class="btn smallbtn minor" data-act="cancel">Cancelar</button></div></section>`;
  }
  if(selectedUnit){
    const u=match.players[viewSide].characters.find(u=>u.id===selectedUnit);
@@ -150,12 +180,12 @@ function bonusSummary(viewSide){
 }
 function sidePanel(viewSide){
  const log=[...match.log].slice(-15).reverse();
- return `<aside class="sidebar">${prompt(viewSide)}<div class="panel"><h3>Reglas rápidas</h3><p>Delante combate, atrás farmea. Las cartas giradas ya actuaron. Back: una ronda fuera; muerte: dos. Rompe una torre para abrir una ruta al Nexo.</p><div class="bonus-list">${bonusSummary(viewSide)}</div><details><summary>Ver más</summary><p>4 jugadas por jugador y ronda. Presión ganadora → daño a estructura. Las cartas de 0 energía también consumen jugada. Desde R5 hay 7 de energía base. ATQ +1 en R7 y +2 en R10; el asedio máximo sube en R12 (4) y R17 (5), y la mitigación frontal baja en R10 y R16. Desde R14/R18 los supervivientes delante suman +1/+2 presión adicional al carril. Caza disputa Latido o Coloso. Un jungla listo añade +2 presión neutral pero se agota.</p></details></div><div class="panel"><h3>Registro de combate</h3><div class="log">${log.map(e=>`<div class="logline"><span>R${e.round}</span> · ${escape(logText(e))}</div>`).join('')}</div></div></aside>`;
+ return `<aside class="sidebar"><div class="panel"><h3>Reglas rápidas</h3><p>Delante combate, atrás farmea. Las cartas giradas ya actuaron. Back: una ronda fuera; muerte: dos. Rompe una torre para abrir una ruta al Nexo.</p><div class="bonus-list">${bonusSummary(viewSide)}</div><details><summary>Ver más</summary><p>4 jugadas por jugador y ronda. Presión ganadora → daño a estructura. Las cartas de 0 energía también consumen jugada. Desde R5 hay 7 de energía base. ATQ +1 en R7 y +2 en R10; el asedio máximo sube en R12 (4) y R17 (5), y la mitigación frontal baja en R10 y R16. Desde R14/R18 los supervivientes delante suman +1/+2 presión adicional al carril. Caza disputa Latido o Coloso. Un jungla listo añade +2 presión neutral pero se agota.</p></details></div><div class="panel"><h3>Registro de combate</h3><div class="log">${log.map(e=>`<div class="logline"><span>R${e.round}</span> · ${escape(logText(e))}</div>`).join('')}</div></div></aside>`;
 }
 function handPanel(side){
  const p=match.players[side];
  const active=p.hand;
- return `<section class="hand-panel"><div class="hand-heading"><div><h2>✦ Mano · ${labelSide(side)}</h2><p class="small">${active.length} cartas · conserva hasta 2 para la siguiente ronda</p></div><div class="nav-actions"><span class="pill">⚡ ${p.energy} energía</span><span class="pill">${p.actions}/4 jugadas</span><button class="btn primary" data-act="pass" ${match.turn!==side?'disabled':''}>Pasar turno</button></div></div><div class="cards-scroll">${active.map(c=>`<div class="hand-card"><button class="tactic ${c.kind} ${selectedCard===c.uid?'selected':''}" data-card="${escape(c.uid)}" ${(p.energy<c.cost||match.turn!==side)?'disabled':''}><span class="kind">${escape(KIND_NAMES[c.kind])}</span><span class="cost">${c.cost}</span><span class="art" aria-hidden="true">${escape(iconFor[c.effect.type]||'✦')}</span><strong>${escape(c.name)}</strong><span class="description">${escape(c.description)}</span></button><button class="keep-btn ${p.keep.includes(c.uid)?'kept':''}" data-keep="${escape(c.uid)}">${p.keep.includes(c.uid)?'★ Reservada':'☆ Reservar'}</button></div>`).join('')}${active.length===0?'<p class="small">No tienes cartas en la mano.</p>':''}</div></section>`;
+ return `<section class="hand-panel ${handCollapsed?'is-collapsed':''}" aria-label="Mano de cartas"><div class="hand-heading"><div><h2>✦ Mano · ${labelSide(side)}</h2><p class="small">${active.length} cartas · conserva hasta 2 para la siguiente ronda</p></div><div class="nav-actions"><button class="btn minor hand-toggle" data-act="toggle-hand" aria-expanded="${!handCollapsed}" aria-controls="hand-card-list">${handCollapsed?'▴ Ver cartas':'▾ Ocultar mano'}</button><span class="pill">⚡ ${p.energy} energía</span><span class="pill">${p.actions}/4 jugadas</span><button class="btn primary" data-act="pass" ${match.turn!==side?'disabled':''}>Pasar turno</button></div></div><div class="cards-scroll" id="hand-card-list" aria-label="Cartas disponibles, desliza horizontalmente">${active.map(c=>`<div class="hand-card"><button class="tactic ${c.kind} ${selectedCard===c.uid?'selected':''}" data-card="${escape(c.uid)}" ${(p.energy<c.cost||match.turn!==side)?'disabled':''}><span class="kind">${escape(KIND_NAMES[c.kind])}</span><span class="cost">${c.cost}</span><span class="art" aria-hidden="true">${escape(iconFor[c.effect.type]||'✦')}</span><strong>${escape(c.name)}</strong><span class="description">${escape(c.description)}</span></button><button class="keep-btn ${p.keep.includes(c.uid)?'kept':''}" data-keep="${escape(c.uid)}">${p.keep.includes(c.uid)?'★ Reservada':'☆ Reservar'}</button></div>`).join('')}${active.length===0?'<p class="small">No tienes cartas en la mano.</p>':''}</div></section>`;
 }
 function outcome(){
  if(match.phase!=='finished')return '';
@@ -168,10 +198,17 @@ function game(){
  const view=mode==='hotseat'?match.turn:0;
  const p=match.players[view];
  const play=match.phase==='tactics'&&match.turn===view;
- return `${title()}${notice?`<div class="notice" role="status">${escape(notice)}</div>`:''}<div class="turn-strip"><div><div class="kicker">Ronda ${match.round}</div><strong>${match.phase==='finished'?'Partida terminada':'Turno '+labelSide(match.turn)} ${play?'· tu jugada':''}</strong></div><div class="turn-meta"><span class="pill">⚡ ${p.energy}</span><span class="pill">${p.actions}/4 jugadas</span></div><div class="turn-meta"><span class="pill">↔ ${mode==='bot'?'IA '+AI_LEVELS[botDifficulty].name+' · '+AI_STYLES[botStyle].name:'2 locales'}</span></div></div>${outcome()}<div class="arena-layout">${board(view)}${sidePanel(view)}</div>${handPanel(view)}<footer class="layout-footer">Rift Director · Card Game prototype · Las partidas no afectan los guardados del antiguo manager.</footer>${curtain&&mode==='hotseat'&&match.phase==='tactics'?`<div class="pass-screen"><div class="pass-card"><div class="coin">✦</div><h2>Pasa el dispositivo</h2><p class="small">Es turno del jugador ${labelSide(match.turn)}. La mano se mostrará cuando esté listo.</p><button class="btn primary" data-act="reveal">Mostrar mi mano</button></div></div>`:''}`;
+ return `${title()}${notice?`<div class="notice" role="status">${escape(notice)}</div>`:''}<div class="turn-strip"><div><div class="kicker">Ronda ${match.round}</div><strong>${match.phase==='finished'?'Partida terminada':'Turno '+labelSide(match.turn)} ${play?'· tu jugada':''}</strong></div><div class="turn-meta"><span class="pill">⚡ ${p.energy}</span><span class="pill">${p.actions}/4 jugadas</span></div><div class="turn-meta"><span class="pill">↔ ${mode==='bot'?'IA '+AI_LEVELS[botDifficulty].name+' · '+AI_STYLES[botStyle].name:'2 locales'}</span></div></div>${outcome()}<div class="decision-dock">${prompt(view)}</div><div class="arena-layout">${board(view)}${sidePanel(view)}</div>${handPanel(view)}<footer class="layout-footer">Rift Director · Card Game prototype · Las partidas no afectan los guardados del antiguo manager.</footer>${curtain&&mode==='hotseat'&&match.phase==='tactics'?`<div class="pass-screen"><div class="pass-card"><div class="coin">✦</div><h2>Pasa el dispositivo</h2><p class="small">Es turno del jugador ${labelSide(match.turn)}. La mano se mostrará cuando esté listo.</p><button class="btn primary" data-act="reveal">Mostrar mi mano</button></div></div>`:''}`;
 }
 function render(){
+ const currentSide=match?(mode==='hotseat'?match.turn:0):null;
+ const oldScroll=match&&match===lastRenderedMatch&&currentSide===lastRenderedSide?
+   app.querySelector('.cards-scroll')?.scrollLeft:0;
  app.innerHTML=match?game():coin?coinScreen():intro();
+ const newScroll=app.querySelector('.cards-scroll');
+ if(newScroll&&oldScroll)newScroll.scrollLeft=oldScroll;
+ lastRenderedMatch=match;
+ lastRenderedSide=currentSide;
 }
 function setup(nextMode){
  mode=nextMode;
@@ -184,6 +221,7 @@ function begin(firstPlayer){
    decks=deckChoices.map(id=>loadPlayable(id));
  }catch(err){mode=null;coin=null;notice=err.message;render();return;}
  match=createMatch(decks,{seed:(Math.random()*2147483647)|0||1,firstPlayer});
+ focusLane='MID';handCollapsed=false;
  currentMatchId='match-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,12);
  matchReward=null;
  coin=null;clearSelection();
@@ -217,6 +255,7 @@ function perform(fn){
  try{
    fn();
    clearSelection();
+   handCollapsed=false;
    notice=match.round!==before?`Ronda ${before} resuelta. Revisa las torres y el registro.`:'Jugada registrada.';
    if(mode==='bot')driveBot();
    grantIfFinished();
@@ -233,6 +272,7 @@ function useCard(uid){
    perform(()=>playCard(match,side,uid,{}));return;
  }
  selectedCard=selectedCard===uid?null:uid;rotateSource=null;selectedObjective=null;
+ if(selectedCard)handCollapsed=true;
  notice='';render();
 }
 function chooseLane(lane){
@@ -298,11 +338,13 @@ app.addEventListener('click',event=>{
  if(el.dataset.setup){setup(el.dataset.setup);return;}
  if(el.dataset.first!==undefined){begin(Number(el.dataset.first));return;}
  const act=el.dataset.act;
- if(act==='reset'){mode=null;match=null;coin=null;curtain=false;notice='';currentMatchId=null;matchReward=null;clearSelection();render();return;}
+ if(act==='reset'){mode=null;match=null;coin=null;curtain=false;notice='';currentMatchId=null;matchReward=null;focusLane='MID';handCollapsed=false;clearSelection();render();return;}
  if(act==='reveal'){curtain=false;render();return;}
  if(!match||curtain||match.phase==='finished')return;
- if(act==='cancel'){clearSelection();notice='';render();return;}
+ if(act==='cancel'){clearSelection();handCollapsed=false;notice='';render();return;}
+ if(act==='toggle-hand'){handCollapsed=!handCollapsed;render();return;}
  if(act==='pass'){perform(()=>passTurn(match,match.turn));return;}
+ if(el.dataset.focusLane){if(LANES.includes(el.dataset.focusLane)){focusLane=el.dataset.focusLane;notice='';render();}return;}
  const view=mode==='hotseat'?match.turn:0;
  if(match.turn!==view)return;
  if(el.dataset.keep){
