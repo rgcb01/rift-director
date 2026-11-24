@@ -29,7 +29,7 @@
  .topbar .wordmark{font-size:20px}
  .topbar .kicker{font-size:10px;letter-spacing:.1em}
  .topbar .nav-actions{gap:5px}
- .topbar .nav-actions .btn{padding:6px 8px;font-size:11px;min-height:38px}
+ .topbar .nav-actions .btn{padding:6px 8px;font-size:11px;min-height:44px}
  .topbar .pill.live{display:none}
  .turn-strip{position:relative;margin:0 0 7px;padding:8px 9px;gap:5px;grid-template-columns:1fr auto}
  .turn-strip .kicker{font-size:10px}
@@ -90,7 +90,8 @@
  .neutral>span{font-size:11px}
  .sidebar{display:block}
  .sidebar>.panel{margin:8px 0}
- .sidebar .panel:last-child{display:none}
+ .sidebar .panel:last-child{display:block}
+ .sidebar .log{max-height:120px}
  .hand-panel{position:fixed;left:0;right:0;bottom:0;z-index:25;margin:0;padding:9px 12px calc(9px + env(safe-area-inset-bottom,0px));border:1px solid #b19ed26b;border-radius:17px 17px 0 0;background:linear-gradient(175deg,#223253f8,#101a30fc);box-shadow:0 -11px 40px #030711cc;max-height:min(42vh,355px);overflow:hidden}
  .hand-heading{display:grid;grid-template-columns:1fr auto;gap:6px;margin:0 0 7px}
  .hand-heading h2{font-size:14px}
@@ -116,7 +117,7 @@
 @media (max-width:370px){
  .focus-tab{padding:6px 2px}
  .focus-tab span{font-size:10px}
- .focus-tab small{font-size:9px}
+ .focus-tab small{font-size:10px}
  .hand-card{width:145px;min-width:145px}
  .hand-heading .btn{font-size:11px}
  .hand-panel{padding-inline:8px}
