@@ -1,20 +1,8 @@
-name: Balance por versión (1000 partidos + espejados)
+name: Archivo MOBA — benchmark histórico (manual)
 
+# El simulador MOBA/manager quedó archivado. Evitamos ejecutar 2,200 partidas
+# del producto retirado en cada cambio del Card Game. Se preserva su benchmark.
 on:
-  push:
-    branches:
-      - main
-    tags:
-      - 'v*.*.*'
-      - '*.*.*-alpha'
-    paths:
-      - CHANGELOG.md
-  pull_request:
-    paths:
-      - CHANGELOG.md
-      - 'benchmarks/**'
-      - '.github/workflows/balance.yml'
-      - 'tests/balance-pipeline.test.mjs'
   workflow_dispatch:
 
 permissions:
