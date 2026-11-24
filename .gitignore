@@ -10,3 +10,8 @@ coverage/
 
 # Local deterministic balance dashboards
 .balance-output/
+
+# Browser runner outputs (review captures live in docs/screenshots).
+test-results/
+ux-screenshots/
+playwright-report/

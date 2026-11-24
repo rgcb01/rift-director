@@ -1,11 +1,12 @@
-import {CHARACTER_BY_ID,RARITIES,TRAITS} from './catalog.mjs';
+import {renderCardFace,installArtFallback} from './card-renderer.mjs';
+import {CHARACTER_BY_ID} from './catalog.mjs';
 import {readCollection,openPack,craftCard,collectionProgress,fullCatalog,previewOdds,ownedCount,maxCopies,CRAFT_COSTS,PACK_PRICE} from './collection.mjs';
 
 const root=document.getElementById('collection-app');
+installArtFallback(root);
 const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let notice='',filter='ALL',search='',results=null,reveal=0;
 let state=null;
-const glyph=card=>CHARACTER_BY_ID[card.id]?'♜':card.kind==='SPELL'?'✦':card.kind==='RESOURCE'?'⚡':'⚔';
 function refresh(){try{state=readCollection();return true;}catch(error){notice=error.message;state=null;return false;}}
 function top(){
  return `<header class="cc-head"><div><div class="kicker">RIFT DIRECTOR · CARD GAME 0.9.0</div><h1 class="cc-heading">EL <span>ARCHIVO</span> DEL VÍNCULO</h1><p class="small">Colección local · sobres de prueba · ninguna compra real</p></div>
@@ -27,11 +28,9 @@ function cardsInPack(){
     <div class="cc-reveal-actions"><button class="btn primary" data-action="finish">Ver colección</button>
     <button class="btn" data-action="again" ${state.coins<PACK_PRICE?'disabled':''}>Abrir otro sobre</button></div></div>`;
  }
- const card=results.cards[reveal],rarity=RARITIES[card.rarity]?.name||card.rarity;
+ const card=results.cards[reveal];
  return `<div class="cc-reveal" aria-live="polite"><div class="cc-reveal-counter">Carta ${reveal+1} de ${results.cards.length}</div>
- <div class="cc-reveal-card ${card.rarity}" key="${reveal}"><div class="cc-rarity">${escape(rarity)}</div>
- <span class="cc-big-symbol" aria-hidden="true">${glyph(card)}</span><strong>${escape(card.name)}</strong>
- <span class="cc-reveal-desc">${card.kind==='CHARACTER'?'Riftborn · Personaje':'Carta táctica'}</span>
+ <div class="cc-reveal-card ${card.rarity}" key="${reveal}">${renderCardFace(card.id,{variant:'reveal'})}
  <span class="cc-duplicate">${card.duplicate?'Duplicado · +'+card.fragments+' fragmentos':'Nueva copia para tu colección'}</span></div>
  <div class="cc-reveal-actions"><button class="btn primary" data-action="reveal">${reveal===results.cards.length-1?'Finalizar apertura':'Siguiente carta'} →</button>
  <button class="btn minor" data-action="skip">Revelar todas</button></div></div>`;
@@ -57,10 +56,8 @@ function helpPanel(){
 }
 function cardTile(c){
  const owned=ownedCount(state,c.id),max=maxCopies(c.id),canCraft=owned<max&&state.fragments>=CRAFT_COSTS[c.rarity];
- const desc=CHARACTER_BY_ID[c.id]?TRAITS[c.trait]?.description:c.description;
  return `<article class="cc-card ${c.rarity} ${owned?'':'locked'}">
- <div class="cc-card-head"><span class="cc-rarity">${escape(RARITIES[c.rarity]?.name||c.rarity)}</span><span class="cc-symbol" aria-hidden="true">${glyph(c)}</span></div>
- <h3>${escape(c.name)}</h3><p>${escape(desc||'')}</p>
+ ${renderCardFace(c.id)}
  <div class="cc-card-tail"><small>${owned}/${max} copias</small>
  <button data-craft="${escape(c.id)}" ${canCraft?'':'disabled'} title="${owned>=max?'Colección completa': 'Fabricar una copia'}">${owned>=max?'Completa':'✦ '+CRAFT_COSTS[c.rarity]}</button></div></article>`;
 }
