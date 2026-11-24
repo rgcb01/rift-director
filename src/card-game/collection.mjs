@@ -27,6 +27,8 @@ function freshState(storage){
  const owned={};
  grantDeck(owned,templateDeck('siege'));
  grantDeck(owned,templateDeck('jungle'));
+ // Welcome alternate TOP card also preserves earlier editor practice builds.
+ owned['hero-vanguardia']=1;
  // Grandfather all previously saved custom decks. No user's earlier cards disappear.
  for(const deck of readLibrary(storage)){
    for(const id of deck.characters)if(allowed.has(id))owned[id]=Math.max(owned[id]||0,1);
