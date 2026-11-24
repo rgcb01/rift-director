@@ -66,6 +66,21 @@ export function readCollection(storage=globalThis.localStorage){
 }
 export const ownedCount=(state,id)=>state.owned[id]||0;
 export const maxCopies=id=>byId[id]?limit(id):0;
+export function missingForDeck(draft,state){
+ if(!draft||!Array.isArray(draft.characters)||!Array.isArray(draft.tactics))return ['Mazo inválido'];
+ const errors=[];
+ for(const id of new Set(draft.characters.filter(Boolean))){
+  if(byId[id] && ownedCount(state,id)<1)errors.push('Falta el personaje '+byId[id].name);
+ }
+ const tally={};
+ for(const id of draft.tactics)tally[id]=(tally[id]||0)+1;
+ for(const [id,count] of Object.entries(tally)){
+  if(byId[id] && ownedCount(state,id)<count)
+   errors.push('Necesitas '+count+' copias de '+byId[id].name+' (tienes '+ownedCount(state,id)+')');
+ }
+ return errors;
+}
+export const ownsDeck=(draft,state)=>missingForDeck(draft,state).length===0;
 export function canAddCopy(state,id,alreadyInDraft=0){
  if(!byId[id])return false;
  return ownedCount(state,id)>alreadyInDraft;
