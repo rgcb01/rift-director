@@ -182,10 +182,10 @@ for(const width of [360,390,430]){
   await expect(page.locator('[data-focus-lane]')).toHaveCount(3);
   await expect(page.locator('[data-focus-lane="MID"]')).toHaveAttribute('aria-pressed','true');
   await expect(page.locator('.lane:visible')).toHaveCount(2);
-  await expect(page.locator('.lane:visible')).toHaveAttribute('data-lane-column','MID');
+  await expect(page.locator('.lane:visible').first()).toHaveAttribute('data-lane-column','MID');
   await page.locator('[data-focus-lane="TOP"]').click();
   await expect(page.locator('[data-focus-lane="TOP"]')).toHaveAttribute('aria-pressed','true');
-  await expect(page.locator('.lane:visible')).toHaveAttribute('data-lane-column','TOP');
+  await expect(page.locator('.lane:visible').first()).toHaveAttribute('data-lane-column','TOP');
   await expect(page.locator('.hand-panel')).toBeVisible();
   await expect(page.locator('[data-act="toggle-hand"]')).toBeVisible();
   await page.locator('[data-act="toggle-hand"]').click();
@@ -216,7 +216,7 @@ test('Card Game v0.9.1: carta seleccionada muestra descripción y conserva la se
  await expect(page.locator('.hand-panel')).toHaveClass(/is-collapsed/);
  await page.locator('[data-focus-lane="BOT"]').click();
  await expect(page.locator('.selected-card-detail')).toBeVisible();
- await expect(page.locator('.lane:visible')).toHaveAttribute('data-lane-column','BOT');
+ await expect(page.locator('.lane:visible').first()).toHaveAttribute('data-lane-column','BOT');
  await page.locator('[data-act="cancel"]').click();
  await expect(page.locator('.selected-card-detail')).toHaveCount(0);
  await expect(page.locator('.hand-panel')).not.toHaveClass(/is-collapsed/);
