@@ -1,3 +1,19 @@
+# Changelog de Rift Director
+
+**Producto vigente:** Rift Director Card Game. Las entradas antiguas de este archivo documentan el simulador MOBA/manager de esports y están preservadas como historia, **no como roadmap activo**.
+
+## [Unreleased] — Card Game como aplicación principal
+
+- Se integró el PR #89 con el rediseño móvil v0.9.1; tests de motor, balance, validación general y Chromium aprobados.
+- `/` e `index.html` abren ahora el juego de cartas táctico.
+- `legacy-moba.html` conserva la versión jugable histórica del manager de esports; rama `archive/moba-manager-alpha-0718` conserva la instantánea y documentos previos al cambio.
+- README, roadmap, diseño, decisiones, aportaciones, documentación y pruebas distinguen el Card Game vigente de la versión archivada.
+- No se mezclan ni migran las partidas del manager con mazos, monedas y colección del Card Game.
+
+---
+
+# Changelog histórico — Manager de esports (archivado)
+
 # Changelog
 
 Seguimos el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y utilizamos versionado **Alpha 0.x** sin promesas de compatibilidad permanente.

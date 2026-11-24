@@ -1,7 +1,7 @@
 const {test,expect}=require('@playwright/test');
 const {mkdirSync}=require('node:fs');
 const widths=[360,768,1440];
-const root='http://127.0.0.1:8080/';
+const root='http://127.0.0.1:8080/legacy-moba.html';
 mkdirSync('ux-screenshots',{recursive:true});
 
 for(const width of widths){
@@ -47,3 +47,23 @@ for(const width of widths){
   await context.close();
  });
 }
+
+test('Portada principal de Rift Director abre el juego de cartas (sin activar el manager)',async({page})=>{
+ const errors=[];
+ page.on('pageerror',err=>errors.push(err.message));
+ await page.goto('http://127.0.0.1:8080/');
+ await expect(page).toHaveTitle(/Juego de cartas táctico/);
+ await expect(page.locator('.intro')).toBeVisible();
+ await expect(page.locator('#card-game-app')).toBeVisible();
+ await expect(page.locator('#app')).toHaveCount(0);
+ await expect(page.locator('[data-setup="bot"]')).toBeVisible();
+ await expect(page.locator('a[href="./deck-builder.html"]')).toBeVisible();
+ await expect(page.locator('a[href="./collection.html"]')).toBeVisible();
+ expect(errors).toEqual([]);
+});
+test('El simulador MOBA se conserva en su página de archivo',async({page})=>{
+ await page.goto('http://127.0.0.1:8080/legacy-moba.html');
+ await expect(page.locator('.welcome')).toBeVisible();
+ await expect(page.locator('#app')).toHaveCount(1);
+ await expect(page.locator('#card-game-app')).toHaveCount(0);
+});

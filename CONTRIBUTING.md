@@ -1,42 +1,33 @@
-# Contribuir a Rift Director
+# Contribuir a Rift Director Card Game
 
-Gracias por ayudar a construir un sandbox de esports centrado en dirección deportiva, supervivencia financiera y narración procedural. **Antes de aceptar contribuciones externas, el proyecto necesita una licencia explícita**; mientras tanto, esta guía describe principalmente cómo preparar cambios e incidencias para revisión.
+Rift Director es ahora un **juego de cartas táctico coleccionable**. La antigua idea de simulador/manager de esports está [archivada](docs/LEGACY_MOBA_ARCHIVE.md); los cambios nuevos deben dirigirse al Card Game, no a la vieja gestión de clubes.
 
 ## Flujo de trabajo
 
-1. Revisa el [roadmap](ROADMAP.md) y abre una issue para proponer una mecánica o reportar un bug.
-2. Para cambios grandes, discute primero comportamiento esperado, reglas y coste de mantenimiento.
-3. Trabaja en una rama descriptiva (`fix/saves-v2`, `feat/match-events`, `docs/roster-guide`).
-4. Limita cada PR a un cambio coherente; evita reescrituras masivas sin pruebas.
-5. Ejecuta `node --check game.js`, `node scripts/check-static.mjs` y `node --test`.
-6. Describe pasos para reproducir, riesgos de guardado, comportamiento antes/después y capturas en cambios visuales.
-7. Actualiza `CHANGELOG.md` en **Unreleased** y el roadmap cuando un hito cambie de estado.
+1. Consulta [Roadmap](ROADMAP.md), [Diseño](docs/GAME_DESIGN.md), [Reglas](CARD_GAME_RULES.md) y el [registro de decisiones](docs/DECISIONS.md).
+2. Trabaja en una rama enfocada (`feat/card-game-...`, `fix/card-game-...`, `docs/...`) y abre un PR hacia `main`.
+3. Mantén el motor determinista; ninguna acción debe violar las cuatro jugadas, las restricciones de cartas ni los turnos del rival. El bot no debe consultar la mano enemiga.
+4. Evita cambios que borren mazos, cartas o fragmentos locales. Añade migraciones y pruebas para cualquier evolución de formato.
+5. Acompaña cambios de jugabilidad con pruebas de reglas y de UI accesible, especialmente en móvil.
 
-## Reglas que no podemos romper
+```sh
+node scripts/check-static.mjs
+node --test tests/card-game*.test.mjs
+node --test
+node scripts/card-game-balance.mjs --seeds=20 --rounds=24
+```
 
-- El juego es un sandbox: no existe victoria por dinero o campeonato. La partida solo termina con **caja agotada**.
-- El usuario prepara y dirige; sus profesionales ejecutan partidos autónomamente.
-- Los relatos de comentaristas reflejan **eventos simulados válidos**.
-- Los traits son comportamientos contextuales y pueden tener ventajas y defectos.
-- Los rivales actúan en un mundo persistente bajo restricciones financieras.
-- Los meses conectan economía, deporte y noticias; las noticias importantes requieren causas trazables.
-- El juego debe funcionar en navegadores y móviles modestos, sin exigir servicios externos.
-- Los guardados `v:2` existentes no se rompen sin migración y pruebas.
-- No se agregan marcas, fotografías, logotipos o figuras reales sin permisos adecuados.
+La CI de Chromium prueba navegación e interacción en varias resoluciones; ejecutarla antes de integrar cambios de tablero, cartas, mazos, sobres o navegación.
 
-## Estilo de código provisional
+## Principios
 
-- Preferir funciones pequeñas, predicados de reglas explícitos y estados reproducibles.
-- Separar **evento de dominio** de **texto narrativo**.
-- No introducir dependencias o procesos de build para corregir problemas sencillos.
-- Los nuevos archivos JavaScript deben ejecutarse en navegadores modernos sin herramientas especiales cuando sea posible.
-- Mantener roles y estadísticas consistentes y documentados.
-- Al cambiar economía, acompañar con un caso numérico y prueba.
+- Arte, nombres, facciones y lore propios del mundo de Aethra.
+- Todo objetivo o daño debe corresponder a una jugada y estado real.
+- La rareza no equivale automáticamente a poder; los sobres se muestran con probabilidades explícitas.
+- Progreso y juego básico disponibles sin pagos reales o servicios externos.
+- Accesibilidad, control táctil, teclado, información no dependiente del color y reducción de movimiento.
+- El manager MOBA antiguo se conserva como referencia; solo se esperan correcciones de seguridad o preservación de datos para él.
 
-## Commits y releases
+## Licencia y privacidad
 
-Prefijos sugeridos: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`. Semver Alpha `0.x`; evitar declaraciones de estabilidad hasta definir migraciones.
-
-## Privacidad, datos y licencias
-
-El juego no necesita cuentas. Los guardados permanecen en el navegador, salvo cuando el usuario los exporta y comparte. No incluyas tokens, contraseñas o datos privados en issues. **No hay LICENSE todavía**: no asumir que el código publicado es de dominio público ni reutilizable libremente. La decisión de licencia queda pendiente de la propiedad del proyecto.
+El repositorio todavía no establece una licencia explícita. No presupongas derechos de redistribución o reutilización por estar en GitHub. No incluyas archivos privados, credenciales o guardados de terceros en reportes públicos.

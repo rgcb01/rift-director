@@ -1,3 +1,29 @@
+# Arquitectura vigente — Rift Director Card Game
+
+**Producto principal:** juego de cartas táctico/coleccionable, offline-first. La arquitectura del manager MOBA que aparece más abajo es **material histórico**, no representa la aplicación mostrada en `index.html`.
+
+## Capas activas
+
+- `index.html` y `card-game.html`: entrada del Card Game. `card-game.css` y `card-game-mobile.css`: presentación responsive.
+- `src/card-game/engine.mjs`: motor determinista de partidas y reducer de acciones.
+- `src/card-game/catalog.mjs`, `starter-decks.mjs`: Riftborn, habilidades y cartas.
+- `src/card-game/tactical-ai.mjs`: rivales de estilos configurables y decisiones con información pública.
+- `src/card-game/balance.mjs` y `scripts/card-game-*.mjs`: simulaciones con semillas reproducibles.
+- `src/card-game/demo-ui.mjs`: tablero y selección contextual; vista móvil con foco TOP/MID/BOT.
+- `deck-builder.html`, `src/card-game/deck-builder-ui.mjs`, `deck-library.mjs`: editor y mazos locales.
+- `collection.html`, `src/card-game/collection.mjs`, `collection-ui.mjs`: sobres, fragmentos, fabricación, recompensas virtuales y colección local.
+- `tests/card-game*.test.mjs` y `e2e/card-game.spec.cjs`: pruebas del núcleo y Chromium.
+
+El Card Game **no importa** el motor del antiguo manager para disputar partidas. Los datos de ambos productos se conservan en claves locales distintas; no se debe intentar interpretar un save del manager como una colección.
+
+**Archivo:** `legacy-moba.html` conserva la entrada original. El código y documentos completos están en la rama `archive/moba-manager-alpha-0718`. Véase [archivo histórico](LEGACY_MOBA_ARCHIVE.md).
+
+---
+
+# Referencia histórica — arquitectura del simulador MOBA (archivada)
+
+> El contenido siguiente se conserva para auditoría y preservación de compatibilidad. Sus afirmaciones de «actual» se refieren a las alphas del simulador antiguo, no a Card Game 0.9.x.
+
 # Arquitectura actual — Alpha 0.7 / M1.5
 
 Este documento describe la **implementación comprobada** del repositorio a fecha 2026-11-07, no su arquitectura ideal.

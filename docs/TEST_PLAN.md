@@ -1,3 +1,26 @@
+# Pruebas actuales — Rift Director Card Game
+
+La entrada principal `index.html` y el flujo vigente corresponden al **juego de cartas**. La batería del antiguo manager sigue ejecutándose como **regresión de archivo**, no como criterio de diseño de nuevas funciones.
+
+## Validación de la versión principal
+
+```sh
+node scripts/check-static.mjs
+node --test tests/card-game*.test.mjs
+node --test
+node scripts/card-game-balance.mjs --seeds=20 --rounds=24
+```
+
+La CI visual de Chromium usa `e2e/card-game.spec.cjs` para jugar en 360/390/430/768/1440 px, construir mazos, revisar sobres y validar información del carril elegido. `e2e/ux-browser.spec.cjs` verifica la portada Card Game y, por separado, el recorrido histórico desde `legacy-moba.html`.
+
+Para completar una revisión manual: abrir `/`, elegir mazos, jugar al bot, rotar/usar cartas, comprobar torres, Nexo, jungla y final, abrir `collection.html`, fabricar cartas, construir mazos, reiniciar y confirmar que la colección no se pierde. En iPhone revisar safe areas y giro del dispositivo.
+
+**Archivo:** los tests del manager MOBA descritos a continuación siguen siendo material histórico; su recorrido debe iniciarse en `legacy-moba.html`, no en `index.html`.
+
+---
+
+# Plan anterior — simulador MOBA (archivado)
+
 # Plan de pruebas — Rift Director
 
 **Alcance actual:** Alpha 0.7. La suite automática combina smoke, golden tests, auditorías causales y reproducción por evento; no sustituye pruebas manuales. Cada nueva mecánica debe incorporar pruebas de invariantes y recorridos manuales.
