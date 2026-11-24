@@ -1,4 +1,4 @@
-// Rift Director CCG v0.8.3 — initial unlocked sandbox collection.
+// Rift Director CCG v0.9.0 — first collectible set.
 // Catalogue definitions are immutable in gameplay: a deck carries copies, never levels or equipment.
 export const RARITIES = Object.freeze({
   COMMON: { name: 'Común', max: 3, rank: 0 },
@@ -35,7 +35,9 @@ export const CHARACTER_CATALOG=Object.freeze([
   hero('hero-rastreadora','Rastreadora','JUN',2,5,'SCOUT','COMMON','Domina las rutas del Vínculo.'),
   hero('hero-acechador','Acechador','JUN',3,4,'HUNTER','COMMON','Donde cae la presa, el mundo cambia.'),
   hero('hero-cazavinculos','Cazavínculos','JUN',2,6,'HUNTER','RARE','Sigue el pulso de las fracturas.'),
-  hero('hero-sombra','Sombra Errante','JUN',4,3,'SCOUT','EPIC','La emboscada comienza antes de verla.')
+  hero('hero-sombra','Sombra Errante','JUN',4,3,'SCOUT','EPIC','La emboscada comienza antes de verla.'),
+  hero('hero-ancla','Ancla del Umbral','TOP',3,6,'BULWARK','LEGENDARY','Una guardia que persiste cuando el Vínculo flaquea.'),
+  hero('hero-heraldo','Heraldo Perdido','JUN',2,5,'HUNTER','LEGENDARY','Su ruta se abre entre las grietas.')
 ]);
 const tactic=(id,name,kind,cost,type,value,rarity,description,flavor='')=>({
  id,name,kind,cost,rarity,description,flavor,effect:{type,...(value===null?{}:{value})}
@@ -74,7 +76,9 @@ export const TACTIC_CATALOG=Object.freeze([
  tactic('mend','Restauración','SPELL',1,'HEAL',2,'COMMON','Restaura hasta 2 PV a un aliado activo.'),
  tactic('vitality','Renovación','SPELL',3,'HEAL',4,'RARE','Restaura hasta 4 PV a un aliado activo.'),
  tactic('sabotage','Sabotaje','ACTION',2,'SABOTAGE',2,'UNCOMMON','Resta 2 de presión al enemigo en un carril.'),
- tactic('disrupt','Distorsión','SPELL',3,'SABOTAGE',3,'RARE','Resta 3 de presión al rival en un carril.')
+ tactic('disrupt','Distorsión','SPELL',3,'SABOTAGE',3,'RARE','Resta 3 de presión al rival en un carril.'),
+ tactic('great-convergence','Gran Convergencia','ACTION',6,'PRESSURE',6,'LEGENDARY','+6 presión concentrada en un carril.'),
+ tactic('sanctuary','Santuario del Vínculo','SPELL',5,'HEAL',5,'LEGENDARY','Restaura hasta 5 PV a un aliado activo.')
 ]);
 export const CHARACTER_BY_ID=Object.freeze(Object.fromEntries(CHARACTER_CATALOG.map(c=>[c.id,c])));
 export const TACTIC_BY_ID=Object.freeze(Object.fromEntries(TACTIC_CATALOG.map(c=>[c.id,c])));
