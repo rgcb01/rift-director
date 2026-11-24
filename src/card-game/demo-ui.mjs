@@ -4,6 +4,7 @@ import {botStep} from './simple-bot.mjs';
 import {aiStep,AI_LEVELS,AI_STYLES} from './tactical-ai.mjs';
 import {TRAITS} from './catalog.mjs';
 import {listPlayableChoices,loadPlayable,readSelection,writeSelection} from './deck-library.mjs';
+import {readCollection,awardMatch,MATCH_COINS} from './collection.mjs';
 
 const app=document.getElementById('card-game-app');
 const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -12,7 +13,8 @@ const labelSide=s=>s===0?'Azul':'Rojo';
 let mode=null,match=null,coin=null,selectedCard=null,selectedUnit=null,rotateSource=null,selectedObjective=null,curtain=false,notice='';
 let deckChoices=readSelection();
 let botDifficulty='tactical',botStyle='balanced';
-function title(){return '<div class="topbar"><div><div class="kicker">CARD GAME · PROTOTIPO 0.8.5</div><div class="wordmark">RIFT <span>DIRECTOR</span></div></div><div class="nav-actions"><span class="pill live">♧ Rework táctico</span><a class="btn smallbtn minor" href="./deck-builder.html">✦ Mis mazos</a><button class="btn smallbtn minor" data-act="reset">Nueva partida</button></div></div>';}
+let currentMatchId=null,matchReward=null;
+function title(){return '<div class="topbar"><div><div class="kicker">CARD GAME · PROTOTIPO 0.9.0</div><div class="wordmark">RIFT <span>DIRECTOR</span></div></div><div class="nav-actions"><span class="pill live">♧ Rework táctico</span><a class="btn smallbtn minor" href="./deck-builder.html">✦ Mis mazos</a><a class="btn smallbtn minor" href="./collection.html">◈ Sobres</a><button class="btn smallbtn minor" data-act="reset">Nueva partida</button></div></div>';}
 function deckSelectors(){
  const choices=listPlayableChoices();
  return '<div class="deck-selectors">'+[0,1].map(side=>{
@@ -31,7 +33,7 @@ function botSettings(){
    select('style',AI_STYLES,botStyle)+'</div></div>';
 }
 function intro(){
- return `${title()}<div class="intro"><section class="intro-hero"><div class="kicker">Domina la Convergencia</div><h1>Tres carriles.<br>Cuatro jugadas.<br>Una decisión decisiva.</h1><p>Dirige cinco Riftborn, defiende tus torres y abre camino hacia el Nexo rival. Todo el combate se resuelve con cartas, posiciones y presión.</p><div class="pill">5 personajes · 20 tácticas · 6 cartas en mano</div></section>${deckSelectors()}${botSettings()}<div class="intro-menu"><button class="mode" data-setup="bot"><strong>⚔ Contra un bot</strong><small>Enfrenta tu mazo contra un bot de dificultad y estrategia configurables. No conoce tu mano.</small></button><button class="mode" data-setup="hotseat"><strong>♟ Dos jugadores locales</strong><small>Alternad jugadas en el mismo dispositivo. La mano se oculta al pasar de jugador.</small></button></div><p class="small">Versión de pruebas: ya puedes disputar el Latido (R4) y el Coloso (R8) con cartas de Caza. Ya puedes construir y guardar mazos. Sobres y economía llegarán después.</p></div>`;
+ return `${title()}<div class="intro"><section class="intro-hero"><div class="kicker">Domina la Convergencia</div><h1>Tres carriles.<br>Cuatro jugadas.<br>Una decisión decisiva.</h1><p>Dirige cinco Riftborn, defiende tus torres y abre camino hacia el Nexo rival. Todo el combate se resuelve con cartas, posiciones y presión.</p><div class="pill">5 personajes · 20 tácticas · 6 cartas en mano</div></section>${deckSelectors()}${botSettings()}<div class="intro-menu"><button class="mode" data-setup="bot"><strong>⚔ Contra un bot</strong><small>Enfrenta tu mazo contra un bot de dificultad y estrategia configurables. No conoce tu mano.</small></button><button class="mode" data-setup="hotseat"><strong>♟ Dos jugadores locales</strong><small>Alternad jugadas en el mismo dispositivo. La mano se oculta al pasar de jugador.</small></button></div><p class="small">Versión de pruebas: ya puedes disputar el Latido (R4) y el Coloso (R8) con cartas de Caza. Abre sobres con monedas ganadas contra el bot, fabrica cartas con fragmentos y crea nuevas estrategias en tu colección.</p></div>`;
 }
 function coinScreen(){
  const winner=coin.winner, botWon=coin.mode==='bot'&&winner===1;
@@ -157,7 +159,10 @@ function handPanel(side){
 }
 function outcome(){
  if(match.phase!=='finished')return '';
- return `<section class="result"><div class="coin">✦</div><div class="kicker">Convergencia terminada</div><h2>${match.winner==='draw'?'Empate':match.winner===0?'Gana Azul':'Gana Rojo'}</h2><p class="small">La partida terminó en la ronda ${match.round}. Puedes iniciar otra y probar una estrategia distinta.</p><button class="btn primary" data-act="reset">Nueva partida</button></section>`;
+ const earned=matchReward?.awarded?
+   '<p class="reward-earned">◈ +'+matchReward.coins+' monedas por partida'+(matchReward.bonus?' · +'+matchReward.bonus+' por logros':'')+'</p>':
+   mode==='hotseat'?'<p class="small">Modo local: no hay recompensas de monedas.</p>':'';
+ return `<section class="result"><div class="coin">✦</div><div class="kicker">Convergencia terminada</div><h2>${match.winner==='draw'?'Empate':match.winner===0?'Gana Azul':'Gana Rojo'}</h2><p class="small">La partida terminó en la ronda ${match.round}. Puedes iniciar otra y probar una estrategia distinta.</p><div class="reward-line">${earned}</div><div class="choices"><button class="btn primary" data-act="reset">Nueva partida</button><a class="btn" href="./collection.html">◈ Abrir sobres</a></div></section>`;
 }
 function game(){
  const view=mode==='hotseat'?match.turn:0;
@@ -179,10 +184,13 @@ function begin(firstPlayer){
    decks=deckChoices.map(id=>loadPlayable(id));
  }catch(err){mode=null;coin=null;notice=err.message;render();return;}
  match=createMatch(decks,{seed:(Math.random()*2147483647)|0||1,firstPlayer});
+ currentMatchId='match-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,12);
+ matchReward=null;
  coin=null;clearSelection();
  notice=`Volado listo: empieza ${labelSide(firstPlayer)}; ${labelSide(1-firstPlayer)} recibe +1 energía.`;
  curtain=mode==='hotseat'&&firstPlayer!==0;
  if(mode==='bot')driveBot();
+ grantIfFinished();
  render();
 }
 function clearSelection(){selectedCard=null;selectedUnit=null;rotateSource=null;selectedObjective=null;}
@@ -194,6 +202,15 @@ function driveBot(){
  }
  if(limit<=0)notice='Se detuvo el bot por límite de seguridad.';
 }
+function grantIfFinished(){
+ if(!match||match.phase!=='finished'||mode!=='bot'||matchReward)return;
+ const result=match.winner==='draw'?'draw':match.winner===0?'win':'loss';
+ try{
+   matchReward=awardMatch(currentMatchId,result);
+ }catch(error){
+   notice='La partida terminó, pero no se pudo guardar la recompensa: '+error.message;
+ }
+}
 function perform(fn){
  if(!match||match.phase!=='tactics')return;
  const before=match.round,prior=match.turn;
@@ -202,6 +219,7 @@ function perform(fn){
    clearSelection();
    notice=match.round!==before?`Ronda ${before} resuelta. Revisa las torres y el registro.`:'Jugada registrada.';
    if(mode==='bot')driveBot();
+   grantIfFinished();
    if(mode==='hotseat'&&match.phase==='tactics'&&match.turn!==prior)curtain=true;
  }catch(err){notice=err?.message||'Jugada no válida.';}
  render();
@@ -280,7 +298,7 @@ app.addEventListener('click',event=>{
  if(el.dataset.setup){setup(el.dataset.setup);return;}
  if(el.dataset.first!==undefined){begin(Number(el.dataset.first));return;}
  const act=el.dataset.act;
- if(act==='reset'){mode=null;match=null;coin=null;curtain=false;notice='';clearSelection();render();return;}
+ if(act==='reset'){mode=null;match=null;coin=null;curtain=false;notice='';currentMatchId=null;matchReward=null;clearSelection();render();return;}
  if(act==='reveal'){curtain=false;render();return;}
  if(!match||curtain||match.phase==='finished')return;
  if(act==='cancel'){clearSelection();notice='';render();return;}
