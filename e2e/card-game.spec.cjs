@@ -17,7 +17,7 @@ for(const width of [360,768,1440]){
     await expect(page.locator('.lanes')).toHaveCount(2);
     await expect(page.locator('.tactic')).toHaveCount(6);
     await page.screenshot({path:'ux-screenshots/card-game-board-'+width+'.png',fullPage:true});
-    await page.locator('.unit:not(.enemy)').first().click();
+    await page.locator('.unit:not(.enemy):visible').first().click();
     await expect(page.locator('[data-order="SWAP_RANK"]')).toBeVisible();
     await page.locator('[data-order="SWAP_RANK"]').click();
     await expect(page.locator('.logline')).not.toHaveCount(0);
