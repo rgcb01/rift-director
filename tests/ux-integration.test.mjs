@@ -10,7 +10,7 @@ const click=(sim,dataset)=>sim.handleClick({target:{closest:()=>({dataset})}});
 const change=(sim,key,value)=>sim.handleChange({target:{dataset:{change:'lab-'+key},value}});
 
 test('UX integrated: all four modules/scripts and version are loaded exactly once',()=>{
- const html=read('index.html');
+ const html=read('legacy-moba.html');
  for(const name of ['src/ui/club-command.js','src/ui/balance-lab.js','game.js']){
   const script='<script src="'+name+'"></script>';
   assert.equal(html.split(script).length-1,1,'Missing or duplicate script '+name);
