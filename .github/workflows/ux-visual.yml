@@ -11,6 +11,7 @@ on:
       - 'src/card-game/**'
       - 'card-game.html'
       - 'card-game.css'
+      - 'card-game-mobile.css'
       - 'deck-builder.html'
       - 'deck-builder.css'
       - 'collection.html'
