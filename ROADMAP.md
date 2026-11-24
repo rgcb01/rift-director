@@ -11,7 +11,7 @@
 | 0.8.4 | IA Aprendiz/Táctico/Director, estilos y torneo reproducible | Implementado |
 | 0.8.5 | Estudio de iniciativa y Resonancia de Convergencia en rondas tardías | Implementado, balance todavía exploratorio |
 | 0.9.0 | Archivo del Vínculo, colección local, sobres, fabricación y recompensas virtuales | Implementado; sin pagos reales |
-| **0.9.1** | **UX táctil móvil**: foco de carril, mano plegable y objetivos contextualizados | **Integrado en main; validación final del nuevo acceso principal en curso** |
+| **0.9.1** | **UX táctil móvil**: foco de carril, mano plegable y objetivos contextualizados | **Integrado y publicado en GitHub Pages; pruebas visuales aprobadas** |
 
 ## Próximas versiones propuestas
 

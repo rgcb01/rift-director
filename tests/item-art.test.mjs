@@ -82,7 +82,7 @@ test('missing optional art script still renders all legacy SVG item fallbacks',(
  }
 });
 test('Pages loads the presentation catalog after economy and before its consumers',()=>{
- const html=read('index.html');
+ const html=read('legacy-moba.html');
  const names=['src/core/power-economy.js','src/ui/item-art.js','src/ui/match-tab.js','game.js'];
  const positions=names.map(name=>html.indexOf(`src="${name}"`));
  assert.ok(positions.every((position,i)=>position>=0&&(i===0||position>positions[i-1])));
