@@ -1,4 +1,4 @@
-# Rift Director — Card Game Rules v0.5 (prototipo)
+# Rift Director — Card Game Rules v0.9 (prototipo)
 
 Estado: **borrador jugable, valores sujetos a playtesting**. Estas reglas documentan el rework CCG ya integrado como ruta separada (`card-game.html`). El viejo manager permanece intacto mientras se valida este núcleo.
 
@@ -106,3 +106,20 @@ Cada lado tiene **torre de 6 PV** por carril y **Nexo de 12 PV**. Si cae una tor
 - La IA deja de usar una acción para retirar a un atacante de poca vida **si no hay enemigo delante que pueda dañarlo**; evita ceder un carril sin necesidad.
 - La muestra pareada inicial (12 semillas, seis enfrentamientos y cuatro orientaciones por semilla; 288 partidas por escenario, máximo R24) mostró **213/288 terminadas sin resonancia frente a 257/288 con resonancia**. Se trata de resultados de IA; no equivale a un balance PvP.
 - Los informes de GitHub Actions separan empates de partidas que exceden el límite y publican resultados por arquetipo y por iniciativa. Las reglas de economía, sobres y rarezas permanecen fuera de este milestone.
+
+## Archivo del Vínculo: colección, sobres y fabricación — v0.9.0
+
+- **Ruta:** `collection.html`. Es un prototipo de economía **offline, sin pago real ni conexión a servidores**.
+- **Bienvenida gratuita:** 200 monedas, copias para construir Asedio del Bastión y Rutas del Umbral y una Vanguardia adicional. Los tres mazos preconstruidos siguen siendo elegibles para jugar con el bot o en hotseat, sin exigir colección.
+- **Compatibilidad:** al crear la colección por primera vez, se importan los personajes y las copias tácticas necesarias de los mazos personalizados guardados en versiones anteriores, sin modificar `rift-director-save-v2` ni `rift-director-ccg-decks-v1`.
+- **Nuevo catálogo base de prueba:** 20 Riftborn y 36 cartas tácticas (56 distintas), con cuatro legendarias nuevas distribuidas entre personajes y tácticas. La rareza limita copias máximas por mazo; no otorga niveles ni estadísticas extra a cartas existentes.
+- **Sobre del Vínculo:** cuesta 100 monedas virtuales y revela **exactamente cinco cartas**, una a una o con «Revelar todas». Ranuras: 3 comunes fijas; 1 poco común+ (80% poco común, 15% rara, 4% épica, 1% legendaria); 1 rara+ (80% rara, 17% épica, 3% legendaria).
+- **Protección contra duplicados:** al decidir una rareza, se priorizan cartas cuya colección no tenga aún el máximo de copias. Si todas las de ese grupo están completas, el duplicado se convierte en fragmentos.
+- **Valor de duplicados:** común 5, poco común 12, rara 25, épica 60, legendaria 120 fragmentos.
+- **Fabricación directa:** común 20, poco común 45, rara 90, épica 180, legendaria 360 fragmentos por copia, sin rebasar los máximos (personajes: una copia de cada uno).
+- **Recompensas solo al terminar una partida contra bot:** victoria 40 monedas, derrota 25, empate 30. Logros de una sola vez: primer combate +50, primera victoria +75; abrir el primer sobre devuelve +25. Sin ganancia en hotseat para no duplicar monedas con dos personas localmente.
+- **Constructor:** las copias poseídas y las utilizadas se muestran por separado; no puedes añadir cartas o personajes no obtenidos. Es posible guardar borradores incompletos; solo los mazos completos y con colección suficiente pueden seleccionarse como personalizados para jugar.
+- **Persistencia:** `rift-director-ccg-collection-v1` en localStorage, separado de los guardados anteriores. Incluye identificadores de partidas recientes para evitar recompensar dos veces una misma partida en el prototipo. Los archivos dañados no se sobrescriben silenciosamente.
+- **Restricciones conocidas:** no hay cuenta, sincronización, compras reales, controles anti-trampa de servidor, restauración si se borra el almacenamiento, ni economía competitiva final. Las cifras son exploratorias: equilibrar con pruebas humanas antes de lanzar PvP o moneda premium.
+
+La siguiente fase deberá añadir experiencia de apertura más visual y sonora, misiones/recompensas persistentes verificables, y expansión del set completo, sin priorizar monetización sobre accesibilidad.

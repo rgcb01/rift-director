@@ -1,10 +1,12 @@
 import {CHARACTER_CATALOG,CHARACTER_BY_ID,TACTIC_CATALOG,TACTIC_BY_ID,RARITIES,TRAITS} from './catalog.mjs';
 import {SLOTS,MAX_DECKS,templateDraft,emptyDraft,assignHero,addTactic,removeTactic,validateDraft,
   readLibrary,saveDraft,deleteSavedDeck,readSelection,writeSelection} from './deck-library.mjs';
+import {readCollection,ownedCount,missingForDeck} from './collection.mjs';
 
 const root=document.getElementById('deck-builder-app');
 const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let saved=readLibrary();
+let collection=readCollection();
 let draft=templateDraft('siege');
 let focusSlot=0,filter='ALL',query='',notice='';
 const activeSelection=readSelection();
@@ -13,12 +15,12 @@ if(currentSaved)draft=JSON.parse(JSON.stringify(currentSaved));
 const roleLabel=slot=>SLOTS[slot]==='JUN'?'JUNGLA':SLOTS[slot];
 const tally=()=>Object.fromEntries([...new Set(draft.tactics)].map(id=>[id,draft.tactics.filter(v=>v===id).length]));
 const displayRarity=id=>RARITIES[id]?.name||id;
-const complete=()=>validateDraft(draft).length===0;
+const complete=()=>validateDraft(draft).length===0&&missingForDeck(draft,collection).length===0;
 function banner(){
  return `<header class="db-topbar">
-  <div><div class="kicker">RIFT DIRECTOR · CARD GAME 0.8.3</div><h1 class="db-title">CONSTRUCTOR <em>DE MAZOS</em></h1>
-  <p class="db-breadcrumb">Colección de prueba · todas las cartas disponibles · sin compras</p></div>
-  <div class="db-actions"><a class="btn minor" href="./card-game.html">← Volver a Jugar</a><span class="pill">✦ ${TACTIC_CATALOG.length} tácticas · ${CHARACTER_CATALOG.length} Riftborn</span></div>
+  <div><div class="kicker">RIFT DIRECTOR · CARD GAME 0.9.0</div><h1 class="db-title">CONSTRUCTOR <em>DE MAZOS</em></h1>
+  <p class="db-breadcrumb">Colección propia · crea mazos con las cartas obtenidas · sin compras reales</p></div>
+  <div class="db-actions"><a class="btn minor" href="./card-game.html">← Jugar</a><a class="btn minor" href="./collection.html">◈ Sobres · ${collection.coins} monedas</a><span class="pill">✦ ${TACTIC_CATALOG.length} tácticas · ${CHARACTER_CATALOG.length} Riftborn</span></div>
  </header>`;
 }
 function summaryStats(){
@@ -49,9 +51,10 @@ function heroPicker(){
  <div class="db-choice-list">${CHARACTER_CATALOG.filter(c=>c.role===role).map(c=>{
  const chosen=draft.characters[focusSlot]===c.id;
  const elsewhere=draft.characters.some((x,i)=>i!==focusSlot&&x===c.id);
+ const missing=ownedCount(collection,c.id)<1;
  const trait=TRAITS[c.trait];
- return `<button class="db-choice ${chosen?'active':''}" data-hero="${c.id}" ${elsewhere?'disabled':''} title="${escape(trait.description)}">
- <span><b>${escape(c.name)}</b><small><span class="db-rarity ${c.rarity}">${displayRarity(c.rarity)}</span> · ${escape(trait.name)}</small><small>${escape(trait.description)}</small></span>
+ return `<button class="db-choice ${chosen?'active':''}" data-hero="${c.id}" ${elsewhere||missing?'disabled':''} title="${escape(missing?'Consigue este Riftborn en la colección.':trait.description)}">
+ <span><b>${escape(c.name)}</b><small><span class="db-rarity ${c.rarity}">${displayRarity(c.rarity)}</span> · ${escape(trait.name)}</small><small>${escape(trait.description)}</small><small>${missing?'Bloqueado · 0/1':'En colección · 1/1'}</small></span>
  <span class="db-stat-pill">⚔ ${c.attack} · ♥ ${c.hp}</span>
  </button>`;
  }).join('')}</div>`;
@@ -83,18 +86,19 @@ function tacticalCards(){
  return matches.map(c=>{
    const count=counts[c.id]||0;
    const cap=RARITIES[c.rarity].max;
+   const available=ownedCount(collection,c.id);
    return `<article class="db-card ${c.kind}" data-catalog-card="${c.id}">
      <div class="db-card-head"><div><span class="db-rarity ${c.rarity}">${displayRarity(c.rarity)}</span>
      <div class="db-card-name">${escape(c.name)}</div></div><span class="db-cost" title="Coste de energía">${c.cost}</span></div>
      <div class="db-card-desc">${escape(c.description)}</div>
      <div class="db-counter"><button class="db-icon-button" data-remove="${c.id}" aria-label="Quitar una copia de ${escape(c.name)}" ${count===0?'disabled':''}>−</button>
-     <span>${count} / ${cap}</span><button class="db-icon-button" data-add="${c.id}" aria-label="Agregar una copia de ${escape(c.name)}" ${count>=cap||draft.tactics.length>=20?'disabled':''}>+</button></div>
+     <span>${count} / ${available} de ${cap}</span><button class="db-icon-button" data-add="${c.id}" aria-label="Agregar una copia de ${escape(c.name)}" ${count>=available||count>=cap||draft.tactics.length>=20?'disabled':''}>+</button></div>
    </article>`;
  }).join('');
 }
 function tacticPanel(){
  return `<section class="db-catalog"><div class="db-panel"><h2>2 · Colección táctica</h2>
- <p class="db-lead">Añade cartas con + y elimina copias con −. Las rarezas limitan la cantidad por mazo, no la potencia.</p>
+ <p class="db-lead">Añade únicamente las copias obtenidas. Consigue nuevas cartas abriendo sobres o fabricándolas con fragmentos.</p>
  ${catalogFilters()}<input class="db-input" id="catalog-search" placeholder="Buscar cartas por nombre o efecto…" aria-label="Buscar cartas" value="${escape(query)}">
  <div class="db-card-grid" id="catalog-grid" style="margin-top:10px">${tacticalCards()}</div></div></section>`;
 }
@@ -106,7 +110,7 @@ function deckList(){
  }).join(''):'<div class="db-empty">El mazo está vacío. Añade 20 cartas de la colección.</div>'}</div>`;
 }
 function readiness(){
- const errors=validateDraft(draft);
+ const errors=[...validateDraft(draft),...missingForDeck(draft,collection)];
  if(!errors.length)return '<div class="db-complete">✓ Mazo legal y listo para jugar</div>';
  return `<div class="db-errors">${errors.slice(0,7).map(e=>`<div class="db-error">${escape(e)}</div>`).join('')}${errors.length>7?`<p class="small">…y ${errors.length-7} observaciones más</p>`:''}</div>`;
 }
@@ -117,11 +121,12 @@ function deckPanel(){
  <div class="db-save-buttons"><button class="btn primary" data-action="play" ${complete()?'':'disabled'}>⚔ Guardar y jugar</button>
  <button class="btn" data-action="save">✦ Guardar mazo</button>
  <button class="btn red" data-action="delete" ${draft.id?'':'disabled'}>Eliminar guardado</button></div>
- <p class="db-help">Tus mazos se guardan solo en este navegador. Todavía no existe sincronización, mercado ni sobres.</p>
+ <p class="db-help">Tus mazos y tu colección se guardan solo en este navegador; los sobres están disponibles en El Archivo del Vínculo.</p>
  </div></section>`;
 }
 function render(){
  saved=readLibrary();
+ collection=readCollection();
  root.innerHTML=banner()+(notice?`<div role="status" class="db-notice">${escape(notice)}</div>`:'')+
  toolbar()+`<div class="db-layout">${heroPanel()}${tacticPanel()}${deckPanel()}</div>`;
 }
@@ -132,7 +137,7 @@ function apply(fn){
 function loadTemplate(key){draft=templateDraft(key);focusSlot=0;filter='ALL';query='';notice='Plantilla cargada. Puedes editarla y guardarla con tu propio nombre.';render();}
 function play(){
  try{
-   if(validateDraft(draft).length)throw new Error('Completa el mazo antes de jugar.');
+   if(!complete())throw new Error('Para jugar, completa el mazo y consigue todas sus copias en la colección.');
    draft=saveDraft(draft);
    const chosen=readSelection();writeSelection([draft.id,chosen[1]]);
    window.location.href='./card-game.html';
@@ -143,8 +148,8 @@ root.addEventListener('click',event=>{
  if(!btn)return;
  const d=btn.dataset;
  if(d.slot!==undefined){focusSlot=Number(d.slot);notice='';render();return;}
- if(d.hero){apply(()=>assignHero(draft,focusSlot,d.hero));return;}
- if(d.add){apply(()=>addTactic(draft,d.add));return;}
+ if(d.hero){apply(()=>{if(!ownedCount(collection,d.hero))throw new Error('Consigue este Riftborn en la colección.');return assignHero(draft,focusSlot,d.hero);});return;}
+ if(d.add){apply(()=>{if(draft.tactics.filter(x=>x===d.add).length>=ownedCount(collection,d.add))throw new Error('No tienes copias suficientes. Abre un sobre o fabrica esta carta.');return addTactic(draft,d.add);});return;}
  if(d.remove){apply(()=>removeTactic(draft,d.remove));return;}
  if(d.filter){filter=d.filter;notice='';render();return;}
  if(d.template){loadTemplate(d.template);return;}

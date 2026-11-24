@@ -13,6 +13,8 @@ on:
       - 'card-game.css'
       - 'deck-builder.html'
       - 'deck-builder.css'
+      - 'collection.html'
+      - 'collection.css'
       - '.github/workflows/ux-visual.yml'
   workflow_dispatch:
 
