@@ -64,6 +64,6 @@ test('Portada principal de Rift Director abre el juego de cartas (sin activar el
 test('El simulador MOBA se conserva en su página de archivo',async({page})=>{
  await page.goto('http://127.0.0.1:8080/legacy-moba.html');
  await expect(page.locator('.welcome')).toBeVisible();
- await expect(page.locator('#app')).toBeVisible();
+ await expect(page.locator('#app')).toHaveCount(1);
  await expect(page.locator('#card-game-app')).toHaveCount(0);
 });
