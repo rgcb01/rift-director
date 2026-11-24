@@ -14,7 +14,7 @@ let mode=null,match=null,coin=null,selectedCard=null,selectedUnit=null,rotateSou
 let deckChoices=readSelection();
 let botDifficulty='tactical',botStyle='balanced';
 let currentMatchId=null,matchReward=null;
-let focusLane='MID',lastRenderedMatch=null,lastRenderedSide=null;
+let focusLane='MID',lastRenderedMatch=null,lastRenderedSide=null,handCollapsed=false;
 function title(){return '<div class="topbar"><div><div class="kicker">CARD GAME · PROTOTIPO 0.9.1</div><div class="wordmark">RIFT <span>DIRECTOR</span></div></div><div class="nav-actions"><span class="pill live">♧ Rework táctico</span><a class="btn smallbtn minor" href="./deck-builder.html">✦ Mis mazos</a><a class="btn smallbtn minor" href="./collection.html">◈ Sobres</a><button class="btn smallbtn minor" data-act="reset">Nueva partida</button></div></div>';}
 function deckSelectors(){
  const choices=listPlayableChoices();
@@ -185,7 +185,7 @@ function sidePanel(viewSide){
 function handPanel(side){
  const p=match.players[side];
  const active=p.hand;
- return `<section class="hand-panel" aria-label="Mano de cartas"><div class="hand-heading"><div><h2>✦ Mano · ${labelSide(side)}</h2><p class="small">${active.length} cartas · conserva hasta 2 para la siguiente ronda</p></div><div class="nav-actions"><span class="pill">⚡ ${p.energy} energía</span><span class="pill">${p.actions}/4 jugadas</span><button class="btn primary" data-act="pass" ${match.turn!==side?'disabled':''}>Pasar turno</button></div></div><div class="cards-scroll" aria-label="Cartas disponibles, desliza horizontalmente">${active.map(c=>`<div class="hand-card"><button class="tactic ${c.kind} ${selectedCard===c.uid?'selected':''}" data-card="${escape(c.uid)}" ${(p.energy<c.cost||match.turn!==side)?'disabled':''}><span class="kind">${escape(KIND_NAMES[c.kind])}</span><span class="cost">${c.cost}</span><span class="art" aria-hidden="true">${escape(iconFor[c.effect.type]||'✦')}</span><strong>${escape(c.name)}</strong><span class="description">${escape(c.description)}</span></button><button class="keep-btn ${p.keep.includes(c.uid)?'kept':''}" data-keep="${escape(c.uid)}">${p.keep.includes(c.uid)?'★ Reservada':'☆ Reservar'}</button></div>`).join('')}${active.length===0?'<p class="small">No tienes cartas en la mano.</p>':''}</div></section>`;
+ return `<section class="hand-panel ${handCollapsed?'is-collapsed':''}" aria-label="Mano de cartas"><div class="hand-heading"><div><h2>✦ Mano · ${labelSide(side)}</h2><p class="small">${active.length} cartas · conserva hasta 2 para la siguiente ronda</p></div><div class="nav-actions"><button class="btn minor hand-toggle" data-act="toggle-hand" aria-expanded="${!handCollapsed}" aria-controls="hand-card-list">${handCollapsed?'▴ Ver cartas':'▾ Ocultar mano'}</button><span class="pill">⚡ ${p.energy} energía</span><span class="pill">${p.actions}/4 jugadas</span><button class="btn primary" data-act="pass" ${match.turn!==side?'disabled':''}>Pasar turno</button></div></div><div class="cards-scroll" id="hand-card-list" aria-label="Cartas disponibles, desliza horizontalmente">${active.map(c=>`<div class="hand-card"><button class="tactic ${c.kind} ${selectedCard===c.uid?'selected':''}" data-card="${escape(c.uid)}" ${(p.energy<c.cost||match.turn!==side)?'disabled':''}><span class="kind">${escape(KIND_NAMES[c.kind])}</span><span class="cost">${c.cost}</span><span class="art" aria-hidden="true">${escape(iconFor[c.effect.type]||'✦')}</span><strong>${escape(c.name)}</strong><span class="description">${escape(c.description)}</span></button><button class="keep-btn ${p.keep.includes(c.uid)?'kept':''}" data-keep="${escape(c.uid)}">${p.keep.includes(c.uid)?'★ Reservada':'☆ Reservar'}</button></div>`).join('')}${active.length===0?'<p class="small">No tienes cartas en la mano.</p>':''}</div></section>`;
 }
 function outcome(){
  if(match.phase!=='finished')return '';
@@ -221,7 +221,7 @@ function begin(firstPlayer){
    decks=deckChoices.map(id=>loadPlayable(id));
  }catch(err){mode=null;coin=null;notice=err.message;render();return;}
  match=createMatch(decks,{seed:(Math.random()*2147483647)|0||1,firstPlayer});
- focusLane='MID';
+ focusLane='MID';handCollapsed=false;
  currentMatchId='match-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,12);
  matchReward=null;
  coin=null;clearSelection();
@@ -255,6 +255,7 @@ function perform(fn){
  try{
    fn();
    clearSelection();
+   handCollapsed=false;
    notice=match.round!==before?`Ronda ${before} resuelta. Revisa las torres y el registro.`:'Jugada registrada.';
    if(mode==='bot')driveBot();
    grantIfFinished();
@@ -271,6 +272,7 @@ function useCard(uid){
    perform(()=>playCard(match,side,uid,{}));return;
  }
  selectedCard=selectedCard===uid?null:uid;rotateSource=null;selectedObjective=null;
+ if(selectedCard)handCollapsed=true;
  notice='';render();
 }
 function chooseLane(lane){
@@ -336,10 +338,11 @@ app.addEventListener('click',event=>{
  if(el.dataset.setup){setup(el.dataset.setup);return;}
  if(el.dataset.first!==undefined){begin(Number(el.dataset.first));return;}
  const act=el.dataset.act;
- if(act==='reset'){mode=null;match=null;coin=null;curtain=false;notice='';currentMatchId=null;matchReward=null;focusLane='MID';clearSelection();render();return;}
+ if(act==='reset'){mode=null;match=null;coin=null;curtain=false;notice='';currentMatchId=null;matchReward=null;focusLane='MID';handCollapsed=false;clearSelection();render();return;}
  if(act==='reveal'){curtain=false;render();return;}
  if(!match||curtain||match.phase==='finished')return;
- if(act==='cancel'){clearSelection();notice='';render();return;}
+ if(act==='cancel'){clearSelection();handCollapsed=false;notice='';render();return;}
+ if(act==='toggle-hand'){handCollapsed=!handCollapsed;render();return;}
  if(act==='pass'){perform(()=>passTurn(match,match.turn));return;}
  if(el.dataset.focusLane){if(LANES.includes(el.dataset.focusLane)){focusLane=el.dataset.focusLane;notice='';render();}return;}
  const view=mode==='hotseat'?match.turn:0;
