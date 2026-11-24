@@ -1,0 +1,66 @@
+/* Rift Director CCG — v0.9.0 collection, compact tabletop style */
+#collection-app{max-width:1190px;margin:0 auto;padding:15px 16px 38px}
+.cc-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.cc-heading{font:700 clamp(26px,4vw,39px)/1.15 'Space Grotesk',system-ui,sans-serif}
+.cc-heading span{color:var(--gold)}
+.cc-nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.cc-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-bottom:15px}
+.cc-stat{padding:14px 12px;background:#1c2943;border:1px solid var(--line);border-radius:12px;display:grid;gap:4px;min-width:0}
+.cc-stat strong{font:700 25px 'Space Grotesk',sans-serif;color:var(--gold)}
+.cc-stat span{font-size:11px;color:var(--muted)}
+.cc-layout{display:grid;grid-template-columns:minmax(300px,.94fr) minmax(360px,1.06fr);gap:14px;align-items:start}
+.cc-panel{padding:18px;border:1px solid var(--line);border-radius:17px;background:linear-gradient(150deg,#1c2944,#131d33);min-width:0}
+.cc-panel h2{font:700 19px 'Space Grotesk',sans-serif;margin:0 0 7px}
+.cc-panel p{font-size:12px;line-height:1.6;color:#bfcde3}
+.cc-pack-wrap{display:grid;justify-items:center;gap:12px;padding:24px 10px;background:radial-gradient(circle,#4d3c5d,#1a2440 58%,#182238);border:1px solid #c29d786a;border-radius:14px;margin:13px 0}
+.cc-pack{width:175px;height:238px;border:2px solid #edcd92;border-radius:14px;background:linear-gradient(145deg,#725577,#383355 46%,#181f3c);box-shadow:0 16px 30px #0009,0 0 28px #b8987245;display:grid;place-content:center;text-align:center;gap:13px;position:relative;overflow:hidden}
+.cc-pack:before{content:'';position:absolute;inset:9px;border:1px solid #e8c38678;border-radius:9px}
+.cc-pack strong{font:700 19px 'Space Grotesk',sans-serif;letter-spacing:.08em;z-index:1}
+.cc-pack span{color:#fce2aa;font-size:67px;line-height:1;filter:drop-shadow(0 8px 18px #f1a9828a)}
+.cc-pack small{font-size:11px;letter-spacing:.16em;color:#edd3a8;z-index:1}
+.cc-open-button{min-width:220px}
+.cc-pack-foot{font-size:11px;text-align:center;color:#b4c3db}
+.cc-odds{margin-top:11px;display:grid;gap:6px;padding:12px;background:#19233a;border-radius:10px;border:1px solid #b8a2c146}
+.cc-odds p{font-size:11px}
+.cc-notice{padding:12px;border-radius:10px;background:#254149;border:1px solid #78b6ad75;margin-bottom:14px;color:#d9fff8;font-size:12px;line-height:1.5}
+.cc-collection{grid-column:1/-1}
+.cc-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:13px 0}
+.cc-filter{border:1px solid #718caf80;border-radius:999px;padding:8px 11px;color:#dbe6fb;background:#1b2d4b;font:700 11px 'DM Sans',sans-serif}
+.cc-filter.active{background:#73587d;border-color:#d6b7f0}
+.cc-search{background:#101b33;color:#f4f8ff;border:1px solid #91a5c766;border-radius:9px;min-height:39px;padding:8px 11px;font:inherit;font-size:12px;flex:1;min-width:140px}
+.cc-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.cc-card{background:linear-gradient(155deg,#354c68,#202b48);border:1px solid #8fadd274;border-radius:13px;padding:12px;display:grid;gap:8px;min-width:0;min-height:190px}
+.cc-card.RARE{background:linear-gradient(155deg,#28496f,#1b2d4e);border-color:#81b5ed}
+.cc-card.EPIC{background:linear-gradient(155deg,#5e467b,#302847);border-color:#c7a3ef}
+.cc-card.LEGENDARY{background:linear-gradient(155deg,#835b38,#3b3140);border-color:#ffd39b}
+.cc-card.locked{filter:saturate(.7);background:#1a243a}
+.cc-card-head{display:flex;justify-content:space-between;align-items:start;gap:6px}
+.cc-symbol{font-size:27px;line-height:1}
+.cc-rarity{font-size:10px;font-weight:800;letter-spacing:.04em;color:#d4dce7}
+.cc-card.RARE .cc-rarity{color:#9dcbff}
+.cc-card.EPIC .cc-rarity{color:#e3baff}
+.cc-card.LEGENDARY .cc-rarity{color:#f6d392}
+.cc-card h3{font:700 13px 'Space Grotesk',sans-serif;line-height:1.26;min-height:34px;overflow-wrap:anywhere}
+.cc-card p{font-size:10px;line-height:1.4;color:#d1ddef}
+.cc-card-tail{align-self:end;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
+.cc-card-tail small{font-weight:800;font-size:11px;color:#f2dba7}
+.cc-card-tail button{font-size:10px;padding:6px 7px;min-height:29px;border-radius:7px;border:1px solid #edc89480;background:#282e48;color:#ffe3b0}
+.cc-reveal{display:grid;gap:12px;justify-items:center;text-align:center}
+.cc-reveal h3{font:700 21px 'Space Grotesk',sans-serif}
+.cc-reveal-card{width:min(100%,235px);min-height:280px;display:grid;place-content:center;justify-items:center;gap:14px;padding:18px;border:2px solid #a5bcd7;border-radius:16px;background:linear-gradient(155deg,#395679,#202e4d);box-shadow:0 12px 35px #0009;animation:cc-appear .33s cubic-bezier(.2,.8,.2,1) both}
+.cc-reveal-card.RARE{background:linear-gradient(155deg,#376fb2,#29375a);border-color:#a0cdfd}
+.cc-reveal-card.EPIC{background:linear-gradient(155deg,#7f55ac,#32264b);border-color:#dfbaff}
+.cc-reveal-card.LEGENDARY{background:linear-gradient(155deg,#b4863a,#4c3852);border-color:#ffdda3}
+.cc-reveal-card .cc-big-symbol{font-size:69px;filter:drop-shadow(0 4px 17px #ffffff73)}
+.cc-reveal-card strong{font:700 20px 'Space Grotesk',sans-serif}
+.cc-reveal-card .cc-reveal-desc{font-size:12px;color:#ecf1fb}
+.cc-reveal-card .cc-duplicate{font-weight:800;font-size:12px;color:#ffe4ab}
+.cc-reveal-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.cc-reveal-counter{font-size:12px;color:#bfd6f0}
+.cc-finish{display:grid;gap:8px;text-align:center}
+.cc-finish .cc-earned{color:#ffe1a6;font-size:13px;font-weight:700}
+.cc-empty{padding:20px;color:#b9c9e1;font-size:12px;text-align:center;grid-column:1/-1}
+@keyframes cc-appear{from{transform:translateY(14px) rotateY(80deg) scale(.93);opacity:0}to{transform:translateY(0) rotateY(0) scale(1);opacity:1}}
+@media(max-width:900px){.cc-layout{grid-template-columns:1fr}.cc-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.cc-collection{grid-column:1}}
+@media(max-width:600px){#collection-app{padding:10px}.cc-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.cc-stat strong{font-size:22px}.cc-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.cc-card{padding:10px;min-height:180px}.cc-panel{padding:12px}.cc-head{align-items:flex-start}.cc-heading{font-size:25px}}
+@media(prefers-reduced-motion:reduce){.cc-reveal-card{animation:none}}
