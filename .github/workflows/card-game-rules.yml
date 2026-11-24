@@ -33,5 +33,9 @@ jobs:
           node --check src/card-game/simple-bot.mjs
           node --check src/card-game/starter-decks.mjs
           node --check src/card-game/demo-ui.mjs
+          node --check src/card-game/collection.mjs
+          node --check src/card-game/collection-ui.mjs
+          node --check src/card-game/deck-library.mjs
+          node --check src/card-game/deck-builder-ui.mjs
       - name: Tests rápidos del Card Game
         run: node --test tests/card-game*.test.mjs
