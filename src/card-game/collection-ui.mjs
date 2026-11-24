@@ -101,9 +101,11 @@ root.addEventListener('click',event=>{
  if(action==='finish'){results=null;reveal=0;notice='';render();return;}
  if(target.dataset.filter){filter=target.dataset.filter;notice='';render();return;}
  if(target.dataset.craft){
-  const id=target.dataset.craft;
-  attempt(()=>{const item=craftCard(id);notice='';return item;});
-  if(state)notice='Carta fabricada. Ya puedes añadirla a un mazo.';
+  try{
+    craftCard(target.dataset.craft);
+    refresh();
+    notice='Carta fabricada. Ya puedes añadirla a un mazo.';
+  }catch(error){notice=error?.message||'No se pudo fabricar la carta.';}
   render();
  }
 });
