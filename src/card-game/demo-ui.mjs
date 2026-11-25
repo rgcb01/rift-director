@@ -314,6 +314,7 @@ function game(){
  return `${title()}${notice?`<div class="notice" role="status">${escape(notice)}</div>`:''}<div class="turn-strip"><div><div class="kicker">Ronda ${match.round}</div><strong>${match.phase==='finished'?'Partida terminada':'Turno '+labelSide(match.turn)} ${play?'· tu jugada':''}</strong></div><div class="turn-meta"><span class="pill">⚡ ${p.energy}</span><span class="pill">${p.actions}/4 jugadas</span></div><div class="turn-meta"><span class="pill">↔ ${mode==='bot'?'IA '+AI_LEVELS[botDifficulty].name+' · '+AI_STYLES[botStyle].name:'2 locales'}</span></div></div>${mode==='tutorial'?tutorialGuide():''}${outcome()}<div class="decision-dock">${prompt(view)}</div><div class="arena-layout">${board(view)}${sidePanel(view)}</div>${handPanel(view)}<footer class="layout-footer">Rift Director · Card Game prototype · Las partidas no afectan los guardados del antiguo manager.</footer>${curtain&&mode==='hotseat'&&match.phase==='tactics'?`<div class="pass-screen"><div class="pass-card"><div class="coin">✦</div><h2>Pasa el dispositivo</h2><p class="small">Es turno del jugador ${labelSide(match.turn)}. La mano se mostrará cuando esté listo.</p><button class="btn primary" data-act="reveal">Mostrar mi mano</button></div></div>`:''}`;
 }
 function render(){
+ hideInspector();
  const currentSide=match?(mode==='hotseat'?match.turn:0):null;
  const oldScroll=match&&match===lastRenderedMatch&&currentSide===lastRenderedSide?
    app.querySelector('.cards-scroll')?.scrollLeft:0;
@@ -492,6 +493,7 @@ function clearDrag(){
  activeDrag=null;hoverDrop=null;
 }
 function beginDrag(event){
+ hideInspector();
  if(!desktopCanDrag()||!match||match.phase!=='tactics'||curtain||match.turn!==(mode==='hotseat'?match.turn:0)){
   event.preventDefault();return;
  }
@@ -552,8 +554,46 @@ function finishDrop(plan){
 // Some desktop browser/scroll combinations can finish a mouse gesture without
 // dispatching HTML5 drag events. Pointer fallback resolves the very same plan
 // once the mouse moves enough; a plain click still follows the existing UI.
+let inspector=null,inspectTimer=null,inspectSource=null;
+function hideInspector(){
+ clearTimeout(inspectTimer);inspectTimer=null;inspectSource=null;
+ inspector?.remove();inspector=null;
+}
+function scheduleInspector(node){
+ hideInspector();
+ if(!node||!desktopCanDrag()||!match||curtain||activeDrag)return;
+ inspectSource=node;
+ inspectTimer=setTimeout(()=>{
+  if(inspectSource!==node||!node.isConnected||activeDrag||curtain)return;
+  const face=node.querySelector('[data-card-id]');
+  if(!face)return;
+  const unit=node.dataset.unit?match.players[Number(node.dataset.owner)]?.characters.find(u=>u.id===node.dataset.unit):null;
+  inspector=document.createElement('aside');
+  inspector.className='desktop-card-inspector';
+  inspector.setAttribute('aria-hidden','true');
+  inspector.innerHTML=renderCardFace(face.dataset.cardId,{variant:'reveal',...(unit?{attack:combatAttack(unit,match.round),hp:unit.hp,maxHp:unit.maxHp}:{})});
+  app.append(inspector);
+  const r=node.getBoundingClientRect(),w=inspector.offsetWidth,h=inspector.offsetHeight;
+  const left=r.right+w+14<=innerWidth?r.right+12:Math.max(8,r.left-w-12);
+  inspector.style.left=Math.min(innerWidth-w-8,left)+'px';
+  inspector.style.top=Math.max(8,Math.min(innerHeight-h-8,r.top+(r.height-h)/2))+'px';
+ },280);
+}
+const inspectNode=target=>target?.closest?.('button[data-card],button[data-unit]');
+app.addEventListener('pointerover',event=>{
+ const node=inspectNode(event.target);
+ if(event.pointerType==='mouse'&&node&&node!==inspectNode(event.relatedTarget))scheduleInspector(node);
+});
+app.addEventListener('pointerout',event=>{
+ if(inspectNode(event.target)===inspectSource&&inspectNode(event.relatedTarget)!==inspectSource)hideInspector();
+});
+app.addEventListener('focusin',event=>{const node=inspectNode(event.target);if(node?.matches(':focus-visible'))scheduleInspector(node);});
+app.addEventListener('focusout',event=>{if(inspectNode(event.target)===inspectSource)hideInspector();});
+window.addEventListener('resize',hideInspector);
+window.addEventListener('blur',hideInspector);
 let pointerPending=null,suppressPointerClick=false;
 app.addEventListener('pointerdown',event=>{
+ hideInspector();
  if(event.button!==0||!desktopCanDrag()||!match||match.phase!=='tactics'||curtain||
    match.turn!==(mode==='hotseat'?match.turn:0))return;
  const node=event.target.closest('button[data-card],button[data-unit]');
