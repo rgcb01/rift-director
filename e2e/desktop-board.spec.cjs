@@ -29,6 +29,13 @@ for(const width of [1280,1440,1920]){
   const unit=page.locator('.board-side:not(.enemy) .lane[data-lane-column="TOP"] .unit').first();
   await expect(unit).toHaveAttribute('draggable','true');
   await expect(page.locator('#game-help')).toBeHidden();
+  // The Latido reward lane is selectable directly from the tabletop.
+  const midFocus=page.locator('.board-side:not(.enemy) .lane[data-lane-column="MID"] .lane-focus-btn');
+  const topFocus=page.locator('.board-side:not(.enemy) .lane[data-lane-column="TOP"] .lane-focus-btn');
+  await expect(midFocus).toHaveAttribute('aria-pressed','true');
+  await topFocus.click();
+  await expect(topFocus).toHaveAttribute('aria-pressed','true');
+  await expect(midFocus).toHaveAttribute('aria-pressed','false');
   await page.locator('[data-act="toggle-log"]').first().click();
   await expect(page.locator('#game-help')).toBeVisible();
   await page.locator('.sidebar-close').click();
