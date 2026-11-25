@@ -16,6 +16,14 @@
 .log-toggle{white-space:nowrap}
 .sidebar-close{display:none}
 .side-banner .nexus{font-size:12px}
+.lane-focus-btn{display:none}
+@media(min-width:961px){
+ #card-game-app:has(.field) .lane.focus-active{border-color:#ddbd8b8a}
+ #card-game-app:has(.field) .lane-name{display:flex;justify-content:center;align-items:center;gap:9px}
+ .lane-focus-btn{display:inline-grid;place-items:center;width:28px;height:24px;border:1px solid #728ca1a1;border-radius:7px;background:#162741;color:#a9bed6;font-size:19px;cursor:pointer;line-height:1}
+ .lane-focus-btn[aria-pressed="true"]{border-color:#f1c883;background:#654c51;color:#ffe7b1;box-shadow:0 0 12px #f7c67555}
+ .lane-focus-btn:focus-visible{outline:2px solid #f5d49c;outline-offset:2px}
+}
 @media (min-width:961px){
  body:has(#card-game-app .field){overflow:hidden;background:radial-gradient(circle at 50% 46%,#1b2844 0,#0b1124 76%)}
  #card-game-app:has(.field){max-width:none;width:100%;height:100dvh;min-height:0;overflow:hidden;display:flex;flex-direction:column;padding:8px clamp(12px,1.5vw,28px) 0}
