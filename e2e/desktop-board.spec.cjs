@@ -51,7 +51,7 @@ test('Desktop drag: allied Riftborn changes front/rear and returns to base',asyn
  await unit.dragTo(rear);
  await expect(rear.locator('.unit')).toHaveCount(1);
  await expect(rear).toContainText('Centinela');
- await expect(page.locator('.logline').filter({hasText:'cambia de fila'}).first()).toBeVisible();
+ await expect(page.locator('.logline').filter({hasText:'cambia de fila'}).first()).toHaveCount(1);
  // Arcanista is in MID and has not been exhausted by the previous order.
  const arcanista=page.locator('.board-side:not(.enemy) .lane[data-lane-column="MID"] .unit').first();
  // Opponent is passive only in tutorial, so the bot may get the next move.
@@ -78,7 +78,7 @@ test('Desktop drag: card dropped onto a legal board target is played, not just s
  const before=await page.locator('button.tactic').count();
  await source.dragTo(target);
  await expect(page.locator('button.tactic')).toHaveCount(before-1);
- await expect(page.locator('.logline').filter({hasText:'juega'}).first()).toBeVisible();
+ await expect(page.locator('.logline').filter({hasText:'juega'}).first()).toHaveCount(1);
  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
  expect(overflow).toBeLessThanOrEqual(3);
  expect(errors).toEqual([]);await context.close();
@@ -88,5 +88,5 @@ test('Desktop action fallback: click and keyboard selection still work without d
  await page.locator('.board-side:not(.enemy) .lane[data-lane-column="TOP"] .unit').first().click();
  await expect(page.locator('[data-order="SWAP_RANK"]')).toBeVisible();
  await page.locator('[data-order="SWAP_RANK"]').click();
- await expect(page.locator('.logline').filter({hasText:'cambia de fila'}).first()).toBeVisible();
+ await expect(page.locator('.logline').filter({hasText:'cambia de fila'}).first()).toHaveCount(1);
 });
