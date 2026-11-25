@@ -67,8 +67,18 @@ function canTargetUnit(u,owner){
   default:return false;
  }
 }
+function immediateHealthPreview(u,owner){
+ if(!canTargetUnit(u,owner))return '';
+ const card=match.players[match.turn].hand.find(c=>c.uid===selectedCard);
+ if(!card||!['IMPACT','HEAL'].includes(card.effect.type))return '';
+ const damage=card.effect.type==='IMPACT',value=card.effect.value??0;
+ const next=damage?Math.max(0,u.hp-value):Math.min(u.maxHp,u.hp+value);
+ const delta=next-u.hp;
+ const label=delta===0?'Sin cambio':delta<0?(next===0?'−'+Math.abs(delta)+' PV · KO':'−'+Math.abs(delta)+' PV'):'+'+delta+' PV';
+ return `<span class="health-preview ${damage?'damage':'heal'}" title="Efecto inmediato, antes de resolver la ronda">${label} · ${next}/${u.maxHp}</span>`;
+}
 function zoneUnit(u,owner,isEnemy){
- return `<button class="unit ${isEnemy?'enemy':''} ${u.tapped?'tapped':''} ${selectedUnit===u.id?'active-target':''} ${canTargetUnit(u,owner)?'can-target':''}" title="${escape(characterName(u))} · ${escape(TRAITS[u.trait]?.description||'')} · ${u.hp}/${u.maxHp} PV · ${u.tapped?'Agotado':'Disponible'}" data-unit="${escape(u.id)}" data-owner="${owner}" draggable="${desktopCanDrag()&&owner===match.turn&&match.phase==='tactics'&&!curtain}">${renderCardFace(u.code,{variant:'board',attack:combatAttack(u,match.round),hp:u.hp,maxHp:u.maxHp})}${healthTrack(u.hp,u.maxHp)}</button>`;
+ return `<button class="unit ${isEnemy?'enemy':''} ${u.tapped?'tapped':''} ${selectedUnit===u.id?'active-target':''} ${canTargetUnit(u,owner)?'can-target':''}" title="${escape(characterName(u))} · ${escape(TRAITS[u.trait]?.description||'')} · ${u.hp}/${u.maxHp} PV · ${u.tapped?'Agotado':'Disponible'}" data-unit="${escape(u.id)}" data-owner="${owner}" draggable="${desktopCanDrag()&&owner===match.turn&&match.phase==='tactics'&&!curtain}">${renderCardFace(u.code,{variant:'board',attack:combatAttack(u,match.round),hp:u.hp,maxHp:u.maxHp})}${healthTrack(u.hp,u.maxHp)}${immediateHealthPreview(u,owner)}</button>`;
 }
 function characterName(u){return u.name || u.code;}
 function laneSlot(side,lane,rank,isEnemy){
@@ -143,7 +153,7 @@ function prompt(viewSide){
        .map(([id,def])=>`<button class="btn target-lane" data-objective="${id}">${escape(def.name)}</button>`).join(''):'';
    const needsUnit=['IMPACT','HEAL','BACK'].includes(t)||(t==='ROTATE'&&!rotateSource);
    const hint=needsUnit?'<span class="selection-hint">Toca un personaje resaltado. Cambia de carril con las pestañas.</span>':'';
-   return `<section class="panel prompt" aria-label="Preparar acción"><div class="selected-card-detail">${renderCardArt(card.id,{compact:true,full:true,eager:true})}<div><h3>${escape(card.name)} <span class="card-preview-cost">⚡ ${card.cost}</span></h3><p class="card-effect-text">${escape(card.description)}</p></div></div><p><strong>${escape(label)}</strong></p><div class="prompt-btns">${laneActions}${objectives}${hint}<button class="btn smallbtn minor" data-act="cancel">Cancelar</button></div></section>`;
+   return `<section class="panel prompt" aria-label="Preparar acción"><div class="selected-card-detail">${renderCardArt(card.id,{compact:true,full:true,eager:true})}<div><h3>${escape(card.name)} <span class="card-preview-cost" title="Energía tras pagar el coste, antes de otros efectos">⚡ ${match.players[viewSide].energy} → ${match.players[viewSide].energy-card.cost}</span></h3><p class="card-effect-text">${escape(card.description)}</p></div></div><p><strong>${escape(label)}</strong></p><div class="prompt-btns">${laneActions}${objectives}${hint}<button class="btn smallbtn minor" data-act="cancel">Cancelar</button></div></section>`;
  }
  if(selectedUnit){
    const u=match.players[viewSide].characters.find(u=>u.id===selectedUnit);
