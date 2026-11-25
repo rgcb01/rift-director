@@ -18,6 +18,7 @@ on:
       - 'playwright.config.cjs'
       - 'card-game-mobile.css'
       - 'card-game-tutorial.css'
+      - 'card-game-desktop.css'
       - 'deck-builder.html'
       - 'deck-builder.css'
       - 'collection.html'
@@ -53,7 +54,7 @@ jobs:
           python3 -m http.server 8080 --bind 127.0.0.1 >/tmp/rift-ux-server.log 2>&1 &
           sleep 2
       - name: Verificar navegación y capturar pantallas
-        run: npx playwright test e2e/ux-browser.spec.cjs e2e/card-game.spec.cjs e2e/card-art.spec.cjs e2e/tutorial.spec.cjs --workers=1 --reporter=line
+        run: npx playwright test e2e/ux-browser.spec.cjs e2e/card-game.spec.cjs e2e/card-art.spec.cjs e2e/tutorial.spec.cjs e2e/desktop-board.spec.cjs --workers=1 --reporter=line
       - name: Adjuntar capturas y pruebas
         if: always()
         uses: actions/upload-artifact@v4
