@@ -48,9 +48,13 @@ function coinScreen(){
   `<button class="btn primary" data-first="${winner}">Elegir jugar primero</button><button class="btn" data-first="${1-winner}">Jugar segundo (+1 energía en R1)</button>`;
  return `${title()}<section class="result"><span class="coin">◉</span><div class="kicker">Sorteo inicial</div><h2>${winnerText}</h2><p class="small">El segundo jugador recibe +1 energía durante la primera ronda. Después la prioridad alterna cada ronda.</p><div class="choices">${buttons}</div></section>`;
 }
+function healthTrack(hp,max){
+ const pct=Math.max(0,Math.min(100,Number(hp)/Math.max(1,Number(max))*100));
+ return `<span class="health-track" aria-hidden="true" style="--health:${pct}%"></span>`;
+}
 function sideBanner(side,isEnemy){
  const p=match.players[side];
- return `<div class="side-banner ${isEnemy?'enemy':''}"><strong>${isEnemy?'RIVAL':'TÚ'} · ${escape(p.name)}</strong><span class="nexus ${side===0?'blue':'red'}">◈ NEXO ${p.nexus}/12</span><span>⚡ ${p.energy}</span></div>`;
+ return `<div class="side-banner ${isEnemy?'enemy':''}"><strong>${isEnemy?'RIVAL':'TÚ'} · ${escape(p.name)}</strong><span class="nexus ${side===0?'blue':'red'}">◈ NEXO ${p.nexus}/12${healthTrack(p.nexus,12)}</span><span>⚡ ${p.energy}</span></div>`;
 }
 function canTargetUnit(u,owner){
  if(!selectedCard||!match||match.phase!=='tactics')return false;
@@ -64,7 +68,7 @@ function canTargetUnit(u,owner){
  }
 }
 function zoneUnit(u,owner,isEnemy){
- return `<button class="unit ${isEnemy?'enemy':''} ${u.tapped?'tapped':''} ${selectedUnit===u.id?'active-target':''} ${canTargetUnit(u,owner)?'can-target':''}" title="${escape(characterName(u))} · ${escape(TRAITS[u.trait]?.description||'')} · ${u.hp}/${u.maxHp} PV · ${u.tapped?'Agotado':'Disponible'}" data-unit="${escape(u.id)}" data-owner="${owner}" draggable="${desktopCanDrag()&&owner===match.turn&&match.phase==='tactics'&&!curtain}">${renderCardFace(u.code,{variant:'board',attack:combatAttack(u,match.round),hp:u.hp,maxHp:u.maxHp})}</button>`;
+ return `<button class="unit ${isEnemy?'enemy':''} ${u.tapped?'tapped':''} ${selectedUnit===u.id?'active-target':''} ${canTargetUnit(u,owner)?'can-target':''}" title="${escape(characterName(u))} · ${escape(TRAITS[u.trait]?.description||'')} · ${u.hp}/${u.maxHp} PV · ${u.tapped?'Agotado':'Disponible'}" data-unit="${escape(u.id)}" data-owner="${owner}" draggable="${desktopCanDrag()&&owner===match.turn&&match.phase==='tactics'&&!curtain}">${renderCardFace(u.code,{variant:'board',attack:combatAttack(u,match.round),hp:u.hp,maxHp:u.maxHp})}${healthTrack(u.hp,u.maxHp)}</button>`;
 }
 function characterName(u){return u.name || u.code;}
 function laneSlot(side,lane,rank,isEnemy){
@@ -73,7 +77,7 @@ function laneSlot(side,lane,rank,isEnemy){
 }
 function tower(side,lane){
  const hp=match.players[side].towers[lane];
- return `<button class="tower ${hp===0?'open':''}" data-lane="${lane}" title="Elegir carril ${lane}"><span>${hp>0?'♜ Torre':'⚑ BRECHA'}</span><strong>${hp}/6</strong></button>`;
+ return `<button class="tower ${hp===0?'open':''}" data-lane="${lane}" title="Elegir carril ${lane}"><span>${hp>0?'♜ Torre':'⚑ BRECHA'}</span><strong>${hp}/6</strong>${healthTrack(hp,6)}</button>`;
 }
 function laneColumn(side,lane,isEnemy){
  return `<div class="lane ${isEnemy?'enemy':''} ${focusLane===lane?'focus-active':''}" data-lane-column="${lane}" data-owner="${side}"><div class="lane-name">${lane}<button class="lane-focus-btn" type="button" data-assign-lane="${lane}" title="Dirigir la bonificación del Latido a ${lane}" aria-label="Seleccionar ${lane} para la recompensa del Latido" aria-pressed="${focusLane===lane}">◎</button></div>${isEnemy?`${tower(side,lane)}${laneSlot(side,lane,'rear',isEnemy)}${laneSlot(side,lane,'front',isEnemy)}`:`${laneSlot(side,lane,'front',isEnemy)}${laneSlot(side,lane,'rear',isEnemy)}${tower(side,lane)}`}</div>`;
