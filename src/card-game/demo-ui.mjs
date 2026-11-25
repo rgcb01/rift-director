@@ -1,4 +1,5 @@
 import {renderCardFace,renderCardArt,installArtFallback} from './card-renderer.mjs';
+import {planDrop} from './drag-rules.mjs';
 import {TUTORIAL_LESSONS,tutorialStep,tutorialAllows,tutorialCompletedStep,createTutorialMatch} from './tutorial.mjs';
 import {createMatch, playCard, activate, passTurn, chooseKeep, LANES, OBJECTIVES, combatAttack} from './engine.mjs';
 import {STARTER_DECKS, EFFECT_NAMES} from './starter-decks.mjs';
@@ -421,6 +422,128 @@ function pickUnit(owner,uid){
  if(owner!==side){notice=`${characterName(unit)} · ${unit.attack} ataque · ${unit.hp}/${unit.maxHp} PV.`;render();return;}
  selectedUnit=selectedUnit===uid?null:uid;notice='';render();
 }
+
+/* Desktop HTML drag-and-drop keeps the game's authoritative engine as its
+   only execution path. Click/keyboard controls remain valid alternatives. */
+function dropDescription(node){
+ if(node.matches('.board-base-drop'))return {kind:'base',side:Number(node.dataset.baseDrop)};
+ if(node.matches('.objective-tile'))return {kind:'objective',objective:node.dataset.objective};
+ if(node.matches('.unit[data-unit]'))return {kind:'unit',side:Number(node.dataset.owner),uid:node.dataset.unit};
+ if(node.matches('.row-slot'))return {kind:'row',side:Number(node.dataset.owner),lane:node.dataset.slot,rank:node.dataset.rank};
+ if(node.matches('.lane'))return {kind:'lane',side:Number(node.dataset.owner),lane:node.dataset.laneColumn};
+ if(node.matches('.field'))return {kind:'board'};
+ return null;
+}
+function tutorialPermitsDrop(plan){
+ if(!plan)return false;
+ if(mode!=='tutorial')return true;
+ const step=tutorialStep(tutorial?.lesson,tutorial?.step);
+ if(!step)return false;
+ if(plan.kind==='activate')return tutorialAllows(step,{kind:'order',order:plan.order});
+ if(plan.kind==='select-rotation'){
+  const unit=match.players[match.turn].characters.find(u=>u.id===plan.unitId);
+  return tutorialAllows(step,{kind:'card',id:plan.cardId})&&
+   tutorialAllows(step,{kind:'unit',side:match.turn,code:unit?.code});
+ }
+ if(plan.kind==='play'){
+  if(!tutorialAllows(step,{kind:'card',id:plan.cardId}))return false;
+  if(plan.target.lane&&!tutorialAllows(step,{kind:'lane',lane:plan.target.lane}))return false;
+  if(plan.target.objective&&!tutorialAllows(step,{kind:'objective',objective:plan.target.objective}))return false;
+  return true;
+ }
+ return false;
+}
+function plannedDrop(source,node){
+ const destination=dropDescription(node);
+ const plan=destination&&planDrop(match,source,destination,{focusLane,selectedCardUid:selectedCard});
+ return tutorialPermitsDrop(plan)?plan:null;
+}
+function validDropFor(target){
+ let el=target?.nodeType===1?target:target?.parentElement;
+ while(el&&el!==app){
+  if(el.matches?.('.board-base-drop,.objective-tile,.unit[data-unit],.row-slot,.lane,.field')){
+   const plan=plannedDrop(activeDrag,el);
+   if(plan)return {element:el,plan};
+  }
+  el=el.parentElement;
+ }
+ return null;
+}
+function clearDrag(){
+ app.classList.remove('dragging-active');
+ app.querySelectorAll('.drop-valid,.drop-hover,.dragging-card,.dragging-unit').forEach(el=>
+  el.classList.remove('drop-valid','drop-hover','dragging-card','dragging-unit'));
+ activeDrag=null;hoverDrop=null;
+}
+function beginDrag(event){
+ if(!desktopCanDrag()||!match||match.phase!=='tactics'||curtain||match.turn!==(mode==='hotseat'?match.turn:0)){
+  event.preventDefault();return;
+ }
+ const node=event.target.closest('button[data-card],button[data-unit]');
+ if(!node||!app.contains(node)||node.disabled){event.preventDefault();return;}
+ const isCard=Boolean(node.dataset.card);
+ const source=isCard?{kind:'card',uid:node.dataset.card}:{kind:'unit',side:Number(node.dataset.owner),uid:node.dataset.unit};
+ if(!isCard&&source.side!==match.turn){event.preventDefault();return;}
+ if(mode==='tutorial'&&!tutorialStep(tutorial?.lesson,tutorial?.step)){event.preventDefault();return;}
+ activeDrag=source;
+ event.dataTransfer.effectAllowed='move';
+ event.dataTransfer.setData('text/plain','RiftDirector:'+source.kind+':'+source.uid);
+ node.classList.add(isCard?'dragging-card':'dragging-unit');
+ app.classList.add('dragging-active');
+ const candidates=isCard?app.querySelectorAll('.field,.lane,.unit[data-unit],.objective-tile'):
+  app.querySelectorAll('.lane,.row-slot,.board-base-drop');
+ for(const candidate of candidates){
+  // Highlight only the actionable terminal surface, not its ancestor.
+  if(candidate.matches('.field')&&isCard){
+   const c=match.players[match.turn].hand.find(v=>v.uid===source.uid);
+   if(!['ENERGY','DRAW'].includes(c?.effect.type))continue;
+  }
+  if(candidate.matches('.lane')&&isCard){
+   const c=match.players[match.turn].hand.find(v=>v.uid===source.uid);
+   if(!['PRESSURE','GUARD','GANK','DIVE','SABOTAGE'].includes(c?.effect.type))continue;
+  }
+  if(candidate.matches('.unit')&&isCard){
+   const c=match.players[match.turn].hand.find(v=>v.uid===source.uid);
+   if(!['IMPACT','HEAL','BACK','ROTATE'].includes(c?.effect.type))continue;
+  }
+  if(plannedDrop(source,candidate))candidate.classList.add('drop-valid');
+ }
+}
+function finishDrop(plan){
+ if(plan.kind==='select-rotation'){
+  selectedCard=plan.uid;selectedUnit=null;rotateSource=plan.unitId;selectedObjective=null;
+  handCollapsed=true;
+  notice='Ahora arrastra ese Riftborn a otro carril, o elige un destino en el panel.';
+  render();return;
+ }
+ if(plan.kind==='play'){
+  perform(()=>playCard(match,match.turn,plan.uid,plan.target),
+   {kind:'card',id:plan.cardId,...plan.target});
+ }else if(plan.kind==='activate'){
+  perform(()=>activate(match,match.turn,plan.unitId,plan.order),
+   {kind:'order',order:plan.order});
+ }
+}
+app.addEventListener('dragstart',beginDrag);
+app.addEventListener('dragover',event=>{
+ if(!activeDrag)return;
+ const target=validDropFor(event.target);
+ if(hoverDrop!==target?.element){
+  hoverDrop?.classList.remove('drop-hover');
+  hoverDrop=target?.element||null;
+  hoverDrop?.classList.add('drop-hover');
+ }
+ if(target){event.preventDefault();event.dataTransfer.dropEffect='move';}
+});
+app.addEventListener('drop',event=>{
+ if(!activeDrag)return;
+ const target=validDropFor(event.target);
+ if(target)event.preventDefault();
+ const plan=target?.plan;
+ clearDrag();
+ if(plan)finishDrop(plan);
+});
+app.addEventListener('dragend',clearDrag);
 app.addEventListener('change',event=>{
  const ai=event.target.closest('[data-ai]');
  if(ai&&!match&&!coin){
