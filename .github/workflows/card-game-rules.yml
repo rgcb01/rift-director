@@ -34,6 +34,7 @@ jobs:
           node --check src/card-game/starter-decks.mjs
           node --check src/card-game/demo-ui.mjs
           node --check src/card-game/tutorial.mjs
+          node --check src/card-game/drag-rules.mjs
           node --check src/card-game/collection.mjs
           node --check src/card-game/collection-ui.mjs
           node --check src/card-game/deck-library.mjs
