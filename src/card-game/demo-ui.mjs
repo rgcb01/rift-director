@@ -219,6 +219,7 @@ function startTutorial(lesson=0){
  selectedCard=null;selectedUnit=null;rotateSource=null;selectedObjective=null;
  focusLane=lesson===0?'MID':lesson===3?'MID':'TOP';
  handCollapsed=false;currentMatchId=null;matchReward=null;
+ driveBot();
  notice='Practica sin recompensas ni cambios a tu colección.';
  render();
 }
@@ -359,7 +360,7 @@ function perform(fn,event=null){
    clearSelection();
    handCollapsed=false;
    if(mode!=='tutorial'||tutorialStep(tutorial?.lesson,tutorial?.step))notice=match.round!==before?`Ronda ${before} resuelta. Revisa las torres y el registro.`:'Jugada registrada.';
-   driveBot();
+   if(mode==='bot'||mode==='tutorial')driveBot();
    grantIfFinished();
    if(mode==='hotseat'&&match.phase==='tactics'&&match.turn!==prior)curtain=true;
  }catch(err){notice=err?.message||'Jugada no válida.';}
