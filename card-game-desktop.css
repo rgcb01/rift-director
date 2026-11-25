@@ -185,3 +185,8 @@
 #card-game-app .tower>.health-track{position:absolute;bottom:2px;left:5px;right:5px}
 #card-game-app .nexus .health-track{margin-top:3px}
 #card-game-app .unit.tapped>.health-track{opacity:.65}
+
+/* Immediate target preview, separate from end-of-round resolution. */
+#card-game-app .health-preview{display:block;width:100%;padding:3px 2px;border-radius:4px;font-size:10px;font-weight:800;line-height:1.15;text-align:center;pointer-events:none;background:#101820;color:#dce6e9;white-space:normal}
+#card-game-app .health-preview.damage{color:#ffd0c7;background:#48262e}
+#card-game-app .health-preview.heal{color:#baf3d6;background:#153b30}
