@@ -524,7 +524,46 @@ function finishDrop(plan){
    {kind:'order',order:plan.order});
  }
 }
-app.addEventListener('dragstart',beginDrag);
+// Some desktop browser/scroll combinations can finish a mouse gesture without
+// dispatching HTML5 drag events. Pointer fallback resolves the very same plan
+// once the mouse moves enough; a plain click still follows the existing UI.
+let pointerPending=null,suppressPointerClick=false;
+app.addEventListener('pointerdown',event=>{
+ if(event.button!==0||!desktopCanDrag()||!match||match.phase!=='tactics'||curtain||
+   match.turn!==(mode==='hotseat'?match.turn:0))return;
+ const node=event.target.closest('button[data-card],button[data-unit]');
+ if(!node||node.disabled)return;
+ const source=node.dataset.card?{kind:'card',uid:node.dataset.card}:
+  {kind:'unit',side:Number(node.dataset.owner),uid:node.dataset.unit};
+ if(source.kind==='unit'&&source.side!==match.turn)return;
+ pointerPending={source,x:event.clientX,y:event.clientY,moved:false};
+},true);
+document.addEventListener('pointermove',event=>{
+ if(!pointerPending||event.pointerType!=='mouse'||!(event.buttons&1))return;
+ if(Math.hypot(event.clientX-pointerPending.x,event.clientY-pointerPending.y)>=9)
+  pointerPending.moved=true;
+},true);
+document.addEventListener('pointerup',event=>{
+ const pending=pointerPending;pointerPending=null;
+ if(!pending?.moved||event.button!==0||!match||!desktopCanDrag())return;
+ // Native dragstart already owns the gesture when available.
+ if(activeDrag)return;
+ activeDrag=pending.source;
+ const target=validDropFor(document.elementFromPoint(event.clientX,event.clientY)||event.target);
+ const plan=target?.plan;
+ clearDrag();
+ if(plan)finishDrop(plan);
+ // Prevent a dragged button from also firing its click action.
+ suppressPointerClick=true;
+ setTimeout(()=>{suppressPointerClick=false;},0);
+},true);
+document.addEventListener('pointercancel',()=>{pointerPending=null;},true);
+document.addEventListener('click',event=>{
+ if(suppressPointerClick&&app.contains(event.target)){
+  suppressPointerClick=false;event.preventDefault();event.stopImmediatePropagation();
+ }
+},true);
+app.addEventListener('dragstart',event=>{pointerPending=null;beginDrag(event);});
 app.addEventListener('dragover',event=>{
  if(!activeDrag)return;
  const target=validDropFor(event.target);
