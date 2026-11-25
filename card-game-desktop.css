@@ -175,3 +175,13 @@
 @media(prefers-reduced-motion:reduce){
  #card-game-app:has(.field) .hand-card{transform:none!important}
 }
+
+/* Live health: numeric labels remain authoritative; bars are supplemental. */
+#card-game-app .health-track{display:block;height:3px;overflow:hidden;border-radius:4px;background:#070f1bbd;pointer-events:none;min-width:0}
+#card-game-app .health-track::after{content:"";display:block;height:100%;width:var(--health);background:#80d5ad;border-radius:inherit}
+#card-game-app .enemy .health-track::after,#card-game-app .nexus.red .health-track::after{background:#eea09a}
+#card-game-app .unit>.health-track{width:100%;flex:none}
+#card-game-app .tower{position:relative;padding-bottom:7px}
+#card-game-app .tower>.health-track{position:absolute;bottom:2px;left:5px;right:5px}
+#card-game-app .nexus .health-track{margin-top:3px}
+#card-game-app .unit.tapped>.health-track{opacity:.65}
