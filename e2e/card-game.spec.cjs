@@ -1,7 +1,8 @@
 const {test,expect}=require('@playwright/test');
 const {mkdirSync}=require('node:fs');
 mkdirSync('ux-screenshots',{recursive:true});
-const url='http://127.0.0.1:8080/card-game.html';
+const base=process.env.RIFT_TEST_URL||'http://127.0.0.1:8080';
+const url=base+'/card-game.html';
 
 for(const width of [360,768,1440]){
   test('Card Game v0.8.2: bot, tablero y jugadas a '+width+'px',async({browser})=>{
@@ -73,7 +74,7 @@ for(const width of [390,1280]){
   const context=await browser.newContext({viewport:{width,height:900},reducedMotion:'reduce'});
   const page=await context.newPage(),errors=[];
   page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('http://127.0.0.1:8080/deck-builder.html');
+  await page.goto(base+'/deck-builder.html');
   await expect(page.locator('.db-card')).toHaveCount(36);
   await expect(page.locator('.db-slot')).toHaveCount(5);
   await expect(page.locator('[data-action="play"]')).toBeEnabled();
@@ -98,7 +99,7 @@ for(const width of [390,1280]){
  });
 }
 test('Card Game v0.8.3: no permite jugar un mazo incompleto',async({page})=>{
- await page.goto('http://127.0.0.1:8080/deck-builder.html');
+ await page.goto(base+'/deck-builder.html');
  await page.locator('[data-action="empty"]').click();
  await expect(page.locator('[data-action="play"]')).toBeDisabled();
  await expect(page.getByText('exactamente 20 cartas tácticas',{exact:false})).toBeVisible();
@@ -135,7 +136,7 @@ for(const width of [390,1280]){
    const context=await browser.newContext({viewport:{width,height:900},reducedMotion:'reduce'});
    const page=await context.newPage(),errors=[];
    page.on('pageerror',error=>errors.push(error.message));
-   await page.goto('http://127.0.0.1:8080/collection.html');
+   await page.goto(base+'/collection.html');
    await expect(page.locator('.cc-card')).toHaveCount(56);
    await expect(page.locator('[data-action="open"]')).toBeEnabled();
    await expect(page.getByText('200',{exact:false}).first()).toBeVisible();
@@ -160,7 +161,7 @@ for(const width of [390,1280]){
  });
 }
 test('Card Game v0.9.0: el constructor bloquea cartas no obtenidas sin borrar los mazos iniciales',async({page})=>{
- await page.goto('http://127.0.0.1:8080/deck-builder.html');
+ await page.goto(base+'/deck-builder.html');
  await expect(page.locator('[data-action="play"]')).toBeEnabled();
  await expect(page.locator('[data-catalog-card="great-convergence"] [data-add]')).toBeDisabled();
  await expect(page.locator('[data-hero="hero-ancla"]')).toBeDisabled();
@@ -207,7 +208,7 @@ test('Card Game v0.9.1: carta seleccionada muestra descripción y conserva la se
  await page.locator('[data-setup="bot"]').click();
  await page.locator('[data-first]').first().click();
  const uid=await page.locator('.tactic:not([disabled])').evaluateAll(nodes=>{
-  const card=nodes.find(el=>!['⚡','✦'].includes(el.querySelector('.art')?.textContent?.trim()));
+  const card=nodes.find(el=>!['energy-pulse','power-channel','surge-crystal','map-reading','foresight','ancient-knowledge'].includes(el.querySelector('[data-card-id]')?.dataset.cardId));
   return card?.getAttribute('data-card')||null;
  });
  expect(uid).toBeTruthy();

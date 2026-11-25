@@ -1,9 +1,11 @@
+import {renderCardFace,installArtFallback} from './card-renderer.mjs';
 import {CHARACTER_CATALOG,CHARACTER_BY_ID,TACTIC_CATALOG,TACTIC_BY_ID,RARITIES,TRAITS} from './catalog.mjs';
 import {SLOTS,MAX_DECKS,templateDraft,emptyDraft,assignHero,addTactic,removeTactic,validateDraft,
   readLibrary,saveDraft,deleteSavedDeck,readSelection,writeSelection} from './deck-library.mjs';
 import {readCollection,ownedCount,missingForDeck} from './collection.mjs';
 
 const root=document.getElementById('deck-builder-app');
+installArtFallback(root);
 const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let saved=readLibrary();
 let collection=readCollection();
@@ -14,7 +16,6 @@ const currentSaved=saved.find(d=>d.id===activeSelection[0]);
 if(currentSaved)draft=JSON.parse(JSON.stringify(currentSaved));
 const roleLabel=slot=>SLOTS[slot]==='JUN'?'JUNGLA':SLOTS[slot];
 const tally=()=>Object.fromEntries([...new Set(draft.tactics)].map(id=>[id,draft.tactics.filter(v=>v===id).length]));
-const displayRarity=id=>RARITIES[id]?.name||id;
 const complete=()=>validateDraft(draft).length===0&&missingForDeck(draft,collection).length===0;
 function banner(){
  return `<header class="db-topbar">
@@ -54,8 +55,7 @@ function heroPicker(){
  const missing=ownedCount(collection,c.id)<1;
  const trait=TRAITS[c.trait];
  return `<button class="db-choice ${chosen?'active':''}" data-hero="${c.id}" ${elsewhere||missing?'disabled':''} title="${escape(missing?'Consigue este Riftborn en la colección.':trait.description)}">
- <span><b>${escape(c.name)}</b><small><span class="db-rarity ${c.rarity}">${displayRarity(c.rarity)}</span> · ${escape(trait.name)}</small><small>${escape(trait.description)}</small><small>${missing?'Bloqueado · 0/1':'En colección · 1/1'}</small></span>
- <span class="db-stat-pill">⚔ ${c.attack} · ♥ ${c.hp}</span>
+ ${renderCardFace(c.id)}<span class="card-owned">${missing?'Bloqueado · 0/1':'En colección · 1/1'}</span>
  </button>`;
  }).join('')}</div>`;
 }
@@ -88,9 +88,7 @@ function tacticalCards(){
    const cap=RARITIES[c.rarity].max;
    const available=ownedCount(collection,c.id);
    return `<article class="db-card ${c.kind}" data-catalog-card="${c.id}">
-     <div class="db-card-head"><div><span class="db-rarity ${c.rarity}">${displayRarity(c.rarity)}</span>
-     <div class="db-card-name">${escape(c.name)}</div></div><span class="db-cost" title="Coste de energía">${c.cost}</span></div>
-     <div class="db-card-desc">${escape(c.description)}</div>
+     ${renderCardFace(c.id)}
      <div class="db-counter"><button class="db-icon-button" data-remove="${c.id}" aria-label="Quitar una copia de ${escape(c.name)}" ${count===0?'disabled':''}>−</button>
      <span>${count} / ${available} de ${cap}</span><button class="db-icon-button" data-add="${c.id}" aria-label="Agregar una copia de ${escape(c.name)}" ${count>=available||count>=cap||draft.tactics.length>=20?'disabled':''}>+</button></div>
    </article>`;

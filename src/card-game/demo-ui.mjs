@@ -1,5 +1,6 @@
+import {renderCardFace,renderCardArt,installArtFallback} from './card-renderer.mjs';
 import {createMatch, playCard, activate, passTurn, chooseKeep, LANES, OBJECTIVES, combatAttack} from './engine.mjs';
-import {STARTER_DECKS, KIND_NAMES, EFFECT_NAMES} from './starter-decks.mjs';
+import {STARTER_DECKS, EFFECT_NAMES} from './starter-decks.mjs';
 import {botStep} from './simple-bot.mjs';
 import {aiStep,AI_LEVELS,AI_STYLES} from './tactical-ai.mjs';
 import {TRAITS} from './catalog.mjs';
@@ -7,8 +8,8 @@ import {listPlayableChoices,loadPlayable,readSelection,writeSelection} from './d
 import {readCollection,awardMatch,MATCH_COINS} from './collection.mjs';
 
 const app=document.getElementById('card-game-app');
+installArtFallback(app);
 const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const iconFor={PRESSURE:'⚔',GUARD:'◈',IMPACT:'✹',ENERGY:'⚡',DRAW:'✦',ROTATE:'↔',GANK:'✣',DIVE:'⌁',BACK:'⌂',HUNT:'☄',HEAL:'♥',SABOTAGE:'⚑'};
 const labelSide=s=>s===0?'Azul':'Rojo';
 let mode=null,match=null,coin=null,selectedCard=null,selectedUnit=null,rotateSource=null,selectedObjective=null,curtain=false,notice='';
 let deckChoices=readSelection();
@@ -59,7 +60,7 @@ function canTargetUnit(u,owner){
  }
 }
 function zoneUnit(u,owner,isEnemy){
- return `<button class="unit ${isEnemy?'enemy':''} ${u.tapped?'tapped':''} ${selectedUnit===u.id?'active-target':''} ${canTargetUnit(u,owner)?'can-target':''}" title="${escape(characterName(u))} · ${escape(TRAITS[u.trait]?.description||'')} · ${u.hp}/${u.maxHp} PV · ${u.tapped?'Agotado':'Disponible'}" data-unit="${escape(u.id)}" data-owner="${owner}"><span class="name-role">${escape(u.role)}${u.trait?' · ✦':''}</span><b>${escape(characterName(u))}</b><span class="stats">⚔ ${combatAttack(u,match.round)} &nbsp;♥ ${u.hp}/${u.maxHp}</span></button>`;
+ return `<button class="unit ${isEnemy?'enemy':''} ${u.tapped?'tapped':''} ${selectedUnit===u.id?'active-target':''} ${canTargetUnit(u,owner)?'can-target':''}" title="${escape(characterName(u))} · ${escape(TRAITS[u.trait]?.description||'')} · ${u.hp}/${u.maxHp} PV · ${u.tapped?'Agotado':'Disponible'}" data-unit="${escape(u.id)}" data-owner="${owner}">${renderCardFace(u.code,{variant:'board',attack:combatAttack(u,match.round),hp:u.hp,maxHp:u.maxHp})}</button>`;
 }
 function characterName(u){return u.name || u.code;}
 function laneSlot(side,lane,rank,isEnemy){
@@ -134,7 +135,7 @@ function prompt(viewSide){
        .map(([id,def])=>`<button class="btn target-lane" data-objective="${id}">${escape(def.name)}</button>`).join(''):'';
    const needsUnit=['IMPACT','HEAL','BACK'].includes(t)||(t==='ROTATE'&&!rotateSource);
    const hint=needsUnit?'<span class="selection-hint">Toca un personaje resaltado. Cambia de carril con las pestañas.</span>':'';
-   return `<section class="panel prompt" aria-label="Preparar acción"><div class="selected-card-detail"><span class="card-preview-symbol" aria-hidden="true">${escape(iconFor[t]||'✦')}</span><div><h3>${escape(card.name)} <span class="card-preview-cost">⚡ ${card.cost}</span></h3><p class="card-effect-text">${escape(card.description)}</p></div></div><p><strong>${escape(label)}</strong></p><div class="prompt-btns">${laneActions}${objectives}${hint}<button class="btn smallbtn minor" data-act="cancel">Cancelar</button></div></section>`;
+   return `<section class="panel prompt" aria-label="Preparar acción"><div class="selected-card-detail">${renderCardArt(card.id,{compact:true,full:true,eager:true})}<div><h3>${escape(card.name)} <span class="card-preview-cost">⚡ ${card.cost}</span></h3><p class="card-effect-text">${escape(card.description)}</p></div></div><p><strong>${escape(label)}</strong></p><div class="prompt-btns">${laneActions}${objectives}${hint}<button class="btn smallbtn minor" data-act="cancel">Cancelar</button></div></section>`;
  }
  if(selectedUnit){
    const u=match.players[viewSide].characters.find(u=>u.id===selectedUnit);
@@ -185,7 +186,7 @@ function sidePanel(viewSide){
 function handPanel(side){
  const p=match.players[side];
  const active=p.hand;
- return `<section class="hand-panel ${handCollapsed?'is-collapsed':''}" aria-label="Mano de cartas"><div class="hand-heading"><div><h2>✦ Mano · ${labelSide(side)}</h2><p class="small">${active.length} cartas · conserva hasta 2 para la siguiente ronda</p></div><div class="nav-actions"><button class="btn minor hand-toggle" data-act="toggle-hand" aria-expanded="${!handCollapsed}" aria-controls="hand-card-list">${handCollapsed?'▴ Ver cartas':'▾ Ocultar mano'}</button><span class="pill">⚡ ${p.energy} energía</span><span class="pill">${p.actions}/4 jugadas</span><button class="btn primary" data-act="pass" ${match.turn!==side?'disabled':''}>Pasar turno</button></div></div><div class="cards-scroll" id="hand-card-list" aria-label="Cartas disponibles, desliza horizontalmente">${active.map(c=>`<div class="hand-card"><button class="tactic ${c.kind} ${selectedCard===c.uid?'selected':''}" data-card="${escape(c.uid)}" ${(p.energy<c.cost||match.turn!==side)?'disabled':''}><span class="kind">${escape(KIND_NAMES[c.kind])}</span><span class="cost">${c.cost}</span><span class="art" aria-hidden="true">${escape(iconFor[c.effect.type]||'✦')}</span><strong>${escape(c.name)}</strong><span class="description">${escape(c.description)}</span></button><button class="keep-btn ${p.keep.includes(c.uid)?'kept':''}" data-keep="${escape(c.uid)}">${p.keep.includes(c.uid)?'★ Reservada':'☆ Reservar'}</button></div>`).join('')}${active.length===0?'<p class="small">No tienes cartas en la mano.</p>':''}</div></section>`;
+ return `<section class="hand-panel ${handCollapsed?'is-collapsed':''}" aria-label="Mano de cartas"><div class="hand-heading"><div><h2>✦ Mano · ${labelSide(side)}</h2><p class="small">${active.length} cartas · conserva hasta 2 para la siguiente ronda</p></div><div class="nav-actions"><button class="btn minor hand-toggle" data-act="toggle-hand" aria-expanded="${!handCollapsed}" aria-controls="hand-card-list">${handCollapsed?'▴ Ver cartas':'▾ Ocultar mano'}</button><span class="pill">⚡ ${p.energy} energía</span><span class="pill">${p.actions}/4 jugadas</span><button class="btn primary" data-act="pass" ${match.turn!==side?'disabled':''}>Pasar turno</button></div></div><div class="cards-scroll" id="hand-card-list" aria-label="Cartas disponibles, desliza horizontalmente">${active.map(c=>`<div class="hand-card"><button class="tactic ${c.kind} ${selectedCard===c.uid?'selected':''}" data-card="${escape(c.uid)}" ${(p.energy<c.cost||match.turn!==side)?'disabled':''}>${renderCardFace(c.id,{variant:'hand'})}</button><button class="keep-btn ${p.keep.includes(c.uid)?'kept':''}" data-keep="${escape(c.uid)}">${p.keep.includes(c.uid)?'★ Reservada':'☆ Reservar'}</button></div>`).join('')}${active.length===0?'<p class="small">No tienes cartas en la mano.</p>':''}</div></section>`;
 }
 function outcome(){
  if(match.phase!=='finished')return '';
