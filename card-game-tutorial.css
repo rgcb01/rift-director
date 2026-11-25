@@ -1,0 +1,46 @@
+/* Rift Director: progressive tutorial coach. Uses normal tactical buttons and cards. */
+.tutorial-entry{grid-column:1/-1;min-height:96px;border-color:#ddbd81!important;background:linear-gradient(120deg,#53446e,#243d58)!important}
+.tutorial-entry strong{font-size:19px!important;color:#ffe5a9}
+.tutorial-entry small{font-size:13px!important;line-height:1.5}
+.tutorial-guide{position:sticky;top:0;z-index:22;margin:10px 0;padding:14px 16px;border:1px solid #eac98d;background:linear-gradient(140deg,#282c4ceb,#1c2d47f5);border-radius:15px;box-shadow:0 8px 32px #0409149c;backdrop-filter:blur(15px)}
+.tutorial-guide h2{font:750 clamp(16px,2.4vw,20px)/1.2 'Space Grotesk',system-ui,sans-serif;color:#fff3d3;margin:5px 0 7px}
+.tutorial-guide>p{max-width:850px;line-height:1.5;font-size:14px;color:#eef3fc}
+.tutorial-topline{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.tutorial-guide .kicker{font-size:11px;color:#f4dcae;font-weight:800;letter-spacing:.1em}
+.tutorial-chapters{display:flex;align-items:center;gap:5px;min-height:11px}
+.tutorial-chapter{width:32px;height:7px;background:#5c6981;border:1px solid #8e9ab0;border-radius:99px}
+.tutorial-chapter.passed{background:#86c6b2;border-color:#b9f7de}
+.tutorial-chapter.current{background:#eac98d;border-color:#ffe8bc}
+.tutorial-tip{margin-top:7px}
+.tutorial-tip summary{font-size:12px;min-height:29px;display:flex;align-items:center}
+.tutorial-tip p{font-size:12px;color:#cbd8ea;margin:0;line-height:1.5}
+.tutorial-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}
+.tutorial-actions .btn{min-height:38px;font-size:12px}
+.tutorial-actions .btn.primary{min-height:44px}
+.tutorial-done{border-color:#a9dabe;background:linear-gradient(140deg,#25493e,#1d3147)}
+.tutorial-target{outline:3px solid #ffde89!important;outline-offset:3px!important;box-shadow:0 0 0 6px #ffe09c35,0 0 25px #f5d08b80!important;position:relative;z-index:2}
+.tutorial-guide~.arena-layout .tutorial-target{z-index:3}
+#card-game-app:has(.tutorial-guide) .lane-navigator{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:7px}
+#card-game-app:has(.tutorial-guide) .focus-tab{min-height:52px;border:1px solid #7c99bc;border-radius:9px;background:#192841;color:#f4f4f8;display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:6px;align-items:center}
+#card-game-app:has(.tutorial-guide) .focus-tab strong{grid-column:1/-1;font-weight:800;letter-spacing:.1em}
+#card-game-app:has(.tutorial-guide) .focus-tab span{font-size:11px}
+#card-game-app:has(.tutorial-guide) .focus-tab small{grid-column:1/-1;font-size:11px;color:#c4d9ed}
+#card-game-app:has(.tutorial-guide) .focus-tab.active{border-color:#efd19d;background:#4a3e62}
+#card-game-app:has(.tutorial-guide) .tutorial-target:disabled{opacity:1}
+@media (max-width:620px){
+ .tutorial-entry{grid-column:1;min-height:90px}
+ .tutorial-guide{top:0;margin:7px 0;padding:9px 11px;border-radius:11px}
+ .tutorial-guide h2{font-size:15px;line-height:1.25;margin:4px 0}
+ .tutorial-guide>p{font-size:12px;line-height:1.4}
+ .tutorial-guide .kicker{font-size:10px}
+ .tutorial-chapter{width:23px;height:6px}
+ .tutorial-actions{margin-top:5px;gap:7px}
+ .tutorial-actions .btn{min-height:40px;padding:6px 9px;font-size:11px}
+ .tutorial-tip summary{min-height:24px}
+ .tutorial-tip p{font-size:11px}
+ #card-game-app:has(.tutorial-guide) .lane-navigator{gap:6px}
+ #card-game-app:has(.tutorial-guide) .focus-tab{min-height:65px;padding:5px 2px}
+ #card-game-app:has(.tutorial-guide) .focus-tab strong{font-size:14px}
+ #card-game-app:has(.tutorial-guide) .focus-tab small{font-size:10px}
+}
+@media (prefers-reduced-motion:reduce){.tutorial-target{animation:none!important}}
