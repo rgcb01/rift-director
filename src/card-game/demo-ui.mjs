@@ -1,4 +1,5 @@
 import {renderCardFace,renderCardArt,installArtFallback} from './card-renderer.mjs';
+import {TUTORIAL_LESSONS,tutorialStep,tutorialAllows,tutorialCompletedStep,createTutorialMatch} from './tutorial.mjs';
 import {createMatch, playCard, activate, passTurn, chooseKeep, LANES, OBJECTIVES, combatAttack} from './engine.mjs';
 import {STARTER_DECKS, EFFECT_NAMES} from './starter-decks.mjs';
 import {botStep} from './simple-bot.mjs';
@@ -16,7 +17,8 @@ let deckChoices=readSelection();
 let botDifficulty='tactical',botStyle='balanced';
 let currentMatchId=null,matchReward=null;
 let focusLane='MID',lastRenderedMatch=null,lastRenderedSide=null,handCollapsed=false;
-function title(){return '<div class="topbar"><div><div class="kicker">CARD GAME · PROTOTIPO 0.9.1</div><div class="wordmark">RIFT <span>DIRECTOR</span></div></div><div class="nav-actions"><span class="pill live">♧ Rework táctico</span><a class="btn smallbtn minor" href="./deck-builder.html">✦ Mis mazos</a><a class="btn smallbtn minor" href="./collection.html">◈ Sobres</a><button class="btn smallbtn minor" data-act="reset">Nueva partida</button></div></div>';}
+let tutorial=null;
+function title(){return '<div class="topbar"><div><div class="kicker">CARD GAME · PROTOTIPO 0.9.2 · TUTORIAL</div><div class="wordmark">RIFT <span>DIRECTOR</span></div></div><div class="nav-actions"><span class="pill live">♧ Rework táctico</span><a class="btn smallbtn minor" href="./deck-builder.html">✦ Mis mazos</a><a class="btn smallbtn minor" href="./collection.html">◈ Sobres</a><button class="btn smallbtn minor" data-act="reset">Nueva partida</button></div></div>';}
 function deckSelectors(){
  const choices=listPlayableChoices();
  return '<div class="deck-selectors">'+[0,1].map(side=>{
@@ -35,7 +37,7 @@ function botSettings(){
    select('style',AI_STYLES,botStyle)+'</div></div>';
 }
 function intro(){
- return `${title()}<div class="intro"><section class="intro-hero"><div class="kicker">Domina la Convergencia</div><h1>Tres carriles.<br>Cuatro jugadas.<br>Una decisión decisiva.</h1><p>Dirige cinco Riftborn, defiende tus torres y abre camino hacia el Nexo rival. Todo el combate se resuelve con cartas, posiciones y presión.</p><div class="pill">5 personajes · 20 tácticas · 6 cartas en mano</div></section>${deckSelectors()}${botSettings()}<div class="intro-menu"><button class="mode" data-setup="bot"><strong>⚔ Contra un bot</strong><small>Enfrenta tu mazo contra un bot de dificultad y estrategia configurables. No conoce tu mano.</small></button><button class="mode" data-setup="hotseat"><strong>♟ Dos jugadores locales</strong><small>Alternad jugadas en el mismo dispositivo. La mano se oculta al pasar de jugador.</small></button></div><p class="small">Versión de pruebas: ya puedes disputar el Latido (R4) y el Coloso (R8) con cartas de Caza. Abre sobres con monedas ganadas contra el bot, fabrica cartas con fragmentos y crea nuevas estrategias en tu colección.</p></div>`;
+ return `${title()}<div class="intro"><section class="intro-hero"><div class="kicker">Domina la Convergencia</div><h1>Tres carriles.<br>Cuatro jugadas.<br>Una decisión decisiva.</h1><p>Dirige cinco Riftborn, defiende tus torres y abre camino hacia el Nexo rival. Todo el combate se resuelve con cartas, posiciones y presión.</p><div class="pill">5 personajes · 20 tácticas · 6 cartas en mano</div></section>${deckSelectors()}${botSettings()}<div class="intro-menu"><button class="mode tutorial-entry" data-setup="tutorial"><strong>✦ Aprende jugando</strong><small>Cinco lecciones cortas. Conoce una mecánica, practícala y descubre la siguiente. Rival pasivo y sin gastar monedas.</small></button><button class="mode" data-setup="bot"><strong>⚔ Contra un bot</strong><small>Enfrenta tu mazo contra un bot de dificultad y estrategia configurables. No conoce tu mano.</small></button><button class="mode" data-setup="hotseat"><strong>♟ Dos jugadores locales</strong><small>Alternad jugadas en el mismo dispositivo. La mano se oculta al pasar de jugador.</small></button></div><p class="small">Versión de pruebas: ya puedes disputar el Latido (R4) y el Coloso (R8) con cartas de Caza. Abre sobres con monedas ganadas contra el bot, fabrica cartas con fragmentos y crea nuevas estrategias en tu colección.</p></div>`;
 }
 function coinScreen(){
  const winner=coin.winner, botWon=coin.mode==='bot'&&winner===1;
@@ -195,11 +197,104 @@ function outcome(){
    mode==='hotseat'?'<p class="small">Modo local: no hay recompensas de monedas.</p>':'';
  return `<section class="result"><div class="coin">✦</div><div class="kicker">Convergencia terminada</div><h2>${match.winner==='draw'?'Empate':match.winner===0?'Gana Azul':'Gana Rojo'}</h2><p class="small">La partida terminó en la ronda ${match.round}. Puedes iniciar otra y probar una estrategia distinta.</p><div class="reward-line">${earned}</div><div class="choices"><button class="btn primary" data-act="reset">Nueva partida</button><a class="btn" href="./collection.html">◈ Abrir sobres</a></div></section>`;
 }
+
+function tutorialGuide(){
+ if(mode!=='tutorial'||!tutorial)return '';
+ const lesson=TUTORIAL_LESSONS[tutorial.lesson],step=tutorialStep(tutorial.lesson,tutorial.step);
+ const progress='<div class="tutorial-chapters" aria-label="Progreso de lecciones">'+TUTORIAL_LESSONS.map((l,i)=>
+   '<span class="tutorial-chapter '+(i<tutorial.lesson?'passed':i===tutorial.lesson?'current':'')+'" title="'+escape(l.title)+'" aria-label="Lección '+(i+1)+' de 5"></span>').join('')+'</div>';
+ if(!step)return `<section class="tutorial-guide tutorial-done" data-tutorial-complete="true" aria-live="polite">
+  <div class="tutorial-topline"><span class="kicker">✦ LECCIÓN ${tutorial.lesson+1}/${TUTORIAL_LESSONS.length} · COMPLETADA</span>${progress}</div>
+  <h2>¡Bien! ${escape(lesson.title)}</h2><p>${tutorial.lesson===TUTORIAL_LESSONS.length-1?'Ya conoces las bases: tus Riftborn, las cartas, las rotaciones, los objetivos y el Nexo.':'Terminaste esta práctica. La siguiente introduce una nueva decisión y usa el mismo motor de combate.'}</p>
+  <div class="tutorial-actions"><button class="btn primary" data-act="tutorial-next">${tutorial.lesson===TUTORIAL_LESSONS.length-1?'⚔ Jugar contra la IA':'Continuar · Lección '+(tutorial.lesson+2)}</button><button class="btn minor" data-act="tutorial-replay">Repetir lección</button><button class="btn minor" data-act="tutorial-exit">Salir</button></div></section>`;
+ return `<section class="tutorial-guide" aria-label="Tutorial guiado" aria-live="polite">
+  <div class="tutorial-topline"><span class="kicker">✦ LECCIÓN ${tutorial.lesson+1}/${TUTORIAL_LESSONS.length} · PASO ${tutorial.step+1}/${lesson.steps.length}</span>${progress}</div>
+  <h2>${escape(step.title)}</h2><p>${escape(step.body)}</p>
+  <details class="tutorial-tip"><summary>¿Por qué importa?</summary><p>${escape(step.tip)}</p></details>
+  <div class="tutorial-actions"><button class="btn minor" data-act="tutorial-skip">Saltar lección</button><button class="btn minor" data-act="tutorial-exit">Salir del tutorial</button></div></section>`;
+}
+function startTutorial(lesson=0){
+ tutorial={lesson,step:0};
+ mode='tutorial';coin=null;curtain=false;match=createTutorialMatch(lesson);
+ selectedCard=null;selectedUnit=null;rotateSource=null;selectedObjective=null;
+ focusLane=lesson===0?'MID':lesson===3?'MID':'TOP';
+ handCollapsed=false;currentMatchId=null;matchReward=null;
+ notice='Practica sin recompensas ni cambios a tu colección.';
+ render();
+}
+function nextTutorialLesson(){
+ if(!tutorial)return;
+ if(tutorial.lesson+1>=TUTORIAL_LESSONS.length){
+   tutorial=null;botDifficulty='rookie';setup('bot');return;
+ }
+ startTutorial(tutorial.lesson+1);
+}
+function recordTutorialAction(event){
+ if(mode!=='tutorial'||!tutorial)return;
+ const step=tutorialStep(tutorial.lesson,tutorial.step);
+ if(!tutorialCompletedStep(step,event,match))return;
+ const currentId=step.id;
+ tutorial.step++;
+ if(currentId==='rotation')focusLane='MID';
+ if(!tutorialStep(tutorial.lesson,tutorial.step)){
+   notice='Lección completada. Puedes repetirla o continuar.';
+   handCollapsed=false;
+ }else{
+   notice='';
+   handCollapsed=false;
+ }
+}
+function tutorialIntent(el){
+ const act=el.dataset.act;
+ if(act==='cancel'||act==='toggle-hand')return {kind:act};
+ if(act==='pass')return {kind:'pass'};
+ if(el.dataset.focusLane)return {kind:'focus',lane:el.dataset.focusLane};
+ if(el.dataset.card){
+   const card=match.players[match.turn].hand.find(c=>c.uid===el.dataset.card);
+   return {kind:'card',id:card?.id};
+ }
+ if(el.dataset.lane)return {kind:'lane',lane:el.dataset.lane};
+ if(el.dataset.objective)return {kind:'objective',objective:el.dataset.objective};
+ if(el.dataset.unit){
+   const side=Number(el.dataset.owner);
+   const unit=match.players[side]?.characters.find(u=>u.id===el.dataset.unit);
+   return {kind:'unit',side,code:unit?.code};
+ }
+ if(el.dataset.order)return {kind:'order',order:el.dataset.order};
+ return null;
+}
+function markTutorialTarget(){
+ if(mode!=='tutorial'||!tutorial)return;
+ const step=tutorialStep(tutorial.lesson,tutorial.step);
+ if(!step)return;
+ const p=match.players[0];
+ const cardUid=id=>p.hand.find(c=>c.id===id)?.uid;
+ const unitUid=id=>p.characters.find(u=>u.code===id)?.id;
+ const q=(selector)=>selector?app.querySelectorAll(selector):[];
+ const attr=(name,value)=>'['+name+'="'+value+'"]';
+ let selectors=[];
+ switch(step.id){
+  case 'focus':selectors=['[data-focus-lane="TOP"]'];break;
+  case 'swap':selectors=selectedUnit?['[data-order="SWAP_RANK"]']:[attr('data-unit',unitUid('hero-centinela'))];break;
+  case 'pressure':case 'final-pressure':selectors=selectedCard?['.target-lane[data-lane="TOP"]']:[attr('data-card',cardUid('wave-push'))];break;
+  case 'rotation':selectors=rotateSource?['.target-lane[data-lane="MID"]']:selectedCard?[attr('data-unit',unitUid('hero-centinela'))]:[attr('data-card',cardUid('rotation'))];break;
+  case 'back':selectors=selectedUnit?['[data-order="BACK"]']:[attr('data-unit',unitUid('hero-arcanista'))];break;
+  case 'hunt':selectors=selectedObjective?['.target-lane[data-lane="MID"]']:selectedCard?['[data-objective="minor"]']:[attr('data-card',cardUid('hunt'))];break;
+  case 'resolve':case 'recovery':case 'capture':case 'win':selectors=['[data-act="pass"]'];break;
+ }
+ for(const selector of selectors)for(const target of q(selector)){
+   target.classList.add('tutorial-target');
+   if(target.matches('.tactic')){
+     const scroll=target.closest('.cards-scroll');
+     if(scroll){const left=target.closest('.hand-card').offsetLeft-scroll.offsetLeft;scroll.scrollLeft=Math.max(0,left-16);}
+   }
+ }
+}
 function game(){
  const view=mode==='hotseat'?match.turn:0;
  const p=match.players[view];
  const play=match.phase==='tactics'&&match.turn===view;
- return `${title()}${notice?`<div class="notice" role="status">${escape(notice)}</div>`:''}<div class="turn-strip"><div><div class="kicker">Ronda ${match.round}</div><strong>${match.phase==='finished'?'Partida terminada':'Turno '+labelSide(match.turn)} ${play?'· tu jugada':''}</strong></div><div class="turn-meta"><span class="pill">⚡ ${p.energy}</span><span class="pill">${p.actions}/4 jugadas</span></div><div class="turn-meta"><span class="pill">↔ ${mode==='bot'?'IA '+AI_LEVELS[botDifficulty].name+' · '+AI_STYLES[botStyle].name:'2 locales'}</span></div></div>${outcome()}<div class="decision-dock">${prompt(view)}</div><div class="arena-layout">${board(view)}${sidePanel(view)}</div>${handPanel(view)}<footer class="layout-footer">Rift Director · Card Game prototype · Las partidas no afectan los guardados del antiguo manager.</footer>${curtain&&mode==='hotseat'&&match.phase==='tactics'?`<div class="pass-screen"><div class="pass-card"><div class="coin">✦</div><h2>Pasa el dispositivo</h2><p class="small">Es turno del jugador ${labelSide(match.turn)}. La mano se mostrará cuando esté listo.</p><button class="btn primary" data-act="reveal">Mostrar mi mano</button></div></div>`:''}`;
+ return `${title()}${notice?`<div class="notice" role="status">${escape(notice)}</div>`:''}<div class="turn-strip"><div><div class="kicker">Ronda ${match.round}</div><strong>${match.phase==='finished'?'Partida terminada':'Turno '+labelSide(match.turn)} ${play?'· tu jugada':''}</strong></div><div class="turn-meta"><span class="pill">⚡ ${p.energy}</span><span class="pill">${p.actions}/4 jugadas</span></div><div class="turn-meta"><span class="pill">↔ ${mode==='bot'?'IA '+AI_LEVELS[botDifficulty].name+' · '+AI_STYLES[botStyle].name:'2 locales'}</span></div></div>${mode==='tutorial'?tutorialGuide():''}${outcome()}<div class="decision-dock">${prompt(view)}</div><div class="arena-layout">${board(view)}${sidePanel(view)}</div>${handPanel(view)}<footer class="layout-footer">Rift Director · Card Game prototype · Las partidas no afectan los guardados del antiguo manager.</footer>${curtain&&mode==='hotseat'&&match.phase==='tactics'?`<div class="pass-screen"><div class="pass-card"><div class="coin">✦</div><h2>Pasa el dispositivo</h2><p class="small">Es turno del jugador ${labelSide(match.turn)}. La mano se mostrará cuando esté listo.</p><button class="btn primary" data-act="reveal">Mostrar mi mano</button></div></div>`:''}`;
 }
 function render(){
  const currentSide=match?(mode==='hotseat'?match.turn:0):null;
@@ -208,6 +303,7 @@ function render(){
  app.innerHTML=match?game():coin?coinScreen():intro();
  const newScroll=app.querySelector('.cards-scroll');
  if(newScroll&&oldScroll)newScroll.scrollLeft=oldScroll;
+ markTutorialTarget();
  lastRenderedMatch=match;
  lastRenderedSide=currentSide;
 }
@@ -234,6 +330,10 @@ function begin(firstPlayer){
 }
 function clearSelection(){selectedCard=null;selectedUnit=null;rotateSource=null;selectedObjective=null;}
 function driveBot(){
+ if(mode==='tutorial'){
+   while(match&&match.phase==='tactics'&&match.turn===1)passTurn(match,1);
+   return;
+ }
  let limit=12;
  while(match&&match.phase==='tactics'&&match.turn===1&&limit-->0){
    if(botDifficulty==='rookie')botStep(match,1);
@@ -250,15 +350,16 @@ function grantIfFinished(){
    notice='La partida terminó, pero no se pudo guardar la recompensa: '+error.message;
  }
 }
-function perform(fn){
+function perform(fn,event=null){
  if(!match||match.phase!=='tactics')return;
  const before=match.round,prior=match.turn;
  try{
    fn();
+   recordTutorialAction(event);
    clearSelection();
    handCollapsed=false;
-   notice=match.round!==before?`Ronda ${before} resuelta. Revisa las torres y el registro.`:'Jugada registrada.';
-   if(mode==='bot')driveBot();
+   if(mode!=='tutorial'||tutorialStep(tutorial?.lesson,tutorial?.step))notice=match.round!==before?`Ronda ${before} resuelta. Revisa las torres y el registro.`:'Jugada registrada.';
+   driveBot();
    grantIfFinished();
    if(mode==='hotseat'&&match.phase==='tactics'&&match.turn!==prior)curtain=true;
  }catch(err){notice=err?.message||'Jugada no válida.';}
@@ -270,7 +371,7 @@ function useCard(uid){
  if(!card)return;
  selectedUnit=null;
  if(['ENERGY','DRAW'].includes(card.effect.type)){
-   perform(()=>playCard(match,side,uid,{}));return;
+   perform(()=>playCard(match,side,uid,{}),{kind:'card',id:card.id});return;
  }
  selectedCard=selectedCard===uid?null:uid;rotateSource=null;selectedObjective=null;
  if(selectedCard)handCollapsed=true;
@@ -282,9 +383,9 @@ function chooseLane(lane){
  const card=match.players[side].hand.find(c=>c.uid===selectedCard);
  if(!card)return;
  const t=card.effect.type;
- if(['PRESSURE','GUARD','GANK','DIVE','SABOTAGE'].includes(t))perform(()=>playCard(match,side,selectedCard,{lane}));
- else if(t==='ROTATE'&&rotateSource)perform(()=>playCard(match,side,selectedCard,{unitId:rotateSource,lane}));
- else if(t==='HUNT'&&selectedObjective==='minor')perform(()=>playCard(match,side,selectedCard,{objective:'minor',lane}));
+ if(['PRESSURE','GUARD','GANK','DIVE','SABOTAGE'].includes(t))perform(()=>playCard(match,side,selectedCard,{lane}),{kind:'card',id:card.id,lane});
+ else if(t==='ROTATE'&&rotateSource)perform(()=>playCard(match,side,selectedCard,{unitId:rotateSource,lane}),{kind:'card',id:card.id,lane});
+ else if(t==='HUNT'&&selectedObjective==='minor')perform(()=>playCard(match,side,selectedCard,{objective:'minor',lane}),{kind:'card',id:card.id,objective:'minor',lane});
 }
 function chooseObjective(id){
  if(!selectedCard){notice='Para disputar este objetivo, selecciona una carta de Caza.';render();return;}
@@ -294,7 +395,7 @@ function chooseObjective(id){
  if(id==='minor'){
    selectedObjective='minor';notice='Elige el carril que recibirá la recompensa si ganas la disputa.';render();return;
  }
- perform(()=>playCard(match,match.turn,selectedCard,{objective:'major'}));
+ perform(()=>playCard(match,match.turn,selectedCard,{objective:'major'}),{kind:'card',id:card.id,objective:'major'});
 }
 function pickUnit(owner,uid){
  const side=match.turn;
@@ -304,9 +405,9 @@ function pickUnit(owner,uid){
    const card=match.players[side].hand.find(c=>c.uid===selectedCard);
    if(!card)return;
    const type=card.effect.type;
-   if(type==='IMPACT'&&owner!==side)perform(()=>playCard(match,side,selectedCard,{unitId:uid}));
-   else if(type==='HEAL'&&owner===side)perform(()=>playCard(match,side,selectedCard,{unitId:uid}));
-   else if(type==='BACK'&&owner===side)perform(()=>playCard(match,side,selectedCard,{unitId:uid}));
+   if(type==='IMPACT'&&owner!==side)perform(()=>playCard(match,side,selectedCard,{unitId:uid}),{kind:'card',id:card.id});
+   else if(type==='HEAL'&&owner===side)perform(()=>playCard(match,side,selectedCard,{unitId:uid}),{kind:'card',id:card.id});
+   else if(type==='BACK'&&owner===side)perform(()=>playCard(match,side,selectedCard,{unitId:uid}),{kind:'card',id:card.id});
    else if(type==='ROTATE'&&owner===side&&unit.role!=='JUN'){
      rotateSource=uid;notice='Ahora selecciona el carril de destino.';render();
    }else if(['PRESSURE','GUARD','GANK','DIVE','SABOTAGE'].includes(type)&&LANES.includes(unit.lane)){
@@ -336,16 +437,24 @@ app.addEventListener('change',event=>{
 app.addEventListener('click',event=>{
  const el=event.target.closest('button');
  if(!el)return;
- if(el.dataset.setup){setup(el.dataset.setup);return;}
+ if(el.dataset.setup==='tutorial'){startTutorial(0);return;}
+ if(el.dataset.setup){tutorial=null;setup(el.dataset.setup);return;}
  if(el.dataset.first!==undefined){begin(Number(el.dataset.first));return;}
  const act=el.dataset.act;
- if(act==='reset'){mode=null;match=null;coin=null;curtain=false;notice='';currentMatchId=null;matchReward=null;focusLane='MID';handCollapsed=false;clearSelection();render();return;}
+ if(act==='reset'||act==='tutorial-exit'){tutorial=null;mode=null;match=null;coin=null;curtain=false;notice='';currentMatchId=null;matchReward=null;focusLane='MID';handCollapsed=false;clearSelection();render();return;}
+ if(mode==='tutorial'&&act==='tutorial-next'){nextTutorialLesson();return;}
+ if(mode==='tutorial'&&act==='tutorial-replay'){startTutorial(tutorial.lesson);return;}
+ if(mode==='tutorial'&&act==='tutorial-skip'){nextTutorialLesson();return;}
  if(act==='reveal'){curtain=false;render();return;}
  if(!match||curtain||match.phase==='finished')return;
+ if(mode==='tutorial'){
+   const step=tutorialStep(tutorial?.lesson,tutorial?.step);
+   if(!tutorialAllows(step,tutorialIntent(el))){notice='Sigue el paso indicado en la guía para continuar.';render();return;}
+ }
  if(act==='cancel'){clearSelection();handCollapsed=false;notice='';render();return;}
  if(act==='toggle-hand'){handCollapsed=!handCollapsed;render();return;}
- if(act==='pass'){perform(()=>passTurn(match,match.turn));return;}
- if(el.dataset.focusLane){if(LANES.includes(el.dataset.focusLane)){focusLane=el.dataset.focusLane;notice='';render();}return;}
+ if(act==='pass'){perform(()=>passTurn(match,match.turn),{kind:'pass'});return;}
+ if(el.dataset.focusLane){if(LANES.includes(el.dataset.focusLane)){focusLane=el.dataset.focusLane;notice='';recordTutorialAction({kind:'focus',lane:focusLane});render();}return;}
  const view=mode==='hotseat'?match.turn:0;
  if(match.turn!==view)return;
  if(el.dataset.keep){
@@ -357,7 +466,7 @@ app.addEventListener('click',event=>{
  if(el.dataset.card){useCard(el.dataset.card);return;}
  if(el.dataset.objective){chooseObjective(el.dataset.objective);return;}
  if(el.dataset.order&&selectedUnit){
-   perform(()=>activate(match,view,selectedUnit,el.dataset.order));return;
+   perform(()=>activate(match,view,selectedUnit,el.dataset.order),{kind:'order',order:el.dataset.order});return;
  }
  if(el.dataset.unit){pickUnit(Number(el.dataset.owner),el.dataset.unit);return;}
  if(el.dataset.lane){chooseLane(el.dataset.lane);return;}
