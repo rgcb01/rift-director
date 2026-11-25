@@ -236,3 +236,13 @@
  #card-game-app:has(.field) .tactic{height:clamp(112px,calc(var(--desktop-hand-height) - 83px),163px);min-height:clamp(112px,calc(var(--desktop-hand-height) - 83px),163px)}
  #card-game-app:has(.field) .keep-btn{min-height:23px}
 }
+
+/* Inspector is visual only, and never captures a click or drop. */
+.desktop-card-inspector{display:none}
+@media(min-width:961px){
+ #card-game-app .desktop-card-inspector{display:block;position:fixed;width:clamp(185px,17vw,260px);max-height:calc(100dvh - 16px);overflow:hidden;z-index:45;pointer-events:none;border-radius:11px;background:#10182b;box-shadow:0 12px 38px #000b}
+ #card-game-app .desktop-card-inspector .card-art{aspect-ratio:1;max-height:35dvh}
+ #card-game-app .desktop-card-inspector .card-face-copy{padding:10px}
+ #card-game-app .desktop-card-inspector .card-face-description{font-size:12px}
+ #card-game-app.dragging-active .desktop-card-inspector{display:none}
+}
