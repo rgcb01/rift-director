@@ -13,13 +13,15 @@
 | 0.9.0 | Archivo del Vínculo, colección local, sobres, fabricación y recompensas virtuales | Implementado; sin pagos reales |
 | **0.9.1** | **UX táctil móvil**: foco de carril, mano plegable y objetivos contextualizados | **Integrado y publicado en GitHub Pages; pruebas visuales aprobadas** |
 
+**Tutorial inicial:** cinco lecciones progresivas sobre carriles, cartas/energía, rotaciones/Back, Latido y Nexo. No produce monedas, no altera la colección y utiliza escenarios de práctica preparados. [Especificación](docs/TUTORIAL_GUIDED_v092.md).
+
 ## Próximas versiones propuestas
 
 | Versión | Prioridad | Criterio de aceptación |
 |---|---|---|
-| **0.9.2** | Cartas y Riftborn ilustrados, marcos propios, iconos claros, rarezas, accesibilidad de texto, tamaños táctiles | Lectura clara en iPhone y escritorio; art original y sin depender del color para identificar cartas |
+| **0.9.2** | Piloto de seis ilustraciones IA, renderer reutilizable y tutorial progresivo inicial (adelantado) | Ilustraciones originales y cinco lecciones guiadas con mecánicas del motor real, accesibles en móvil |
 | **0.9.3** | Animaciones y audio: jugadas, daño, destrucción de torres, objetivos y sobres | Feedback fácil de interpretar; sonidos configurables, movimiento reducido y sin bloqueo de acciones |
-| **0.9.4** | Tutorial interactivo y mejoras de onboarding | Una persona nueva puede completar una partida guiada sin consultar documentos externos |
+| **0.9.4** | Pulir el tutorial inicial con pruebas humanas y añadir ayuda contextual para partidas normales | Comprensión validada, ayuda opcional, errores claros y lecciones sin bloqueos |
 | **0.9.5** | UX/QA y balance: estrategias, duración, simetría, empates, recuperación de errores y accesibilidad | Sin bloqueantes en móvil; partidas humanas probadas, reportes de IA reproducibles y métricas documentadas |
 | **0.9.6** | Progresión local con misiones y logros, exportación e importación de colección/mazos | Evitar pérdida de progreso y abuso de recompensas; economía local clara, sin cobros |
 | **1.0.0** | Juego de cartas estable, offline-first, contra IA y hotseat con colección, tutorial y guardados | Flujos completos, pruebas visuales y de reglas, arte coherente y salida documentada |
