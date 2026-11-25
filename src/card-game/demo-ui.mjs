@@ -483,7 +483,9 @@ function validDropFor(target){
  }
  return null;
 }
+let dragGhost=null;
 function clearDrag(){
+ dragGhost?.remove();dragGhost=null;
  app.classList.remove('dragging-active');
  app.querySelectorAll('.drop-valid,.drop-hover,.dragging-card,.dragging-unit').forEach(el=>
   el.classList.remove('drop-valid','drop-hover','dragging-card','dragging-unit'));
@@ -502,6 +504,15 @@ function beginDrag(event){
  activeDrag=source;
  event.dataTransfer.effectAllowed='move';
  event.dataTransfer.setData('text/plain','RiftDirector:'+source.kind+':'+source.uid);
+ // Capture a full-size, undimmed card before marking the source.
+ const rect=node.getBoundingClientRect();
+ dragGhost=node.cloneNode(true);
+ dragGhost.classList.add('desktop-drag-ghost');
+ dragGhost.removeAttribute('id');dragGhost.removeAttribute('draggable');
+ dragGhost.setAttribute('aria-hidden','true');dragGhost.tabIndex=-1;
+ dragGhost.style.width=rect.width+'px';dragGhost.style.height=rect.height+'px';
+ app.append(dragGhost);
+ event.dataTransfer.setDragImage(dragGhost,rect.width/2,Math.min(28,rect.height/2));
  node.classList.add(isCard?'dragging-card':'dragging-unit');
  app.classList.add('dragging-active');
  const candidates=isCard?app.querySelectorAll('.field,.lane,.unit[data-unit],.objective-tile'):
@@ -597,6 +608,10 @@ app.addEventListener('drop',event=>{
  if(plan)finishDrop(plan);
 });
 app.addEventListener('dragend',clearDrag);
+app.addEventListener('dragleave',event=>{
+ if(activeDrag&&!app.contains(event.relatedTarget)){hoverDrop?.classList.remove('drop-hover');hoverDrop=null;}
+});
+window.addEventListener('blur',()=>{pointerPending=null;clearDrag();});
 app.addEventListener('change',event=>{
  const ai=event.target.closest('[data-ai]');
  if(ai&&!match&&!coin){
