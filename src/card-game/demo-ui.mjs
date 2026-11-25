@@ -116,7 +116,7 @@ function laneNavigator(viewSide){
 }
 function board(viewSide){
  const rival=1-viewSide;
- return `<div class="field">${laneNavigator(viewSide)}<div class="board-side">${sideBanner(rival,true)}${enemyBacks(rival)}${reserve(rival)}${jungle(rival,true)}<div class="lanes">${LANES.map(l=>laneColumn(rival,l,true)).join('')}</div></div>${neutralZone()}<div class="board-side"><div class="lanes">${LANES.map(l=>laneColumn(viewSide,l,false)).join('')}</div>${jungle(viewSide,false)}<button class="board-base-drop" data-base-drop="${viewSide}" aria-label="Regresar a base: suelta un Riftborn propio">⌂ BASE <small>Suelta aquí un Riftborn para recuperar PV</small></button>${sideBanner(viewSide,false)}${reserve(viewSide)}</div></div>`;
+ return `<div class="field">${laneNavigator(viewSide)}<div class="board-side enemy">${sideBanner(rival,true)}${enemyBacks(rival)}${reserve(rival)}${jungle(rival,true)}<div class="lanes">${LANES.map(l=>laneColumn(rival,l,true)).join('')}</div></div>${neutralZone()}<div class="board-side"><div class="lanes">${LANES.map(l=>laneColumn(viewSide,l,false)).join('')}</div>${jungle(viewSide,false)}<button class="board-base-drop" data-base-drop="${viewSide}" aria-label="Regresar a base: suelta un Riftborn propio">⌂ BASE <small>Suelta aquí un Riftborn para recuperar PV</small></button>${sideBanner(viewSide,false)}${reserve(viewSide)}</div></div>`;
 }
 function prompt(viewSide){
  const current=match.turn===viewSide;
