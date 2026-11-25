@@ -56,8 +56,11 @@ test('Desktop drag: allied Riftborn changes front/rear and returns to base',asyn
  const arcanista=page.locator('.board-side:not(.enemy) .lane[data-lane-column="MID"] .unit').first();
  // Opponent is passive only in tutorial, so the bot may get the next move.
  await expect(arcanista).toBeVisible();
+ await expect(arcanista).toHaveAttribute('draggable','true');
+ await page.evaluate(()=>{window.__dragAudit=[];for(const type of ['dragstart','dragover','drop','dragend'])document.addEventListener(type,e=>window.__dragAudit.push({type,at:e.target?.className?.toString().slice(0,60),onBase:Boolean(e.target?.closest?.('[data-base-drop]'))}),true);});
  await arcanista.dragTo(page.locator('.board-base-drop'));
- await expect(page.locator('.board-side:not(.enemy) .reserve-unit').first()).toContainText('BACK');
+ const diagnostic=await page.evaluate(()=>({events:window.__dragAudit.filter(x=>x.type!=='dragover'||x.onBase).slice(-15),notice:document.querySelector('.notice')?.textContent,turn:document.querySelector('.turn-strip')?.textContent,base:document.querySelector('.board-base-drop')?.getBoundingClientRect().toJSON()}));
+ await expect(page.locator('.board-side:not(.enemy) .reserve-unit').first(),'Drag audit: '+JSON.stringify(diagnostic)).toContainText('BACK');
  expect(errors).toEqual([]);await context.close();
 });
 test('Desktop drag: card dropped onto a legal board target is played, not just selected',async({browser})=>{
