@@ -41,7 +41,7 @@ for(const width of [390,1440]){
   await expect(page.locator('.tutorial-guide')).toContainText('Disputa el Latido');
   await expect(page.locator('[data-objective="minor"]')).toBeEnabled();
   await page.locator('.tactic:has([data-card-id="hunt"])').first().click();
-  await page.locator('[data-objective="minor"]').click();
+  await page.locator('.decision-dock [data-objective="minor"]').click();
   await page.locator('.decision-dock [data-lane="MID"]').click();
   await expect(page.locator('.tutorial-guide')).toContainText('Confirma la conquista');
   await page.locator('[data-act="pass"]').click();
