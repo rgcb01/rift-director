@@ -150,3 +150,28 @@
 @media(min-width:961px) and (hover:hover) and (pointer:fine){
  #card-game-app:has(.field) .tactic:hover:not(:disabled):not(.dragging-card){transform:translateY(-3px);border-color:#d7bc85}
 }
+
+/* v0.9.2B — compact HUD and a shallow physical hand.
+   Only short hands fan out; large hands keep their horizontal scroll. */
+@media(min-width:961px){
+ #card-game-app:has(.field) .topbar .kicker{display:none}
+ #card-game-app:has(.field) .turn-strip{border-radius:8px;min-height:38px;padding-block:4px}
+ #card-game-app:has(.field) .turn-meta .pill{background:transparent;border-color:#8297a333}
+ #card-game-app:has(.field) .hand-heading .nav-actions .pill{display:none}
+ #card-game-app:has(.field) .hand-heading .btn.primary{min-height:34px;padding:6px 18px}
+ #card-game-app:has(.field) .hand-heading h2{font-size:13px;letter-spacing:.025em}
+ #card-game-app:has(.field) .cards-scroll{padding:10px 12px 6px}
+}
+@media(min-width:961px) and (hover:hover) and (pointer:fine){
+ #card-game-app:has(.field) .cards-scroll:not(:has(.hand-card:nth-child(7))){gap:0;scroll-snap-type:none}
+ #card-game-app:has(.field) .cards-scroll:not(:has(.hand-card:nth-child(7))) .hand-card{
+  --fan:0deg;--rise:0px;position:relative;transform:translateY(var(--rise)) rotate(var(--fan));transform-origin:50% 90%;
+ }
+ #card-game-app:has(.field) .cards-scroll:not(:has(.hand-card:nth-child(7))) .hand-card+.hand-card{margin-inline-start:-5px}
+ #card-game-app:has(.field) .hand-card:first-child:not(:last-child){--fan:-3deg;--rise:4px}
+ #card-game-app:has(.field) .hand-card:last-child:not(:first-child){--fan:3deg;--rise:4px}
+ #card-game-app:has(.field) .cards-scroll:not(:has(.hand-card:nth-child(7))) .hand-card:is(:hover,:focus-within,:has(.selected),:has(.dragging-card)){transform:none;z-index:3}
+}
+@media(prefers-reduced-motion:reduce){
+ #card-game-app:has(.field) .hand-card{transform:none!important}
+}
