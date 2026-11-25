@@ -76,7 +76,7 @@ function tower(side,lane){
  return `<button class="tower ${hp===0?'open':''}" data-lane="${lane}" title="Elegir carril ${lane}"><span>${hp>0?'♜ Torre':'⚑ BRECHA'}</span><strong>${hp}/6</strong></button>`;
 }
 function laneColumn(side,lane,isEnemy){
- return `<div class="lane ${isEnemy?'enemy':''} ${focusLane===lane?'focus-active':''}" data-lane-column="${lane}" data-owner="${side}"><div class="lane-name">${lane}</div>${isEnemy?`${tower(side,lane)}${laneSlot(side,lane,'rear',isEnemy)}${laneSlot(side,lane,'front',isEnemy)}`:`${laneSlot(side,lane,'front',isEnemy)}${laneSlot(side,lane,'rear',isEnemy)}${tower(side,lane)}`}</div>`;
+ return `<div class="lane ${isEnemy?'enemy':''} ${focusLane===lane?'focus-active':''}" data-lane-column="${lane}" data-owner="${side}"><div class="lane-name">${lane}<button class="lane-focus-btn" type="button" data-assign-lane="${lane}" title="Dirigir la bonificación del Latido a ${lane}" aria-label="Seleccionar ${lane} para la recompensa del Latido" aria-pressed="${focusLane===lane}">◎</button></div>${isEnemy?`${tower(side,lane)}${laneSlot(side,lane,'rear',isEnemy)}${laneSlot(side,lane,'front',isEnemy)}`:`${laneSlot(side,lane,'front',isEnemy)}${laneSlot(side,lane,'rear',isEnemy)}${tower(side,lane)}`}</div>`;
 }
 function jungle(side,isEnemy){
  const u=match.players[side].characters.find(u=>u.role==='JUN');
@@ -582,6 +582,7 @@ app.addEventListener('click',event=>{
  if(act==='toggle-hand'){handCollapsed=!handCollapsed;render();return;}
  if(act==='pass'){perform(()=>passTurn(match,match.turn),{kind:'pass'});return;}
  if(el.dataset.focusLane){if(LANES.includes(el.dataset.focusLane)){focusLane=el.dataset.focusLane;notice='';recordTutorialAction({kind:'focus',lane:focusLane});render();}return;}
+ if(el.dataset.assignLane){if(LANES.includes(el.dataset.assignLane)){focusLane=el.dataset.assignLane;notice='Latido del Vínculo: la bonificación irá a '+focusLane+'.';render();}return;}
  const view=mode==='hotseat'?match.turn:0;
  if(match.turn!==view)return;
  if(el.dataset.keep){
