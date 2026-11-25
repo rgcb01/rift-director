@@ -190,3 +190,11 @@
 #card-game-app .health-preview{display:block;width:100%;padding:3px 2px;border-radius:4px;font-size:10px;font-weight:800;line-height:1.15;text-align:center;pointer-events:none;background:#101820;color:#dce6e9;white-space:normal}
 #card-game-app .health-preview.damage{color:#ffd0c7;background:#48262e}
 #card-game-app .health-preview.heal{color:#baf3d6;background:#153b30}
+
+/* Native cursor preview: offscreen clone never participates in board hit testing. */
+#card-game-app .desktop-drag-ghost{position:fixed!important;left:-2000px!important;top:0!important;margin:0!important;transform:none!important;opacity:1!important;pointer-events:none!important;z-index:-1;filter:none!important}
+@media(min-width:961px){
+ #card-game-app.dragging-active .drop-valid:not(.drop-hover){outline-style:solid!important;outline-color:#8ad5b8!important;box-shadow:inset 0 0 14px #63ceab20}
+ #card-game-app.dragging-active .drop-hover{outline-color:#ffe0a1!important;box-shadow:inset 0 0 22px #f5c77544,0 0 12px #ffc98955!important}
+ #card-game-app.dragging-active .dragging-card,#card-game-app.dragging-active .dragging-unit{opacity:.35}
+}
