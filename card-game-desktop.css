@@ -107,7 +107,6 @@
  #card-game-app:has(.field) .card-face-hand .card-art{aspect-ratio:3.7}
 }
 @media(max-width:960px){
- .drag-hint{display:none}
- .board-base-drop{min-height:37px}
+ .drag-hint,.board-base-drop,.log-toggle{display:none}
 }
 @media(prefers-reduced-motion:reduce){.sidebar{transition:none!important}.drop-valid,.drop-hover{transition:none!important}}
