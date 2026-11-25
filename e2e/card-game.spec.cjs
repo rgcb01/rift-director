@@ -229,5 +229,5 @@ test('Card Game v0.9.1: escritorio conserva tres carriles completos',async({page
  await page.locator('[data-first]').first().click();
  await expect(page.locator('.lane-navigator')).toBeHidden();
  await expect(page.locator('.lane:visible')).toHaveCount(6);
- await expect(page.locator('.hand-panel')).not.toHaveCSS('position','fixed');
+ await expect(page.locator('.hand-panel')).toHaveCSS('position','fixed');
 });
