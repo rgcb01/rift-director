@@ -208,7 +208,7 @@
  #card-game-app:has(.field) .decision-dock{margin-bottom:3px}
  #card-game-app:has(.field) .decision-dock>.panel:not(.prompt){min-height:28px;padding:3px 9px}
  #card-game-app:has(.field) .arena-layout{padding-bottom:4px}
- #card-game-app:has(.field) .field{max-width:1440px;padding:6px 10px;gap:4px}
+ #card-game-app:has(.field) .field{max-width:1680px;padding:6px 10px;gap:4px}
  #card-game-app:has(.field) .board-side{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:3px 6px}
  #card-game-app:has(.field) .board-side>.lanes,#card-game-app:has(.field) .board-side>.reserve{grid-column:1/-1}
  #card-game-app:has(.field) .board-side>.side-banner{grid-column:1/-1;min-height:25px;padding:2px 8px}
