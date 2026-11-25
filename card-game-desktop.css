@@ -246,3 +246,9 @@
  #card-game-app .desktop-card-inspector .card-face-description{font-size:12px}
  #card-game-app.dragging-active .desktop-card-inspector{display:none}
 }
+
+.desktop-shortcuts{display:none}
+@media(min-width:961px){
+ #card-game-app .desktop-shortcuts{display:block;margin:5px 0}
+ #card-game-app .tactic[data-shortcut]::after{content:attr(data-shortcut);position:absolute;bottom:4px;right:4px;display:grid;place-items:center;min-width:17px;height:17px;padding:0 3px;background:#10182be8;border:1px solid #a3b2c066;border-radius:4px;color:#e3e9ef;font-size:10px;pointer-events:none}
+}
