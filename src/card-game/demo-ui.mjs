@@ -199,7 +199,7 @@ function bonusSummary(viewSide){
 }
 function sidePanel(viewSide){
  const log=[...match.log].slice(-15).reverse();
- return `<aside class="sidebar ${logOpen?'is-open':''}" id="game-help" aria-label="Reglas y registro del combate"><button class="btn minor sidebar-close" data-act="toggle-log">Cerrar panel ×</button><div class="panel"><h3>Reglas rápidas</h3><p>Delante combate, atrás farmea. Las cartas giradas ya actuaron. Back: una ronda fuera; muerte: dos. Rompe una torre para abrir una ruta al Nexo.</p><div class="bonus-list">${bonusSummary(viewSide)}</div><details><summary>Ver más</summary><p>4 jugadas por jugador y ronda. Presión ganadora → daño a estructura. Las cartas de 0 energía también consumen jugada. Desde R5 hay 7 de energía base. ATQ +1 en R7 y +2 en R10; el asedio máximo sube en R12 (4) y R17 (5), y la mitigación frontal baja en R10 y R16. Desde R14/R18 los supervivientes delante suman +1/+2 presión adicional al carril. Caza disputa Latido o Coloso. Un jungla listo añade +2 presión neutral pero se agota.</p></details></div><div class="panel"><h3>Registro de combate</h3><div class="log">${log.map(e=>`<div class="logline"><span>R${e.round}</span> · ${escape(logText(e))}</div>`).join('')}</div></div></aside>`;
+ return `<aside class="sidebar ${logOpen?'is-open':''}" id="game-help" aria-label="Reglas y registro del combate"><button class="btn minor sidebar-close" data-act="toggle-log">Cerrar panel ×</button><div class="panel"><h3>Reglas rápidas</h3><details class="desktop-shortcuts"><summary>Atajos de teclado</summary><p>1–9: seleccionar carta (recursos: enfocar y confirmar con Enter). Q/W/E: enfocar TOP/MID/BOT. Esc: cerrar o cancelar. Espacio: pasar turno si no hay un control enfocado. Tab y Enter: navegar y confirmar.</p></details><p>Delante combate, atrás farmea. Las cartas giradas ya actuaron. Back: una ronda fuera; muerte: dos. Rompe una torre para abrir una ruta al Nexo.</p><div class="bonus-list">${bonusSummary(viewSide)}</div><details><summary>Ver más</summary><p>4 jugadas por jugador y ronda. Presión ganadora → daño a estructura. Las cartas de 0 energía también consumen jugada. Desde R5 hay 7 de energía base. ATQ +1 en R7 y +2 en R10; el asedio máximo sube en R12 (4) y R17 (5), y la mitigación frontal baja en R10 y R16. Desde R14/R18 los supervivientes delante suman +1/+2 presión adicional al carril. Caza disputa Latido o Coloso. Un jungla listo añade +2 presión neutral pero se agota.</p></details></div><div class="panel"><h3>Registro de combate</h3><div class="log">${log.map(e=>`<div class="logline"><span>R${e.round}</span> · ${escape(logText(e))}</div>`).join('')}</div></div></aside>`;
 }
 function handPanel(side){
  const p=match.players[side];
@@ -323,6 +323,7 @@ function render(){
  if(newScroll&&oldScroll)newScroll.scrollLeft=oldScroll;
  if(logOpen)app.querySelector('#game-help')?.classList.add('is-open');
  markTutorialTarget();
+ markKeyboardHints();
  lastRenderedMatch=match;
  lastRenderedSide=currentSide;
 }
@@ -652,6 +653,47 @@ app.addEventListener('dragleave',event=>{
  if(activeDrag&&!app.contains(event.relatedTarget)){hoverDrop?.classList.remove('drop-hover');hoverDrop=null;}
 });
 window.addEventListener('blur',()=>{pointerPending=null;clearDrag();});
+function markKeyboardHints(){
+ if(!desktopCanDrag()||!match||curtain)return;
+ app.querySelectorAll('.hand-card .tactic').forEach((node,i)=>{
+  if(i<9){node.setAttribute('aria-keyshortcuts',String(i+1));node.dataset.shortcut=String(i+1);}
+ });
+ const pass=app.querySelector('[data-act="pass"]');
+ if(pass){pass.setAttribute('aria-keyshortcuts','Space');pass.title='Pasar turno · Espacio';}
+}
+document.addEventListener('keydown',event=>{
+ if(!desktopCanDrag()||!match||curtain||match.phase!=='tactics'||event.repeat||event.defaultPrevented||event.ctrlKey||event.altKey||event.metaKey||event.shiftKey)return;
+ if(event.target?.closest?.('input,textarea,select,[contenteditable="true"]'))return;
+ if(event.key==='Escape'){
+  if(activeDrag){clearDrag();pointerPending=null;event.preventDefault();return;}
+  if(inspector){hideInspector();event.preventDefault();return;}
+  const cancel=app.querySelector('[data-act="cancel"]');
+  if(cancel){event.preventDefault();cancel.click();}
+  else if(logOpen){event.preventDefault();app.querySelector('.log-toggle')?.click();}
+  return;
+ }
+ if(activeDrag||match.turn!==(mode==='hotseat'?match.turn:0))return;
+ let target=null;
+ if(/^[1-9]$/.test(event.key)){
+  const card=app.querySelectorAll('.hand-card .tactic')[Number(event.key)-1];
+  // Resource cards resolve on click; focus them instead of spending blindly.
+  if(card&&!card.disabled){
+   event.preventDefault();card.focus();
+   const model=match.players[match.turn].hand.find(c=>c.uid===card.dataset.card);
+   if(!['ENERGY','DRAW'].includes(model?.effect.type))card.click();
+  }
+  return;
+ }
+ const lane={q:'TOP',w:'MID',e:'BOT'}[event.key.toLowerCase()];
+ if(lane){
+  // Focus only: never commit a targeted action or change the Latido reward.
+  target=app.querySelector('.board-side:not(.enemy) [data-lane-column="'+lane+'"] .tower');
+  if(target){event.preventDefault();target.focus();target.scrollIntoView({block:'nearest',inline:'nearest'});}
+  return;
+ }
+ if(event.code==='Space'&&!event.target?.closest?.('button,a,summary,[role="button"]'))target=app.querySelector('[data-act="pass"]');
+ if(target&&!target.disabled){event.preventDefault();target.click();}
+});
 app.addEventListener('change',event=>{
  const ai=event.target.closest('[data-ai]');
  if(ai&&!match&&!coin){
