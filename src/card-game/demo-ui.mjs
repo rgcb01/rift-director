@@ -48,9 +48,13 @@ function coinScreen(){
   `<button class="btn primary" data-first="${winner}">Elegir jugar primero</button><button class="btn" data-first="${1-winner}">Jugar segundo (+1 energía en R1)</button>`;
  return `${title()}<section class="result"><span class="coin">◉</span><div class="kicker">Sorteo inicial</div><h2>${winnerText}</h2><p class="small">El segundo jugador recibe +1 energía durante la primera ronda. Después la prioridad alterna cada ronda.</p><div class="choices">${buttons}</div></section>`;
 }
+function healthTrack(hp,max){
+ const pct=Math.max(0,Math.min(100,Number(hp)/Math.max(1,Number(max))*100));
+ return `<span class="health-track" aria-hidden="true" style="--health:${pct}%"></span>`;
+}
 function sideBanner(side,isEnemy){
  const p=match.players[side];
- return `<div class="side-banner ${isEnemy?'enemy':''}"><strong>${isEnemy?'RIVAL':'TÚ'} · ${escape(p.name)}</strong><span class="nexus ${side===0?'blue':'red'}">◈ NEXO ${p.nexus}/12</span><span>⚡ ${p.energy}</span></div>`;
+ return `<div class="side-banner ${isEnemy?'enemy':''}"><strong>${isEnemy?'RIVAL':'TÚ'} · ${escape(p.name)}</strong><span class="nexus ${side===0?'blue':'red'}">◈ NEXO ${p.nexus}/12${healthTrack(p.nexus,12)}</span><span>⚡ ${p.energy}</span></div>`;
 }
 function canTargetUnit(u,owner){
  if(!selectedCard||!match||match.phase!=='tactics')return false;
@@ -63,8 +67,18 @@ function canTargetUnit(u,owner){
   default:return false;
  }
 }
+function immediateHealthPreview(u,owner){
+ if(!canTargetUnit(u,owner))return '';
+ const card=match.players[match.turn].hand.find(c=>c.uid===selectedCard);
+ if(!card||!['IMPACT','HEAL'].includes(card.effect.type))return '';
+ const damage=card.effect.type==='IMPACT',value=card.effect.value??0;
+ const next=damage?Math.max(0,u.hp-value):Math.min(u.maxHp,u.hp+value);
+ const delta=next-u.hp;
+ const label=delta===0?'Sin cambio':delta<0?(next===0?'−'+Math.abs(delta)+' PV · KO':'−'+Math.abs(delta)+' PV'):'+'+delta+' PV';
+ return `<span class="health-preview ${damage?'damage':'heal'}" title="Efecto inmediato, antes de resolver la ronda">${label} · ${next}/${u.maxHp}</span>`;
+}
 function zoneUnit(u,owner,isEnemy){
- return `<button class="unit ${isEnemy?'enemy':''} ${u.tapped?'tapped':''} ${selectedUnit===u.id?'active-target':''} ${canTargetUnit(u,owner)?'can-target':''}" title="${escape(characterName(u))} · ${escape(TRAITS[u.trait]?.description||'')} · ${u.hp}/${u.maxHp} PV · ${u.tapped?'Agotado':'Disponible'}" data-unit="${escape(u.id)}" data-owner="${owner}" draggable="${desktopCanDrag()&&owner===match.turn&&match.phase==='tactics'&&!curtain}">${renderCardFace(u.code,{variant:'board',attack:combatAttack(u,match.round),hp:u.hp,maxHp:u.maxHp})}</button>`;
+ return `<button class="unit ${isEnemy?'enemy':''} ${u.tapped?'tapped':''} ${selectedUnit===u.id?'active-target':''} ${canTargetUnit(u,owner)?'can-target':''}" title="${escape(characterName(u))} · ${escape(TRAITS[u.trait]?.description||'')} · ${u.hp}/${u.maxHp} PV · ${u.tapped?'Agotado':'Disponible'}" data-unit="${escape(u.id)}" data-owner="${owner}" draggable="${desktopCanDrag()&&owner===match.turn&&match.phase==='tactics'&&!curtain}">${renderCardFace(u.code,{variant:'board',attack:combatAttack(u,match.round),hp:u.hp,maxHp:u.maxHp})}${healthTrack(u.hp,u.maxHp)}${immediateHealthPreview(u,owner)}</button>`;
 }
 function characterName(u){return u.name || u.code;}
 function laneSlot(side,lane,rank,isEnemy){
@@ -73,7 +87,7 @@ function laneSlot(side,lane,rank,isEnemy){
 }
 function tower(side,lane){
  const hp=match.players[side].towers[lane];
- return `<button class="tower ${hp===0?'open':''}" data-lane="${lane}" title="Elegir carril ${lane}"><span>${hp>0?'♜ Torre':'⚑ BRECHA'}</span><strong>${hp}/6</strong></button>`;
+ return `<button class="tower ${hp===0?'open':''}" data-lane="${lane}" title="Elegir carril ${lane}"><span>${hp>0?'♜ Torre':'⚑ BRECHA'}</span><strong>${hp}/6</strong>${healthTrack(hp,6)}</button>`;
 }
 function laneColumn(side,lane,isEnemy){
  return `<div class="lane ${isEnemy?'enemy':''} ${focusLane===lane?'focus-active':''}" data-lane-column="${lane}" data-owner="${side}"><div class="lane-name">${lane}<button class="lane-focus-btn" type="button" data-assign-lane="${lane}" title="Dirigir la bonificación del Latido a ${lane}" aria-label="Seleccionar ${lane} para la recompensa del Latido" aria-pressed="${focusLane===lane}">◎</button></div>${isEnemy?`${tower(side,lane)}${laneSlot(side,lane,'rear',isEnemy)}${laneSlot(side,lane,'front',isEnemy)}`:`${laneSlot(side,lane,'front',isEnemy)}${laneSlot(side,lane,'rear',isEnemy)}${tower(side,lane)}`}</div>`;
@@ -139,7 +153,7 @@ function prompt(viewSide){
        .map(([id,def])=>`<button class="btn target-lane" data-objective="${id}">${escape(def.name)}</button>`).join(''):'';
    const needsUnit=['IMPACT','HEAL','BACK'].includes(t)||(t==='ROTATE'&&!rotateSource);
    const hint=needsUnit?'<span class="selection-hint">Toca un personaje resaltado. Cambia de carril con las pestañas.</span>':'';
-   return `<section class="panel prompt" aria-label="Preparar acción"><div class="selected-card-detail">${renderCardArt(card.id,{compact:true,full:true,eager:true})}<div><h3>${escape(card.name)} <span class="card-preview-cost">⚡ ${card.cost}</span></h3><p class="card-effect-text">${escape(card.description)}</p></div></div><p><strong>${escape(label)}</strong></p><div class="prompt-btns">${laneActions}${objectives}${hint}<button class="btn smallbtn minor" data-act="cancel">Cancelar</button></div></section>`;
+   return `<section class="panel prompt" aria-label="Preparar acción"><div class="selected-card-detail">${renderCardArt(card.id,{compact:true,full:true,eager:true})}<div><h3>${escape(card.name)} <span class="card-preview-cost" title="Energía tras pagar el coste, antes de otros efectos">⚡ ${match.players[viewSide].energy} → ${match.players[viewSide].energy-card.cost}</span></h3><p class="card-effect-text">${escape(card.description)}</p></div></div><p><strong>${escape(label)}</strong></p><div class="prompt-btns">${laneActions}${objectives}${hint}<button class="btn smallbtn minor" data-act="cancel">Cancelar</button></div></section>`;
  }
  if(selectedUnit){
    const u=match.players[viewSide].characters.find(u=>u.id===selectedUnit);
@@ -185,7 +199,7 @@ function bonusSummary(viewSide){
 }
 function sidePanel(viewSide){
  const log=[...match.log].slice(-15).reverse();
- return `<aside class="sidebar ${logOpen?'is-open':''}" id="game-help" aria-label="Reglas y registro del combate"><button class="btn minor sidebar-close" data-act="toggle-log">Cerrar panel ×</button><div class="panel"><h3>Reglas rápidas</h3><p>Delante combate, atrás farmea. Las cartas giradas ya actuaron. Back: una ronda fuera; muerte: dos. Rompe una torre para abrir una ruta al Nexo.</p><div class="bonus-list">${bonusSummary(viewSide)}</div><details><summary>Ver más</summary><p>4 jugadas por jugador y ronda. Presión ganadora → daño a estructura. Las cartas de 0 energía también consumen jugada. Desde R5 hay 7 de energía base. ATQ +1 en R7 y +2 en R10; el asedio máximo sube en R12 (4) y R17 (5), y la mitigación frontal baja en R10 y R16. Desde R14/R18 los supervivientes delante suman +1/+2 presión adicional al carril. Caza disputa Latido o Coloso. Un jungla listo añade +2 presión neutral pero se agota.</p></details></div><div class="panel"><h3>Registro de combate</h3><div class="log">${log.map(e=>`<div class="logline"><span>R${e.round}</span> · ${escape(logText(e))}</div>`).join('')}</div></div></aside>`;
+ return `<aside class="sidebar ${logOpen?'is-open':''}" id="game-help" aria-label="Reglas y registro del combate"><button class="btn minor sidebar-close" data-act="toggle-log">Cerrar panel ×</button><div class="panel"><h3>Reglas rápidas</h3><details class="desktop-shortcuts"><summary>Atajos de teclado</summary><p>1–9: seleccionar carta (recursos: enfocar y confirmar con Enter). Q/W/E: enfocar TOP/MID/BOT. Esc: cerrar o cancelar. Espacio: pasar turno si no hay un control enfocado. Tab y Enter: navegar y confirmar.</p></details><p>Delante combate, atrás farmea. Las cartas giradas ya actuaron. Back: una ronda fuera; muerte: dos. Rompe una torre para abrir una ruta al Nexo.</p><div class="bonus-list">${bonusSummary(viewSide)}</div><details><summary>Ver más</summary><p>4 jugadas por jugador y ronda. Presión ganadora → daño a estructura. Las cartas de 0 energía también consumen jugada. Desde R5 hay 7 de energía base. ATQ +1 en R7 y +2 en R10; el asedio máximo sube en R12 (4) y R17 (5), y la mitigación frontal baja en R10 y R16. Desde R14/R18 los supervivientes delante suman +1/+2 presión adicional al carril. Caza disputa Latido o Coloso. Un jungla listo añade +2 presión neutral pero se agota.</p></details></div><div class="panel"><h3>Registro de combate</h3><div class="log">${log.map(e=>`<div class="logline"><span>R${e.round}</span> · ${escape(logText(e))}</div>`).join('')}</div></div></aside>`;
 }
 function handPanel(side){
  const p=match.players[side];
@@ -300,6 +314,7 @@ function game(){
  return `${title()}${notice?`<div class="notice" role="status">${escape(notice)}</div>`:''}<div class="turn-strip"><div><div class="kicker">Ronda ${match.round}</div><strong>${match.phase==='finished'?'Partida terminada':'Turno '+labelSide(match.turn)} ${play?'· tu jugada':''}</strong></div><div class="turn-meta"><span class="pill">⚡ ${p.energy}</span><span class="pill">${p.actions}/4 jugadas</span></div><div class="turn-meta"><span class="pill">↔ ${mode==='bot'?'IA '+AI_LEVELS[botDifficulty].name+' · '+AI_STYLES[botStyle].name:'2 locales'}</span></div></div>${mode==='tutorial'?tutorialGuide():''}${outcome()}<div class="decision-dock">${prompt(view)}</div><div class="arena-layout">${board(view)}${sidePanel(view)}</div>${handPanel(view)}<footer class="layout-footer">Rift Director · Card Game prototype · Las partidas no afectan los guardados del antiguo manager.</footer>${curtain&&mode==='hotseat'&&match.phase==='tactics'?`<div class="pass-screen"><div class="pass-card"><div class="coin">✦</div><h2>Pasa el dispositivo</h2><p class="small">Es turno del jugador ${labelSide(match.turn)}. La mano se mostrará cuando esté listo.</p><button class="btn primary" data-act="reveal">Mostrar mi mano</button></div></div>`:''}`;
 }
 function render(){
+ hideInspector();
  const currentSide=match?(mode==='hotseat'?match.turn:0):null;
  const oldScroll=match&&match===lastRenderedMatch&&currentSide===lastRenderedSide?
    app.querySelector('.cards-scroll')?.scrollLeft:0;
@@ -308,6 +323,7 @@ function render(){
  if(newScroll&&oldScroll)newScroll.scrollLeft=oldScroll;
  if(logOpen)app.querySelector('#game-help')?.classList.add('is-open');
  markTutorialTarget();
+ markKeyboardHints();
  lastRenderedMatch=match;
  lastRenderedSide=currentSide;
 }
@@ -469,13 +485,16 @@ function validDropFor(target){
  }
  return null;
 }
+let dragGhost=null;
 function clearDrag(){
+ dragGhost?.remove();dragGhost=null;
  app.classList.remove('dragging-active');
  app.querySelectorAll('.drop-valid,.drop-hover,.dragging-card,.dragging-unit').forEach(el=>
   el.classList.remove('drop-valid','drop-hover','dragging-card','dragging-unit'));
  activeDrag=null;hoverDrop=null;
 }
 function beginDrag(event){
+ hideInspector();
  if(!desktopCanDrag()||!match||match.phase!=='tactics'||curtain||match.turn!==(mode==='hotseat'?match.turn:0)){
   event.preventDefault();return;
  }
@@ -488,6 +507,15 @@ function beginDrag(event){
  activeDrag=source;
  event.dataTransfer.effectAllowed='move';
  event.dataTransfer.setData('text/plain','RiftDirector:'+source.kind+':'+source.uid);
+ // Capture a full-size, undimmed card before marking the source.
+ const rect=node.getBoundingClientRect();
+ dragGhost=node.cloneNode(true);
+ dragGhost.classList.add('desktop-drag-ghost');
+ dragGhost.removeAttribute('id');dragGhost.removeAttribute('draggable');
+ dragGhost.setAttribute('aria-hidden','true');dragGhost.tabIndex=-1;
+ dragGhost.style.width=rect.width+'px';dragGhost.style.height=rect.height+'px';
+ app.append(dragGhost);
+ event.dataTransfer.setDragImage(dragGhost,rect.width/2,Math.min(28,rect.height/2));
  node.classList.add(isCard?'dragging-card':'dragging-unit');
  app.classList.add('dragging-active');
  const candidates=isCard?app.querySelectorAll('.field,.lane,.unit[data-unit],.objective-tile'):
@@ -527,8 +555,46 @@ function finishDrop(plan){
 // Some desktop browser/scroll combinations can finish a mouse gesture without
 // dispatching HTML5 drag events. Pointer fallback resolves the very same plan
 // once the mouse moves enough; a plain click still follows the existing UI.
+let inspector=null,inspectTimer=null,inspectSource=null;
+function hideInspector(){
+ clearTimeout(inspectTimer);inspectTimer=null;inspectSource=null;
+ inspector?.remove();inspector=null;
+}
+function scheduleInspector(node){
+ hideInspector();
+ if(!node||!desktopCanDrag()||!match||curtain||activeDrag)return;
+ inspectSource=node;
+ inspectTimer=setTimeout(()=>{
+  if(inspectSource!==node||!node.isConnected||activeDrag||curtain)return;
+  const face=node.querySelector('[data-card-id]');
+  if(!face)return;
+  const unit=node.dataset.unit?match.players[Number(node.dataset.owner)]?.characters.find(u=>u.id===node.dataset.unit):null;
+  inspector=document.createElement('aside');
+  inspector.className='desktop-card-inspector';
+  inspector.setAttribute('aria-hidden','true');
+  inspector.innerHTML=renderCardFace(face.dataset.cardId,{variant:'reveal',...(unit?{attack:combatAttack(unit,match.round),hp:unit.hp,maxHp:unit.maxHp}:{})});
+  app.append(inspector);
+  const r=node.getBoundingClientRect(),w=inspector.offsetWidth,h=inspector.offsetHeight;
+  const left=r.right+w+14<=innerWidth?r.right+12:Math.max(8,r.left-w-12);
+  inspector.style.left=Math.min(innerWidth-w-8,left)+'px';
+  inspector.style.top=Math.max(8,Math.min(innerHeight-h-8,r.top+(r.height-h)/2))+'px';
+ },280);
+}
+const inspectNode=target=>target?.closest?.('button[data-card],button[data-unit]');
+app.addEventListener('pointerover',event=>{
+ const node=inspectNode(event.target);
+ if(event.pointerType==='mouse'&&node&&node!==inspectNode(event.relatedTarget))scheduleInspector(node);
+});
+app.addEventListener('pointerout',event=>{
+ if(inspectNode(event.target)===inspectSource&&inspectNode(event.relatedTarget)!==inspectSource)hideInspector();
+});
+app.addEventListener('focusin',event=>{const node=inspectNode(event.target);if(node?.matches(':focus-visible'))scheduleInspector(node);});
+app.addEventListener('focusout',event=>{if(inspectNode(event.target)===inspectSource)hideInspector();});
+window.addEventListener('resize',hideInspector);
+window.addEventListener('blur',hideInspector);
 let pointerPending=null,suppressPointerClick=false;
 app.addEventListener('pointerdown',event=>{
+ hideInspector();
  if(event.button!==0||!desktopCanDrag()||!match||match.phase!=='tactics'||curtain||
    match.turn!==(mode==='hotseat'?match.turn:0))return;
  const node=event.target.closest('button[data-card],button[data-unit]');
@@ -583,6 +649,51 @@ app.addEventListener('drop',event=>{
  if(plan)finishDrop(plan);
 });
 app.addEventListener('dragend',clearDrag);
+app.addEventListener('dragleave',event=>{
+ if(activeDrag&&!app.contains(event.relatedTarget)){hoverDrop?.classList.remove('drop-hover');hoverDrop=null;}
+});
+window.addEventListener('blur',()=>{pointerPending=null;clearDrag();});
+function markKeyboardHints(){
+ if(!desktopCanDrag()||!match||curtain)return;
+ app.querySelectorAll('.hand-card .tactic').forEach((node,i)=>{
+  if(i<9){node.setAttribute('aria-keyshortcuts',String(i+1));node.dataset.shortcut=String(i+1);}
+ });
+ const pass=app.querySelector('[data-act="pass"]');
+ if(pass){pass.setAttribute('aria-keyshortcuts','Space');pass.title='Pasar turno · Espacio';}
+}
+document.addEventListener('keydown',event=>{
+ if(!desktopCanDrag()||!match||curtain||match.phase!=='tactics'||event.repeat||event.defaultPrevented||event.ctrlKey||event.altKey||event.metaKey||event.shiftKey)return;
+ if(event.target?.closest?.('input,textarea,select,[contenteditable="true"]'))return;
+ if(event.key==='Escape'){
+  if(activeDrag){clearDrag();pointerPending=null;event.preventDefault();return;}
+  if(inspector){hideInspector();event.preventDefault();return;}
+  const cancel=app.querySelector('[data-act="cancel"]');
+  if(cancel){event.preventDefault();cancel.click();}
+  else if(logOpen){event.preventDefault();app.querySelector('.log-toggle')?.click();}
+  return;
+ }
+ if(activeDrag||match.turn!==(mode==='hotseat'?match.turn:0))return;
+ let target=null;
+ if(/^[1-9]$/.test(event.key)){
+  const card=app.querySelectorAll('.hand-card .tactic')[Number(event.key)-1];
+  // Resource cards resolve on click; focus them instead of spending blindly.
+  if(card&&!card.disabled){
+   event.preventDefault();card.focus();
+   const model=match.players[match.turn].hand.find(c=>c.uid===card.dataset.card);
+   if(!['ENERGY','DRAW'].includes(model?.effect.type))card.click();
+  }
+  return;
+ }
+ const lane={q:'TOP',w:'MID',e:'BOT'}[event.key.toLowerCase()];
+ if(lane){
+  // Focus only: never commit a targeted action or change the Latido reward.
+  target=app.querySelector('.board-side:not(.enemy) [data-lane-column="'+lane+'"] .tower');
+  if(target){event.preventDefault();target.focus();target.scrollIntoView({block:'nearest',inline:'nearest'});}
+  return;
+ }
+ if(event.code==='Space'&&!event.target?.closest?.('button,a,summary,[role="button"]'))target=app.querySelector('[data-act="pass"]');
+ if(target&&!target.disabled){event.preventDefault();target.click();}
+});
 app.addEventListener('change',event=>{
  const ai=event.target.closest('[data-ai]');
  if(ai&&!match&&!coin){
